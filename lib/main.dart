@@ -35,27 +35,27 @@ Future<void> main() async {
 class _MissingConfigApp extends StatelessWidget {
   const _MissingConfigApp();
 
-  @override
+@override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.white,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.warning_amber_rounded,
+                Icon(Icons.warning_amber_rounded,
                     size: 48, color: Colors.orange),
-                const SizedBox(height: 16),
-                const Text(
+                SizedBox(height: 16),
+                Text(
                   'Missing Supabase configuration',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 12),
-                const Text(
+                SizedBox(height: 12),
+                Text(
                   'env/config.json is missing or wasn\'t passed in.\n\n'
                   'Run with:\n'
                   'flutter run -d chrome --dart-define-from-file=env/config.json\n\n'
