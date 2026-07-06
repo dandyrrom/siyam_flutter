@@ -95,7 +95,7 @@ const List<NavItem> kNavItems = [
 /// user may access it.
 List<AppRole>? rolesAllowedFor(String path) {
   for (final item in kNavItems) {
-    if (item.path == path) return item.roles;
+    if (path == item.path || path.startsWith('${item.path}/')) return item.roles;
   }
   return null;
 }

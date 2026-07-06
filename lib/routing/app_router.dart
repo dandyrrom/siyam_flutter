@@ -5,6 +5,7 @@ import '../pages/login_page.dart';
 import '../pages/register_page.dart';
 import '../pages/dashboard_page.dart';
 import '../pages/inventory_page.dart';
+import '../pages/inventory_item_page.dart';
 import '../pages/donations_page.dart';
 import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
@@ -61,6 +62,12 @@ GoRouter buildRouter(AuthController authState) {
         routes: [
           GoRoute(path: '/dashboard', builder: (context, state) => const DashboardPage()),
           GoRoute(path: '/inventory', builder: (context, state) => const InventoryPage()),
+          GoRoute(path: '/inventory', builder: (context, state) => const InventoryPage()),
+          GoRoute(
+            path: '/inventory/:id',
+            builder: (context, state) =>
+                InventoryItemPage(itemId: state.pathParameters['id']!),
+          ),
           GoRoute(path: '/donations', builder: (context, state) => const DonationsPage()),
           GoRoute(path: '/impacts', builder: (context, state) => const ImpactsPage()),
           GoRoute(

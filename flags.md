@@ -1,0 +1,1 @@
+adjustStock does a read-then-write, so two people stocking the same item at the same second could race. Fine for now; if that becomes a real problem later, a Postgres function (increment_stock(itemid, delta)) would fix it atomically.
