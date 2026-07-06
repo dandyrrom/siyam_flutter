@@ -3,90 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/app_user.dart';
+import '../routing/nav_config.dart';
 import '../state/auth_state.dart';
-
-class NavItem {
-  final String label;
-  final String path;
-  final IconData icon;
-  final List<AppRole> roles;
-
-  const NavItem({
-    required this.label,
-    required this.path,
-    required this.icon,
-    required this.roles,
-  });
-}
-
-// Mirrors NAV_ITEMS in the original Sidebar.tsx
-const List<NavItem> _navItems = [
-  NavItem(
-      label: 'Dashboard',
-      path: '/dashboard',
-      icon: Icons.dashboard_outlined,
-      roles: [AppRole.manager, AppRole.staff, AppRole.donor]),
-  NavItem(
-      label: 'Animals',
-      path: '/animal-records',
-      icon: Icons.pets_outlined,
-      roles: [AppRole.manager]),
-  NavItem(
-      label: 'Suppliers',
-      path: '/suppliers',
-      icon: Icons.local_shipping_outlined,
-      roles: [AppRole.manager]),
-  NavItem(
-      label: 'Reports',
-      path: '/reports',
-      icon: Icons.bar_chart_outlined,
-      roles: [AppRole.manager, AppRole.staff]),
-  NavItem(
-      label: 'Audit Trail',
-      path: '/audit-trail',
-      icon: Icons.fact_check_outlined,
-      roles: [AppRole.manager]),
-  NavItem(
-      label: 'Settings',
-      path: '/settings',
-      icon: Icons.settings_outlined,
-      roles: [AppRole.manager]),
-  NavItem(
-      label: 'Inventory',
-      path: '/inventory',
-      icon: Icons.inventory_2_outlined,
-      roles: [AppRole.staff]),
-  NavItem(
-      label: 'Medical',
-      path: '/medical-records',
-      icon: Icons.medical_services_outlined,
-      roles: [AppRole.staff]),
-  NavItem(
-      label: 'Donations',
-      path: '/donations',
-      icon: Icons.volunteer_activism_outlined,
-      roles: [AppRole.staff]),
-  NavItem(
-      label: 'Donate Now',
-      path: '/donate',
-      icon: Icons.favorite_outline,
-      roles: [AppRole.donor]),
-  NavItem(
-      label: 'Donations',
-      path: '/donation-history',
-      icon: Icons.receipt_long_outlined,
-      roles: [AppRole.donor]),
-  NavItem(
-      label: 'Profile',
-      path: '/profile',
-      icon: Icons.person_outline,
-      roles: [AppRole.manager, AppRole.staff, AppRole.donor]),
-  NavItem(
-      label: 'Notifications',
-      path: '/notifications',
-      icon: Icons.notifications_outlined,
-      roles: [AppRole.manager, AppRole.staff, AppRole.donor]),
-];
 
 class SideNav extends StatelessWidget {
   final bool collapsed;
@@ -99,7 +17,7 @@ class SideNav extends StatelessWidget {
     final auth = context.watch<AuthController>();
     final user = auth.profile;
     final items =
-        _navItems.where((i) => user != null && i.roles.contains(user.role)).toList();
+        kNavItems.where((i) => user != null && i.roles.contains(user.role)).toList();
 
     return Container(
       width: collapsed ? 72 : 248,

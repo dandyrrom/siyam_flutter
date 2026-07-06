@@ -6,7 +6,7 @@ import '../pages/register_page.dart';
 import '../pages/dashboard_page.dart';
 import '../pages/inventory_page.dart';
 import '../pages/donations_page.dart';
-import '../pages/donor/donate_page.dart';
+import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
 import '../pages/reports_page.dart';
 import '../pages/medical_records_page.dart';
@@ -18,6 +18,7 @@ import '../pages/notifications_page.dart';
 import '../pages/settings_page.dart';
 import '../state/auth_state.dart';
 import '../widgets/app_shell.dart';
+import 'nav_config.dart';
 
 const _publicPaths = {'/', '/login', '/register'};
 
@@ -36,6 +37,16 @@ GoRouter buildRouter(AuthController authState) {
       if (loggedIn && (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
         return '/dashboard';
       }
+
+      // Role gate: bounce a signed-in user away from a tab that isn't
+      // theirs (e.g. a Donor typing /animal-records into the URL bar).
+      if (loggedIn) {
+        final allowedRoles = rolesAllowedFor(state.matchedLocation);
+        final userRole = authState.profile?.role;
+        if (allowedRoles != null && userRole != null && !allowedRoles.contains(userRole)) {
+          return '/dashboard';
+        }
+      }
       return null;
     },
     routes: [
@@ -51,7 +62,7 @@ GoRouter buildRouter(AuthController authState) {
           GoRoute(path: '/dashboard', builder: (context, state) => const DashboardPage()),
           GoRoute(path: '/inventory', builder: (context, state) => const InventoryPage()),
           GoRoute(path: '/donations', builder: (context, state) => const DonationsPage()),
-          GoRoute(path: '/donate', builder: (context, state) => const DonatePage()),
+          GoRoute(path: '/impacts', builder: (context, state) => const ImpactsPage()),
           GoRoute(
               path: '/donation-history',
               builder: (context, state) => const DonorDonationsPage()),

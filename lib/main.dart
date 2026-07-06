@@ -8,6 +8,18 @@ import 'state/auth_state.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  assert(() {
+    if (SupabaseConfig.url.contains('YOUR-PROJECT-REF') ||
+        SupabaseConfig.publishableKey.contains('YOUR-SUPABASE')) {
+      throw StateError(
+        'SupabaseConfig still has placeholder values. '
+        'Edit lib/core/supabase_config.dart with your real project URL '
+        'and publishable/anon key from Supabase Dashboard -> Project Settings -> API.',
+      );
+    }
+    return true;
+  }());
+
   await Supabase.initialize(
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,

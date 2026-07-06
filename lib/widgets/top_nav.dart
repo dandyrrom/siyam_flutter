@@ -8,7 +8,7 @@ const Map<String, String> _breadcrumbLabels = {
   'dashboard': 'Dashboard',
   'inventory': 'Inventory',
   'donations': 'Donations',
-  'donate': 'Donate Now',
+  'impacts': 'Impacts',
   'donation-history': 'Donations',
   'reports': 'Reports & Analytics',
   'medical-records': 'Medical',
