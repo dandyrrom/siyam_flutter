@@ -105,4 +105,62 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() => _authService.signOut();
+
+  Future<bool> updateProfile({
+    required String firstName,
+    required String lastName,
+    String? contactNum,
+  }) async {
+    final userId = profile?.userId;
+    if (userId == null) return false;
+
+    isBusy = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      await _authService.updateProfile(
+        userId: userId,
+        firstName: firstName,
+        lastName: lastName,
+        contactNum: contactNum,
+      );
+      profile = await _authService.fetchProfile(userId);
+      return true;
+    } catch (e) {
+      errorMessage = 'Could not update your profile. Please try again.';
+      return false;
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final email = profile?.email;
+    if (email == null) return false;
+
+    isBusy = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      await _authService.changePassword(
+        email: email,
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    } on AuthException catch (e) {
+      errorMessage = e.message;
+      return false;
+    } catch (e) {
+      errorMessage = 'Could not update your password. Please try again.';
+      return false;
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
 }

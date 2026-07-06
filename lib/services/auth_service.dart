@@ -66,4 +66,35 @@ class AuthService {
     if (row == null) return null;
     return AppUser.fromMap(row);
   }
+
+  /// Updates the editable fields of a user's own profile row.
+  /// Requires an RLS UPDATE policy on public.users allowing
+  /// auth.uid() = userid.
+  Future<void> updateProfile({
+    required String userId,
+    required String firstName,
+    required String lastName,
+    String? contactNum,
+  }) {
+    return _client.from('users').update({
+      'userfname': firstName,
+      'userlname': lastName,
+      'contactnum': contactNum,
+    }).eq('userid', userId);
+  }
+
+  /// Changes the signed-in user's password. Re-authenticates with the
+  /// current password first as a safety check before applying the new one
+  /// (Supabase's updateUser call doesn't verify the old password itself).
+  Future<void> changePassword({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _client.auth.signInWithPassword(
+      email: email,
+      password: currentPassword,
+    );
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
 }
