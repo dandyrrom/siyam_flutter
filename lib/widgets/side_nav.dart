@@ -40,10 +40,11 @@ class SideNav extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: AppColors.sidebarPrimary,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.pets, size: 16, color: Colors.white),
+                  child: const Icon(Icons.pets,
+                      size: 16, color: AppColors.sidebarPrimaryForeground),
                 ),
                 if (!collapsed) ...[
                   const SizedBox(width: 10),
@@ -54,11 +55,14 @@ class SideNav extends StatelessWidget {
                       children: [
                         Text('SIYAM',
                             style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 13),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: AppColors.sidebarForeground),
                             overflow: TextOverflow.ellipsis),
                         Text('Dumaguete Sanctuary',
                             style: TextStyle(
-                                fontSize: 10, color: AppColors.mutedForeground),
+                                fontSize: 10,
+                                color: AppColors.sidebarAccentForeground),
                             overflow: TextOverflow.ellipsis),
                       ],
                     ),
@@ -76,12 +80,13 @@ class SideNav extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.accent,
+                  color: AppColors.sidebarAccent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.apartment, size: 13, color: AppColors.mutedForeground),
+                    const Icon(Icons.apartment,
+                        size: 13, color: AppColors.sidebarAccentForeground),
                     const SizedBox(width: 6),
                     Text(
                       appRoleToString(user.role).toUpperCase(),
@@ -89,7 +94,7 @@ class SideNav extends StatelessWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
-                          color: AppColors.mutedForeground),
+                          color: AppColors.sidebarAccentForeground),
                     ),
                   ],
                 ),
@@ -105,7 +110,7 @@ class SideNav extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 2),
                   child: Material(
-                    color: active ? AppColors.primary : Colors.transparent,
+                    color: active ? AppColors.sidebarPrimary : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
@@ -118,8 +123,8 @@ class SideNav extends StatelessWidget {
                             Icon(item.icon,
                                 size: 18,
                                 color: active
-                                    ? Colors.white
-                                    : AppColors.mutedForeground),
+                                    ? AppColors.sidebarPrimaryForeground
+                                    : AppColors.sidebarAccentForeground),
                             if (!collapsed) ...[
                               const SizedBox(width: 12),
                               Expanded(
@@ -131,8 +136,8 @@ class SideNav extends StatelessWidget {
                                     fontWeight:
                                         active ? FontWeight.w600 : FontWeight.w400,
                                     color: active
-                                        ? Colors.white
-                                        : AppColors.foreground,
+                                        ? AppColors.sidebarPrimaryForeground
+                                        : AppColors.sidebarForeground,
                                   ),
                                 ),
                               ),
@@ -163,12 +168,12 @@ class SideNav extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 14,
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: AppColors.sidebarPrimary,
                           child: Text(user.initials,
                               style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white)),
+                                  color: AppColors.sidebarPrimaryForeground)),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -179,12 +184,14 @@ class SideNav extends StatelessWidget {
                               Text(user.fullName,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontSize: 12.5, fontWeight: FontWeight.w600)),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.sidebarForeground)),
                               Text(user.email,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color: AppColors.mutedForeground)),
+                                      color: AppColors.sidebarAccentForeground)),
                             ],
                           ),
                         ),
@@ -196,10 +203,12 @@ class SideNav extends StatelessWidget {
                     await context.read<AuthController>().logout();
                     if (context.mounted) context.go('/login');
                   },
-                  icon: const Icon(Icons.logout, size: 16, color: AppColors.mutedForeground),
+                  icon: const Icon(Icons.logout,
+                      size: 16, color: AppColors.sidebarAccentForeground),
                   label: collapsed
                       ? const SizedBox.shrink()
-                      : const Text('Logout', style: TextStyle(color: AppColors.foreground)),
+                      : const Text('Logout',
+                          style: TextStyle(color: AppColors.sidebarForeground)),
                   style: TextButton.styleFrom(
                     alignment: Alignment.centerLeft,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
