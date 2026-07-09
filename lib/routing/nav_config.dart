@@ -69,6 +69,11 @@ const List<NavItem> kNavItems = [
       icon: Icons.volunteer_activism_outlined,
       roles: [AppRole.staff]),
   NavItem(
+      label: 'Donate',
+      path: '/donate',
+      icon: Icons.favorite_outline,
+      roles: [AppRole.donor]),
+  NavItem(
       label: 'Impacts',
       path: '/impacts',
       icon: Icons.insights_outlined,

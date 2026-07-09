@@ -7,6 +7,7 @@ import '../pages/dashboard_page.dart';
 import '../pages/inventory_page.dart';
 import '../pages/inventory_item_page.dart';
 import '../pages/donations_page.dart';
+import '../pages/donor/donate_page.dart';
 import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
 import '../pages/reports_page.dart';
@@ -59,36 +60,90 @@ GoRouter buildRouter(AuthController authState) {
         builder: (context, state, child) {
           return AppShell(currentPath: state.matchedLocation, child: child);
         },
+        // Every route below uses pageBuilder + NoTransitionPage instead of
+        // builder. These are tab switches within the same app shell, not
+        // full page navigations -- and Material's default animated page
+        // transition (Zoom) briefly relayouts the outgoing tab's content
+        // with squeezed constraints mid-animation, which throws spurious
+        // "RenderFlex overflowed" errors for pages that render fine on
+        // their own. Removing the transition removes the cause.
         routes: [
-          GoRoute(path: '/dashboard', builder: (context, state) => const DashboardPage()),
-          GoRoute(path: '/inventory', builder: (context, state) => const InventoryPage()),
-          GoRoute(path: '/inventory', builder: (context, state) => const InventoryPage()),
+          GoRoute(
+            path: '/dashboard',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardPage()),
+          ),
+          GoRoute(
+            path: '/inventory',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: InventoryPage()),
+          ),
           GoRoute(
             path: '/inventory/:id',
-            builder: (context, state) =>
-                InventoryItemPage(itemId: state.pathParameters['id']!),
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: InventoryItemPage(itemId: state.pathParameters['id']!),
+            ),
           ),
-          GoRoute(path: '/donations', builder: (context, state) => const DonationsPage()),
-          GoRoute(path: '/impacts', builder: (context, state) => const ImpactsPage()),
           GoRoute(
-              path: '/donation-history',
-              builder: (context, state) => const DonorDonationsPage()),
-          GoRoute(path: '/reports', builder: (context, state) => const ReportsPage()),
+            path: '/donations',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DonationsPage()),
+          ),
           GoRoute(
-              path: '/medical-records',
-              builder: (context, state) => const MedicalRecordsPage()),
+            path: '/donate',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DonatePage()),
+          ),
           GoRoute(
-              path: '/animal-records',
-              builder: (context, state) => const AnimalRecordsPage()),
-          GoRoute(path: '/suppliers', builder: (context, state) => const SuppliersPage()),
+            path: '/impacts',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ImpactsPage()),
+          ),
           GoRoute(
-              path: '/audit-trail',
-              builder: (context, state) => const AuditTrailPage()),
-          GoRoute(path: '/profile', builder: (context, state) => const ProfilePage()),
+            path: '/donation-history',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DonorDonationsPage()),
+          ),
           GoRoute(
-              path: '/notifications',
-              builder: (context, state) => const NotificationsPage()),
-          GoRoute(path: '/settings', builder: (context, state) => const SettingsPage()),
+            path: '/reports',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ReportsPage()),
+          ),
+          GoRoute(
+            path: '/medical-records',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MedicalRecordsPage()),
+          ),
+          GoRoute(
+            path: '/animal-records',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AnimalRecordsPage()),
+          ),
+          GoRoute(
+            path: '/suppliers',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: SuppliersPage()),
+          ),
+          GoRoute(
+            path: '/audit-trail',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AuditTrailPage()),
+          ),
+          GoRoute(
+            path: '/profile',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfilePage()),
+          ),
+          GoRoute(
+            path: '/notifications',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: NotificationsPage()),
+          ),
+          GoRoute(
+            path: '/settings',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: SettingsPage()),
+          ),
         ],
       ),
     ],

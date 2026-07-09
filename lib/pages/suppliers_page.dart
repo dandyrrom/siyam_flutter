@@ -1,11 +1,567 @@
 import 'package:flutter/material.dart';
-import 'placeholder_page.dart';
+import 'package:provider/provider.dart';
+import '../core/app_theme.dart';
+import '../models/inventory_item.dart';
+import '../models/supplier.dart';
+import '../services/inventory_service.dart';
+import '../services/supplier_service.dart';
+import '../state/auth_state.dart';
+import '../widgets/create_item_dialog.dart';
+import '../widgets/stat_card.dart';
 
-class SuppliersPage extends StatelessWidget {
+class SuppliersPage extends StatefulWidget {
   const SuppliersPage({super.key});
 
   @override
+  State<SuppliersPage> createState() => _SuppliersPageState();
+}
+
+class _SuppliersPageState extends State<SuppliersPage> {
+  final SupplierService _service = SupplierService();
+  final InventoryService _inventoryService = InventoryService();
+
+  List<Supplier> _suppliers = [];
+  List<PurchaseOrder> _allOrders = [];
+  List<InventoryItem> _items = [];
+  bool _loading = true;
+  String? _error;
+  String _search = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final results = await Future.wait([
+        _service.fetchSuppliers(),
+        _service.fetchAllPurchaseOrders(),
+        _inventoryService.fetchItems(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _suppliers = results[0] as List<Supplier>;
+        _allOrders = results[1] as List<PurchaseOrder>;
+        _items = results[2] as List<InventoryItem>;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not load suppliers: $e';
+        _loading = false;
+      });
+    }
+  }
+
+  List<Supplier> get _filtered {
+    if (_search.isEmpty) return _suppliers;
+    final q = _search.toLowerCase();
+    return _suppliers.where((s) => s.suppName.toLowerCase().contains(q)).toList();
+  }
+
+  List<PurchaseOrder> _ordersFor(String suppId) =>
+      _allOrders.where((o) => o.suppId == suppId).toList();
+
+  Future<void> _openAddSupplierDialog() async {
+    final nameCtrl = TextEditingController();
+    final contactCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Supplier'),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Supplier name'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: contactCtrl,
+                  decoration: const InputDecoration(labelText: 'Contact number (optional)'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: addressCtrl,
+                  decoration: const InputDecoration(labelText: 'Address (optional)'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.of(context).pop();
+              try {
+                await _service.createSupplier(
+                  suppName: nameCtrl.text.trim(),
+                  contactNum: contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
+                  address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+                );
+                _load();
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text('Could not add supplier: $e')));
+              }
+            },
+            child: const Text('Add Supplier'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openCreatePurchaseOrderDialog(Supplier supplier) async {
+    final userId = context.read<AuthController>().profile?.userId;
+    if (userId == null) return;
+
+    final formKey = GlobalKey<FormState>();
+    final List<OrderItemInput> itemRows = [];
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Purchase Order — ${supplier.suppName}'),
+          content: SizedBox(
+            width: 480,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 4,
+                      children: [
+                        const Text('Items',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                        Wrap(
+                          children: [
+                            TextButton.icon(
+                              onPressed: () async {
+                                final newItem = await showCreateItemDialog(context,
+                                    service: _inventoryService);
+                                if (newItem == null) return;
+                                setDialogState(() {
+                                  _items.add(newItem);
+                                  itemRows.add(OrderItemInput(
+                                    itemId: newItem.itemId,
+                                    itemName: newItem.itemName,
+                                    itemUom: newItem.itemUom,
+                                  ));
+                                });
+                              },
+                              icon: const Icon(Icons.add_box_outlined, size: 16),
+                              label: const Text('New item'),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => setDialogState(() {
+                                final available = _items
+                                    .where((i) => !itemRows.any((r) => r.itemId == i.itemId))
+                                    .toList();
+                                if (available.isEmpty) return;
+                                final first = available.first;
+                                itemRows.add(OrderItemInput(
+                                  itemId: first.itemId,
+                                  itemName: first.itemName,
+                                  itemUom: first.itemUom,
+                                ));
+                              }),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Add item'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    for (final row in itemRows)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: DropdownButtonFormField<String>(
+                                initialValue: row.itemId,
+                                isExpanded: true,
+                                decoration: const InputDecoration(labelText: 'Item'),
+                                items: _items
+                                    .map((i) => DropdownMenuItem(
+                                        value: i.itemId, child: Text(i.itemName)))
+                                    .toList(),
+                                onChanged: (v) => setDialogState(() {
+                                  final picked = _items.firstWhere((i) => i.itemId == v);
+                                  final idx = itemRows.indexOf(row);
+                                  itemRows[idx] = OrderItemInput(
+                                    itemId: picked.itemId,
+                                    itemName: picked.itemName,
+                                    itemUom: picked.itemUom,
+                                    qty: row.qty,
+                                    unitCost: row.unitCost,
+                                  );
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                key: ValueKey('${row.itemId}-qty'),
+                                initialValue: '${row.qty}',
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(labelText: 'Qty (${row.itemUom})'),
+                                onChanged: (v) => row.qty = int.tryParse(v) ?? 0,
+                                validator: (v) {
+                                  final n = int.tryParse(v ?? '');
+                                  if (n == null || n <= 0) return 'Invalid';
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                key: ValueKey('${row.itemId}-cost'),
+                                initialValue: row.unitCost == 0 ? '' : '${row.unitCost}',
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(decimal: true),
+                                decoration: const InputDecoration(labelText: 'Unit cost'),
+                                onChanged: (v) => row.unitCost = double.tryParse(v) ?? 0,
+                                validator: (v) {
+                                  final n = double.tryParse(v ?? '');
+                                  if (n == null || n < 0) return 'Invalid';
+                                  return null;
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => setDialogState(() => itemRows.remove(row)),
+                              icon: const Icon(Icons.close, size: 18),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (itemRows.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Add at least one item to place this order.',
+                            style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: itemRows.isEmpty
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      Navigator.of(context).pop();
+                      try {
+                        await _service.createPurchaseOrder(
+                          suppId: supplier.suppId,
+                          userId: userId,
+                          items: itemRows,
+                        );
+                        _load();
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Could not create purchase order: $e')));
+                      }
+                    },
+              child: const Text('Place Order'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openDetailDialog(Supplier supplier) async {
+    final orders = _ordersFor(supplier.suppId);
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(supplier.suppName),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _DetailRow(label: 'Contact', value: supplier.contactNum ?? '—'),
+                _DetailRow(label: 'Address', value: supplier.address ?? '—'),
+                _DetailRow(label: 'Total Orders', value: '${orders.length}'),
+                _DetailRow(
+                  label: 'Last Order',
+                  value: orders.isEmpty ? '—' : _formatDate(orders.first.purDate),
+                ),
+                const SizedBox(height: 12),
+                const Text('Purchase History',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                const SizedBox(height: 8),
+                if (orders.isEmpty)
+                  const Text('No purchase orders yet.',
+                      style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground))
+                else
+                  for (final order in orders)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(_formatDate(order.purDate))),
+                          Text(order.buyerName,
+                              style: const TextStyle(
+                                  fontSize: 12.5, color: AppColors.mutedForeground)),
+                        ],
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openCreatePurchaseOrderDialog(supplier);
+            },
+            child: const Text('Create Purchase Order'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const PlaceholderPage(title: 'Suppliers', icon: Icons.local_shipping_outlined);
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, style: const TextStyle(color: AppColors.mutedForeground)),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: _load, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text('Suppliers',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            ),
+            ElevatedButton.icon(
+              onPressed: _openAddSupplierDialog,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add Supplier'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text('${_suppliers.length} suppliers',
+            style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
+        const SizedBox(height: 20),
+        StatCardRow(cards: [
+          StatCard(
+            label: 'Total Suppliers',
+            value: '${_suppliers.length}',
+            icon: Icons.local_shipping_outlined,
+            accent: AppColors.roleManager,
+          ),
+          StatCard(
+            label: 'Total Purchase Orders',
+            value: '${_allOrders.length}',
+            icon: Icons.receipt_long_outlined,
+            accent: AppColors.roleManager,
+          ),
+        ]),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: 280,
+          child: TextField(
+            onChanged: (v) => setState(() => _search = v),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search, size: 18),
+              hintText: 'Search suppliers…',
+              isDense: true,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (_suppliers.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 56),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.local_shipping_outlined,
+                      size: 36, color: AppColors.mutedForeground),
+                  SizedBox(height: 10),
+                  Text('No suppliers yet', style: TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          )
+        else if (_filtered.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 48),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.search_off, size: 32, color: AppColors.mutedForeground),
+                  SizedBox(height: 8),
+                  Text('No suppliers match your search.',
+                      style: TextStyle(color: AppColors.mutedForeground)),
+                ],
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 320,
+              mainAxisExtent: 165,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: _filtered.length,
+            itemBuilder: (context, index) {
+              final supplier = _filtered[index];
+              final orders = _ordersFor(supplier.suppId);
+              return InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _openDetailDialog(supplier),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(supplier.suppName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      const SizedBox(height: 6),
+                      if (supplier.contactNum != null)
+                        Text(supplier.contactNum!,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12.5, color: AppColors.mutedForeground)),
+                      if (supplier.address != null)
+                        Text(supplier.address!,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12.5, color: AppColors.mutedForeground)),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('${orders.length} orders',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.mutedForeground)),
+                          Text(
+                              orders.isEmpty
+                                  ? 'No orders yet'
+                                  : 'Last: ${_formatDate(orders.first.purDate)}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.mutedForeground)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
   }
 }
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _formatDate(DateTime date) =>
+    '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';

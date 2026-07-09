@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
+import '../widgets/create_item_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -39,11 +40,13 @@ class _InventoryPageState extends State<InventoryPage> {
     });
     try {
       final items = await _service.fetchItems();
+      if (!mounted) return;
       setState(() {
         _items = items;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Could not load inventory: $e';
         _loading = false;
@@ -175,81 +178,8 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Future<void> _openAddItemDialog() async {
-    final nameCtrl = TextEditingController();
-    final categoryCtrl = TextEditingController();
-    final uomCtrl = TextEditingController();
-    final qtyCtrl = TextEditingController(text: '0');
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Item'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Item name'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: categoryCtrl,
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: uomCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Unit of measure (e.g. kg, pcs, boxes)'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: qtyCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Initial quantity'),
-                  validator: (v) {
-                    final n = int.tryParse(v ?? '');
-                    if (n == null || n < 0) return 'Enter a valid quantity';
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.of(context).pop();
-              try {
-                await _service.createItem(
-                  itemName: nameCtrl.text.trim(),
-                  itemCategory: categoryCtrl.text.trim(),
-                  itemUom: uomCtrl.text.trim(),
-                  initialQty: int.parse(qtyCtrl.text),
-                );
-                _load();
-              } catch (e) {
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text('Could not add item: $e')));
-}
-            },
-            child: const Text('Add Item'),
-          ),
-        ],
-      ),
-    );
+    final item = await showCreateItemDialog(context, service: _service);
+    if (item != null) _load();
   }
 
   (String, Color) _stockLevelMeta(StockLevel level) {
@@ -290,20 +220,28 @@ class _InventoryPageState extends State<InventoryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                const Text('Inventory',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_horiz, color: AppColors.mutedForeground),
-                  onSelected: (v) {
-                    if (v == 'add') _openAddItemDialog();
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'add', child: Text('Add Item')),
-                  ],
-                ),
-              ],
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Flexible(
+                    child: Text(
+                      'Inventory',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_horiz, color: AppColors.mutedForeground),
+                    onSelected: (v) {
+                      if (v == 'add') _openAddItemDialog();
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'add', child: Text('Add Item')),
+                    ],
+                  ),
+                ],
+              ),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -332,7 +270,10 @@ class _InventoryPageState extends State<InventoryPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
                       width: 280,
@@ -348,7 +289,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-                    const Spacer(),
                     DropdownButton<String>(
                       value: _category,
                       underline: const SizedBox.shrink(),
@@ -360,7 +300,6 @@ class _InventoryPageState extends State<InventoryPage> {
                       onChanged: (v) =>
                           setState(() { _category = v ?? 'All'; _page = 0; }),
                     ),
-                    const SizedBox(width: 12),
                     DropdownButton<String>(
                       value: _supplier,
                       underline: const SizedBox.shrink(),
@@ -372,7 +311,6 @@ class _InventoryPageState extends State<InventoryPage> {
                       onChanged: (v) =>
                           setState(() { _supplier = v ?? 'All'; _page = 0; }),
                     ),
-                    const SizedBox(width: 12),
                     DropdownButton<StockLevel?>(
                       value: _stockLevelFilter,
                       hint: const Text('Stock Level'),
@@ -427,10 +365,10 @@ class _InventoryPageState extends State<InventoryPage> {
                 // widths. Using Expanded/flex instead of DataTable's
                 // intrinsic sizing means this also stretches to fill
                 // the full card width instead of hugging its content.
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   child: Row(
-                    children: const [
+                    children: [
                       Expanded(flex: 2, child: _HeaderCell('ID')),
                       Expanded(flex: 4, child: _HeaderCell('Item name')),
                       Expanded(flex: 2, child: _HeaderCell('Category')),
@@ -541,10 +479,14 @@ class _InventoryPageState extends State<InventoryPage> {
                 const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text('Show', style: TextStyle(fontSize: 12.5)),
                           const SizedBox(width: 8),
@@ -562,6 +504,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         ],
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           TextButton.icon(
                             onPressed: _page > 0 ? () => setState(() => _page--) : null,

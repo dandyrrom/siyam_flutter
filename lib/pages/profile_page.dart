@@ -21,11 +21,17 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  int _visibleTab = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index != _visibleTab) {
+        setState(() => _visibleTab = _tabController.index);
+      }
+    });
   }
 
   @override
@@ -57,18 +63,13 @@ class _ProfilePageState extends State<ProfilePage>
           const SizedBox(height: 20),
           _SegmentedTabs(controller: _tabController),
           const SizedBox(height: 20),
-          SizedBox(
-            // Generous fixed height so the tab content doesn't jump
-            // around inside the outer page scroll view.
-            height: 520,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _ProfileTab(user: user),
-                const _SecurityTab(),
-                const _NotificationsTab(),
-              ],
-            ),
+          IndexedStack(
+            index: _visibleTab,
+            children: [
+              _ProfileTab(user: user),
+              const _SecurityTab(),
+              const _NotificationsTab(),
+            ],
           ),
         ],
       ),
@@ -239,8 +240,7 @@ class _ProfileTabState extends State<_ProfileTab> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
 
-    return SingleChildScrollView(
-      child: _CardSection(
+    return _CardSection(
         title: 'Personal Information',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,8 +310,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -366,8 +365,7 @@ class _SecurityTabState extends State<_SecurityTab> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
 
-    return SingleChildScrollView(
-      child: _CardSection(
+    return _CardSection(
         title: 'Change Password',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,8 +437,7 @@ class _SecurityTabState extends State<_SecurityTab> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -474,8 +471,7 @@ class _NotificationsTabState extends State<_NotificationsTab> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: _CardSection(
+    return _CardSection(
         title: 'Notification Preferences',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,8 +517,7 @@ class _NotificationsTabState extends State<_NotificationsTab> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 

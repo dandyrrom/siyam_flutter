@@ -33,12 +33,14 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
     });
     try {
       final item = await _service.fetchItem(widget.itemId);
+      if (!mounted) return;
       setState(() {
         _item = item;
         _notFound = item == null;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _notFound = true;
         _loading = false;

@@ -52,23 +52,33 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
             onPressed: onToggleSidebar,
           ),
           const SizedBox(width: 4),
-          const Icon(Icons.home_outlined, size: 16, color: AppColors.mutedForeground),
-          for (final part in parts) ...[
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, size: 14, color: AppColors.mutedForeground),
-            const SizedBox(width: 6),
-            Text(
-              _breadcrumbLabels[part] ?? part,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: part == parts.last ? FontWeight.w600 : FontWeight.w400,
-                color: part == parts.last
-                    ? AppColors.foreground
-                    : AppColors.mutedForeground,
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const Icon(Icons.home_outlined,
+                      size: 16, color: AppColors.mutedForeground),
+                  for (final part in parts) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_right,
+                        size: 14, color: AppColors.mutedForeground),
+                    const SizedBox(width: 6),
+                    Text(
+                      _breadcrumbLabels[part] ?? part,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: part == parts.last ? FontWeight.w600 : FontWeight.w400,
+                        color: part == parts.last
+                            ? AppColors.foreground
+                            : AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ],
-          const Spacer(),
+          ),
           IconButton(
             icon: const Icon(Icons.search, color: AppColors.mutedForeground, size: 20),
             onPressed: () {},
