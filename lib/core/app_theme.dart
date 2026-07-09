@@ -40,6 +40,12 @@ class AppColors {
   static const roleManager = Color(0xFF16A34A); // green
   static const roleStaff = Color(0xFF0D9488); // teal
   static const roleDonor = Color(0xFFEA580C); // orange
+
+  // Stock-level tiers (Inventory page)
+  static const stockInStock = Color(0xFF16A34A); // green
+  static const stockNeedsRestock = Color(0xFFEAB308); // yellow
+  static const stockLow = Color(0xFFEA580C); // orange
+  static const stockOut = Color(0xFFDC2626); // red
 }
 
 class AppTheme {
