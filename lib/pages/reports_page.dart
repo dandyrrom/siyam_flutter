@@ -128,7 +128,7 @@ class _ReportsPageState extends State<ReportsPage> {
       );
     }
 
-    final totalStock = _items.fold<int>(0, (sum, i) => sum + i.stockQty);
+    final totalStock = _items.fold<double>(0, (sum, i) => sum + i.stockQty);
     final totalSpend = _spendEntries.fold<double>(0, (sum, e) => sum + e.amount);
     final monthLabels = _last6Months.map((m) => m.$1).toList();
 
@@ -150,7 +150,7 @@ class _ReportsPageState extends State<ReportsPage> {
           ),
           StatCard(
             label: 'Total Stock',
-            value: '$totalStock',
+            value: formatQty(totalStock),
             icon: Icons.widgets_outlined,
             accent: AppColors.roleManager,
           ),

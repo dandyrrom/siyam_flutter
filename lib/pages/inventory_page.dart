@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
-import '../widgets/create_item_dialog.dart';
+import '../widgets/stock_out_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -21,7 +21,6 @@ class _InventoryPageState extends State<InventoryPage> {
 
   String _search = '';
   String _category = 'All';
-  String _supplier = 'All';
   StockLevel? _stockLevelFilter; // null = All
 
   int _pageSize = 12;
@@ -63,24 +62,14 @@ class _InventoryPageState extends State<InventoryPage> {
     return ['All', ...list];
   }
 
-  List<String> get _suppliers {
-    final set = <String>{};
-    for (final i in _items) {
-      if ((i.supplierName ?? '').isNotEmpty) set.add(i.supplierName!);
-    }
-    final list = set.toList()..sort();
-    return ['All', ...list];
-  }
-
   List<InventoryItem> get _filtered {
     return _items.where((i) {
       final matchesSearch = _search.isEmpty ||
           i.itemName.toLowerCase().contains(_search.toLowerCase());
       final matchesCategory = _category == 'All' || i.itemCategory == _category;
-      final matchesSupplier = _supplier == 'All' || i.supplierName == _supplier;
       final matchesStockLevel =
           _stockLevelFilter == null || i.stockLevel == _stockLevelFilter;
-      return matchesSearch && matchesCategory && matchesSupplier && matchesStockLevel;
+      return matchesSearch && matchesCategory && matchesStockLevel;
     }).toList();
   }
 
@@ -93,93 +82,20 @@ class _InventoryPageState extends State<InventoryPage> {
     return _filtered.sublist(start, end);
   }
 
-  Future<void> _openStockDialog(InventoryItem item, {required bool isStockIn}) async {
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(
-              isStockIn ? Icons.arrow_upward : Icons.arrow_downward,
-              size: 18,
-              color: isStockIn ? AppColors.roleManager : AppColors.destructive,
-            ),
-            const SizedBox(width: 8),
-            Text(isStockIn ? 'Stock In' : 'Stock Out'),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text('Current: ${item.stockQty} ${item.itemUom}',
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                decoration: InputDecoration(labelText: 'Quantity (${item.itemUom})'),
-                validator: (v) {
-                  final n = int.tryParse(v ?? '');
-                  if (n == null || n <= 0) return 'Enter a quantity greater than 0';
-                  if (!isStockIn && n > item.stockQty) {
-                    return 'Only ${item.stockQty} ${item.itemUom} available';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isStockIn ? AppColors.primary : AppColors.destructive,
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final qty = int.parse(controller.text);
-              Navigator.of(context).pop();
-              try {
-                await _service.adjustStock(itemId: item.itemId, delta: isStockIn ? qty : -qty);
-                _load();
-              } catch (e) {
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-}
-            },
-            child: Text('Confirm ${isStockIn ? 'Stock In' : 'Stock Out'}'),
-          ),
-        ],
-      ),
+  Future<void> _openStockOutDialog({InventoryItem? item}) async {
+    final result = await showStockOutDialog(
+      context,
+      service: _service,
+      item: item,
+      items: _items,
     );
-  }
-
-  Future<void> _openAddItemDialog() async {
-    final item = await showCreateItemDialog(context, service: _service);
-    if (item != null) _load();
+    if (!mounted) return;
+    if (result != null) {
+      final (usedItem, qty) = result;
+      context.push('/medical-records/add?itemId=${usedItem.itemId}&qty=$qty');
+      return;
+    }
+    _load();
   }
 
   (String, Color) _stockLevelMeta(StockLevel level) {
@@ -220,38 +136,56 @@ class _InventoryPageState extends State<InventoryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Flexible(
-                    child: Text(
-                      'Inventory',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_horiz, color: AppColors.mutedForeground),
-                    onSelected: (v) {
-                      if (v == 'add') _openAddItemDialog();
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'add', child: Text('Add Item')),
-                    ],
-                  ),
-                ],
+            const Expanded(
+              child: Text(
+                'Inventory',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
               ),
             ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.roleDonor,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Reorder workflow coming soon'))),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Reorder'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'purchase') context.push('/inventory/add?type=purchased');
+                    if (v == 'donation') context.push('/inventory/add?type=donated');
+                    if (v == 'stockout') _openStockOutDialog();
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'purchase', child: Text('Purchase')),
+                    PopupMenuItem(value: 'donation', child: Text('Donation')),
+                    PopupMenuItem(value: 'stockout', child: Text('Stock out')),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, size: 18),
+                        SizedBox(width: 6),
+                        Text('New'),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.roleDonor,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => context.push('/inventory/add'),
+                  icon: const Icon(Icons.arrow_upward, size: 18),
+                  label: const Text('Stock In'),
+                ),
+              ],
             ),
           ],
         ),
@@ -299,17 +233,6 @@ class _InventoryPageState extends State<InventoryPage> {
                           .toList(),
                       onChanged: (v) =>
                           setState(() { _category = v ?? 'All'; _page = 0; }),
-                    ),
-                    DropdownButton<String>(
-                      value: _supplier,
-                      underline: const SizedBox.shrink(),
-                      selectedItemBuilder: (context) =>
-                          _suppliers.map((_) => const Text('Supplier')).toList(),
-                      items: _suppliers
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() { _supplier = v ?? 'All'; _page = 0; }),
                     ),
                     DropdownButton<StockLevel?>(
                       value: _stockLevelFilter,
@@ -372,7 +295,6 @@ class _InventoryPageState extends State<InventoryPage> {
                       Expanded(flex: 2, child: _HeaderCell('ID')),
                       Expanded(flex: 4, child: _HeaderCell('Item name')),
                       Expanded(flex: 2, child: _HeaderCell('Category')),
-                      Expanded(flex: 3, child: _HeaderCell('Supplier')),
                       Expanded(flex: 2, child: _HeaderCell('Stock')),
                       Expanded(flex: 2, child: _HeaderCell('Stock Level')),
                       SizedBox(width: 56, child: _HeaderCell('Action', alignEnd: true)),
@@ -423,14 +345,8 @@ class _InventoryPageState extends State<InventoryPage> {
                             ),
                           ),
                           Expanded(
-                            flex: 3,
-                            child: Text(item.supplierName ?? '—',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: AppColors.mutedForeground)),
-                          ),
-                          Expanded(
                             flex: 2,
-                            child: Text('${item.stockQty} ${item.itemUom}',
+                            child: Text('${formatQty(item.stockQty)} ${item.itemUom}',
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontWeight: FontWeight.w600)),
                           ),
@@ -459,8 +375,8 @@ class _InventoryPageState extends State<InventoryPage> {
                               child: PopupMenuButton<String>(
                                 icon: const Icon(Icons.more_horiz, size: 18),
                                 onSelected: (v) {
-                                  if (v == 'in') _openStockDialog(item, isStockIn: true);
-                                  if (v == 'out') _openStockDialog(item, isStockIn: false);
+                                  if (v == 'in') context.push('/inventory/add?itemId=${item.itemId}');
+                                  if (v == 'out') _openStockOutDialog(item: item);
                                   if (v == 'view') context.push('/inventory/${item.itemId}');
                                 },
                                 itemBuilder: (context) => const [

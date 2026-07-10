@@ -1,18 +1,18 @@
 enum StockLevel { inStock, needsRestock, low, outOfStock }
 
+/// Formats a quantity for display, trimming a trailing ".0" so whole
+/// numbers don't render with a spurious decimal (schema stores these as
+/// float4 to allow fractional doses/stock, but most values are whole).
+String formatQty(double qty) {
+  return qty == qty.roundToDouble() ? qty.toStringAsFixed(0) : qty.toString();
+}
+
 class InventoryItem {
   final String itemId;
   final String itemName;
   final String itemCategory;
   final String itemUom; // unit of measure, e.g. 'kg', 'pcs', 'boxes'
-  final int stockQty;
-
-  // The `item` table itself still has no supplier column -- this is
-  // populated separately by InventoryService, which derives each item's
-  // most recent supplier from purchase_trans/order_item history (via
-  // the `item_last_supplier` view). Null means the item has never been
-  // purchased yet, so the UI shows "—".
-  final String? supplierName;
+  final double stockQty;
 
   const InventoryItem({
     required this.itemId,
@@ -20,27 +20,15 @@ class InventoryItem {
     required this.itemCategory,
     required this.itemUom,
     required this.stockQty,
-    this.supplierName,
   });
 
   factory InventoryItem.fromMap(Map<String, dynamic> map) {
     return InventoryItem(
       itemId: map['itemid'] as String,
-      itemName: map['itemname'] as String? ?? '',
-      itemCategory: map['itemcategory'] as String? ?? '',
-      itemUom: map['item_uom'] as String? ?? '',
-      stockQty: (map['stockqty'] as num?)?.toInt() ?? 0,
-    );
-  }
-
-  InventoryItem copyWith({String? supplierName}) {
-    return InventoryItem(
-      itemId: itemId,
-      itemName: itemName,
-      itemCategory: itemCategory,
-      itemUom: itemUom,
-      stockQty: stockQty,
-      supplierName: supplierName ?? this.supplierName,
+      itemName: map['name'] as String? ?? '',
+      itemCategory: map['category'] as String? ?? '',
+      itemUom: map['uom'] as String? ?? '',
+      stockQty: (map['currentstock'] as num?)?.toDouble() ?? 0,
     );
   }
 

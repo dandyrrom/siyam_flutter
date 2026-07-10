@@ -67,6 +67,20 @@ class AuthService {
     return AppUser.fromMap(row);
   }
 
+  /// Fetches every user whose role is in [roles], e.g. donors for a
+  /// donor picker, or staff/manager for an "administered by"/"received
+  /// by" picker.
+  Future<List<AppUser>> fetchUsersByRole(List<AppRole> roles) async {
+    final rows = await _client
+        .from('users')
+        .select()
+        .inFilter('role', roles.map(appRoleToString).toList())
+        .order('userfname', ascending: true);
+    return (rows as List)
+        .map((r) => AppUser.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Updates the editable fields of a user's own profile row.
   /// Requires an RLS UPDATE policy on public.users allowing
   /// auth.uid() = userid.

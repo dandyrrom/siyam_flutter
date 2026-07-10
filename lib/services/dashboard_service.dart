@@ -21,8 +21,8 @@ class ManagerDashboardStats {
 /// Aggregate counts for the Staff dashboard.
 ///
 /// Note: `item` has no reorder-point column, so "low stock" can't be
-/// computed against a threshold. This uses `stockqty = 0` (out of stock)
-/// instead, which is derivable from the schema as-is.
+/// computed against a threshold. This uses `currentstock = 0` (out of
+/// stock) instead, which is derivable from the schema as-is.
 class StaffDashboardStats {
   final int outOfStockItems;
   final int animalsUnderTreatment;
@@ -94,9 +94,9 @@ class DashboardService {
   Future<StaffDashboardStats> fetchStaffStats() async {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
     final results = await Future.wait([
-      _count('item', eqColumn: 'stockqty', eqValue: 0),
+      _count('item', eqColumn: 'currentstock', eqValue: 0),
       _count('pet', eqColumn: 'status', eqValue: 'under_treatment'),
-      _count('donation', gteColumn: 'transdate', gteValue: weekAgo),
+      _count('donation', gteColumn: 'rcvdon', gteValue: weekAgo),
       _count('submission', eqColumn: 'status', eqValue: 'pending'),
     ]);
     return StaffDashboardStats(
@@ -112,9 +112,9 @@ class DashboardService {
 
     final donationRows = await _client
         .from('donation')
-        .select('donid, transdate')
+        .select('donid, rcvdon')
         .eq('donorid', donorId)
-        .order('transdate', ascending: false);
+        .order('rcvdon', ascending: false);
     final donationIds =
         donationRows.map((r) => r['donid'] as String).toList();
 
@@ -131,7 +131,7 @@ class DashboardService {
 
     final lastDonation = donationRows.isEmpty
         ? null
-        : DateTime.tryParse(donationRows.first['transdate'] as String);
+        : DateTime.tryParse(donationRows.first['rcvdon'] as String);
 
     // "Pending submissions" = this donor's submissions still awaiting
     // review, not yet converted into a donation.

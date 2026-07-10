@@ -4,6 +4,7 @@ import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
 import '../widgets/stat_card.dart'; // for ComingSoonNotice
+import '../widgets/stock_out_dialog.dart';
 
 class InventoryItemPage extends StatefulWidget {
   final String itemId;
@@ -92,67 +93,17 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
     );
   }
 
-  Future<void> _openStockDialog({required bool isStockIn}) async {
+  Future<void> _openStockOutDialog() async {
     final item = _item;
     if (item == null) return;
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(
-              isStockIn ? Icons.arrow_upward : Icons.arrow_downward,
-              size: 18,
-              color: isStockIn ? AppColors.roleManager : AppColors.destructive,
-            ),
-            const SizedBox(width: 8),
-            Text(isStockIn ? 'Stock In' : 'Stock Out'),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            autofocus: true,
-            decoration: InputDecoration(labelText: 'Quantity (${item.itemUom})'),
-            validator: (v) {
-              final n = int.tryParse(v ?? '');
-              if (n == null || n <= 0) return 'Enter a quantity greater than 0';
-              if (!isStockIn && n > item.stockQty) {
-                return 'Only ${item.stockQty} ${item.itemUom} available';
-              }
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isStockIn ? AppColors.primary : AppColors.destructive,
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final qty = int.parse(controller.text);
-              Navigator.of(context).pop();
-              try {
-                await _service.adjustStock(itemId: item.itemId, delta: isStockIn ? qty : -qty);
-                _load();
-              } catch (e) {
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-} 
-            },
-            child: Text('Confirm ${isStockIn ? 'Stock In' : 'Stock Out'}'),
-          ),
-        ],
-      ),
-    );
+    final result = await showStockOutDialog(context, service: _service, item: item);
+    if (!mounted) return;
+    if (result != null) {
+      final (usedItem, qty) = result;
+      context.push('/medical-records/add?itemId=${usedItem.itemId}&qty=$qty');
+      return;
+    }
+    _load();
   }
 
   Future<void> _confirmDelete() async {
@@ -267,7 +218,7 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _openStockDialog(isStockIn: true),
+                  onPressed: () => context.push('/inventory/add?itemId=${item.itemId}'),
                   icon: const Icon(Icons.arrow_upward, size: 16, color: AppColors.roleManager),
                   label: const Text('Stock In'),
                 ),
@@ -276,7 +227,7 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
-                  onPressed: () => _openStockDialog(isStockIn: false),
+                  onPressed: _openStockOutDialog,
                   icon: const Icon(Icons.arrow_downward, size: 16),
                   label: const Text('Stock Out'),
                 ),
@@ -334,7 +285,7 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
             ),
             child: Row(
               children: [
-                Text('${item.stockQty}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(formatQty(item.stockQty), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(width: 6),
                 Text(item.itemUom, style: const TextStyle(color: AppColors.mutedForeground)),
               ],

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
-import '../models/inventory_item.dart';
 import '../models/supplier.dart';
-import '../services/inventory_service.dart';
 import '../services/supplier_service.dart';
-import '../state/auth_state.dart';
-import '../widgets/create_item_dialog.dart';
 import '../widgets/stat_card.dart';
 
 class SuppliersPage extends StatefulWidget {
@@ -18,11 +13,9 @@ class SuppliersPage extends StatefulWidget {
 
 class _SuppliersPageState extends State<SuppliersPage> {
   final SupplierService _service = SupplierService();
-  final InventoryService _inventoryService = InventoryService();
 
   List<Supplier> _suppliers = [];
   List<PurchaseOrder> _allOrders = [];
-  List<InventoryItem> _items = [];
   bool _loading = true;
   String? _error;
   String _search = '';
@@ -42,13 +35,11 @@ class _SuppliersPageState extends State<SuppliersPage> {
       final results = await Future.wait([
         _service.fetchSuppliers(),
         _service.fetchAllPurchaseOrders(),
-        _inventoryService.fetchItems(),
       ]);
       if (!mounted) return;
       setState(() {
         _suppliers = results[0] as List<Supplier>;
         _allOrders = results[1] as List<PurchaseOrder>;
-        _items = results[2] as List<InventoryItem>;
         _loading = false;
       });
     } catch (e) {
@@ -131,184 +122,6 @@ class _SuppliersPageState extends State<SuppliersPage> {
     );
   }
 
-  Future<void> _openCreatePurchaseOrderDialog(Supplier supplier) async {
-    final userId = context.read<AuthController>().profile?.userId;
-    if (userId == null) return;
-
-    final formKey = GlobalKey<FormState>();
-    final List<OrderItemInput> itemRows = [];
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Purchase Order — ${supplier.suppName}'),
-          content: SizedBox(
-            width: 480,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      runSpacing: 4,
-                      children: [
-                        const Text('Items',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                        Wrap(
-                          children: [
-                            TextButton.icon(
-                              onPressed: () async {
-                                final newItem = await showCreateItemDialog(context,
-                                    service: _inventoryService);
-                                if (newItem == null) return;
-                                setDialogState(() {
-                                  _items.add(newItem);
-                                  itemRows.add(OrderItemInput(
-                                    itemId: newItem.itemId,
-                                    itemName: newItem.itemName,
-                                    itemUom: newItem.itemUom,
-                                  ));
-                                });
-                              },
-                              icon: const Icon(Icons.add_box_outlined, size: 16),
-                              label: const Text('New item'),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => setDialogState(() {
-                                final available = _items
-                                    .where((i) => !itemRows.any((r) => r.itemId == i.itemId))
-                                    .toList();
-                                if (available.isEmpty) return;
-                                final first = available.first;
-                                itemRows.add(OrderItemInput(
-                                  itemId: first.itemId,
-                                  itemName: first.itemName,
-                                  itemUom: first.itemUom,
-                                ));
-                              }),
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Add item'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    for (final row in itemRows)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: DropdownButtonFormField<String>(
-                                initialValue: row.itemId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(labelText: 'Item'),
-                                items: _items
-                                    .map((i) => DropdownMenuItem(
-                                        value: i.itemId, child: Text(i.itemName)))
-                                    .toList(),
-                                onChanged: (v) => setDialogState(() {
-                                  final picked = _items.firstWhere((i) => i.itemId == v);
-                                  final idx = itemRows.indexOf(row);
-                                  itemRows[idx] = OrderItemInput(
-                                    itemId: picked.itemId,
-                                    itemName: picked.itemName,
-                                    itemUom: picked.itemUom,
-                                    qty: row.qty,
-                                    unitCost: row.unitCost,
-                                  );
-                                }),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 2,
-                              child: TextFormField(
-                                key: ValueKey('${row.itemId}-qty'),
-                                initialValue: '${row.qty}',
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(labelText: 'Qty (${row.itemUom})'),
-                                onChanged: (v) => row.qty = int.tryParse(v) ?? 0,
-                                validator: (v) {
-                                  final n = int.tryParse(v ?? '');
-                                  if (n == null || n <= 0) return 'Invalid';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 2,
-                              child: TextFormField(
-                                key: ValueKey('${row.itemId}-cost'),
-                                initialValue: row.unitCost == 0 ? '' : '${row.unitCost}',
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(decimal: true),
-                                decoration: const InputDecoration(labelText: 'Unit cost'),
-                                onChanged: (v) => row.unitCost = double.tryParse(v) ?? 0,
-                                validator: (v) {
-                                  final n = double.tryParse(v ?? '');
-                                  if (n == null || n < 0) return 'Invalid';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setDialogState(() => itemRows.remove(row)),
-                              icon: const Icon(Icons.close, size: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (itemRows.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('Add at least one item to place this order.',
-                            style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: itemRows.isEmpty
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      Navigator.of(context).pop();
-                      try {
-                        await _service.createPurchaseOrder(
-                          suppId: supplier.suppId,
-                          userId: userId,
-                          items: itemRows,
-                        );
-                        _load();
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not create purchase order: $e')));
-                      }
-                    },
-              child: const Text('Place Order'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _openDetailDialog(Supplier supplier) async {
     final orders = _ordersFor(supplier.suppId);
 
@@ -357,13 +170,6 @@ class _SuppliersPageState extends State<SuppliersPage> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _openCreatePurchaseOrderDialog(supplier);
-            },
-            child: const Text('Create Purchase Order'),
-          ),
         ],
       ),
     );

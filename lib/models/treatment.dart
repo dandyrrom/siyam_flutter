@@ -1,14 +1,17 @@
 import 'pet.dart';
 
 /// Mirrors a row in the public.treatment table, joined with the pet it
-/// was performed on and the staff/manager user who performed it.
+/// was performed on. `treatment` itself has no user/date columns -- the
+/// "who / when" for display is read off the first public.treatment_item
+/// row instead, since every item row logged in one Add Treatment submission
+/// shares the same givenby/givenon (the form only collects one such pair
+/// per treatment).
 class TreatmentRecord {
   final String treatId;
   final String petId;
   final String petName;
   final PetSpecies petSpecies;
   final String? petBreed;
-  final String userId;
   final String performedByName;
   final String treatName;
   final String? notes;
@@ -20,7 +23,6 @@ class TreatmentRecord {
     required this.petName,
     required this.petSpecies,
     this.petBreed,
-    required this.userId,
     required this.performedByName,
     required this.treatName,
     this.notes,
@@ -29,9 +31,9 @@ class TreatmentRecord {
 
   factory TreatmentRecord.fromMap(Map<String, dynamic> map) {
     final pet = map['pet'] as Map<String, dynamic>? ?? const {};
-    final user = map['users'] as Map<String, dynamic>? ?? const {};
-    final fname = user['userfname'] as String? ?? '';
-    final lname = user['userlname'] as String? ?? '';
+    final items = map['treatment_item'] as List? ?? const [];
+    final firstItem =
+        items.isNotEmpty ? items.first as Map<String, dynamic> : const {};
 
     return TreatmentRecord(
       treatId: map['treatid'] as String,
@@ -39,11 +41,10 @@ class TreatmentRecord {
       petName: pet['petname'] as String? ?? 'Unknown animal',
       petSpecies: petSpeciesFromString(pet['species'] as String? ?? 'dog'),
       petBreed: pet['breed'] as String?,
-      userId: map['userid'] as String,
-      performedByName: [fname, lname].where((s) => s.isNotEmpty).join(' '),
-      treatName: map['treatname'] as String? ?? '',
+      performedByName: firstItem['givenby'] as String? ?? '',
+      treatName: map['name'] as String? ?? '',
       notes: map['notes'] as String?,
-      recDate: DateTime.tryParse(map['recdate'] as String? ?? '') ?? DateTime.now(),
+      recDate: DateTime.tryParse(firstItem['givenon'] as String? ?? '') ?? DateTime.now(),
     );
   }
 }
@@ -54,34 +55,45 @@ class TreatmentItemUsed {
   final String itemId;
   final String itemName;
   final String itemUom;
-  final int qtyUsed;
+  final double qtyUsed;
+  final String usedUom;
 
   const TreatmentItemUsed({
     required this.itemId,
     required this.itemName,
     required this.itemUom,
     required this.qtyUsed,
+    required this.usedUom,
   });
 
   factory TreatmentItemUsed.fromMap(Map<String, dynamic> map) {
     final item = map['item'] as Map<String, dynamic>? ?? const {};
     return TreatmentItemUsed(
       itemId: item['itemid'] as String? ?? '',
-      itemName: item['itemname'] as String? ?? 'Unknown item',
-      itemUom: item['item_uom'] as String? ?? '',
-      qtyUsed: (map['qtyused'] as num?)?.toInt() ?? 0,
+      itemName: item['name'] as String? ?? 'Unknown item',
+      itemUom: item['uom'] as String? ?? '',
+      qtyUsed: (map['qtyused'] as num?)?.toDouble() ?? 0,
+      usedUom: map['uom'] as String? ?? '',
     );
   }
 }
 
 /// Form-side input for one row in the "items used" list while logging a
 /// treatment, before it's written to treatment_item.
+///
+/// [unit] starts out equal to [itemUom] and can be changed via a
+/// dropdown in the form, and is persisted to treatment_item.uom as-is.
+/// If [unit] no longer matches [itemUom] there's no safe way to convert
+/// between units -- the form disables [deduct] in that case so stock
+/// isn't touched, while the usage itself is still logged.
 class TreatmentItemInput {
   final String itemId;
   final String itemName;
   final String itemUom;
-  final int stockQty;
-  int qty;
+  final double stockQty;
+  double qty;
+  String unit;
+  bool deduct;
 
   TreatmentItemInput({
     required this.itemId,
@@ -89,5 +101,7 @@ class TreatmentItemInput {
     required this.itemUom,
     required this.stockQty,
     this.qty = 1,
-  });
+    String? unit,
+    this.deduct = true,
+  }) : unit = unit ?? itemUom;
 }

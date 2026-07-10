@@ -8,7 +8,7 @@ import 'inventory_service.dart';
 ///   submission(subid PK, donorid FK->users, revby FK->users, status
 ///              sub_status, scheddate, datesub, proofimg)
 ///   donation(donid PK, subid FK->submission, donorid FK->users,
-///            transdate, rcvdby FK->users)
+///            rcvdon, rcvdby FK->users)
 ///   donation_item(donid FK, itemid FK->item, qty int)
 ///
 /// `submission` and `donation` both have two separate foreign keys into
@@ -87,22 +87,25 @@ class DonationService {
         .update({'status': 'rejected', 'revby': revById}).eq('subid', subId);
   }
 
-  /// Marks the submission approved and records what was actually
-  /// received: creates the `donation` row, one `donation_item` row per
-  /// item, and increments each item's stock.
-  Future<void> approveSubmission({
-    required String subId,
+  /// Creates the `donation` row (optionally linked to a submission) plus
+  /// one `donation_item` row per item, and increments each item's stock.
+  /// Shared by [approveSubmission] (submission-linked) and
+  /// [recordDirectDonation] (walk-in, no submission).
+  Future<void> _createDonationAndItems({
+    String? subId,
     required String donorId,
-    required String revById,
+    required String rcvdById,
     required List<DonationItemInput> items,
+    DateTime? rcvdOn,
   }) async {
-    await _client
-        .from('submission')
-        .update({'status': 'approved', 'revby': revById}).eq('subid', subId);
-
     final donationRow = await _client
         .from('donation')
-        .insert({'subid': subId, 'donorid': donorId, 'rcvdby': revById})
+        .insert({
+          if (subId != null) 'subid': subId,
+          'donorid': donorId,
+          'rcvdby': rcvdById,
+          if (rcvdOn != null) 'rcvdon': rcvdOn.toIso8601String(),
+        })
         .select()
         .single();
     final donId = donationRow['donid'] as String;
@@ -114,17 +117,48 @@ class DonationService {
         'itemid': item.itemId,
         'qty': item.qty,
       });
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
+      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty.toDouble());
     }
+  }
+
+  /// Marks the submission approved and records what was actually
+  /// received: creates the `donation` row linked to it, one
+  /// `donation_item` row per item, and increments each item's stock.
+  Future<void> approveSubmission({
+    required String subId,
+    required String donorId,
+    required String revById,
+    required List<DonationItemInput> items,
+  }) async {
+    await _client
+        .from('submission')
+        .update({'status': 'approved', 'revby': revById}).eq('subid', subId);
+    await _createDonationAndItems(
+        subId: subId, donorId: donorId, rcvdById: revById, items: items);
+  }
+
+  /// Records a walk-in donation directly from the Stock In Item form (not
+  /// linked to a prior donor submission): creates the `donation` row with
+  /// no linked submission (subid stays null, which the schema allows) plus
+  /// one `donation_item` row per item, and increments stock for each item
+  /// received. Optional backdated [rcvdOn] (defaults to now() if omitted).
+  Future<void> recordDirectDonation({
+    required String donorId,
+    required String rcvdById,
+    required List<DonationItemInput> items,
+    DateTime? rcvdOn,
+  }) {
+    return _createDonationAndItems(
+        donorId: donorId, rcvdById: rcvdById, items: items, rcvdOn: rcvdOn);
   }
 
   /// Transaction dates for every completed donation -- used to bucket
   /// donation counts by month on the Reports page.
   Future<List<DateTime>> fetchDonationDates() async {
-    final rows = await _client.from('donation').select('transdate');
+    final rows = await _client.from('donation').select('rcvdon');
     return (rows as List)
         .map((r) =>
-            DateTime.tryParse((r as Map<String, dynamic>)['transdate'] as String? ?? '') ??
+            DateTime.tryParse((r as Map<String, dynamic>)['rcvdon'] as String? ?? '') ??
             DateTime.now())
         .toList();
   }
@@ -142,10 +176,27 @@ class DonationService {
     final donId = donationRow['donid'] as String;
     final rows = await _client
         .from('donation_item')
-        .select('qty, item(itemid, itemname, item_uom)')
+        .select('qty, item(itemid, name, uom)')
         .eq('donid', donId);
     return (rows as List)
         .map((r) => DonationLineItem.fromMap(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Submissions that don't yet have a linked `donation` row -- i.e. a
+  /// donor pledge that staff can reconcile against an incoming Stock In
+  /// entry. Filters client-side (no single-query "not exists" join
+  /// available without a DB-side view), same pattern as [_userNames].
+  Future<List<DonationSubmission>> fetchLinkableSubmissions() async {
+    final subs = await fetchSubmissions();
+    final linkedRows = await _client.from('donation').select('subid');
+    final linkedIds = (linkedRows as List)
+        .map((r) => (r as Map<String, dynamic>)['subid'] as String?)
+        .whereType<String>()
+        .toSet();
+    return subs
+        .where((s) =>
+            !linkedIds.contains(s.subId) && s.status != SubmissionStatus.rejected)
         .toList();
   }
 }

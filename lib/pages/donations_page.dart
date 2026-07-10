@@ -6,7 +6,6 @@ import '../models/inventory_item.dart';
 import '../services/donation_service.dart';
 import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
-import '../widgets/create_item_dialog.dart';
 import '../widgets/stat_card.dart';
 
 class DonationsPage extends StatefulWidget {
@@ -126,42 +125,21 @@ class _DonationsPageState extends State<DonationsPage> {
                       children: [
                         const Text('Items Received',
                             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                        Wrap(
-                          children: [
-                            TextButton.icon(
-                              onPressed: () async {
-                                final newItem = await showCreateItemDialog(context,
-                                    service: _inventoryService);
-                                if (newItem == null) return;
-                                setDialogState(() {
-                                  _items.add(newItem);
-                                  itemRows.add(DonationItemInput(
-                                    itemId: newItem.itemId,
-                                    itemName: newItem.itemName,
-                                    itemUom: newItem.itemUom,
-                                  ));
-                                });
-                              },
-                              icon: const Icon(Icons.add_box_outlined, size: 16),
-                              label: const Text('New item'),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => setDialogState(() {
-                                final available = _items
-                                    .where((i) => !itemRows.any((r) => r.itemId == i.itemId))
-                                    .toList();
-                                if (available.isEmpty) return;
-                                final first = available.first;
-                                itemRows.add(DonationItemInput(
-                                  itemId: first.itemId,
-                                  itemName: first.itemName,
-                                  itemUom: first.itemUom,
-                                ));
-                              }),
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Add item'),
-                            ),
-                          ],
+                        TextButton.icon(
+                          onPressed: () => setDialogState(() {
+                            final available = _items
+                                .where((i) => !itemRows.any((r) => r.itemId == i.itemId))
+                                .toList();
+                            if (available.isEmpty) return;
+                            final first = available.first;
+                            itemRows.add(DonationItemInput(
+                              itemId: first.itemId,
+                              itemName: first.itemName,
+                              itemUom: first.itemUom,
+                            ));
+                          }),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add item'),
                         ),
                       ],
                     ),

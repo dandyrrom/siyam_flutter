@@ -28,10 +28,11 @@ class Supplier {
 }
 
 /// Mirrors a row in public.purchase_trans, joined with the user who
-/// placed it.
+/// placed it and the supplier it was placed with.
 class PurchaseOrder {
   final String purId;
   final String suppId;
+  final String suppName;
   final String userId;
   final String buyerName;
   final DateTime purDate;
@@ -39,6 +40,7 @@ class PurchaseOrder {
   const PurchaseOrder({
     required this.purId,
     required this.suppId,
+    required this.suppName,
     required this.userId,
     required this.buyerName,
     required this.purDate,
@@ -48,12 +50,14 @@ class PurchaseOrder {
     final user = map['users'] as Map<String, dynamic>? ?? const {};
     final fname = user['userfname'] as String? ?? '';
     final lname = user['userlname'] as String? ?? '';
+    final supplier = map['supplier'] as Map<String, dynamic>? ?? const {};
     return PurchaseOrder(
       purId: map['purid'] as String,
       suppId: map['suppid'] as String,
+      suppName: supplier['suppname'] as String? ?? 'Unknown supplier',
       userId: map['userid'] as String,
       buyerName: [fname, lname].where((s) => s.isNotEmpty).join(' '),
-      purDate: DateTime.tryParse(map['purdate'] as String? ?? '') ?? DateTime.now(),
+      purDate: DateTime.tryParse(map['rcvdon'] as String? ?? '') ?? DateTime.now(),
     );
   }
 }
@@ -79,8 +83,8 @@ class OrderLineItem {
     final item = map['item'] as Map<String, dynamic>? ?? const {};
     return OrderLineItem(
       itemId: item['itemid'] as String? ?? '',
-      itemName: item['itemname'] as String? ?? 'Unknown item',
-      itemUom: item['item_uom'] as String? ?? '',
+      itemName: item['name'] as String? ?? 'Unknown item',
+      itemUom: item['uom'] as String? ?? '',
       qty: (map['qty'] as num?)?.toInt() ?? 0,
       unitCost: (map['unitcost'] as num?)?.toDouble() ?? 0,
     );
@@ -100,7 +104,7 @@ class OrderSpendEntry {
     final qty = (map['qty'] as num?)?.toInt() ?? 0;
     final unitCost = (map['unitcost'] as num?)?.toDouble() ?? 0;
     return OrderSpendEntry(
-      purDate: DateTime.tryParse(order['purdate'] as String? ?? '') ?? DateTime.now(),
+      purDate: DateTime.tryParse(order['rcvdon'] as String? ?? '') ?? DateTime.now(),
       amount: qty * unitCost,
     );
   }

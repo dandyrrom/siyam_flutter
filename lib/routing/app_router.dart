@@ -6,7 +6,11 @@ import '../pages/register_page.dart';
 import '../pages/dashboard_page.dart';
 import '../pages/inventory_page.dart';
 import '../pages/inventory_item_page.dart';
+import '../pages/add_item_page.dart';
+import '../pages/add_treatment_page.dart';
 import '../pages/donations_page.dart';
+import '../pages/purchase_orders_page.dart';
+import '../pages/purchase_trans_page.dart';
 import '../pages/donor/donate_page.dart';
 import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
@@ -79,6 +83,15 @@ GoRouter buildRouter(AuthController authState) {
                 const NoTransitionPage(child: InventoryPage()),
           ),
           GoRoute(
+            path: '/inventory/add',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: AddItemPage(
+                itemId: state.uri.queryParameters['itemId'],
+                type: state.uri.queryParameters['type'],
+              ),
+            ),
+          ),
+          GoRoute(
             path: '/inventory/:id',
             pageBuilder: (context, state) => NoTransitionPage(
               child: InventoryItemPage(itemId: state.pathParameters['id']!),
@@ -105,6 +118,17 @@ GoRouter buildRouter(AuthController authState) {
                 const NoTransitionPage(child: DonorDonationsPage()),
           ),
           GoRoute(
+            path: '/purchase-orders',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: PurchaseOrdersPage()),
+          ),
+          GoRoute(
+            path: '/purchase-orders/:id',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: PurchaseTransPage(purId: state.pathParameters['id']!),
+            ),
+          ),
+          GoRoute(
             path: '/reports',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ReportsPage()),
@@ -113,6 +137,15 @@ GoRouter buildRouter(AuthController authState) {
             path: '/medical-records',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: MedicalRecordsPage()),
+          ),
+          GoRoute(
+            path: '/medical-records/add',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: AddTreatmentPage(
+                prefillItemId: state.uri.queryParameters['itemId'],
+                prefillQty: state.uri.queryParameters['qty'],
+              ),
+            ),
           ),
           GoRoute(
             path: '/animal-records',

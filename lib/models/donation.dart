@@ -86,8 +86,8 @@ class DonationLineItem {
     final item = map['item'] as Map<String, dynamic>? ?? const {};
     return DonationLineItem(
       itemId: item['itemid'] as String? ?? '',
-      itemName: item['itemname'] as String? ?? 'Unknown item',
-      itemUom: item['item_uom'] as String? ?? '',
+      itemName: item['name'] as String? ?? 'Unknown item',
+      itemUom: item['uom'] as String? ?? '',
       qty: (map['qty'] as num?)?.toInt() ?? 0,
     );
   }

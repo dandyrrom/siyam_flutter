@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../models/pet.dart';
 import '../models/treatment.dart';
-import '../services/inventory_service.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
-import '../state/auth_state.dart';
 import '../widgets/stat_card.dart';
 
 class MedicalRecordsPage extends StatefulWidget {
@@ -20,11 +18,9 @@ class MedicalRecordsPage extends StatefulWidget {
 class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
   final TreatmentService _treatmentService = TreatmentService();
   final PetService _petService = PetService();
-  final InventoryService _inventoryService = InventoryService();
 
   List<TreatmentRecord> _treatments = [];
   List<Pet> _pets = [];
-  List<InventoryItem> _items = [];
   int _totalItemsUsed = 0;
 
   bool _loading = true;
@@ -46,15 +42,13 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
       final results = await Future.wait([
         _treatmentService.fetchTreatments(),
         _petService.fetchPets(),
-        _inventoryService.fetchItems(),
         _treatmentService.fetchTotalItemsUsed(),
       ]);
       if (!mounted) return;
       setState(() {
         _treatments = results[0] as List<TreatmentRecord>;
         _pets = results[1] as List<Pet>;
-        _items = results[2] as List<InventoryItem>;
-        _totalItemsUsed = results[3] as int;
+        _totalItemsUsed = results[2] as int;
         _loading = false;
       });
     } catch (e) {
@@ -136,7 +130,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
                           child: Row(
                             children: [
                               Expanded(child: Text(item.itemName)),
-                              Text('${item.qtyUsed} ${item.itemUom}',
+                              Text('${formatQty(item.qtyUsed)} ${item.usedUom.isNotEmpty ? item.usedUom : item.itemUom}',
                                   style: const TextStyle(color: AppColors.mutedForeground)),
                             ],
                           ),
@@ -151,174 +145,6 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
             ],
           );
         },
-      ),
-    );
-  }
-
-  Future<void> _openLogTreatmentDialog() async {
-    if (_pets.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Add an animal before logging a treatment.')));
-      return;
-    }
-
-    final userId = context.read<AuthController>().profile?.userId;
-    if (userId == null) return;
-
-    final treatNameCtrl = TextEditingController();
-    final notesCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    Pet selectedPet = _pets.first;
-    final List<TreatmentItemInput> itemRows = [];
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Log Treatment'),
-          content: SizedBox(
-            width: 460,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DropdownButtonFormField<Pet>(
-                      initialValue: selectedPet,
-                      decoration: const InputDecoration(labelText: 'Animal'),
-                      items: _pets
-                          .map((p) => DropdownMenuItem(value: p, child: Text(p.petName)))
-                          .toList(),
-                      onChanged: (v) =>
-                          setDialogState(() => selectedPet = v ?? _pets.first),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: treatNameCtrl,
-                      decoration: const InputDecoration(labelText: 'Treatment'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: notesCtrl,
-                      decoration: const InputDecoration(labelText: 'Notes (optional)'),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Items Used',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                        TextButton.icon(
-                          onPressed: _items.isEmpty
-                              ? null
-                              : () => setDialogState(() {
-                                    final available = _items
-                                        .where((i) => !itemRows.any((r) => r.itemId == i.itemId))
-                                        .toList();
-                                    if (available.isEmpty) return;
-                                    final first = available.first;
-                                    itemRows.add(TreatmentItemInput(
-                                      itemId: first.itemId,
-                                      itemName: first.itemName,
-                                      itemUom: first.itemUom,
-                                      stockQty: first.stockQty,
-                                    ));
-                                  }),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add item'),
-                        ),
-                      ],
-                    ),
-                    for (final row in itemRows)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: DropdownButtonFormField<String>(
-                                initialValue: row.itemId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(labelText: 'Item'),
-                                items: _items
-                                    .map((i) => DropdownMenuItem(
-                                        value: i.itemId, child: Text(i.itemName)))
-                                    .toList(),
-                                onChanged: (v) => setDialogState(() {
-                                  final picked = _items.firstWhere((i) => i.itemId == v);
-                                  final idx = itemRows.indexOf(row);
-                                  itemRows[idx] = TreatmentItemInput(
-                                    itemId: picked.itemId,
-                                    itemName: picked.itemName,
-                                    itemUom: picked.itemUom,
-                                    stockQty: picked.stockQty,
-                                    qty: row.qty,
-                                  );
-                                }),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              flex: 2,
-                              child: TextFormField(
-                                key: ValueKey(row.itemId),
-                                initialValue: '${row.qty}',
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(labelText: 'Qty (${row.itemUom})'),
-                                onChanged: (v) => row.qty = int.tryParse(v) ?? 0,
-                                validator: (v) {
-                                  final n = int.tryParse(v ?? '');
-                                  if (n == null || n <= 0) return 'Invalid';
-                                  if (n > row.stockQty) return 'Only ${row.stockQty} left';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setDialogState(() => itemRows.remove(row)),
-                              icon: const Icon(Icons.close, size: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                Navigator.of(context).pop();
-                try {
-                  await _treatmentService.createTreatment(
-                    petId: selectedPet.petId,
-                    userId: userId,
-                    treatName: treatNameCtrl.text.trim(),
-                    notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
-                    items: itemRows,
-                  );
-                  _load();
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Could not log treatment: $e')));
-                }
-              },
-              child: const Text('Log Treatment'),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -358,7 +184,10 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             ),
             ElevatedButton.icon(
-              onPressed: _openLogTreatmentDialog,
+              onPressed: _pets.isEmpty
+                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Add an animal before logging a treatment.')))
+                  : () => context.push('/medical-records/add'),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Log Treatment'),
             ),

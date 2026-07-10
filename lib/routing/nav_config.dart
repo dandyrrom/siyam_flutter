@@ -20,7 +20,7 @@ class NavItem {
 ///
 /// Finalized per-role tabs:
 ///   Manager: Dashboard, Animals, Suppliers, Reports, Audit, Settings, Profile, Notifications
-///   Staff:   Dashboard, Inventory, Medical, Donations, Reports, Profile, Notifications
+///   Staff:   Dashboard, Inventory, Medical, Donations, Purchase, Reports, Profile, Notifications
 ///   Donor:   Dashboard, Impacts, Donations, Profile, Notifications
 const List<NavItem> kNavItems = [
   NavItem(
@@ -67,6 +67,11 @@ const List<NavItem> kNavItems = [
       label: 'Donations',
       path: '/donations',
       icon: Icons.volunteer_activism_outlined,
+      roles: [AppRole.staff]),
+  NavItem(
+      label: 'Purchase',
+      path: '/purchase-orders',
+      icon: Icons.receipt_long_outlined,
       roles: [AppRole.staff]),
   NavItem(
       label: 'Donate',
