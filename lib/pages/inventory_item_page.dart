@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
+import '../services/lookup_service.dart';
+import '../widgets/search_select_field.dart';
 import '../widgets/stat_card.dart'; // for ComingSoonNotice
 import '../widgets/stock_out_dialog.dart';
 
@@ -16,8 +18,11 @@ class InventoryItemPage extends StatefulWidget {
 
 class _InventoryItemPageState extends State<InventoryItemPage> {
   final InventoryService _service = InventoryService();
+  final LookupService _lookupService = LookupService();
 
   InventoryItem? _item;
+  List<String> _categories = [];
+  List<String> _uoms = [];
   bool _loading = true;
   bool _notFound = false;
 
@@ -33,10 +38,17 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
       _notFound = false;
     });
     try {
-      final item = await _service.fetchItem(widget.itemId);
+      final results = await Future.wait([
+        _service.fetchItem(widget.itemId),
+        _lookupService.fetchCategories(),
+        _lookupService.fetchUoms(),
+      ]);
       if (!mounted) return;
+      final item = results[0] as InventoryItem?;
       setState(() {
         _item = item;
+        _categories = results[1] as List<String>;
+        _uoms = results[2] as List<String>;
         _notFound = item == null;
         _loading = false;
       });
@@ -85,6 +97,61 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
   ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text('Could not update: $e')));
 }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Same as [_editField], but restricted to picking from [options] via
+  /// the app's "Type, Search, Select" input -- used for Category/Unit of
+  /// Measure now that those are backed by managed lookup tables.
+  Future<void> _editSelectField({
+    required String label,
+    required String currentValue,
+    required List<String> options,
+    required Future<void> Function(String) onSave,
+  }) async {
+    final controller = TextEditingController(text: currentValue);
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Edit $label'),
+        content: Form(
+          key: formKey,
+          child: SearchSelectField<String>(
+            labelText: label,
+            controller: controller,
+            options: options,
+            displayStringForOption: (v) => v,
+            onSelected: (_) {},
+            validator: (v) {
+              final value = v?.trim() ?? '';
+              if (value.isEmpty) return 'Required';
+              if (!options.contains(value)) return 'Select a value from the list';
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.of(context).pop();
+              try {
+                await onSave(controller.text.trim());
+                _load();
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text('Could not update: $e')));
+              }
             },
             child: const Text('Save'),
           ),
@@ -252,9 +319,10 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
                 child: _FieldRow(
                   label: 'Category',
                   value: item.itemCategory,
-                  onEdit: () => _editField(
+                  onEdit: () => _editSelectField(
                     label: 'Category',
                     currentValue: item.itemCategory,
+                    options: _categories,
                     onSave: (v) => _service.updateDetails(itemId: item.itemId, itemCategory: v),
                   ),
                 ),
@@ -264,9 +332,10 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
                 child: _FieldRow(
                   label: 'Unit of Measure',
                   value: item.itemUom,
-                  onEdit: () => _editField(
+                  onEdit: () => _editSelectField(
                     label: 'Unit of Measure',
                     currentValue: item.itemUom,
+                    options: _uoms,
                     onSave: (v) => _service.updateDetails(itemId: item.itemId, itemUom: v),
                   ),
                 ),

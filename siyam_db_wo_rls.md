@@ -37,11 +37,21 @@ CREATE TABLE "supplier" (
     "address" TEXT
 );
 
+CREATE TABLE "category" (
+    "categoryid" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "categoryname" TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE "uom" (
+    "uomid" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "uomname" TEXT UNIQUE NOT NULL -- Unit of Measure, singular form (e.g. 'kg', 'pc', 'bag')
+);
+
 CREATE TABLE "item" (
     "itemid" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "itemname" TEXT NOT NULL,
-    "itemcategory" TEXT NOT NULL,
-    "item_uom" TEXT NOT NULL, -- Unit of Measure (e.g., 'kg', 'pcs', 'boxes')
+    "itemcategory" TEXT NOT NULL, -- free text; values are expected to match "category"."categoryname"
+    "item_uom" TEXT NOT NULL, -- free text; values are expected to match "uom"."uomname"
     "stockqty" INTEGER DEFAULT 0 NOT NULL
 );
 

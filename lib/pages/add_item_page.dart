@@ -9,9 +9,20 @@ import '../models/supplier.dart';
 import '../services/auth_service.dart';
 import '../services/donation_service.dart';
 import '../services/inventory_service.dart';
+import '../services/lookup_service.dart';
 import '../services/supplier_service.dart';
 import '../state/auth_state.dart';
 import '../widgets/search_select_field.dart';
+
+/// Strict TSS: the typed text must exactly match one of [options] --
+/// there's no inline "add new" for category/UOM, so a value that isn't
+/// already in the lookup table can't be saved.
+String? _requireListMatch(String? v, List<String> options) {
+  final value = v?.trim() ?? '';
+  if (value.isEmpty) return 'Required';
+  if (!options.contains(value)) return 'Select a value from the list';
+  return null;
+}
 
 /// One "Item details" block's form state -- a Stock In Item submission can
 /// cover several of these under one purchase_trans/donation (the flow's
@@ -65,6 +76,7 @@ class _AddItemPageState extends State<AddItemPage> {
   final SupplierService _supplierService = SupplierService();
   final DonationService _donationService = DonationService();
   final AuthService _authService = AuthService();
+  final LookupService _lookupService = LookupService();
 
   final _formKey = GlobalKey<FormState>();
   final _receivedByCtrl = TextEditingController();
@@ -78,6 +90,8 @@ class _AddItemPageState extends State<AddItemPage> {
   List<AppUser> _donors = [];
   List<AppUser> _receivers = []; // staff + manager
   List<DonationSubmission> _linkableSubmissions = [];
+  List<String> _categories = [];
+  List<String> _uoms = [];
 
   final List<_StockInLineItem> _lines = [];
 
@@ -119,6 +133,8 @@ class _AddItemPageState extends State<AddItemPage> {
         _authService.fetchUsersByRole([AppRole.donor]),
         _authService.fetchUsersByRole([AppRole.staff, AppRole.manager]),
         _donationService.fetchLinkableSubmissions(),
+        _lookupService.fetchCategories(),
+        _lookupService.fetchUoms(),
       ]);
       if (!mounted) return;
 
@@ -155,6 +171,8 @@ class _AddItemPageState extends State<AddItemPage> {
         _donors = results[2] as List<AppUser>;
         _receivers = receivers;
         _linkableSubmissions = results[4] as List<DonationSubmission>;
+        _categories = results[5] as List<String>;
+        _uoms = results[6] as List<String>;
         _selectedReceiver = defaultReceiver;
         _receivedByCtrl.text = defaultReceiver?.fullName ?? '';
         _lines
@@ -171,21 +189,9 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
-  List<String> get _categoryOptions {
-    final set = <String>{};
-    for (final i in _items) {
-      if (i.itemCategory.isNotEmpty) set.add(i.itemCategory);
-    }
-    return set.toList()..sort();
-  }
+  List<String> get _categoryOptions => _categories;
 
-  List<String> get _uomOptions {
-    final set = <String>{};
-    for (final i in _items) {
-      if (i.itemUom.isNotEmpty) set.add(i.itemUom);
-    }
-    return set.toList()..sort();
-  }
+  List<String> get _uomOptions => _uoms;
 
   void _addLine() => setState(() => _lines.add(_StockInLineItem()));
 
@@ -677,7 +683,7 @@ class _ItemDetailsBlock extends StatelessWidget {
                     options: categoryOptions,
                     displayStringForOption: (c) => c,
                     onSelected: (_) {},
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    validator: (v) => _requireListMatch(v, categoryOptions),
                   ),
                 ),
               ],
@@ -712,7 +718,7 @@ class _ItemDetailsBlock extends StatelessWidget {
                         options: uomOptions,
                         displayStringForOption: (u) => u,
                         onSelected: (_) {},
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        validator: (v) => _requireListMatch(v, uomOptions),
                       ),
               ),
             ],
