@@ -226,33 +226,47 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-                    DropdownButton<String>(
-                      value: _category,
-                      underline: const SizedBox.shrink(),
-                      selectedItemBuilder: (context) =>
-                          _categories.map((_) => const Text('Category')).toList(),
-                      items: _categories
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() { _category = v ?? 'All'; _page = 0; }),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: DropdownButton<String>(
+                        value: _category,
+                        underline: const SizedBox.shrink(),
+                        selectedItemBuilder: (context) =>
+                            _categories.map((_) => const Text('Category')).toList(),
+                        items: _categories
+                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() { _category = v ?? 'All'; _page = 0; }),
+                      ),
                     ),
-                    DropdownButton<StockLevel?>(
-                      value: _stockLevelFilter,
-                      hint: const Text('Stock Level'),
-                      underline: const SizedBox.shrink(),
-                      selectedItemBuilder: (context) => [
-                        const Text('Stock Level'),
-                        ...StockLevel.values.map((_) => const Text('Stock Level')),
-                      ],
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All levels')),
-                        ...StockLevel.values.map((lvl) => DropdownMenuItem(
-                              value: lvl,
-                              child: Text(_stockLevelMeta(lvl).$1),
-                            )),
-                      ],
-                      onChanged: (v) => setState(() { _stockLevelFilter = v; _page = 0; }),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: DropdownButton<StockLevel?>(
+                        value: _stockLevelFilter,
+                        hint: const Text('Stock Level'),
+                        underline: const SizedBox.shrink(),
+                        selectedItemBuilder: (context) => [
+                          const Text('Stock Level'),
+                          ...StockLevel.values.map((_) => const Text('Stock Level')),
+                        ],
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('All levels')),
+                          ...StockLevel.values.map((lvl) => DropdownMenuItem(
+                                value: lvl,
+                                child: Text(_stockLevelMeta(lvl).$1),
+                              )),
+                        ],
+                        onChanged: (v) => setState(() { _stockLevelFilter = v; _page = 0; }),
+                      ),
                     ),
                   ],
                 ),
@@ -305,12 +319,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
                 ),
                 const Divider(height: 1),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _pageItems.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
+                Column(
+                  children: [
+                    for (var index = 0; index < _pageItems.length; index++) ...[
+                      if (index > 0) const Divider(height: 1),
+                      Builder(builder: (context) {
                     final item = _pageItems[index];
                     final (levelLabel, levelColor) = _stockLevelMeta(item.stockLevel);
                     return Padding(
@@ -393,7 +406,9 @@ class _InventoryPageState extends State<InventoryPage> {
                         ],
                       ),
                     );
-                  },
+                      }),
+                    ],
+                  ],
                 ),
                 const Divider(height: 1),
                 Padding(
