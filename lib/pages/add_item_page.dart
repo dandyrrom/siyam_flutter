@@ -193,7 +193,7 @@ class _AddItemPageState extends State<AddItemPage> {
         _suppliers = results[1] as List<Supplier>;
         _donors = results[2] as List<AppUser>;
         _receivers = receivers;
-        _linkableSubmissions = linkableSubmissions;
+        _linkableSubmissions = results[4] as List<DonationSubmission>;
         _primaryCategories = results[5] as List<PrimaryCategory>;
         _subcategories = results[6] as List<Subcategory>;
         _units = results[7] as List<Unit>;
@@ -858,7 +858,7 @@ class _ItemDetailsBlock extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             SearchSelectField<Unit>(
-              labelText: 'Purchase unit (what you buy in -- box, bottle, bag)',
+              labelText: 'Purchase unit (the container bought, e.g. box, bottle)',
               controller: line.purchaseUnitCtrl,
               options: units,
               displayStringForOption: (u) => u.abbrName,
@@ -869,14 +869,19 @@ class _ItemDetailsBlock extends StatelessWidget {
                 onChanged();
               },
             ),
+            const SizedBox(height: 4),
+            const Text(
+              'Leave package unit blank for items with no breakdown (e.g. a mop) -- '
+              'they stock out one purchase unit at a time.',
+              style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+            ),
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  flex: 2,
                   child: SearchSelectField<Unit>(
-                    labelText: 'Package unit (optional -- e.g. ml, tablet)',
+                    labelText: 'Package unit (optional)',
                     controller: line.packageUnitCtrl,
                     options: units,
                     displayStringForOption: (u) => u.abbrName,
@@ -891,18 +896,12 @@ class _ItemDetailsBlock extends StatelessWidget {
                 Expanded(
                   child: TextFormField(
                     controller: line.packageQuantityCtrl,
-                    enabled: line.selectedPackageUnit != null,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Qty per purchase unit'),
+                    decoration:
+                        const InputDecoration(labelText: 'Package qty per purchase unit'),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Leave package unit blank for items with no breakdown (e.g. a mop) -- '
-              'they stock out one purchase unit at a time.',
-              style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
             ),
             const SizedBox(height: 12),
             SearchSelectField<Unit>(
@@ -918,41 +917,32 @@ class _ItemDetailsBlock extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: line.qtyCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                      labelText:
-                          'Quantity${existing == null ? '' : ' (${existing.itemUom})'}'),
-                  validator: (v) {
-                    final n = double.tryParse(v ?? '');
-                    if (n == null || n <= 0) return 'Enter a quantity greater than 0';
-                    return null;
-                  },
-                ),
-              ),
-              if (isPurchased) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: line.costCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Cost per unit'),
-                    validator: (v) {
-                      if (!isPurchased) return null;
-                      final n = double.tryParse(v ?? '');
-                      if (n == null || n < 0) return 'Enter a valid unit cost';
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ],
+          TextFormField(
+            controller: line.qtyCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+                labelText:
+                    'Quantity${existing == null ? '' : ' (${existing.itemUom})'}'),
+            validator: (v) {
+              final n = double.tryParse(v ?? '');
+              if (n == null || n <= 0) return 'Enter a quantity greater than 0';
+              return null;
+            },
           ),
+          if (isPurchased) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: line.costCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Cost'),
+              validator: (v) {
+                if (!isPurchased) return null;
+                final n = double.tryParse(v ?? '');
+                if (n == null || n < 0) return 'Enter a valid unit cost';
+                return null;
+              },
+            ),
+          ],
         ],
       ),
     );

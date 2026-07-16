@@ -25,9 +25,9 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
   final CatalogService _catalogService = CatalogService();
 
   InventoryItem? _item;
+  List<StockMovement> _history = [];
   List<PrimaryCategory> _primaryCategories = [];
   List<Unit> _units = [];
-  List<StockMovement> _history = [];
   bool _loading = true;
   bool _notFound = false;
 
@@ -45,17 +45,17 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
     try {
       final results = await Future.wait([
         _service.fetchItem(widget.itemId),
+        _service.fetchStockHistory(widget.itemId),
         _catalogService.fetchPrimaryCategories(),
         _catalogService.fetchUnits(),
-        _service.fetchStockHistory(widget.itemId),
       ]);
       if (!mounted) return;
       final item = results[0] as InventoryItem?;
       setState(() {
         _item = item;
-        _primaryCategories = results[1] as List<PrimaryCategory>;
-        _units = results[2] as List<Unit>;
-        _history = results[3] as List<StockMovement>;
+        _history = results[1] as List<StockMovement>;
+        _primaryCategories = results[2] as List<PrimaryCategory>;
+        _units = results[3] as List<Unit>;
         _notFound = item == null;
         _loading = false;
       });
@@ -328,9 +328,6 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
                     label: 'Category',
                     options: _primaryCategories,
                     displayStringForOption: (c) => c.type,
-                    // Changing the primary category clears the subcategory --
-                    // the old one may no longer apply. Pick the item again to
-                    // set a new subcategory via the Stock In form.
                     onSave: (c) =>
                         _service.updateDetails(itemId: item.itemId, pCategoryId: c.id),
                   ),

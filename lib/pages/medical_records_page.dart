@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
-import '../models/inventory_item.dart';
 import '../models/pet.dart';
 import '../models/treatment.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
-import '../widgets/stat_card.dart';
 
 class MedicalRecordsPage extends StatefulWidget {
   const MedicalRecordsPage({super.key});
@@ -21,7 +19,6 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
 
   List<TreatmentRecord> _treatments = [];
   List<Pet> _pets = [];
-  double _totalItemsUsed = 0;
 
   bool _loading = true;
   String? _error;
@@ -42,13 +39,11 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
       final results = await Future.wait([
         _treatmentService.fetchTreatments(),
         _petService.fetchPets(),
-        _treatmentService.fetchTotalItemsUsed(),
       ]);
       if (!mounted) return;
       setState(() {
         _treatments = results[0] as List<TreatmentRecord>;
         _pets = results[1] as List<Pet>;
-        _totalItemsUsed = results[2] as double;
         _loading = false;
       });
     } catch (e) {
@@ -90,10 +85,6 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
       );
     }
 
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final thisWeekCount = _treatments.where((t) => t.recDate.isAfter(weekAgo)).length;
-    final distinctAnimals = _treatments.map((t) => t.petId).toSet().length;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -119,33 +110,6 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
         const SizedBox(height: 2),
         Text('${_treatments.length} treatments logged',
             style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
-        const SizedBox(height: 20),
-        StatCardRow(cards: [
-          StatCard(
-            label: 'Total Treatments',
-            value: '${_treatments.length}',
-            icon: Icons.medical_services_outlined,
-            accent: AppColors.roleStaff,
-          ),
-          StatCard(
-            label: 'This Week',
-            value: '$thisWeekCount',
-            icon: Icons.calendar_today_outlined,
-            accent: AppColors.roleStaff,
-          ),
-          StatCard(
-            label: 'Animals Treated',
-            value: '$distinctAnimals',
-            icon: Icons.pets_outlined,
-            accent: AppColors.roleStaff,
-          ),
-          StatCard(
-            label: 'Items Used (Total)',
-            value: formatQty(_totalItemsUsed),
-            icon: Icons.inventory_2_outlined,
-            accent: AppColors.roleStaff,
-          ),
-        ]),
         const SizedBox(height: 20),
         SizedBox(
           width: 280,

@@ -42,7 +42,7 @@ const List<NavItem> kNavItems = [
       label: 'Reports',
       path: '/reports',
       icon: Icons.bar_chart_outlined,
-      roles: [AppRole.manager, AppRole.staff]),
+      roles: [AppRole.manager]),
   NavItem(
       label: 'Audit',
       path: '/audit-trail',
@@ -72,6 +72,11 @@ const List<NavItem> kNavItems = [
       label: 'Purchase',
       path: '/purchase-orders',
       icon: Icons.receipt_long_outlined,
+      roles: [AppRole.staff]),
+  NavItem(
+      label: 'Reports',
+      path: '/reports',
+      icon: Icons.bar_chart_outlined,
       roles: [AppRole.staff]),
   NavItem(
       label: 'Donate',
@@ -104,8 +109,11 @@ const List<NavItem> kNavItems = [
 /// role-gated route (e.g. public pages) -- in which case any signed-in
 /// user may access it.
 List<AppRole>? rolesAllowedFor(String path) {
+  List<AppRole>? roles;
   for (final item in kNavItems) {
-    if (path == item.path || path.startsWith('${item.path}/')) return item.roles;
+    if (path == item.path || path.startsWith('${item.path}/')) {
+      roles = {...?roles, ...item.roles}.toList();
+    }
   }
-  return null;
+  return roles;
 }
