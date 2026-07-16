@@ -1,29 +1,39 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../mock/mock_database.dart';
 import '../models/supplier.dart';
 import 'inventory_service.dart';
 
-/// Thin wrapper around public.supplier / public.purchase_trans / public.order_item.
+/// In-memory equivalent of the old public.supplier / purchase / purchase_item
+/// access layer.
 ///
-/// Table reference (from your schema):
-///   supplier(suppid PK, suppname, contactnum, address)
-///   purchase_trans(purid PK, suppid FK->supplier, userid FK->users, rcvdon)
-///   order_item(orderid FK->purchase_trans, itemid FK->item, qty int, unitcost numeric)
-///
-/// Creating a purchase order also increments stock for each item
-/// ordered, via InventoryService -- the same "receiving increases
-/// stock" pattern used when a donation is approved.
+/// Creating a purchase order also increments stock for each item ordered,
+/// via [InventoryService] -- the same "receiving increases stock" pattern
+/// used when a donation is approved.
 class SupplierService {
-  final SupabaseClient _client = Supabase.instance.client;
+  final MockDatabase _db = MockDatabase.instance;
   final InventoryService _inventoryService = InventoryService();
 
-  static const _selectWithJoins = '*, users(userfname, userlname), supplier(suppname)';
+  String _userName(String userId) {
+    final user = firstWhereOrNull(_db.users, (u) => u.userId == userId);
+    return user?.fullName ?? 'Unknown user';
+  }
+
+  PurchaseOrder _toPurchaseOrder(PurchaseRow row) {
+    final supplier = firstWhereOrNull(_db.suppliers, (s) => s.suppId == row.suppId);
+    return PurchaseOrder(
+      purId: row.id,
+      suppId: row.suppId,
+      suppName: supplier?.suppName ?? 'Unknown supplier',
+      recordedByUserId: row.recordedByUserId,
+      buyerName: _userName(row.recordedByUserId),
+      receivedBy: row.receivedBy,
+      receivedDate: row.receivedDate,
+    );
+  }
 
   Future<List<Supplier>> fetchSuppliers() async {
-    final rows =
-        await _client.from('supplier').select().order('suppname', ascending: true);
-    return (rows as List)
-        .map((r) => Supplier.fromMap(r as Map<String, dynamic>))
-        .toList();
+    final list = List<Supplier>.from(_db.suppliers);
+    list.sort((a, b) => a.suppName.compareTo(b.suppName));
+    return list;
   }
 
   Future<Supplier> createSupplier({
@@ -31,104 +41,100 @@ class SupplierService {
     String? contactNum,
     String? address,
   }) async {
-    final row = await _client
-        .from('supplier')
-        .insert({
-          'suppname': suppName,
-          'contactnum': contactNum,
-          'address': address,
-        })
-        .select()
-        .single();
-    return Supplier.fromMap(row);
+    final supplier = Supplier(
+      suppId: newMockId('supplier'),
+      suppName: suppName,
+      contactNum: contactNum,
+      address: address,
+    );
+    _db.suppliers.add(supplier);
+    return supplier;
   }
 
-  /// All purchase orders across every supplier, most recent first --
-  /// used to derive each supplier's order count / last-order date
-  /// client-side without a separate aggregate query per supplier.
+  /// All purchase orders across every supplier, most recent first.
   Future<List<PurchaseOrder>> fetchAllPurchaseOrders() async {
-    final rows = await _client
-        .from('purchase_trans')
-        .select(_selectWithJoins)
-        .order('rcvdon', ascending: false);
-    return (rows as List)
-        .map((r) => PurchaseOrder.fromMap(r as Map<String, dynamic>))
-        .toList();
+    final list = _db.purchases.map(_toPurchaseOrder).toList();
+    list.sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
+    return list;
   }
 
   Future<List<PurchaseOrder>> fetchPurchaseOrdersForSupplier(String suppId) async {
-    final rows = await _client
-        .from('purchase_trans')
-        .select(_selectWithJoins)
-        .eq('suppid', suppId)
-        .order('rcvdon', ascending: false);
-    return (rows as List)
-        .map((r) => PurchaseOrder.fromMap(r as Map<String, dynamic>))
+    final list = _db.purchases
+        .where((p) => p.suppId == suppId)
+        .map(_toPurchaseOrder)
         .toList();
+    list.sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
+    return list;
   }
 
-  /// A single purchase transaction by id, for the Purchase detail page.
   Future<PurchaseOrder?> fetchPurchaseOrder(String purId) async {
-    final row = await _client
-        .from('purchase_trans')
-        .select(_selectWithJoins)
-        .eq('purid', purId)
-        .maybeSingle();
-    if (row == null) return null;
-    return PurchaseOrder.fromMap(row);
+    final row = firstWhereOrNull(_db.purchases, (p) => p.id == purId);
+    return row == null ? null : _toPurchaseOrder(row);
   }
 
   Future<List<OrderLineItem>> fetchOrderItems(String purId) async {
-    final rows = await _client
-        .from('order_item')
-        .select('qty, unitcost, item(itemid, name, uom)')
-        .eq('orderid', purId);
-    return (rows as List)
-        .map((r) => OrderLineItem.fromMap(r as Map<String, dynamic>))
-        .toList();
+    final rows = _db.purchaseItems.where((oi) => oi.purchaseId == purId);
+    final result = <OrderLineItem>[];
+    for (final row in rows) {
+      final item = await _inventoryService.fetchItem(row.itemId);
+      result.add(OrderLineItem(
+        itemId: row.itemId,
+        itemName: item?.itemName ?? 'Unknown item',
+        itemUom: item?.itemUom ?? '',
+        qty: row.qty,
+        unitCost: row.unitCost,
+      ));
+    }
+    return result;
   }
 
-  /// Spend per order_item row, with its parent order's date -- used to
-  /// bucket total purchase spend by month on the Reports page.
+  /// Spend per purchase_item row, with its parent purchase's date -- used
+  /// to bucket total purchase spend by month on the Reports page.
   Future<List<OrderSpendEntry>> fetchOrderSpendEntries() async {
-    final rows =
-        await _client.from('order_item').select('qty, unitcost, purchase_trans(rcvdon)');
-    return (rows as List)
-        .map((r) => OrderSpendEntry.fromMap(r as Map<String, dynamic>))
-        .toList();
+    final result = <OrderSpendEntry>[];
+    for (final row in _db.purchaseItems) {
+      final purchase = firstWhereOrNull(_db.purchases, (p) => p.id == row.purchaseId);
+      if (purchase == null) continue;
+      result.add(OrderSpendEntry(
+        purDate: purchase.receivedDate,
+        amount: row.qty * row.unitCost,
+      ));
+    }
+    return result;
   }
 
-  /// Creates the purchase order, logs each item into order_item, and
-  /// increments stock for each item received. [rcvdOn] is optional
-  /// (defaults to now() if omitted).
+  /// Creates the purchase, logs each item into purchase_item, and increments
+  /// stock for each item received. [recordedByUserId] is the signed-in user
+  /// entering the transaction; [receivedBy] is free text for who physically
+  /// received the goods. [receivedDate] defaults to now() if omitted.
   Future<PurchaseOrder> createPurchaseOrder({
     required String suppId,
-    required String userId,
+    required String recordedByUserId,
+    required String receivedBy,
     required List<OrderItemInput> items,
-    DateTime? rcvdOn,
+    DateTime? receivedDate,
   }) async {
-    final row = await _client
-        .from('purchase_trans')
-        .insert({
-          'suppid': suppId,
-          'userid': userId,
-          if (rcvdOn != null) 'rcvdon': rcvdOn.toIso8601String(),
-        })
-        .select(_selectWithJoins)
-        .single();
-    final purId = row['purid'] as String;
+    final row = PurchaseRow(
+      id: newMockId('purchase'),
+      suppId: suppId,
+      recordedByUserId: recordedByUserId,
+      recordedDate: DateTime.now(),
+      receivedBy: receivedBy,
+      receivedDate: receivedDate ?? DateTime.now(),
+    );
+    _db.purchases.add(row);
 
     for (final item in items) {
       if (item.qty <= 0) continue;
-      await _client.from('order_item').insert({
-        'orderid': purId,
-        'itemid': item.itemId,
-        'qty': item.qty,
-        'unitcost': item.unitCost,
-      });
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty.toDouble());
+      _db.purchaseItems.add(PurchaseItemRow(
+        purchaseId: row.id,
+        itemId: item.itemId,
+        qty: item.qty,
+        unitCost: item.unitCost,
+      ));
+      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
     }
 
-    return PurchaseOrder.fromMap(row);
+    return _toPurchaseOrder(row);
   }
 }

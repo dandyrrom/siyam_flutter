@@ -1,11 +1,13 @@
 import 'pet.dart';
 
-/// Mirrors a row in the public.treatment table, joined with the pet it
-/// was performed on. `treatment` itself has no user/date columns -- the
-/// "who / when" for display is read off the first public.treatment_item
-/// row instead, since every item row logged in one Add Treatment submission
-/// shares the same givenby/givenon (the form only collects one such pair
-/// per treatment).
+/// Mirrors a row in public.treatment, joined with the pet it was performed
+/// on. [recordedByUserId]/[recordedByName]/[loggedDate] come straight off
+/// `treatment` itself (who/when it was entered into the system);
+/// [performedByName]/[recDate] are the free text `givenby`/`consumeddate` off
+/// the first `treatment_item` row (who actually administered it and when --
+/// may differ from when it was logged; every item row in one Add Treatment
+/// submission shares the same value, since the form only collects one such
+/// pair per treatment).
 class TreatmentRecord {
   final String treatId;
   final String petId;
@@ -13,9 +15,12 @@ class TreatmentRecord {
   final PetSpecies petSpecies;
   final String? petBreed;
   final String performedByName;
+  final String recordedByUserId;
+  final String recordedByName;
   final String treatName;
   final String? notes;
   final DateTime recDate;
+  final DateTime loggedDate;
 
   const TreatmentRecord({
     required this.treatId,
@@ -24,84 +29,67 @@ class TreatmentRecord {
     required this.petSpecies,
     this.petBreed,
     required this.performedByName,
+    required this.recordedByUserId,
+    required this.recordedByName,
     required this.treatName,
     this.notes,
     required this.recDate,
+    required this.loggedDate,
   });
-
-  factory TreatmentRecord.fromMap(Map<String, dynamic> map) {
-    final pet = map['pet'] as Map<String, dynamic>? ?? const {};
-    final items = map['treatment_item'] as List? ?? const [];
-    final firstItem =
-        items.isNotEmpty ? items.first as Map<String, dynamic> : const {};
-
-    return TreatmentRecord(
-      treatId: map['treatid'] as String,
-      petId: map['petid'] as String,
-      petName: pet['petname'] as String? ?? 'Unknown animal',
-      petSpecies: petSpeciesFromString(pet['species'] as String? ?? 'dog'),
-      petBreed: pet['breed'] as String?,
-      performedByName: firstItem['givenby'] as String? ?? '',
-      treatName: map['name'] as String? ?? '',
-      notes: map['notes'] as String?,
-      recDate: DateTime.tryParse(firstItem['givenon'] as String? ?? '') ?? DateTime.now(),
-    );
-  }
 }
 
-/// A single item consumed during a treatment (joined public.treatment_item
-/// with public.item for its name/unit).
+/// A single item consumed during a treatment -- the full set of
+/// TREATMENT_ITEM columns (joined with item for its name).
 class TreatmentItemUsed {
   final String itemId;
   final String itemName;
-  final String itemUom;
-  final double qtyUsed;
-  final String usedUom;
+  final double dispensedQty;
+  final String dispenseUnitAbbr;
+  final DateTime consumedDate;
+  final String givenBy;
+  final String recordedByName;
+  final DateTime recordedDate;
 
   const TreatmentItemUsed({
     required this.itemId,
     required this.itemName,
-    required this.itemUom,
-    required this.qtyUsed,
-    required this.usedUom,
+    required this.dispensedQty,
+    required this.dispenseUnitAbbr,
+    required this.consumedDate,
+    required this.givenBy,
+    required this.recordedByName,
+    required this.recordedDate,
   });
-
-  factory TreatmentItemUsed.fromMap(Map<String, dynamic> map) {
-    final item = map['item'] as Map<String, dynamic>? ?? const {};
-    return TreatmentItemUsed(
-      itemId: item['itemid'] as String? ?? '',
-      itemName: item['name'] as String? ?? 'Unknown item',
-      itemUom: item['uom'] as String? ?? '',
-      qtyUsed: (map['qtyused'] as num?)?.toDouble() ?? 0,
-      usedUom: map['uom'] as String? ?? '',
-    );
-  }
 }
 
 /// Form-side input for one row in the "items used" list while logging a
 /// treatment, before it's written to treatment_item.
 ///
-/// [unit] starts out equal to [itemUom] and can be changed via a
-/// dropdown in the form, and is persisted to treatment_item.uom as-is.
-/// If [unit] no longer matches [itemUom] there's no safe way to convert
-/// between units -- the form disables [deduct] in that case so stock
-/// isn't touched, while the usage itself is still logged.
+/// The dose unit is NOT chosen per-transaction -- it's fixed to the item's
+/// own configuration ([doseUnitId]/[doseUnitAbbr], resolved as
+/// dispense_unit, falling back to package_unit then purchase_unit).
+/// [deductible] mirrors [InventoryItem.stockOutIsDeductible] at the time the
+/// row was added: when false, the usage is still logged on treatment_item,
+/// but stock isn't touched, since there's no known conversion between the
+/// item's package_unit and dispense_unit.
 class TreatmentItemInput {
   final String itemId;
   final String itemName;
-  final String itemUom;
-  final double stockQty;
+  final String doseUnitId;
+  final String doseUnitAbbr;
+  final bool deductible;
+  final double stockQty; // current purchase_stocks, for validation
+  final double? packageQuantity; // for converting dose -> purchase_units
   double qty;
-  String unit;
-  bool deduct;
 
   TreatmentItemInput({
     required this.itemId,
     required this.itemName,
-    required this.itemUom,
+    required this.doseUnitId,
+    required this.doseUnitAbbr,
+    required this.deductible,
     required this.stockQty,
+    this.packageQuantity,
     this.qty = 1,
-    String? unit,
-    this.deduct = true,
-  }) : unit = unit ?? itemUom;
+  });
 }

@@ -142,7 +142,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
                 _DetailRow(label: 'Total Orders', value: '${orders.length}'),
                 _DetailRow(
                   label: 'Last Order',
-                  value: orders.isEmpty ? '—' : _formatDate(orders.first.purDate),
+                  value: orders.isEmpty ? '—' : _formatDate(orders.first.receivedDate),
                 ),
                 const SizedBox(height: 12),
                 const Text('Purchase History',
@@ -157,7 +157,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Row(
                         children: [
-                          Expanded(child: Text(_formatDate(order.purDate))),
+                          Expanded(child: Text(_formatDate(order.receivedDate))),
                           Text(order.buyerName,
                               style: const TextStyle(
                                   fontSize: 12.5, color: AppColors.mutedForeground)),
@@ -322,7 +322,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
                           Text(
                               orders.isEmpty
                                   ? 'No orders yet'
-                                  : 'Last: ${_formatDate(orders.first.purDate)}',
+                                  : 'Last: ${_formatDate(orders.first.receivedDate)}',
                               style: const TextStyle(
                                   fontSize: 12, color: AppColors.mutedForeground)),
                         ],

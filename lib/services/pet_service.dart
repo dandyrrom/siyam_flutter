@@ -1,24 +1,14 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../mock/mock_database.dart';
 import '../models/pet.dart';
 
-/// Thin wrapper around the public.pet table.
-///
-/// Table reference (from your schema):
-///   pet(petid uuid PK, petname, species pet_species, breed, gender
-///       pet_gender, spayed_neutered bool, status pet_status)
-///
-/// Note: age, weight, image, medical conditions, admission date, and
-/// last-checkup date are NOT part of the current schema, so this
-/// service (and the Animal Records page) only touches columns that
-/// actually exist.
+/// In-memory equivalent of the old public.pet access layer.
 class PetService {
-  final SupabaseClient _client = Supabase.instance.client;
+  final MockDatabase _db = MockDatabase.instance;
 
   Future<List<Pet>> fetchPets() async {
-    final rows = await _client.from('pet').select().order('petname', ascending: true);
-    return (rows as List)
-        .map((r) => Pet.fromMap(r as Map<String, dynamic>))
-        .toList();
+    final list = List<Pet>.from(_db.pets);
+    list.sort((a, b) => a.petName.compareTo(b.petName));
+    return list;
   }
 
   Future<Pet> createPet({
@@ -28,34 +18,40 @@ class PetService {
     String? breed,
     bool spayedNeutered = false,
   }) async {
-    final row = await _client
-        .from('pet')
-        .insert({
-          'petname': petName,
-          'species': petSpeciesToString(species),
-          'gender': petGenderToString(gender),
-          'breed': breed,
-          'spayed_neutered': spayedNeutered,
-        })
-        .select()
-        .single();
-    return Pet.fromMap(row);
+    final pet = Pet(
+      petId: newMockId('pet'),
+      petName: petName,
+      species: species,
+      breed: breed,
+      gender: gender,
+      spayedNeutered: spayedNeutered,
+      status: PetStatus.available,
+    );
+    _db.pets.add(pet);
+    return pet;
   }
 
   Future<Pet> updateStatus({
     required String petId,
     required PetStatus status,
   }) async {
-    final row = await _client
-        .from('pet')
-        .update({'status': petStatusToString(status)})
-        .eq('petid', petId)
-        .select()
-        .single();
-    return Pet.fromMap(row);
+    final index = _db.pets.indexWhere((p) => p.petId == petId);
+    if (index == -1) throw Exception('Pet not found');
+    final current = _db.pets[index];
+    final updated = Pet(
+      petId: current.petId,
+      petName: current.petName,
+      species: current.species,
+      breed: current.breed,
+      gender: current.gender,
+      spayedNeutered: current.spayedNeutered,
+      status: status,
+    );
+    _db.pets[index] = updated;
+    return updated;
   }
 
   Future<void> deletePet(String petId) async {
-    await _client.from('pet').delete().eq('petid', petId);
+    _db.pets.removeWhere((p) => p.petId == petId);
   }
 }

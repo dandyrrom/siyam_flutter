@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../models/pet.dart';
@@ -12,10 +11,9 @@ import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
 import '../widgets/search_select_field.dart';
 
-/// Staff-only "Add Treatment" page (replaces the old Log Treatment
-/// dialog). If [prefillItemId] is provided (from the Inventory list's
-/// Stock Out -> Treatment action), one item row is pre-populated with
-/// that item and [prefillQty].
+/// Staff-only "Add Treatment" page. If [prefillItemId] is provided (from
+/// the Inventory list's Stock Out -> Treatment action), one item row is
+/// pre-populated with that item and [prefillQty].
 class AddTreatmentPage extends StatefulWidget {
   final String? prefillItemId;
   final String? prefillQty;
@@ -62,6 +60,25 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     super.dispose();
   }
 
+  /// Builds a form row for [item] -- the dose unit is fixed to the item's
+  /// own configuration (dispense_unit, falling back to package_unit then
+  /// purchase_unit), not a per-transaction choice.
+  TreatmentItemInput _inputFromItem(InventoryItem item, {double qty = 1}) {
+    final doseUnitId = item.dispenseUnitId ?? item.packageUnitId ?? item.purchaseUnitId;
+    final doseUnitAbbr =
+        item.dispenseUnitAbbr ?? item.packageUnitAbbr ?? item.purchaseUnitAbbr;
+    return TreatmentItemInput(
+      itemId: item.itemId,
+      itemName: item.itemName,
+      doseUnitId: doseUnitId,
+      doseUnitAbbr: doseUnitAbbr,
+      deductible: item.stockOutIsDeductible,
+      stockQty: item.stockQty,
+      packageQuantity: item.packageQuantity,
+      qty: qty,
+    );
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -85,13 +102,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                 );
         if (match != null) {
           final qty = double.tryParse(widget.prefillQty ?? '') ?? 1;
-          _itemRows.add(TreatmentItemInput(
-            itemId: match.itemId,
-            itemName: match.itemName,
-            itemUom: match.itemUom,
-            stockQty: match.stockQty,
-            qty: qty,
-          ));
+          _itemRows.add(_inputFromItem(match, qty: qty));
         }
       }
 
@@ -112,26 +123,10 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     }
   }
 
-  List<String> get _uomOptions {
-    final set = <String>{};
-    for (final i in _items) {
-      if (i.itemUom.isNotEmpty) set.add(i.itemUom);
-    }
-    return set.toList()..sort();
-  }
-
   void _addItemRow() {
     final available = _items.where((i) => !_itemRows.any((r) => r.itemId == i.itemId)).toList();
     if (available.isEmpty) return;
-    final first = available.first;
-    setState(() {
-      _itemRows.add(TreatmentItemInput(
-        itemId: first.itemId,
-        itemName: first.itemName,
-        itemUom: first.itemUom,
-        stockQty: first.stockQty,
-      ));
-    });
+    setState(() => _itemRows.add(_inputFromItem(available.first)));
   }
 
   Future<void> _pickDateAdministered() async {
@@ -178,10 +173,8 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      final message = (e is PostgrestException && e.code == '23505')
-          ? 'This item is already used in this treatment.'
-          : 'Could not log treatment: $e';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not log treatment: $e')));
     }
   }
 
@@ -288,17 +281,10 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                       .where((r) => r != row)
                       .map((r) => r.itemId)
                       .toSet(),
-                  uomOptions: _uomOptions,
                   onRemove: () => setState(() => _itemRows.remove(row)),
                   onItemChanged: (picked) => setState(() {
                     final idx = _itemRows.indexOf(row);
-                    _itemRows[idx] = TreatmentItemInput(
-                      itemId: picked.itemId,
-                      itemName: picked.itemName,
-                      itemUom: picked.itemUom,
-                      stockQty: picked.stockQty,
-                      qty: row.qty,
-                    );
+                    _itemRows[idx] = _inputFromItem(picked, qty: row.qty);
                   }),
                   onChanged: () => setState(() {}),
                 ),
@@ -361,7 +347,6 @@ class _ItemRow extends StatelessWidget {
   final TreatmentItemInput row;
   final List<InventoryItem> items;
   final Set<String> usedItemIds;
-  final List<String> uomOptions;
   final VoidCallback onRemove;
   final ValueChanged<InventoryItem> onItemChanged;
   final VoidCallback onChanged;
@@ -371,16 +356,22 @@ class _ItemRow extends StatelessWidget {
     required this.row,
     required this.items,
     required this.usedItemIds,
-    required this.uomOptions,
     required this.onRemove,
     required this.onItemChanged,
     required this.onChanged,
   });
 
+  /// The max dose quantity this row can validly deduct, in dose-unit terms.
+  /// Only meaningful when [row.deductible] -- otherwise usage is logged
+  /// without a stock check, since there's no conversion to validate against.
+  double get _maxDoseQty {
+    if (!row.deductible) return double.infinity;
+    final packageQuantity = row.packageQuantity;
+    return packageQuantity == null ? row.stockQty : row.stockQty * packageQuantity;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final unitMatches = row.unit == row.itemUom;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -411,30 +402,13 @@ class _ItemRow extends StatelessWidget {
                 child: TextFormField(
                   initialValue: formatQty(row.qty),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: 'Dose (${row.unit})'),
+                  decoration: InputDecoration(labelText: 'Dose (${row.doseUnitAbbr})'),
                   onChanged: (v) => row.qty = double.tryParse(v) ?? 0,
                   validator: (v) {
                     final n = double.tryParse(v ?? '');
                     if (n == null || n <= 0) return 'Invalid';
-                    if (row.deduct && n > row.stockQty) return 'Only ${formatQty(row.stockQty)} left';
+                    if (n > _maxDoseQty) return 'Only ${formatQty(_maxDoseQty)} left';
                     return null;
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<String>(
-                  initialValue: uomOptions.contains(row.unit) ? row.unit : row.itemUom,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Unit'),
-                  items: {row.itemUom, ...uomOptions}
-                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                      .toList(),
-                  onChanged: (v) {
-                    row.unit = v ?? row.itemUom;
-                    row.deduct = row.unit == row.itemUom;
-                    onChanged();
                   },
                 ),
               ),
@@ -446,20 +420,17 @@ class _ItemRow extends StatelessWidget {
           ),
           Row(
             children: [
-              Checkbox(
-                value: row.deduct,
-                onChanged: unitMatches
-                    ? (v) {
-                        row.deduct = v ?? false;
-                        onChanged();
-                      }
-                    : null,
+              Icon(
+                row.deductible ? Icons.check_circle_outline : Icons.info_outline,
+                size: 14,
+                color: row.deductible ? AppColors.roleManager : AppColors.mutedForeground,
               ),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  unitMatches
-                      ? 'Deduct from inventory'
-                      : 'Deduct disabled — unit differs from ${row.itemUom}',
+                  row.deductible
+                      ? 'Will deduct from stock'
+                      : 'Logged only — no stock conversion available for this item\'s dispense unit',
                   style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground),
                 ),
               ),

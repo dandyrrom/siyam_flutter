@@ -5,8 +5,12 @@ import '../core/app_theme.dart';
 import '../models/app_user.dart';
 import '../models/donation.dart';
 import '../models/inventory_item.dart';
+import '../models/primary_category.dart';
+import '../models/subcategory.dart';
 import '../models/supplier.dart';
+import '../models/unit.dart';
 import '../services/auth_service.dart';
+import '../services/catalog_service.dart';
 import '../services/donation_service.dart';
 import '../services/inventory_service.dart';
 import '../services/supplier_service.dart';
@@ -14,37 +18,56 @@ import '../state/auth_state.dart';
 import '../widgets/search_select_field.dart';
 
 /// One "Item details" block's form state -- a Stock In Item submission can
-/// cover several of these under one purchase_trans/donation (the flow's
-/// "+ Add Item" UI), each becoming its own order_item/donation_item row.
+/// cover several of these under one purchase/donation (the flow's
+/// "+ Add Item" UI), each becoming its own purchase_item/donation_item row.
 class _StockInLineItem {
   final TextEditingController nameCtrl = TextEditingController();
-  final TextEditingController categoryCtrl = TextEditingController();
+  final TextEditingController pCategoryCtrl = TextEditingController();
+  final TextEditingController sCategoryCtrl = TextEditingController();
+  final TextEditingController purchaseUnitCtrl = TextEditingController();
+  final TextEditingController packageUnitCtrl = TextEditingController();
+  final TextEditingController packageQuantityCtrl = TextEditingController();
+  final TextEditingController dispenseUnitCtrl = TextEditingController();
   final TextEditingController qtyCtrl = TextEditingController();
-  final TextEditingController unitCtrl = TextEditingController();
   final TextEditingController costCtrl = TextEditingController();
 
   /// Set when this line is restocking an existing item (arrived via the
-  /// Inventory list's "Stock In" row action) -- name/category/unit are
-  /// locked to that item rather than freely editable.
+  /// Inventory list's "Stock In" row action) -- catalog fields are locked
+  /// to that item rather than freely editable.
   InventoryItem? lockedItem;
 
   /// Set when the typed Name matches an existing item, so Save reuses it
-  /// instead of creating a new `item` row.
+  /// instead of creating a new `item` row. Treated the same as [lockedItem]
+  /// for display purposes -- an existing item's catalog attributes aren't
+  /// re-specified here.
   InventoryItem? matchedExistingItem;
+
+  bool get isExistingItem => lockedItem != null || matchedExistingItem != null;
+  InventoryItem? get existingItem => lockedItem ?? matchedExistingItem;
+
+  PrimaryCategory? selectedPCategory;
+  Subcategory? selectedSCategory;
+  Unit? selectedPurchaseUnit;
+  Unit? selectedPackageUnit;
+  Unit? selectedDispenseUnit;
 
   void dispose() {
     nameCtrl.dispose();
-    categoryCtrl.dispose();
+    pCategoryCtrl.dispose();
+    sCategoryCtrl.dispose();
+    purchaseUnitCtrl.dispose();
+    packageUnitCtrl.dispose();
+    packageQuantityCtrl.dispose();
+    dispenseUnitCtrl.dispose();
     qtyCtrl.dispose();
-    unitCtrl.dispose();
     costCtrl.dispose();
   }
 }
 
-/// Staff-only "Stock In Item" page. Records the full stock-in: the
-/// catalog entry (if new) for each item line, plus either a
-/// purchase_trans/order_item batch or a donation/donation_item batch, and
-/// increments stock once per item via that procurement call.
+/// Staff-only "Stock In Item" page. Records the full stock-in: the catalog
+/// entry (if new) for each item line, plus either a purchase/purchase_item
+/// batch or a donation/donation_item batch, and increments stock once per
+/// item via that procurement call.
 ///
 /// If [itemId] is provided (from the Inventory list's "Stock In" action),
 /// the first line's Item details are pre-filled and locked to that
@@ -54,7 +77,8 @@ class _StockInLineItem {
 class AddItemPage extends StatefulWidget {
   final String? itemId;
   final String? type;
-  const AddItemPage({super.key, this.itemId, this.type});
+  final String? subId;
+  const AddItemPage({super.key, this.itemId, this.type, this.subId});
 
   @override
   State<AddItemPage> createState() => _AddItemPageState();
@@ -65,6 +89,7 @@ class _AddItemPageState extends State<AddItemPage> {
   final SupplierService _supplierService = SupplierService();
   final DonationService _donationService = DonationService();
   final AuthService _authService = AuthService();
+  final CatalogService _catalogService = CatalogService();
 
   final _formKey = GlobalKey<FormState>();
   final _receivedByCtrl = TextEditingController();
@@ -78,6 +103,9 @@ class _AddItemPageState extends State<AddItemPage> {
   List<AppUser> _donors = [];
   List<AppUser> _receivers = []; // staff + manager
   List<DonationSubmission> _linkableSubmissions = [];
+  List<PrimaryCategory> _primaryCategories = [];
+  List<Subcategory> _subcategories = [];
+  List<Unit> _units = [];
 
   final List<_StockInLineItem> _lines = [];
 
@@ -94,6 +122,7 @@ class _AddItemPageState extends State<AddItemPage> {
     super.initState();
     if (widget.type == 'donated') _procurementType = 'donated';
     if (widget.type == 'purchased') _procurementType = 'purchased';
+    if (widget.subId != null) _donationMode = 'submission';
     _load();
   }
 
@@ -119,6 +148,9 @@ class _AddItemPageState extends State<AddItemPage> {
         _authService.fetchUsersByRole([AppRole.donor]),
         _authService.fetchUsersByRole([AppRole.staff, AppRole.manager]),
         _donationService.fetchLinkableSubmissions(),
+        _catalogService.fetchPrimaryCategories(),
+        _catalogService.fetchSubcategories(),
+        _catalogService.fetchUnits(),
       ]);
       if (!mounted) return;
 
@@ -145,8 +177,15 @@ class _AddItemPageState extends State<AddItemPage> {
         firstLine.lockedItem = locked;
         firstLine.matchedExistingItem = locked;
         firstLine.nameCtrl.text = locked.itemName;
-        firstLine.categoryCtrl.text = locked.itemCategory;
-        firstLine.unitCtrl.text = locked.itemUom;
+      }
+
+      final linkableSubmissions = results[4] as List<DonationSubmission>;
+      DonationSubmission? preselectedSubmission;
+      if (widget.subId != null) {
+        preselectedSubmission = linkableSubmissions
+            .where((s) => s.subId == widget.subId)
+            .cast<DonationSubmission?>()
+            .firstWhere((s) => s != null, orElse: () => null);
       }
 
       setState(() {
@@ -154,9 +193,13 @@ class _AddItemPageState extends State<AddItemPage> {
         _suppliers = results[1] as List<Supplier>;
         _donors = results[2] as List<AppUser>;
         _receivers = receivers;
-        _linkableSubmissions = results[4] as List<DonationSubmission>;
+        _linkableSubmissions = linkableSubmissions;
+        _primaryCategories = results[5] as List<PrimaryCategory>;
+        _subcategories = results[6] as List<Subcategory>;
+        _units = results[7] as List<Unit>;
         _selectedReceiver = defaultReceiver;
         _receivedByCtrl.text = defaultReceiver?.fullName ?? '';
+        if (preselectedSubmission != null) _selectedSubmission = preselectedSubmission;
         _lines
           ..clear()
           ..add(firstLine);
@@ -169,22 +212,6 @@ class _AddItemPageState extends State<AddItemPage> {
         _loading = false;
       });
     }
-  }
-
-  List<String> get _categoryOptions {
-    final set = <String>{};
-    for (final i in _items) {
-      if (i.itemCategory.isNotEmpty) set.add(i.itemCategory);
-    }
-    return set.toList()..sort();
-  }
-
-  List<String> get _uomOptions {
-    final set = <String>{};
-    for (final i in _items) {
-      if (i.itemUom.isNotEmpty) set.add(i.itemUom);
-    }
-    return set.toList()..sort();
   }
 
   void _addLine() => setState(() => _lines.add(_StockInLineItem()));
@@ -263,6 +290,92 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
+  /// Generic "type a name, add it" dialog used for creating a new category
+  /// or unit inline, mirroring [_openAddSupplierDialog].
+  Future<String?> _promptForText(String title, String label) async {
+    final ctrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: ctrl,
+            autofocus: true,
+            decoration: InputDecoration(labelText: label),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.of(context).pop(ctrl.text.trim());
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addPrimaryCategory(_StockInLineItem line) async {
+    Navigator.of(context).maybePop();
+    final name = await _promptForText('Add Category', 'Category name');
+    if (name == null) return;
+    final created = await _catalogService.createPrimaryCategory(name);
+    if (!mounted) return;
+    setState(() {
+      _primaryCategories = [..._primaryCategories, created];
+      line.selectedPCategory = created;
+      line.pCategoryCtrl.text = created.type;
+      line.selectedSCategory = null;
+      line.sCategoryCtrl.clear();
+    });
+  }
+
+  Future<void> _addSubcategory(_StockInLineItem line) async {
+    Navigator.of(context).maybePop();
+    if (line.selectedPCategory == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Select a category first.')));
+      return;
+    }
+    final name = await _promptForText('Add Subcategory', 'Subcategory name');
+    if (name == null) return;
+    final created = await _catalogService.createSubcategory(
+      pCategoryId: line.selectedPCategory!.id,
+      type: name,
+    );
+    if (!mounted) return;
+    setState(() {
+      _subcategories = [..._subcategories, created];
+      line.selectedSCategory = created;
+      line.sCategoryCtrl.text = created.type;
+    });
+  }
+
+  Future<void> _addUnit(
+    _StockInLineItem line,
+    TextEditingController targetCtrl,
+    void Function(Unit) assign,
+  ) async {
+    Navigator.of(context).maybePop();
+    final name = await _promptForText('Add Unit', 'Unit (e.g. ml, tablet, box)');
+    if (name == null) return;
+    final created = await _catalogService.createUnit(name);
+    if (!mounted) return;
+    setState(() {
+      _units = [..._units, created];
+      assign(created);
+      targetCtrl.text = created.abbrName;
+    });
+  }
+
   Future<void> _pickDateReceived() async {
     final picked = await showDatePicker(
       context: context,
@@ -297,25 +410,43 @@ class _AddItemPageState extends State<AddItemPage> {
           .showSnackBar(const SnackBar(content: Text('Select who received the stock.')));
       return;
     }
+    for (final line in _lines) {
+      if (!line.isExistingItem &&
+          (line.selectedPCategory == null || line.selectedPurchaseUnit == null)) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Every new item needs a category and a purchase unit.')));
+        return;
+      }
+      if (!line.isExistingItem &&
+          line.selectedPackageUnit != null &&
+          double.tryParse(line.packageQuantityCtrl.text.trim()) == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Enter how many package units per purchase unit.')));
+        return;
+      }
+    }
 
     setState(() => _saving = true);
+    final currentUserId = context.read<AuthController>().profile!.userId;
     try {
       final resolvedItemIds = <String>[];
       for (final line in _lines) {
-        String itemId;
-        if (line.lockedItem != null) {
-          itemId = line.lockedItem!.itemId;
-        } else if (line.matchedExistingItem != null) {
-          itemId = line.matchedExistingItem!.itemId;
-        } else {
-          final newItem = await _inventoryService.createItem(
-            itemName: line.nameCtrl.text.trim(),
-            itemCategory: line.categoryCtrl.text.trim(),
-            itemUom: line.unitCtrl.text.trim(),
-          );
-          itemId = newItem.itemId;
+        if (line.existingItem != null) {
+          resolvedItemIds.add(line.existingItem!.itemId);
+          continue;
         }
-        resolvedItemIds.add(itemId);
+        final newItem = await _inventoryService.createItem(
+          itemName: line.nameCtrl.text.trim(),
+          pCategoryId: line.selectedPCategory!.id,
+          sCategoryId: line.selectedSCategory?.id,
+          purchaseUnitId: line.selectedPurchaseUnit!.id,
+          packageUnitId: line.selectedPackageUnit?.id,
+          packageQuantity: line.selectedPackageUnit == null
+              ? null
+              : double.parse(line.packageQuantityCtrl.text.trim()),
+          dispenseUnitId: (line.selectedDispenseUnit ?? line.selectedPackageUnit)?.id,
+        );
+        resolvedItemIds.add(newItem.itemId);
       }
 
       if (isPurchased) {
@@ -324,16 +455,17 @@ class _AddItemPageState extends State<AddItemPage> {
             OrderItemInput(
               itemId: resolvedItemIds[i],
               itemName: _lines[i].nameCtrl.text.trim(),
-              itemUom: _lines[i].unitCtrl.text.trim(),
-              qty: int.parse(_lines[i].qtyCtrl.text.trim()),
+              itemUom: _lines[i].existingItem?.itemUom ?? _lines[i].purchaseUnitCtrl.text.trim(),
+              qty: double.parse(_lines[i].qtyCtrl.text.trim()),
               unitCost: double.parse(_lines[i].costCtrl.text.trim()),
             ),
         ];
         await _supplierService.createPurchaseOrder(
           suppId: _selectedSupplier!.suppId,
-          userId: _selectedReceiver!.userId,
+          recordedByUserId: currentUserId,
+          receivedBy: _receivedByCtrl.text.trim(),
           items: items,
-          rcvdOn: _dateReceived,
+          receivedDate: _dateReceived,
         );
       } else {
         final items = [
@@ -341,23 +473,25 @@ class _AddItemPageState extends State<AddItemPage> {
             DonationItemInput(
               itemId: resolvedItemIds[i],
               itemName: _lines[i].nameCtrl.text.trim(),
-              itemUom: _lines[i].unitCtrl.text.trim(),
-              qty: int.parse(_lines[i].qtyCtrl.text.trim()),
+              itemUom: _lines[i].existingItem?.itemUom ?? _lines[i].purchaseUnitCtrl.text.trim(),
+              qty: double.parse(_lines[i].qtyCtrl.text.trim()),
             ),
         ];
         if (_donationMode == 'submission') {
           await _donationService.approveSubmission(
             subId: _selectedSubmission!.subId,
             donorId: _selectedSubmission!.donorId,
-            revById: _selectedReceiver!.userId,
+            updatedByUserId: currentUserId,
+            receivedBy: _receivedByCtrl.text.trim(),
             items: items,
           );
         } else {
           await _donationService.recordDirectDonation(
             donorId: _selectedDonor!.userId,
-            rcvdById: _selectedReceiver!.userId,
+            recordedByUserId: currentUserId,
+            receivedBy: _receivedByCtrl.text.trim(),
             items: items,
-            rcvdOn: _dateReceived,
+            receivedDate: _dateReceived,
           );
         }
       }
@@ -527,12 +661,21 @@ class _AddItemPageState extends State<AddItemPage> {
                     key: ValueKey(line),
                     line: line,
                     allItems: _items,
-                    categoryOptions: _categoryOptions,
-                    uomOptions: _uomOptions,
+                    primaryCategories: _primaryCategories,
+                    subcategories: _subcategories,
+                    units: _units,
                     isPurchased: isPurchased,
                     showRemove: _lines.length > 1,
                     onRemove: () => _removeLine(line),
                     onChanged: () => setState(() {}),
+                    onAddPrimaryCategory: () => _addPrimaryCategory(line),
+                    onAddSubcategory: () => _addSubcategory(line),
+                    onAddPurchaseUnit: () => _addUnit(
+                        line, line.purchaseUnitCtrl, (u) => line.selectedPurchaseUnit = u),
+                    onAddPackageUnit: () => _addUnit(
+                        line, line.packageUnitCtrl, (u) => line.selectedPackageUnit = u),
+                    onAddDispenseUnit: () => _addUnit(
+                        line, line.dispenseUnitCtrl, (u) => line.selectedDispenseUnit = u),
                   ),
                 TextButton.icon(
                   onPressed: _addLine,
@@ -573,28 +716,43 @@ class _AddItemPageState extends State<AddItemPage> {
 class _ItemDetailsBlock extends StatelessWidget {
   final _StockInLineItem line;
   final List<InventoryItem> allItems;
-  final List<String> categoryOptions;
-  final List<String> uomOptions;
+  final List<PrimaryCategory> primaryCategories;
+  final List<Subcategory> subcategories;
+  final List<Unit> units;
   final bool isPurchased;
   final bool showRemove;
   final VoidCallback onRemove;
   final VoidCallback onChanged;
+  final VoidCallback onAddPrimaryCategory;
+  final VoidCallback onAddSubcategory;
+  final VoidCallback onAddPurchaseUnit;
+  final VoidCallback onAddPackageUnit;
+  final VoidCallback onAddDispenseUnit;
 
   const _ItemDetailsBlock({
     super.key,
     required this.line,
     required this.allItems,
-    required this.categoryOptions,
-    required this.uomOptions,
+    required this.primaryCategories,
+    required this.subcategories,
+    required this.units,
     required this.isPurchased,
     required this.showRemove,
     required this.onRemove,
     required this.onChanged,
+    required this.onAddPrimaryCategory,
+    required this.onAddSubcategory,
+    required this.onAddPurchaseUnit,
+    required this.onAddPackageUnit,
+    required this.onAddDispenseUnit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final locked = line.lockedItem != null;
+    final existing = line.existingItem;
+    final subcategoryOptions = line.selectedPCategory == null
+        ? const <Subcategory>[]
+        : subcategories.where((s) => s.pCategoryId == line.selectedPCategory!.id).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -620,7 +778,7 @@ class _ItemDetailsBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          if (locked)
+          if (existing != null)
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -633,55 +791,132 @@ class _ItemDetailsBlock extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(line.lockedItem!.itemName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text('${line.lockedItem!.itemCategory} · ${line.lockedItem!.itemUom}',
+                        Text(existing.itemName, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        Text('${existing.itemCategory} · ${existing.itemUom}',
                             style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
                       ],
                     ),
                   ),
-                  Text('Current: ${formatQty(line.lockedItem!.stockQty)} ${line.lockedItem!.itemUom}',
+                  Text('Current: ${formatQty(existing.stockQty)} ${existing.itemUom}',
                       style: const TextStyle(fontSize: 12.5)),
                 ],
               ),
             )
-          else
+          else ...[
+            SearchSelectField<InventoryItem>(
+              labelText: 'Name',
+              controller: line.nameCtrl,
+              options: allItems,
+              displayStringForOption: (i) => i.itemName,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              onTextChanged: (text) {
+                final match = allItems
+                    .where((i) => i.itemName.toLowerCase() == text.trim().toLowerCase());
+                line.matchedExistingItem = match.isEmpty ? null : match.first;
+                onChanged();
+              },
+              onSelected: (item) {
+                line.matchedExistingItem = item;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: SearchSelectField<InventoryItem>(
-                    labelText: 'Name',
-                    controller: line.nameCtrl,
-                    options: allItems,
-                    displayStringForOption: (i) => i.itemName,
+                  child: SearchSelectField<PrimaryCategory>(
+                    labelText: 'Category',
+                    controller: line.pCategoryCtrl,
+                    options: primaryCategories,
+                    displayStringForOption: (c) => c.type,
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    onTextChanged: (text) {
-                      final match = allItems
-                          .where((i) => i.itemName.toLowerCase() == text.trim().toLowerCase());
-                      line.matchedExistingItem = match.isEmpty ? null : match.first;
-                      onChanged();
-                    },
-                    onSelected: (item) {
-                      line.matchedExistingItem = item;
-                      line.categoryCtrl.text = item.itemCategory;
-                      line.unitCtrl.text = item.itemUom;
+                    onAddNew: onAddPrimaryCategory,
+                    onSelected: (c) {
+                      line.selectedPCategory = c;
+                      line.selectedSCategory = null;
+                      line.sCategoryCtrl.clear();
                       onChanged();
                     },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: SearchSelectField<String>(
-                    labelText: 'Category',
-                    controller: line.categoryCtrl,
-                    options: categoryOptions,
-                    displayStringForOption: (c) => c,
-                    onSelected: (_) {},
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  child: SearchSelectField<Subcategory>(
+                    labelText: 'Subcategory (optional)',
+                    controller: line.sCategoryCtrl,
+                    options: subcategoryOptions,
+                    displayStringForOption: (s) => s.type,
+                    onAddNew: onAddSubcategory,
+                    onSelected: (s) {
+                      line.selectedSCategory = s;
+                      onChanged();
+                    },
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            SearchSelectField<Unit>(
+              labelText: 'Purchase unit (what you buy in -- box, bottle, bag)',
+              controller: line.purchaseUnitCtrl,
+              options: units,
+              displayStringForOption: (u) => u.abbrName,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              onAddNew: onAddPurchaseUnit,
+              onSelected: (u) {
+                line.selectedPurchaseUnit = u;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: SearchSelectField<Unit>(
+                    labelText: 'Package unit (optional -- e.g. ml, tablet)',
+                    controller: line.packageUnitCtrl,
+                    options: units,
+                    displayStringForOption: (u) => u.abbrName,
+                    onAddNew: onAddPackageUnit,
+                    onSelected: (u) {
+                      line.selectedPackageUnit = u;
+                      onChanged();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: line.packageQuantityCtrl,
+                    enabled: line.selectedPackageUnit != null,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Qty per purchase unit'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Leave package unit blank for items with no breakdown (e.g. a mop) -- '
+              'they stock out one purchase unit at a time.',
+              style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+            ),
+            const SizedBox(height: 12),
+            SearchSelectField<Unit>(
+              labelText: 'Dispense unit (optional -- unit doses are recorded in)',
+              controller: line.dispenseUnitCtrl,
+              options: units,
+              displayStringForOption: (u) => u.abbrName,
+              onAddNew: onAddDispenseUnit,
+              onSelected: (u) {
+                line.selectedDispenseUnit = u;
+                onChanged();
+              },
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -689,48 +924,35 @@ class _ItemDetailsBlock extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   controller: line.qtyCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Quantity'),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                      labelText:
+                          'Quantity${existing == null ? '' : ' (${existing.itemUom})'}'),
                   validator: (v) {
-                    final n = int.tryParse(v ?? '');
+                    final n = double.tryParse(v ?? '');
                     if (n == null || n <= 0) return 'Enter a quantity greater than 0';
                     return null;
                   },
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: locked
-                    ? TextFormField(
-                        controller: line.unitCtrl,
-                        enabled: false,
-                        decoration: const InputDecoration(labelText: 'Unit'),
-                      )
-                    : SearchSelectField<String>(
-                        labelText: 'Unit',
-                        controller: line.unitCtrl,
-                        options: uomOptions,
-                        displayStringForOption: (u) => u,
-                        onSelected: (_) {},
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                      ),
-              ),
+              if (isPurchased) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: line.costCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Cost per unit'),
+                    validator: (v) {
+                      if (!isPurchased) return null;
+                      final n = double.tryParse(v ?? '');
+                      if (n == null || n < 0) return 'Enter a valid unit cost';
+                      return null;
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
-          if (isPurchased) ...[
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: line.costCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Cost'),
-              validator: (v) {
-                if (!isPurchased) return null;
-                final n = double.tryParse(v ?? '');
-                if (n == null || n < 0) return 'Enter a valid unit cost';
-                return null;
-              },
-            ),
-          ],
         ],
       ),
     );

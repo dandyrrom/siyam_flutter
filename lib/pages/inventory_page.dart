@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
+import '../state/auth_state.dart';
 import '../widgets/stock_out_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -86,6 +88,7 @@ class _InventoryPageState extends State<InventoryPage> {
     final result = await showStockOutDialog(
       context,
       service: _service,
+      recordedByUserId: context.read<AuthController>().profile!.userId,
       item: item,
       items: _items,
     );

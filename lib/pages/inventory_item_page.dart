@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
+import '../models/primary_category.dart';
+import '../models/stock_movement.dart';
+import '../models/unit.dart';
+import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
-import '../widgets/stat_card.dart'; // for ComingSoonNotice
+import '../state/auth_state.dart';
+import '../widgets/search_select_field.dart';
 import '../widgets/stock_out_dialog.dart';
 
 class InventoryItemPage extends StatefulWidget {
@@ -16,8 +22,12 @@ class InventoryItemPage extends StatefulWidget {
 
 class _InventoryItemPageState extends State<InventoryItemPage> {
   final InventoryService _service = InventoryService();
+  final CatalogService _catalogService = CatalogService();
 
   InventoryItem? _item;
+  List<PrimaryCategory> _primaryCategories = [];
+  List<Unit> _units = [];
+  List<StockMovement> _history = [];
   bool _loading = true;
   bool _notFound = false;
 
@@ -33,10 +43,19 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
       _notFound = false;
     });
     try {
-      final item = await _service.fetchItem(widget.itemId);
+      final results = await Future.wait([
+        _service.fetchItem(widget.itemId),
+        _catalogService.fetchPrimaryCategories(),
+        _catalogService.fetchUnits(),
+        _service.fetchStockHistory(widget.itemId),
+      ]);
       if (!mounted) return;
+      final item = results[0] as InventoryItem?;
       setState(() {
         _item = item;
+        _primaryCategories = results[1] as List<PrimaryCategory>;
+        _units = results[2] as List<Unit>;
+        _history = results[3] as List<StockMovement>;
         _notFound = item == null;
         _loading = false;
       });
@@ -93,10 +112,63 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
     );
   }
 
+  /// Category/unit are catalog lookups now, not free text -- this picks
+  /// from [options] instead of typing an arbitrary string.
+  Future<void> _editPickerField<T extends Object>({
+    required String label,
+    required List<T> options,
+    required String Function(T) displayStringForOption,
+    required Future<void> Function(T) onSave,
+  }) async {
+    T? selected;
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Edit $label'),
+        content: Form(
+          key: formKey,
+          child: SearchSelectField<T>(
+            labelText: label,
+            options: options,
+            displayStringForOption: displayStringForOption,
+            validator: (v) => selected == null ? 'Required' : null,
+            onSelected: (v) => selected = v,
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.of(context).pop();
+              try {
+                await onSave(selected as T);
+                _load();
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text('Could not update: $e')));
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openStockOutDialog() async {
     final item = _item;
     if (item == null) return;
-    final result = await showStockOutDialog(context, service: _service, item: item);
+    final result = await showStockOutDialog(
+      context,
+      service: _service,
+      recordedByUserId: context.read<AuthController>().profile!.userId,
+      item: item,
+    );
     if (!mounted) return;
     if (result != null) {
       final (usedItem, qty) = result;
@@ -252,22 +324,29 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
                 child: _FieldRow(
                   label: 'Category',
                   value: item.itemCategory,
-                  onEdit: () => _editField(
+                  onEdit: () => _editPickerField<PrimaryCategory>(
                     label: 'Category',
-                    currentValue: item.itemCategory,
-                    onSave: (v) => _service.updateDetails(itemId: item.itemId, itemCategory: v),
+                    options: _primaryCategories,
+                    displayStringForOption: (c) => c.type,
+                    // Changing the primary category clears the subcategory --
+                    // the old one may no longer apply. Pick the item again to
+                    // set a new subcategory via the Stock In form.
+                    onSave: (c) =>
+                        _service.updateDetails(itemId: item.itemId, pCategoryId: c.id),
                   ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _FieldRow(
-                  label: 'Unit of Measure',
+                  label: 'Purchase Unit',
                   value: item.itemUom,
-                  onEdit: () => _editField(
-                    label: 'Unit of Measure',
-                    currentValue: item.itemUom,
-                    onSave: (v) => _service.updateDetails(itemId: item.itemId, itemUom: v),
+                  onEdit: () => _editPickerField<Unit>(
+                    label: 'Purchase Unit',
+                    options: _units,
+                    displayStringForOption: (u) => u.abbrName,
+                    onSave: (u) =>
+                        _service.updateDetails(itemId: item.itemId, purchaseUnitId: u.id),
                   ),
                 ),
               ),
@@ -293,15 +372,105 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
           ),
           const SizedBox(height: 24),
 
-          const ComingSoonNotice(
-            text:
-                'Stock history (who stocked in/out and when) will appear here once transaction logging is added to the database.',
+          const Text('Stock History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          if (_history.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('No stock movements yet.',
+                  style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < _history.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _StockHistoryRow(movement: _history[i]),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StockHistoryRow extends StatelessWidget {
+  final StockMovement movement;
+  const _StockHistoryRow({required this.movement});
+
+  @override
+  Widget build(BuildContext context) {
+    final isIn = movement.direction == StockDirection.stockIn;
+    final color = isIn ? AppColors.roleManager : AppColors.destructive;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(isIn ? Icons.arrow_upward : Icons.arrow_downward, size: 16, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(movement.typeLabel,
+                    style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+                const SizedBox(height: 2),
+                Text(_formatDate(movement.date),
+                    style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('${isIn ? '+' : '-'}${formatQty(movement.qty)} ${movement.unitAbbr}',
+                style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+          ),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (movement.treatmentId != null)
+                  InkWell(
+                    onTap: () => context.push('/medical-records/${movement.treatmentId}'),
+                    child: Text(movement.treatmentName ?? '',
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline)),
+                  ),
+                Text('by ${movement.recordedByName}',
+                    textAlign: TextAlign.end,
+                    style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _formatDate(DateTime date) =>
+    '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
 
 class _FieldLabel extends StatelessWidget {
   final String text;

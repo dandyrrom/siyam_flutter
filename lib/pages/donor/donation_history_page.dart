@@ -95,8 +95,8 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
                     _DetailRow(
                         label: 'Drop-off Date',
                         value: sub.schedDate == null ? '—' : _formatDate(sub.schedDate!)),
-                    if (sub.reviewerName != null)
-                      _DetailRow(label: 'Reviewed by', value: sub.reviewerName!),
+                    if (sub.updatedByName != null)
+                      _DetailRow(label: 'Reviewed by', value: sub.updatedByName!),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

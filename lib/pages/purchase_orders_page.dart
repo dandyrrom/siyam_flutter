@@ -170,7 +170,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
                             ),
                             Expanded(
                               flex: 2,
-                              child: Text(_formatDate(order.purDate)),
+                              child: Text(_formatDate(order.receivedDate)),
                             ),
                             Expanded(
                               flex: 2,

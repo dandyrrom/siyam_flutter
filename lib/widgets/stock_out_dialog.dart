@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
+import '../models/stock_out.dart';
 import '../services/inventory_service.dart';
 import 'search_select_field.dart';
 
 /// Stock Out modal: quantity + reason (Waste, Expired, Adjustment,
 /// Treatment).
 ///
-/// For Waste/Expired/Adjustment, this directly decrements
-/// `item.currentstock` and returns null -- there's no stock-history table
-/// in the schema, so this doesn't leave a separate audit trail beyond
-/// the updated quantity.
+/// For Waste/Expired/Adjustment, this writes a `stock_out` row (via
+/// [InventoryService.stockOut]) and decrements `purchase_stocks`, then
+/// returns null.
 ///
 /// For Treatment, this does NOT touch inventory itself -- it returns the
 /// entered quantity so the caller can redirect to the Add Treatment
@@ -24,6 +24,7 @@ import 'search_select_field.dart';
 Future<(InventoryItem, double)?> showStockOutDialog(
   BuildContext context, {
   required InventoryService service,
+  required String recordedByUserId,
   InventoryItem? item,
   List<InventoryItem> items = const [],
 }) {
@@ -124,7 +125,12 @@ Future<(InventoryItem, double)?> showStockOutDialog(
               }
 
               try {
-                await service.adjustStock(itemId: target.itemId, delta: -qty);
+                await service.stockOut(
+                  itemId: target.itemId,
+                  qty: qty,
+                  reason: stockOutReasonFromString(reason.toLowerCase()),
+                  recordedByUserId: recordedByUserId,
+                );
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
               } catch (e) {

@@ -1,9 +1,8 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../mock/mock_database.dart';
+import '../models/app_user.dart';
+import '../models/pet.dart';
 
 /// Aggregate counts for the Manager dashboard.
-///
-/// Note: `supplier` has no "active/inactive" status column in the schema,
-/// so this is a total supplier count, not an "active suppliers" count.
 class ManagerDashboardStats {
   final int totalAnimals;
   final int totalSuppliers;
@@ -21,7 +20,7 @@ class ManagerDashboardStats {
 /// Aggregate counts for the Staff dashboard.
 ///
 /// Note: `item` has no reorder-point column, so "low stock" can't be
-/// computed against a threshold. This uses `currentstock = 0` (out of
+/// computed against a threshold. This uses `purchase_stocks = 0` (out of
 /// stock) instead, which is derivable from the schema as-is.
 class StaffDashboardStats {
   final int outOfStockItems;
@@ -38,10 +37,6 @@ class StaffDashboardStats {
 }
 
 /// Aggregate stats for the signed-in donor.
-///
-/// Note: there's no schema link from a donation's items to a specific
-/// animal, so "Animals Helped" can't be derived; this reports the
-/// donor's own pending submissions instead.
 class DonorDashboardStats {
   final int totalDonations;
   final int itemsDonated;
@@ -57,96 +52,48 @@ class DonorDashboardStats {
 }
 
 class DashboardService {
-  final SupabaseClient _client = Supabase.instance.client;
-
-  Future<int> _count(
-    String table, {
-    String column = '*',
-    String? eqColumn,
-    Object? eqValue,
-    String? gteColumn,
-    DateTime? gteValue,
-  }) async {
-    var query = _client.from(table).select(column);
-    if (eqColumn != null) query = query.eq(eqColumn, eqValue as Object);
-    if (gteColumn != null) {
-      query = query.gte(gteColumn, gteValue!.toIso8601String());
-    }
-    final res = await query.count(CountOption.exact);
-    return res.count;
-  }
+  final MockDatabase _db = MockDatabase.instance;
 
   Future<ManagerDashboardStats> fetchManagerStats() async {
-    final results = await Future.wait([
-      _count('pet'),
-      _count('supplier'),
-      _count('submission', eqColumn: 'status', eqValue: 'pending'),
-      _count('users', eqColumn: 'role', eqValue: 'staff'),
-    ]);
     return ManagerDashboardStats(
-      totalAnimals: results[0],
-      totalSuppliers: results[1],
-      pendingSubmissions: results[2],
-      staffAccounts: results[3],
+      totalAnimals: _db.pets.length,
+      totalSuppliers: _db.suppliers.length,
+      pendingSubmissions: _db.submissions.where((s) => s.status == 'pending').length,
+      staffAccounts: _db.users.where((u) => u.role == AppRole.staff).length,
     );
   }
 
   Future<StaffDashboardStats> fetchStaffStats() async {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final results = await Future.wait([
-      _count('item', eqColumn: 'currentstock', eqValue: 0),
-      _count('pet', eqColumn: 'status', eqValue: 'under_treatment'),
-      _count('donation', gteColumn: 'rcvdon', gteValue: weekAgo),
-      _count('submission', eqColumn: 'status', eqValue: 'pending'),
-    ]);
     return StaffDashboardStats(
-      outOfStockItems: results[0],
-      animalsUnderTreatment: results[1],
-      donationsThisWeek: results[2],
-      pendingSubmissions: results[3],
+      outOfStockItems: _db.items.where((i) => i.purchaseStocks <= 0).length,
+      animalsUnderTreatment:
+          _db.pets.where((p) => p.status == PetStatus.underTreatment).length,
+      donationsThisWeek:
+          _db.donations.where((d) => d.receivedDate.isAfter(weekAgo)).length,
+      pendingSubmissions: _db.submissions.where((s) => s.status == 'pending').length,
     );
   }
 
   Future<DonorDashboardStats> fetchDonorStats(String donorId) async {
-    final donationCount = await _count('donation', eqColumn: 'donorid', eqValue: donorId);
+    final donations = _db.donations.where((d) => d.donorId == donorId).toList()
+      ..sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
 
-    final donationRows = await _client
-        .from('donation')
-        .select('donid, rcvdon')
-        .eq('donorid', donorId)
-        .order('rcvdon', ascending: false);
-    final donationIds =
-        donationRows.map((r) => r['donid'] as String).toList();
-
-    int itemsDonated = 0;
-    if (donationIds.isNotEmpty) {
-      final itemRows = await _client
-          .from('donation_item')
-          .select('qty')
-          .inFilter('donid', donationIds);
-      for (final r in (itemRows as List)) {
-        itemsDonated += (r as Map<String, dynamic>)['qty'] as int;
-      }
+    final donationIds = donations.map((d) => d.id).toSet();
+    var itemsDonated = 0;
+    for (final row in _db.donationItems) {
+      if (donationIds.contains(row.donId)) itemsDonated += row.qty.round();
     }
 
-    final lastDonation = donationRows.isEmpty
-        ? null
-        : DateTime.tryParse(donationRows.first['rcvdon'] as String);
-
-    // "Pending submissions" = this donor's submissions still awaiting
-    // review, not yet converted into a donation.
-    final pendingOnly = await _client
-        .from('submission')
-        .select('subid')
-        .eq('donorid', donorId)
-        .eq('status', 'pending')
-        .count(CountOption.exact);
+    final pendingCount = _db.submissions
+        .where((s) => s.donorId == donorId && s.status == 'pending')
+        .length;
 
     return DonorDashboardStats(
-      totalDonations: donationCount,
+      totalDonations: donations.length,
       itemsDonated: itemsDonated,
-      pendingSubmissions: pendingOnly.count,
-      lastDonation: lastDonation,
+      pendingSubmissions: pendingCount,
+      lastDonation: donations.isEmpty ? null : donations.first.receivedDate,
     );
   }
 }

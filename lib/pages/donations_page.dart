@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/donation.dart';
-import '../models/inventory_item.dart';
 import '../services/donation_service.dart';
-import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
 import '../widgets/stat_card.dart';
 
@@ -17,10 +16,8 @@ class DonationsPage extends StatefulWidget {
 
 class _DonationsPageState extends State<DonationsPage> {
   final DonationService _service = DonationService();
-  final InventoryService _inventoryService = InventoryService();
 
   List<DonationSubmission> _submissions = [];
-  List<InventoryItem> _items = [];
   bool _loading = true;
   String? _error;
 
@@ -39,14 +36,10 @@ class _DonationsPageState extends State<DonationsPage> {
       _error = null;
     });
     try {
-      final results = await Future.wait([
-        _service.fetchSubmissions(),
-        _inventoryService.fetchItems(),
-      ]);
+      final submissions = await _service.fetchSubmissions();
       if (!mounted) return;
       setState(() {
-        _submissions = results[0] as List<DonationSubmission>;
-        _items = results[1] as List<InventoryItem>;
+        _submissions = submissions;
         _loading = false;
       });
     } catch (e) {
@@ -79,10 +72,10 @@ class _DonationsPageState extends State<DonationsPage> {
   }
 
   Future<void> _reject(DonationSubmission sub) async {
-    final revById = context.read<AuthController>().profile?.userId;
-    if (revById == null) return;
+    final updatedByUserId = context.read<AuthController>().profile?.userId;
+    if (updatedByUserId == null) return;
     try {
-      await _service.rejectSubmission(subId: sub.subId, revById: revById);
+      await _service.rejectSubmission(subId: sub.subId, updatedByUserId: updatedByUserId);
       _load();
     } catch (e) {
       if (!mounted) return;
@@ -91,149 +84,59 @@ class _DonationsPageState extends State<DonationsPage> {
     }
   }
 
-  Future<void> _openApproveDialog(DonationSubmission sub) async {
-    final revById = context.read<AuthController>().profile?.userId;
-    if (revById == null) return;
+  /// Approving is a lightweight status change only -- it doesn't collect
+  /// items here. Staff can stock in right away (redirects to the Stock In
+  /// form, pre-filled for this donation) or later via the Stock In form's
+  /// "Link to submission" picker, since an approved-but-unlinked submission
+  /// already shows up there.
+  Future<void> _approve(DonationSubmission sub) async {
+    final currentUser = context.read<AuthController>().profile;
+    if (currentUser == null) return;
 
-    final formKey = GlobalKey<FormState>();
-    final List<DonationItemInput> itemRows = [];
-
-    await showDialog(
+    final choice = await showDialog<String>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Approve Donation from ${sub.donorName}'),
-          content: SizedBox(
-            width: 440,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Record what was actually received. This will add to inventory stock.',
-                      style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      runSpacing: 4,
-                      children: [
-                        const Text('Items Received',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                        TextButton.icon(
-                          onPressed: () => setDialogState(() {
-                            final available = _items
-                                .where((i) => !itemRows.any((r) => r.itemId == i.itemId))
-                                .toList();
-                            if (available.isEmpty) return;
-                            final first = available.first;
-                            itemRows.add(DonationItemInput(
-                              itemId: first.itemId,
-                              itemName: first.itemName,
-                              itemUom: first.itemUom,
-                            ));
-                          }),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add item'),
-                        ),
-                      ],
-                    ),
-                    for (final row in itemRows)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: DropdownButtonFormField<String>(
-                                initialValue: row.itemId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(labelText: 'Item'),
-                                items: _items
-                                    .map((i) => DropdownMenuItem(
-                                        value: i.itemId, child: Text(i.itemName)))
-                                    .toList(),
-                                onChanged: (v) => setDialogState(() {
-                                  final picked = _items.firstWhere((i) => i.itemId == v);
-                                  final idx = itemRows.indexOf(row);
-                                  itemRows[idx] = DonationItemInput(
-                                    itemId: picked.itemId,
-                                    itemName: picked.itemName,
-                                    itemUom: picked.itemUom,
-                                    qty: row.qty,
-                                  );
-                                }),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              flex: 2,
-                              child: TextFormField(
-                                key: ValueKey(row.itemId),
-                                initialValue: '${row.qty}',
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(labelText: 'Qty (${row.itemUom})'),
-                                onChanged: (v) => row.qty = int.tryParse(v) ?? 0,
-                                validator: (v) {
-                                  final n = int.tryParse(v ?? '');
-                                  if (n == null || n <= 0) return 'Invalid';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setDialogState(() => itemRows.remove(row)),
-                              icon: const Icon(Icons.close, size: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (itemRows.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('Add at least one item to approve this donation.',
-                            style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: itemRows.isEmpty
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      Navigator.of(context).pop();
-                      try {
-                        await _service.approveSubmission(
-                          subId: sub.subId,
-                          donorId: sub.donorId,
-                          revById: revById,
-                          items: itemRows,
-                        );
-                        _load();
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not approve donation: $e')));
-                      }
-                    },
-              child: const Text('Approve & Record'),
-            ),
-          ],
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Approve donation from ${sub.donorName}?'),
+        content: const Text(
+          'This marks the submission approved. You can record the items '
+          'received now, or later from Inventory > Stock In > Link to submission.',
         ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop('approve'),
+            child: const Text('Approve'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop('approve_and_stock_in'),
+            child: const Text('Approve & Stock In'),
+          ),
+        ],
       ),
     );
+    if (choice == null) return;
+
+    try {
+      await _service.updateSubmissionStatus(
+        subId: sub.subId,
+        status: SubmissionStatus.approved,
+        updatedByUserId: currentUser.userId,
+      );
+      if (!mounted) return;
+      if (choice == 'approve_and_stock_in') {
+        context.push('/inventory/add?type=donated&subId=${sub.subId}');
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Approved. Stock in items anytime from Inventory > Stock In.')));
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not approve donation: $e')));
+    }
   }
 
   @override
@@ -414,7 +317,7 @@ class _DonationsPageState extends State<DonationsPage> {
                           child: const Text('Reject'),
                         ),
                         ElevatedButton(
-                          onPressed: () => _openApproveDialog(sub),
+                          onPressed: () => _approve(sub),
                           child: const Text('Approve'),
                         ),
                       ],

@@ -16,6 +16,7 @@ class _DonatePageState extends State<DonatePage> {
   final DonationService _service = DonationService();
   final _formKey = GlobalKey<FormState>();
   final _proofCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
 
   DateTime? _schedDate;
   bool _submitting = false;
@@ -23,6 +24,7 @@ class _DonatePageState extends State<DonatePage> {
   @override
   void dispose() {
     _proofCtrl.dispose();
+    _notesCtrl.dispose();
     super.dispose();
   }
 
@@ -48,6 +50,7 @@ class _DonatePageState extends State<DonatePage> {
         donorId: donorId,
         schedDate: _schedDate,
         proofImg: _proofCtrl.text.trim().isEmpty ? null : _proofCtrl.text.trim(),
+        notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,6 +120,16 @@ class _DonatePageState extends State<DonatePage> {
                       helperText:
                           'Paste a link to a photo of the items. Direct photo upload isn\'t wired up yet.',
                       prefixIcon: Icon(Icons.image_outlined, size: 18),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _notesCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes (optional)',
+                      helperText: 'Anything staff should know ahead of time.',
+                      prefixIcon: Icon(Icons.notes_outlined, size: 18),
                     ),
                   ),
                   const SizedBox(height: 20),

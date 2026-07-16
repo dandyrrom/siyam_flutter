@@ -100,7 +100,7 @@ class _PurchaseTransPageState extends State<PurchaseTransPage> {
           Row(
             children: [
               Expanded(
-                child: _FieldBlock(label: 'Date received', value: _formatDate(order.purDate)),
+                child: _FieldBlock(label: 'Date received', value: _formatDate(order.receivedDate)),
               ),
               const SizedBox(width: 16),
               Expanded(

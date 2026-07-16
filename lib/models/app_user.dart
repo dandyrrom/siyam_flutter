@@ -16,12 +16,18 @@ AppRole appRoleFromString(String value) {
 String appRoleToString(AppRole role) => role.name;
 
 /// Mirrors a row in the public.users table.
+///
+/// [password] is only present because the mock auth layer
+/// (services/auth_service.dart) checks it directly against the in-memory user
+/// list -- there's no real backend/session concept behind it. Never treat
+/// this as how a real auth system should work.
 class AppUser {
-  final String userId; // uuid, references auth.users(id)
+  final String userId;
   final String firstName;
   final String lastName;
   final AppRole role;
   final String email;
+  final String password;
   final String? contactNum;
 
   const AppUser({
@@ -30,6 +36,7 @@ class AppUser {
     required this.lastName,
     required this.role,
     required this.email,
+    required this.password,
     this.contactNum,
   });
 
@@ -41,14 +48,20 @@ class AppUser {
     return (f + l).toUpperCase();
   }
 
-  factory AppUser.fromMap(Map<String, dynamic> map) {
+  AppUser copyWith({
+    String? firstName,
+    String? lastName,
+    String? password,
+    String? contactNum,
+  }) {
     return AppUser(
-      userId: map['userid'] as String,
-      firstName: map['userfname'] as String? ?? '',
-      lastName: map['userlname'] as String? ?? '',
-      role: appRoleFromString(map['role'] as String? ?? 'donor'),
-      email: map['email'] as String? ?? '',
-      contactNum: map['contactnum'] as String?,
+      userId: userId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      role: role,
+      email: email,
+      password: password ?? this.password,
+      contactNum: contactNum ?? this.contactNum,
     );
   }
 }

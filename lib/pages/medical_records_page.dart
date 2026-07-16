@@ -21,7 +21,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
 
   List<TreatmentRecord> _treatments = [];
   List<Pet> _pets = [];
-  int _totalItemsUsed = 0;
+  double _totalItemsUsed = 0;
 
   bool _loading = true;
   String? _error;
@@ -48,7 +48,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
       setState(() {
         _treatments = results[0] as List<TreatmentRecord>;
         _pets = results[1] as List<Pet>;
-        _totalItemsUsed = results[2] as int;
+        _totalItemsUsed = results[2] as double;
         _loading = false;
       });
     } catch (e) {
@@ -71,83 +71,6 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
 
   IconData _speciesIcon(PetSpecies species) =>
       species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
-
-  Future<void> _openDetailDialog(TreatmentRecord record) async {
-    List<TreatmentItemUsed>? itemsUsed;
-    String? itemsError;
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          if (itemsUsed == null && itemsError == null) {
-            _treatmentService.fetchItemsUsed(record.treatId).then((rows) {
-              setDialogState(() => itemsUsed = rows);
-            }).catchError((e) {
-              setDialogState(() => itemsError = 'Could not load items used: $e');
-            });
-          }
-
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                Icon(_speciesIcon(record.petSpecies), size: 20, color: AppColors.mutedForeground),
-                const SizedBox(width: 8),
-                Expanded(child: Text(record.petName, overflow: TextOverflow.ellipsis)),
-              ],
-            ),
-            content: SizedBox(
-              width: 420,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _DetailRow(label: 'Treatment', value: record.treatName),
-                    _DetailRow(label: 'Performed by', value: record.performedByName),
-                    _DetailRow(label: 'Date', value: _formatDate(record.recDate)),
-                    if (record.notes != null && record.notes!.isNotEmpty)
-                      _DetailRow(label: 'Notes', value: record.notes!),
-                    const SizedBox(height: 8),
-                    const Text('Items Used',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                    const SizedBox(height: 8),
-                    if (itemsError != null)
-                      Text(itemsError!, style: const TextStyle(color: AppColors.destructive))
-                    else if (itemsUsed == null)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (itemsUsed!.isEmpty)
-                      const Text('No inventory items were logged for this treatment.',
-                          style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground))
-                    else
-                      for (final item in itemsUsed!)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Expanded(child: Text(item.itemName)),
-                              Text('${formatQty(item.qtyUsed)} ${item.usedUom.isNotEmpty ? item.usedUom : item.itemUom}',
-                                  style: const TextStyle(color: AppColors.mutedForeground)),
-                            ],
-                          ),
-                        ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-            ],
-          );
-        },
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +141,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
           ),
           StatCard(
             label: 'Items Used (Total)',
-            value: '$_totalItemsUsed',
+            value: formatQty(_totalItemsUsed),
             icon: Icons.inventory_2_outlined,
             accent: AppColors.roleStaff,
           ),
@@ -279,7 +202,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
               final record = _filtered[index];
               return InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => _openDetailDialog(record),
+                onTap: () => context.push('/medical-records/${record.treatId}'),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -327,32 +250,6 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
             },
           ),
       ],
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(label,
-                style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
     );
   }
 }

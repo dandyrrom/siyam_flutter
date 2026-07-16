@@ -1,71 +1,36 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
-/// Central auth/session state for the app. Exposed via Provider and
-/// also passed to GoRouter as a refreshListenable so routes re-evaluate
-/// whenever auth status changes.
+/// Central auth/session state for the app. Exposed via Provider and also
+/// passed to GoRouter as a refreshListenable so routes re-evaluate whenever
+/// auth status changes.
+///
+/// Backed by the mock AuthService -- there's no real session/token, just an
+/// in-memory `profile` held for the lifetime of the app (lost on restart).
 class AuthController extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
-  AuthStatus status = AuthStatus.unknown;
+  AuthStatus status = AuthStatus.unauthenticated;
   AppUser? profile;
   String? errorMessage;
   bool isBusy = false;
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 
-  void init() {
-    // React to sign-in / sign-out / token refresh events.
-    _authService.onAuthStateChange.listen((data) async {
-      final session = data.session;
-      if (session == null) {
-        status = AuthStatus.unauthenticated;
-        profile = null;
-        notifyListeners();
-        return;
-      }
-      await _loadProfile(session.user.id);
-    });
-
-    // Handle the case where a session already exists on cold start.
-    final existing = _authService.currentSession;
-    if (existing != null) {
-      _loadProfile(existing.user.id);
-    } else {
-      status = AuthStatus.unauthenticated;
-      notifyListeners();
-    }
-  }
-
-  Future<void> _loadProfile(String userId) async {
-    try {
-      final p = await _authService.fetchProfile(userId);
-      profile = p;
-      status = p != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
-    } catch (_) {
-      status = AuthStatus.unauthenticated;
-      profile = null;
-    }
-    notifyListeners();
-  }
-
   Future<bool> login(String email, String password) async {
     isBusy = true;
     errorMessage = null;
     notifyListeners();
     try {
-      await _authService.signIn(email: email, password: password);
+      final user = await _authService.signIn(email: email, password: password);
+      profile = user;
+      status = AuthStatus.authenticated;
       return true;
-    } on AuthException catch (e) {
-      errorMessage = e.message;
-      return false;
     } catch (e) {
-      errorMessage = 'Something went wrong. Please try again.';
+      errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
       isBusy = false;
@@ -84,19 +49,18 @@ class AuthController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      await _authService.signUpDonor(
+      final user = await _authService.signUpDonor(
         firstName: firstName,
         lastName: lastName,
         email: email,
         password: password,
         contactNum: contactNum,
       );
+      profile = user;
+      status = AuthStatus.authenticated;
       return true;
-    } on AuthException catch (e) {
-      errorMessage = e.message;
-      return false;
     } catch (e) {
-      errorMessage = 'Could not create your account. Please try again.';
+      errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
       isBusy = false;
@@ -104,7 +68,11 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() => _authService.signOut();
+  Future<void> logout() async {
+    profile = null;
+    status = AuthStatus.unauthenticated;
+    notifyListeners();
+  }
 
   Future<bool> updateProfile({
     required String firstName,
@@ -118,13 +86,12 @@ class AuthController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      await _authService.updateProfile(
+      profile = await _authService.updateProfile(
         userId: userId,
         firstName: firstName,
         lastName: lastName,
         contactNum: contactNum,
       );
-      profile = await _authService.fetchProfile(userId);
       return true;
     } catch (e) {
       errorMessage = 'Could not update your profile. Please try again.';
@@ -139,24 +106,21 @@ class AuthController extends ChangeNotifier {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final email = profile?.email;
-    if (email == null) return false;
+    final userId = profile?.userId;
+    if (userId == null) return false;
 
     isBusy = true;
     errorMessage = null;
     notifyListeners();
     try {
       await _authService.changePassword(
-        email: email,
+        userId: userId,
         currentPassword: currentPassword,
         newPassword: newPassword,
       );
       return true;
-    } on AuthException catch (e) {
-      errorMessage = e.message;
-      return false;
     } catch (e) {
-      errorMessage = 'Could not update your password. Please try again.';
+      errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
       isBusy = false;

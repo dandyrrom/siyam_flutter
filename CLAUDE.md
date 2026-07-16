@@ -105,7 +105,10 @@ When explaining technical concepts:
 
 # Data Scope Rule
 
-The Supabase schema in `siyam_db_wo_rls.md` is the single source of truth for what data exists.
+The schema in `updated_db.md` is the single source of truth for what data exists (the
+app currently runs on an in-memory mock data layer shaped by that document — see
+`lib/mock/mock_database.dart`). `siyam_db_wo_rls.md` and `schema.md` describe a deleted
+Supabase project and are stale; do not use them.
 
 - Flutter pages must only display or edit fields/tables that exist in that schema.
 - If a React reference page (`Design SIYAM Web Application`) shows a field or feature with no matching DB column/table, omit it or flag it for a schema decision — never invent mock data or fabricate a field to fill the gap.

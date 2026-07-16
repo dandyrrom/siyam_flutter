@@ -6,10 +6,7 @@
       "request": "launch",
       "type": "dart",
       "deviceId": "chrome",
-      "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define-from-file=env/config.json"
-      ]
+      "program": "lib/main.dart"
     },
     {
       "name": "SIYAM (Chrome, profile)",
@@ -17,10 +14,7 @@
       "type": "dart",
       "flutterMode": "profile",
       "deviceId": "chrome",
-      "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define-from-file=env/config.json"
-      ]
+      "program": "lib/main.dart"
     }
   ]
 }

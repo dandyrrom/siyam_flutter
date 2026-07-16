@@ -16,6 +16,7 @@ import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
 import '../pages/reports_page.dart';
 import '../pages/medical_records_page.dart';
+import '../pages/treatment_detail_page.dart';
 import '../pages/animal_records_page.dart';
 import '../pages/suppliers_page.dart';
 import '../pages/audit_trail_page.dart';
@@ -88,6 +89,7 @@ GoRouter buildRouter(AuthController authState) {
               child: AddItemPage(
                 itemId: state.uri.queryParameters['itemId'],
                 type: state.uri.queryParameters['type'],
+                subId: state.uri.queryParameters['subId'],
               ),
             ),
           ),
@@ -145,6 +147,12 @@ GoRouter buildRouter(AuthController authState) {
                 prefillItemId: state.uri.queryParameters['itemId'],
                 prefillQty: state.uri.queryParameters['qty'],
               ),
+            ),
+          ),
+          GoRoute(
+            path: '/medical-records/:id',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: TreatmentDetailPage(treatId: state.pathParameters['id']!),
             ),
           ),
           GoRoute(
