@@ -2,11 +2,53 @@ import '../mock/mock_database.dart';
 import '../models/inventory_item.dart';
 import '../models/stock_movement.dart';
 import '../models/stock_out.dart';
+import 'backend.dart';
+
+/// Data-access interface for inventory items and stock movements. The factory
+/// resolves to the mock or Supabase implementation based on [kUseMock], chosen
+/// at build time.
+abstract interface class InventoryService {
+  factory InventoryService() => kUseMock
+      ? MockInventoryService()
+      : throw UnimplementedError('Supabase InventoryService not implemented yet');
+
+  Future<List<InventoryItem>> fetchItems();
+  Future<InventoryItem?> fetchItem(String itemId);
+  Future<InventoryItem> createItem({
+    required String itemName,
+    required String pCategoryId,
+    required String purchaseUnitId,
+    String? sCategoryId,
+    String? packageUnitId,
+    double? packageQuantity,
+    String? dispenseUnitId,
+    double initialQty,
+  });
+  Future<InventoryItem> updateDetails({
+    required String itemId,
+    String? itemName,
+    String? pCategoryId,
+    String? sCategoryId,
+    String? purchaseUnitId,
+  });
+  Future<InventoryItem> adjustStock({
+    required String itemId,
+    required double delta,
+  });
+  Future<InventoryItem> stockOut({
+    required String itemId,
+    required double qty,
+    required StockOutReason reason,
+    required String recordedByUserId,
+  });
+  Future<void> deleteItem(String itemId);
+  Future<List<StockMovement>> fetchStockHistory(String itemId);
+}
 
 /// In-memory equivalent of the old public.item access layer. Every fetch
 /// resolves the item's category/unit FKs into display names via
 /// MockDatabase's lookup lists, denormalized onto InventoryItem.
-class InventoryService {
+class MockInventoryService implements InventoryService {
   final MockDatabase _db = MockDatabase.instance;
 
   InventoryItem _toInventoryItem(ItemRow row) {
@@ -64,17 +106,20 @@ class InventoryService {
     }
   }
 
+  @override
   Future<List<InventoryItem>> fetchItems() async {
     final list = _db.items.map(_toInventoryItem).toList();
     list.sort((a, b) => a.itemName.compareTo(b.itemName));
     return list;
   }
 
+  @override
   Future<InventoryItem?> fetchItem(String itemId) async {
     final row = firstWhereOrNull(_db.items, (i) => i.id == itemId);
     return row == null ? null : _toInventoryItem(row);
   }
 
+  @override
   Future<InventoryItem> createItem({
     required String itemName,
     required String pCategoryId,
@@ -100,6 +145,7 @@ class InventoryService {
     return _toInventoryItem(row);
   }
 
+  @override
   Future<InventoryItem> updateDetails({
     required String itemId,
     String? itemName,
@@ -122,6 +168,7 @@ class InventoryService {
 
   /// Adjusts purchase_stocks by [delta] (positive = stock in, negative =
   /// stock out).
+  @override
   Future<InventoryItem> adjustStock({
     required String itemId,
     required double delta,
@@ -139,6 +186,7 @@ class InventoryService {
   /// Records a non-treatment stock-out (waste/expired/adjustment) and
   /// decrements purchase_stocks. Purchase-unit granularity -- these are
   /// whole-package events.
+  @override
   Future<InventoryItem> stockOut({
     required String itemId,
     required double qty,
@@ -156,6 +204,7 @@ class InventoryService {
     return adjustStock(itemId: itemId, delta: -qty);
   }
 
+  @override
   Future<void> deleteItem(String itemId) async {
     _db.items.removeWhere((i) => i.id == itemId);
   }
@@ -163,6 +212,7 @@ class InventoryService {
   /// Unified stock movement history for one item -- merges every table that
   /// ever changes purchase_stocks (purchase_item, donation_item,
   /// treatment_item, stock_out), most recent first.
+  @override
   Future<List<StockMovement>> fetchStockHistory(String itemId) async {
     final item = await fetchItem(itemId);
     final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';

@@ -1,6 +1,50 @@
 import '../mock/mock_database.dart';
 import '../models/donation.dart';
+import 'backend.dart';
 import 'inventory_service.dart';
+
+/// Data-access interface for submissions and donations. The factory resolves
+/// to the mock or Supabase implementation based on [kUseMock], chosen at build
+/// time.
+abstract interface class DonationService {
+  factory DonationService() => kUseMock
+      ? MockDonationService()
+      : throw UnimplementedError('Supabase DonationService not implemented yet');
+
+  Future<List<DonationSubmission>> fetchSubmissions({String? donorId});
+  Future<DonationSubmission> createSubmission({
+    required String donorId,
+    DateTime? schedDate,
+    String? proofImg,
+    String? notes,
+  });
+  Future<void> updateSubmissionStatus({
+    required String subId,
+    required SubmissionStatus status,
+    required String updatedByUserId,
+  });
+  Future<void> rejectSubmission({
+    required String subId,
+    required String updatedByUserId,
+  });
+  Future<void> approveSubmission({
+    required String subId,
+    required String donorId,
+    required String updatedByUserId,
+    required String receivedBy,
+    required List<DonationItemInput> items,
+  });
+  Future<void> recordDirectDonation({
+    required String donorId,
+    required String recordedByUserId,
+    required String receivedBy,
+    required List<DonationItemInput> items,
+    DateTime? receivedDate,
+  });
+  Future<List<DateTime>> fetchDonationDates();
+  Future<List<DonationLineItem>> fetchReceivedItems(String subId);
+  Future<List<DonationSubmission>> fetchLinkableSubmissions();
+}
 
 /// In-memory equivalent of the old public.submission / donation /
 /// donation_item access layer.
@@ -9,9 +53,9 @@ import 'inventory_service.dart';
 /// and increments stock for each item received, via [InventoryService] --
 /// the receiving-side mirror of how [TreatmentService] decrements stock on
 /// consumption.
-class DonationService {
+class MockDonationService implements DonationService {
   final MockDatabase _db = MockDatabase.instance;
-  final InventoryService _inventoryService = InventoryService();
+  final InventoryService _inventoryService = MockInventoryService();
 
   String? _userName(String? userId) {
     if (userId == null) return null;
@@ -34,6 +78,7 @@ class DonationService {
     );
   }
 
+  @override
   Future<List<DonationSubmission>> fetchSubmissions({String? donorId}) async {
     final rows = donorId == null
         ? _db.submissions
@@ -43,6 +88,7 @@ class DonationService {
     return list;
   }
 
+  @override
   Future<DonationSubmission> createSubmission({
     required String donorId,
     DateTime? schedDate,
@@ -67,6 +113,7 @@ class DonationService {
   /// received items in the same step (they can stock in later via the Stock
   /// In form's "Link to submission" picker, or immediately via
   /// [approveSubmission]).
+  @override
   Future<void> updateSubmissionStatus({
     required String subId,
     required SubmissionStatus status,
@@ -78,6 +125,7 @@ class DonationService {
     row.updatedByUserId = updatedByUserId;
   }
 
+  @override
   Future<void> rejectSubmission({
     required String subId,
     required String updatedByUserId,
@@ -126,6 +174,7 @@ class DonationService {
   /// Marks the submission approved and records what was actually received:
   /// creates the donation row linked to it, one donation_item row per item,
   /// and increments each item's stock.
+  @override
   Future<void> approveSubmission({
     required String subId,
     required String donorId,
@@ -148,6 +197,7 @@ class DonationService {
 
   /// Records a walk-in donation directly from the Stock In Item form (not
   /// linked to a prior donor submission).
+  @override
   Future<void> recordDirectDonation({
     required String donorId,
     required String recordedByUserId,
@@ -166,12 +216,14 @@ class DonationService {
 
   /// Transaction dates for every completed donation -- used to bucket
   /// donation counts by month on the Reports page.
+  @override
   Future<List<DateTime>> fetchDonationDates() async {
     return _db.donations.map((d) => d.receivedDate).toList();
   }
 
   /// Items actually received for an already-approved submission, or an
   /// empty list if it hasn't been approved (no linked donation) yet.
+  @override
   Future<List<DonationLineItem>> fetchReceivedItems(String subId) async {
     final donation = firstWhereOrNull(_db.donations, (d) => d.subId == subId);
     if (donation == null) return [];
@@ -192,6 +244,7 @@ class DonationService {
 
   /// Submissions that don't yet have a linked donation row -- i.e. a donor
   /// pledge that staff can reconcile against an incoming Stock In entry.
+  @override
   Future<List<DonationSubmission>> fetchLinkableSubmissions() async {
     final subs = await fetchSubmissions();
     final linkedIds = _db.donations.map((d) => d.subId).whereType<String>().toSet();

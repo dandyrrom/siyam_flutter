@@ -1,0 +1,52 @@
+name: Deploy Web (Vercel)
+
+# Builds the Flutter web bundle (Vercel's build image has no Flutter SDK, so we
+# build here and deploy the prebuilt static output) and deploys it to Vercel.
+#
+# Required repository secrets:
+#   VERCEL_TOKEN       - Vercel personal/team token
+#   VERCEL_ORG_ID      - from `vercel link` (.vercel/project.json) or dashboard
+#   VERCEL_PROJECT_ID  - from `vercel link` (.vercel/project.json) or dashboard
+#
+# Pushes to the branches below get a production deploy; other refs / manual runs
+# get a preview URL. Defaults to the mock backend (USE_MOCK=true).
+
+on:
+  push:
+    branches:
+      - main
+      - feat/supabase-backend-toggle
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web (mock backend)
+        run: flutter build web --release --dart-define=USE_MOCK=true
+
+      # The SPA rewrite config must live alongside the deployed static files so
+      # deep-link refreshes (e.g. /dashboard) fall back to index.html.
+      - name: Add SPA rewrite config to build output
+        run: cp vercel.json build/web/vercel.json
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+          working-directory: build/web

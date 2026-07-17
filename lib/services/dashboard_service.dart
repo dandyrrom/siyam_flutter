@@ -1,6 +1,7 @@
 import '../mock/mock_database.dart';
 import '../models/app_user.dart';
 import '../models/pet.dart';
+import 'backend.dart';
 
 /// Aggregate counts for the Manager dashboard.
 class ManagerDashboardStats {
@@ -51,9 +52,23 @@ class DonorDashboardStats {
   });
 }
 
-class DashboardService {
+/// Data-access interface for dashboard aggregates. The factory resolves to
+/// the mock or Supabase implementation based on [kUseMock], chosen at build
+/// time.
+abstract interface class DashboardService {
+  factory DashboardService() => kUseMock
+      ? MockDashboardService()
+      : throw UnimplementedError('Supabase DashboardService not implemented yet');
+
+  Future<ManagerDashboardStats> fetchManagerStats();
+  Future<StaffDashboardStats> fetchStaffStats();
+  Future<DonorDashboardStats> fetchDonorStats(String donorId);
+}
+
+class MockDashboardService implements DashboardService {
   final MockDatabase _db = MockDatabase.instance;
 
+  @override
   Future<ManagerDashboardStats> fetchManagerStats() async {
     return ManagerDashboardStats(
       totalAnimals: _db.pets.length,
@@ -63,6 +78,7 @@ class DashboardService {
     );
   }
 
+  @override
   Future<StaffDashboardStats> fetchStaffStats() async {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
     return StaffDashboardStats(
@@ -75,6 +91,7 @@ class DashboardService {
     );
   }
 
+  @override
   Future<DonorDashboardStats> fetchDonorStats(String donorId) async {
     final donations = _db.donations.where((d) => d.donorId == donorId).toList()
       ..sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
