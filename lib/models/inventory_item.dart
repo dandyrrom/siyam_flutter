@@ -53,7 +53,7 @@ class InventoryItem {
     required this.stockQty,
   });
 
-  /// Combined category label for display, e.g. "Medical Supplies > Tablets".
+  /// Combined category label for display, e.g. "Medical > Tablets".
   String get itemCategory =>
       sCategoryName == null ? pCategoryName : '$pCategoryName > $sCategoryName';
 

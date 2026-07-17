@@ -9,6 +9,7 @@ import '../services/inventory_service.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 
 /// Staff-only "Add Treatment" page. If [prefillItemId] is provided (from
@@ -382,13 +383,12 @@ class _ItemRow extends StatelessWidget {
             children: [
               Expanded(
                 flex: 3,
-                child: DropdownButtonFormField<String>(
+                child: AppDropdownField<String>(
+                  label: 'Item',
                   initialValue: row.itemId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Item'),
-                  items: items
+                  options: items
                       .where((i) => i.itemId == row.itemId || !usedItemIds.contains(i.itemId))
-                      .map((i) => DropdownMenuItem(value: i.itemId, child: Text(i.itemName)))
+                      .map((i) => AppDropdownOption(i.itemId, i.itemName))
                       .toList(),
                   onChanged: (v) {
                     final picked = items.firstWhere((i) => i.itemId == v);

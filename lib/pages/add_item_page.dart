@@ -15,6 +15,7 @@ import '../services/donation_service.dart';
 import '../services/inventory_service.dart';
 import '../services/supplier_service.dart';
 import '../state/auth_state.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 
 /// One "Item details" block's form state -- a Stock In Item submission can
@@ -550,14 +551,14 @@ class _AddItemPageState extends State<AddItemPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: AppDropdownField<String>(
+                        label: 'Type',
                         initialValue: _procurementType,
-                        decoration: const InputDecoration(labelText: 'Type'),
-                        items: const [
-                          DropdownMenuItem(value: 'purchased', child: Text('Purchased')),
-                          DropdownMenuItem(value: 'donated', child: Text('Donated')),
+                        options: const [
+                          AppDropdownOption('purchased', 'Purchased'),
+                          AppDropdownOption('donated', 'Donated'),
                         ],
-                        onChanged: (v) => setState(() => _procurementType = v ?? 'purchased'),
+                        onChanged: (v) => setState(() => _procurementType = v),
                       ),
                     ),
                     const SizedBox(width: 12),

@@ -5,6 +5,7 @@ import '../core/app_theme.dart';
 import '../models/donation.dart';
 import '../services/donation_service.dart';
 import '../state/auth_state.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 
 class DonationsPage extends StatefulWidget {
@@ -216,16 +217,14 @@ class _DonationsPageState extends State<DonationsPage> {
                 ),
               ),
             ),
-            DropdownButton<SubmissionStatus?>(
-              value: _statusFilter,
-              hint: const Text('Status'),
-              underline: const SizedBox.shrink(),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('All statuses')),
-                ...SubmissionStatus.values.map(
-                    (s) => DropdownMenuItem(value: s, child: Text(_statusMeta(s).$1))),
+            AppDropdown<SubmissionStatus?>(
+              label: _statusFilter == null ? 'Status' : _statusMeta(_statusFilter!).$1,
+              options: [
+                const AppDropdownOption(null, 'All statuses'),
+                for (final s in SubmissionStatus.values)
+                  AppDropdownOption(s, _statusMeta(s).$1),
               ],
-              onChanged: (v) => setState(() => _statusFilter = v),
+              onSelect: (v) => setState(() => _statusFilter = v),
             ),
           ],
         ),

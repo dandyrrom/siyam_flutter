@@ -9,6 +9,7 @@ import '../models/unit.dart';
 import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 import '../widgets/stock_out_dialog.dart';
 
@@ -274,13 +275,15 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
+              AppMenuButton<String>(
+                options: const [AppDropdownOption('delete', 'Delete item')],
                 onSelected: (v) {
                   if (v == 'delete') _confirmDelete();
                 },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'delete', child: Text('Delete item')),
-                ],
+                triggerBuilder: (context, isOpen) => const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.more_vert, size: 20),
+                ),
               ),
             ],
           ),

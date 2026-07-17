@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../models/pet.dart';
 import '../services/pet_service.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 
 class AnimalRecordsPage extends StatefulWidget {
@@ -101,14 +102,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<PetSpecies>(
+                  AppDropdownField<PetSpecies>(
+                    label: 'Species',
                     initialValue: species,
-                    decoration: const InputDecoration(labelText: 'Species'),
-                    items: PetSpecies.values
-                        .map((s) => DropdownMenuItem(
-                            value: s, child: Text(s == PetSpecies.dog ? 'Dog' : 'Cat')))
+                    options: PetSpecies.values
+                        .map((s) =>
+                            AppDropdownOption(s, s == PetSpecies.dog ? 'Dog' : 'Cat'))
                         .toList(),
-                    onChanged: (v) => setDialogState(() => species = v ?? PetSpecies.dog),
+                    onChanged: (v) => setDialogState(() => species = v),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -116,14 +117,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
                     decoration: const InputDecoration(labelText: 'Breed (optional)'),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<PetGender>(
+                  AppDropdownField<PetGender>(
+                    label: 'Gender',
                     initialValue: gender,
-                    decoration: const InputDecoration(labelText: 'Gender'),
-                    items: PetGender.values
-                        .map((g) => DropdownMenuItem(
-                            value: g, child: Text(g == PetGender.male ? 'Male' : 'Female')))
+                    options: PetGender.values
+                        .map((g) =>
+                            AppDropdownOption(g, g == PetGender.male ? 'Male' : 'Female'))
                         .toList(),
-                    onChanged: (v) => setDialogState(() => gender = v ?? PetGender.male),
+                    onChanged: (v) => setDialogState(() => gender = v),
                   ),
                   const SizedBox(height: 8),
                   CheckboxListTile(
@@ -205,8 +206,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-          PopupMenuButton<PetStatus>(
+          AppMenuButton<PetStatus>(
             tooltip: 'Update status',
+            options: PetStatus.values
+                .map((s) => AppDropdownOption(s, _statusMeta(s).$1))
+                .toList(),
             onSelected: (status) async {
               Navigator.of(context).pop();
               try {
@@ -218,10 +222,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
                     .showSnackBar(SnackBar(content: Text('Could not update status: $e')));
               }
             },
-            itemBuilder: (context) => PetStatus.values
-                .map((s) => PopupMenuItem(value: s, child: Text(_statusMeta(s).$1)))
-                .toList(),
-            child: Container(
+            triggerBuilder: (context, isOpen) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.primary,
@@ -324,27 +325,24 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
                 ),
               ),
             ),
-            DropdownButton<PetSpecies?>(
-              value: _speciesFilter,
-              hint: const Text('Species'),
-              underline: const SizedBox.shrink(),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('All species')),
-                DropdownMenuItem(value: PetSpecies.dog, child: Text('Dog')),
-                DropdownMenuItem(value: PetSpecies.cat, child: Text('Cat')),
+            AppDropdown<PetSpecies?>(
+              label: _speciesFilter == null
+                  ? 'Species'
+                  : (_speciesFilter == PetSpecies.dog ? 'Dog' : 'Cat'),
+              options: const [
+                AppDropdownOption(null, 'All species'),
+                AppDropdownOption(PetSpecies.dog, 'Dog'),
+                AppDropdownOption(PetSpecies.cat, 'Cat'),
               ],
-              onChanged: (v) => setState(() => _speciesFilter = v),
+              onSelect: (v) => setState(() => _speciesFilter = v),
             ),
-            DropdownButton<PetStatus?>(
-              value: _statusFilter,
-              hint: const Text('Status'),
-              underline: const SizedBox.shrink(),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('All statuses')),
-                ...PetStatus.values.map(
-                    (s) => DropdownMenuItem(value: s, child: Text(_statusMeta(s).$1))),
+            AppDropdown<PetStatus?>(
+              label: _statusFilter == null ? 'Status' : _statusMeta(_statusFilter!).$1,
+              options: [
+                const AppDropdownOption(null, 'All statuses'),
+                for (final s in PetStatus.values) AppDropdownOption(s, _statusMeta(s).$1),
               ],
-              onChanged: (v) => setState(() => _statusFilter = v),
+              onSelect: (v) => setState(() => _statusFilter = v),
             ),
           ],
         ),

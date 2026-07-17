@@ -276,7 +276,7 @@ class MockDatabase {
     units.addAll(
         [unitBox, unitTablet, unitBottle, unitMl, unitBag, unitKg, unitDrop, unitPcs]);
 
-    final catMedical = PrimaryCategory(id: newMockId('pcat'), type: 'Medical Supplies');
+    final catMedical = PrimaryCategory(id: newMockId('pcat'), type: 'Medical');
     final catFood = PrimaryCategory(id: newMockId('pcat'), type: 'Food');
     final catCleaning = PrimaryCategory(id: newMockId('pcat'), type: 'Cleaning Supplies');
     final catEquipment = PrimaryCategory(id: newMockId('pcat'), type: 'Equipment');
@@ -288,13 +288,15 @@ class MockDatabase {
         id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Oral Suspension');
     final subDrops =
         Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Drops');
+    final subSupplies =
+        Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Supplies');
     final subDry = Subcategory(id: newMockId('scat'), pCategoryId: catFood.id, type: 'Dry');
     final subBleach =
         Subcategory(id: newMockId('scat'), pCategoryId: catCleaning.id, type: 'Bleach');
     final subTools =
         Subcategory(id: newMockId('scat'), pCategoryId: catEquipment.id, type: 'Tools');
-    subcategories
-        .addAll([subTablets, subOralSuspension, subDrops, subDry, subBleach, subTools]);
+    subcategories.addAll(
+        [subTablets, subOralSuspension, subDrops, subSupplies, subDry, subBleach, subTools]);
 
     items.addAll([
       ItemRow(

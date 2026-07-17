@@ -3,6 +3,7 @@ import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../models/stock_out.dart';
 import '../services/inventory_service.dart';
+import 'app_dropdown.dart';
 import 'search_select_field.dart';
 
 /// Stock Out modal: quantity + reason (Waste, Expired, Adjustment,
@@ -95,16 +96,16 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                 },
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              AppDropdownField<String>(
+                label: 'Reason',
                 initialValue: reason,
-                decoration: const InputDecoration(labelText: 'Reason'),
-                items: const [
-                  DropdownMenuItem(value: 'Waste', child: Text('Waste')),
-                  DropdownMenuItem(value: 'Expired', child: Text('Expired')),
-                  DropdownMenuItem(value: 'Adjustment', child: Text('Adjustment')),
-                  DropdownMenuItem(value: 'Treatment', child: Text('Treatment')),
+                options: const [
+                  AppDropdownOption('Waste', 'Waste'),
+                  AppDropdownOption('Expired', 'Expired'),
+                  AppDropdownOption('Adjustment', 'Adjustment'),
+                  AppDropdownOption('Treatment', 'Treatment'),
                 ],
-                onChanged: (v) => setDialogState(() => reason = v ?? 'Waste'),
+                onChanged: (v) => setDialogState(() => reason = v),
               ),
             ],
           ),

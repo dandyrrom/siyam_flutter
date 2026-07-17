@@ -5,6 +5,7 @@ import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/stock_out_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -22,7 +23,9 @@ class _InventoryPageState extends State<InventoryPage> {
   String? _error;
 
   String _search = '';
-  String _category = 'All';
+  String? _selectedPCategoryId;
+  String? _selectedSCategoryId;
+  String _categoryLabel = 'Category';
   StockLevel? _stockLevelFilter; // null = All
 
   int _pageSize = 12;
@@ -55,20 +58,42 @@ class _InventoryPageState extends State<InventoryPage> {
     }
   }
 
-  List<String> get _categories {
-    final set = <String>{};
+  /// Primary categories present in the current items, each carrying its
+  /// distinct subcategories, both sorted alphabetically.
+  List<_PrimaryCategoryOption> get _primaryCategories {
+    final byId = <String, _PrimaryCategoryOption>{};
     for (final i in _items) {
-      if (i.itemCategory.isNotEmpty) set.add(i.itemCategory);
+      final opt = byId.putIfAbsent(
+        i.pCategoryId,
+        () => _PrimaryCategoryOption(id: i.pCategoryId, name: i.pCategoryName),
+      );
+      if (i.sCategoryId != null && i.sCategoryName != null) {
+        opt.subcategories[i.sCategoryId!] = i.sCategoryName!;
+      }
     }
-    final list = set.toList()..sort();
-    return ['All', ...list];
+    final list = byId.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return list;
+  }
+
+  void _selectCategory({String? pCategoryId, String? sCategoryId, required String label}) {
+    setState(() {
+      _selectedPCategoryId = pCategoryId;
+      _selectedSCategoryId = sCategoryId;
+      _categoryLabel = label;
+      _page = 0;
+    });
   }
 
   List<InventoryItem> get _filtered {
     return _items.where((i) {
       final matchesSearch = _search.isEmpty ||
           i.itemName.toLowerCase().contains(_search.toLowerCase());
-      final matchesCategory = _category == 'All' || i.itemCategory == _category;
+      final matchesCategory = _selectedSCategoryId != null
+          ? i.sCategoryId == _selectedSCategoryId
+          : _selectedPCategoryId != null
+              ? i.pCategoryId == _selectedPCategoryId
+              : true;
       final matchesStockLevel =
           _stockLevelFilter == null || i.stockLevel == _stockLevelFilter;
       return matchesSearch && matchesCategory && matchesStockLevel;
@@ -149,34 +174,19 @@ class _InventoryPageState extends State<InventoryPage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                PopupMenuButton<String>(
+                AppMenuButton<String>(
+                  options: const [
+                    AppDropdownOption('purchase', 'Purchase'),
+                    AppDropdownOption('donation', 'Donation'),
+                    AppDropdownOption('stockout', 'Stock out'),
+                  ],
                   onSelected: (v) {
                     if (v == 'purchase') context.push('/inventory/add?type=purchased');
                     if (v == 'donation') context.push('/inventory/add?type=donated');
                     if (v == 'stockout') _openStockOutDialog();
                   },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'purchase', child: Text('Purchase')),
-                    PopupMenuItem(value: 'donation', child: Text('Donation')),
-                    PopupMenuItem(value: 'stockout', child: Text('Stock out')),
-                  ],
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add, size: 18),
-                        SizedBox(width: 6),
-                        Text('New'),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down, size: 18),
-                      ],
-                    ),
-                  ),
+                  triggerBuilder: (context, isOpen) =>
+                      const AppDropdownButton(label: 'New', leadingIcon: Icons.add),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
@@ -204,100 +214,106 @@ class _InventoryPageState extends State<InventoryPage> {
             border: Border.all(color: AppColors.border),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Wrap(
-                  spacing: 12,
+                  spacing: 16,
                   runSpacing: 12,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
-                      width: 280,
+                      width: 360,
                       child: TextField(
+                        style: const TextStyle(fontSize: 14),
                         onChanged: (v) => setState(() {
                           _search = v;
                           _page = 0;
                         }),
                         decoration: const InputDecoration(
+                          hintStyle: TextStyle(fontSize: 14),
                           prefixIcon: Icon(Icons.search, size: 18),
                           hintText: 'Search items…',
                           isDense: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderSide: BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderSide: BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
                         ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
+                    _CategoryFilterMenu(
+                      label: _categoryLabel,
+                      primaryCategories: _primaryCategories,
+                      onSelectAll: () => _selectCategory(label: 'Category'),
+                      onSelectPrimary: (p) => _selectCategory(
+                        pCategoryId: p.id,
+                        label: p.name,
                       ),
-                      child: DropdownButton<String>(
-                        value: _category,
-                        underline: const SizedBox.shrink(),
-                        selectedItemBuilder: (context) =>
-                            _categories.map((_) => const Text('Category')).toList(),
-                        items: _categories
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() { _category = v ?? 'All'; _page = 0; }),
+                      onSelectSub: (p, subId, subName) => _selectCategory(
+                        pCategoryId: p.id,
+                        sCategoryId: subId,
+                        label: subName,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: DropdownButton<StockLevel?>(
-                        value: _stockLevelFilter,
-                        hint: const Text('Stock Level'),
-                        underline: const SizedBox.shrink(),
-                        selectedItemBuilder: (context) => [
-                          const Text('Stock Level'),
-                          ...StockLevel.values.map((_) => const Text('Stock Level')),
-                        ],
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('All levels')),
-                          ...StockLevel.values.map((lvl) => DropdownMenuItem(
-                                value: lvl,
-                                child: Text(_stockLevelMeta(lvl).$1),
-                              )),
-                        ],
-                        onChanged: (v) => setState(() { _stockLevelFilter = v; _page = 0; }),
-                      ),
+                    AppDropdown<StockLevel?>(
+                      label: _stockLevelFilter == null
+                          ? 'Stock Level'
+                          : _stockLevelMeta(_stockLevelFilter!).$1,
+                      options: [
+                        const AppDropdownOption(null, 'All levels'),
+                        for (final lvl in StockLevel.values)
+                          AppDropdownOption(lvl, _stockLevelMeta(lvl).$1),
+                      ],
+                      onSelect: (v) => setState(() { _stockLevelFilter = v; _page = 0; }),
                     ),
                   ],
                 ),
               ),
               const Divider(height: 1),
               if (_items.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 56),
-                  child: Column(
-                    children: [
-                      Icon(Icons.inventory_2_outlined,
-                          size: 36, color: AppColors.mutedForeground),
-                      SizedBox(height: 10),
-                      Text('No items in inventory yet',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      SizedBox(height: 4),
-                      Text('Items you add will show up here.',
-                          style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-                    ],
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 56),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 36, color: AppColors.mutedForeground),
+                        SizedBox(height: 10),
+                        Text('No items in inventory yet',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        SizedBox(height: 4),
+                        Text('Items you add will show up here.',
+                            style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                      ],
+                    ),
                   ),
                 )
               else if (_filtered.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
-                  child: Column(
-                    children: [
-                      Icon(Icons.search_off, size: 32, color: AppColors.mutedForeground),
-                      SizedBox(height: 8),
-                      Text('No items match your filters.',
-                          style: TextStyle(color: AppColors.mutedForeground)),
-                    ],
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off, size: 32, color: AppColors.mutedForeground),
+                        SizedBox(height: 8),
+                        Text('No items match your filters.',
+                            style: TextStyle(color: AppColors.mutedForeground)),
+                      ],
+                    ),
                   ),
                 )
               else ...[
@@ -311,8 +327,11 @@ class _InventoryPageState extends State<InventoryPage> {
                     children: [
                       Expanded(flex: 2, child: _HeaderCell('ID')),
                       Expanded(flex: 4, child: _HeaderCell('Item name')),
+                      SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Category')),
+                      SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Stock')),
+                      SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Stock Level')),
                       SizedBox(width: 56, child: _HeaderCell('Action', alignEnd: true)),
                     ],
@@ -344,6 +363,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   style: const TextStyle(fontWeight: FontWeight.w600)),
                             ),
                           ),
+                          const SizedBox(width: 16),
                           Expanded(
                             flex: 2,
                             child: Align(
@@ -360,12 +380,14 @@ class _InventoryPageState extends State<InventoryPage> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 16),
                           Expanded(
                             flex: 2,
                             child: Text('${formatQty(item.stockQty)} ${item.itemUom}',
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontWeight: FontWeight.w600)),
                           ),
+                          const SizedBox(width: 16),
                           Expanded(
                             flex: 2,
                             child: Align(
@@ -388,18 +410,21 @@ class _InventoryPageState extends State<InventoryPage> {
                             width: 56,
                             child: Align(
                               alignment: Alignment.centerRight,
-                              child: PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_horiz, size: 18),
+                              child: AppMenuButton<String>(
+                                options: const [
+                                  AppDropdownOption('view', 'View details'),
+                                  AppDropdownOption('in', 'Stock In'),
+                                  AppDropdownOption('out', 'Stock Out'),
+                                ],
                                 onSelected: (v) {
                                   if (v == 'in') context.push('/inventory/add?itemId=${item.itemId}');
                                   if (v == 'out') _openStockOutDialog(item: item);
                                   if (v == 'view') context.push('/inventory/${item.itemId}');
                                 },
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(value: 'view', child: Text('View details')),
-                                  PopupMenuItem(value: 'in', child: Text('Stock In')),
-                                  PopupMenuItem(value: 'out', child: Text('Stock Out')),
-                                ],
+                                triggerBuilder: (context, isOpen) => const Padding(
+                                  padding: EdgeInsets.all(6),
+                                  child: Icon(Icons.more_horiz, size: 18),
+                                ),
                               ),
                             ),
                           ),
@@ -424,14 +449,12 @@ class _InventoryPageState extends State<InventoryPage> {
                         children: [
                           const Text('Show', style: TextStyle(fontSize: 12.5)),
                           const SizedBox(width: 8),
-                          DropdownButton<int>(
-                            value: _pageSize,
-                            underline: const SizedBox.shrink(),
-                            items: const [12, 25, 50]
-                                .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
+                          AppDropdown<int>(
+                            label: '$_pageSize',
+                            options: const [12, 25, 50]
+                                .map((n) => AppDropdownOption(n, '$n'))
                                 .toList(),
-                            onChanged: (v) =>
-                                setState(() { _pageSize = v ?? 12; _page = 0; }),
+                            onSelect: (v) => setState(() { _pageSize = v; _page = 0; }),
                           ),
                           const SizedBox(width: 8),
                           const Text('Per Page', style: TextStyle(fontSize: 12.5)),
@@ -472,6 +495,142 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A primary category and the distinct subcategories seen among the current
+/// items, keyed by subcategory id -> subcategory name.
+class _PrimaryCategoryOption {
+  final String id;
+  final String name;
+  final Map<String, String> subcategories = {};
+
+  _PrimaryCategoryOption({required this.id, required this.name});
+}
+
+/// Category filter control: top level lists primary categories; hovering one
+/// reveals a side panel of its subcategories. Picking the primary category
+/// itself (the "All <primary>" row) filters to all items under all of its
+/// subcategories; picking a subcategory narrows to just that subcategory.
+///
+/// Built on a manual [OverlayEntry] rather than [MenuAnchor]/[SubmenuButton]
+/// -- those throw a RenderBox layout assertion on web when their anchor sits
+/// inside a [Wrap] (https://github.com/flutter/flutter/issues/131843).
+class _CategoryFilterMenu extends StatefulWidget {
+  final String label;
+  final List<_PrimaryCategoryOption> primaryCategories;
+  final VoidCallback onSelectAll;
+  final ValueChanged<_PrimaryCategoryOption> onSelectPrimary;
+  final void Function(_PrimaryCategoryOption p, String subId, String subName) onSelectSub;
+
+  const _CategoryFilterMenu({
+    required this.label,
+    required this.primaryCategories,
+    required this.onSelectAll,
+    required this.onSelectPrimary,
+    required this.onSelectSub,
+  });
+
+  @override
+  State<_CategoryFilterMenu> createState() => _CategoryFilterMenuState();
+}
+
+class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
+    with DropdownOverlayMixin<_CategoryFilterMenu> {
+  String? _hoveredPrimaryId;
+
+  void _select(VoidCallback action) {
+    action();
+    closeDropdown();
+  }
+
+  @override
+  void openDropdown() {
+    _hoveredPrimaryId = null;
+    super.openDropdown();
+  }
+
+  @override
+  Widget buildFlyoutPanel(BuildContext context) {
+    _PrimaryCategoryOption? hovered;
+    for (final p in widget.primaryCategories) {
+      if (p.id == _hoveredPrimaryId) hovered = p;
+    }
+    final subs = hovered == null
+        ? const <MapEntry<String, String>>[]
+        : (hovered.subcategories.entries.toList()
+          ..sort((a, b) => a.value.compareTo(b.value)));
+
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(8),
+      color: AppColors.card,
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 200,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppDropdownMenuRow(
+                    label: 'All Categories',
+                    onTap: () => _select(widget.onSelectAll),
+                  ),
+                  for (final p in widget.primaryCategories)
+                    MouseRegion(
+                      onEnter: (_) {
+                        _hoveredPrimaryId = p.id;
+                        rebuildDropdown();
+                      },
+                      child: AppDropdownMenuRow(
+                        label: p.name,
+                        hasChildren: p.subcategories.isNotEmpty,
+                        onTap: () => _select(() => widget.onSelectPrimary(p)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (hovered != null && subs.isNotEmpty) ...[
+              const VerticalDivider(width: 1),
+              SizedBox(
+                width: 200,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppDropdownMenuRow(
+                      label: 'All ${hovered.name}',
+                      onTap: () => _select(() => widget.onSelectPrimary(hovered!)),
+                    ),
+                    for (final e in subs)
+                      AppDropdownMenuRow(
+                        label: e.value,
+                        onTap: () =>
+                            _select(() => widget.onSelectSub(hovered!, e.key, e.value)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: dropdownLink,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: toggleDropdown,
+        child: AppDropdownButton(label: widget.label),
+      ),
     );
   }
 }
