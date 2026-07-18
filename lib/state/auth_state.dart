@@ -8,17 +8,37 @@ enum AuthStatus { unknown, authenticated, unauthenticated }
 /// passed to GoRouter as a refreshListenable so routes re-evaluate whenever
 /// auth status changes.
 ///
-/// Backed by the mock AuthService -- there's no real session/token, just an
-/// in-memory `profile` held for the lifetime of the app (lost on restart).
+/// Starts as [AuthStatus.unknown] until [restoreSession] finishes. On the
+/// Supabase backend that reloads the persisted GoTrue session; on mock it
+/// resolves immediately to unauthenticated (no persistence).
 class AuthController extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
-  AuthStatus status = AuthStatus.unauthenticated;
+  AuthStatus status = AuthStatus.unknown;
   AppUser? profile;
   String? errorMessage;
   bool isBusy = false;
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
+
+  /// Reloads any persisted session into [profile]. Call once at startup
+  /// (before or as the UI mounts) so a browser refresh stays signed in.
+  Future<void> restoreSession() async {
+    try {
+      final user = await _authService.restoreSession();
+      if (user != null) {
+        profile = user;
+        status = AuthStatus.authenticated;
+      } else {
+        profile = null;
+        status = AuthStatus.unauthenticated;
+      }
+    } catch (_) {
+      profile = null;
+      status = AuthStatus.unauthenticated;
+    }
+    notifyListeners();
+  }
 
   Future<bool> login(String email, String password) async {
     isBusy = true;

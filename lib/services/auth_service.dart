@@ -11,6 +11,11 @@ abstract interface class AuthService {
 
   Future<AppUser> signIn({required String email, required String password});
   Future<void> signOut();
+
+  /// Returns the signed-in profile if a persisted session exists (Supabase),
+  /// or null when there is none (mock always returns null).
+  Future<AppUser?> restoreSession();
+
   Future<AppUser> signUpDonor({
     required String firstName,
     required String lastName,
@@ -55,6 +60,9 @@ class MockAuthService implements AuthService {
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<AppUser?> restoreSession() async => null;
 
   /// Registers a new donor account.
   @override

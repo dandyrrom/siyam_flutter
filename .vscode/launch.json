@@ -2,19 +2,35 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "SIYAM (Chrome)",
+      "name": "SIYAM (Chrome, Supabase)",
       "request": "launch",
       "type": "dart",
       "deviceId": "chrome",
-      "program": "lib/main.dart"
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/supabase.json"
+      ]
     },
     {
-      "name": "SIYAM (Chrome, profile)",
+      "name": "SIYAM (Chrome, mock)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=USE_MOCK=true"
+      ]
+    },
+    {
+      "name": "SIYAM (Chrome, Supabase, profile)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "profile",
       "deviceId": "chrome",
-      "program": "lib/main.dart"
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/supabase.json"
+      ]
     }
   ]
 }

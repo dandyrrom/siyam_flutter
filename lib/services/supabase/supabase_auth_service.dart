@@ -55,6 +55,26 @@ class SupabaseAuthService implements AuthService {
   }
 
   @override
+  Future<AppUser?> restoreSession() async {
+    // Prefer the in-memory session. If recoverSession() is still finishing
+    // after initialize(), wait briefly for the first auth event.
+    var userId = _client.auth.currentSession?.user.id;
+    if (userId == null) {
+      try {
+        final event = await _client.auth.onAuthStateChange.first.timeout(
+          const Duration(seconds: 2),
+        );
+        userId = event.session?.user.id;
+      } catch (_) {
+        // Timeout / no event — fall through with whatever currentSession is.
+      }
+      userId ??= _client.auth.currentSession?.user.id;
+    }
+    if (userId == null) return null;
+    return fetchProfile(userId);
+  }
+
+  @override
   Future<AppUser> signUpDonor({
     required String firstName,
     required String lastName,
