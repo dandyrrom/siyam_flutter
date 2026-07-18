@@ -13,21 +13,29 @@ class DonatePage extends StatefulWidget {
 }
 
 class _DonatePageState extends State<DonatePage> {
+  // Service for donation operations
   final DonationService _service = DonationService();
+  
+  // Form key for validation
   final _formKey = GlobalKey<FormState>();
-  final _proofCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
+  
+  // Controllers for form fields
+  final TextEditingController _proofCtrl = TextEditingController();
+  final TextEditingController _notesCtrl = TextEditingController();
 
+  // State variables
   DateTime? _schedDate;
   bool _submitting = false;
 
   @override
   void dispose() {
+    // Clean up controllers
     _proofCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
 
+  // Opens date picker for selecting drop-off date
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -39,25 +47,35 @@ class _DonatePageState extends State<DonatePage> {
     if (picked != null) setState(() => _schedDate = picked);
   }
 
+  // Submits the donation form to the database
   Future<void> _submit() async {
+    // Validate the form
     if (!_formKey.currentState!.validate()) return;
+    
+    // Get the donor ID from the auth state
     final donorId = context.read<AuthController>().profile?.userId;
     if (donorId == null) return;
 
     setState(() => _submitting = true);
     try {
+      // Submit the donation to the service
       await _service.createSubmission(
         donorId: donorId,
         schedDate: _schedDate,
         proofImg: _proofCtrl.text.trim().isEmpty ? null : _proofCtrl.text.trim(),
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       );
+      
+      // Show success message
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Donation submitted -- thank you!')),
       );
+      
+      // Navigate to donation history
       context.go('/donation-history');
     } catch (e) {
+      // Show error message
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Could not submit donation: $e')));
@@ -73,15 +91,19 @@ class _DonatePageState extends State<DonatePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Page Title
           const Text('Donate Now',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
+          // Subtitle / Instruction
           const Text(
             'Let us know when you\'d like to drop off your donation. '
             'Staff will confirm the items received once it arrives.',
             style: TextStyle(color: AppColors.mutedForeground),
           ),
           const SizedBox(height: 20),
+          
+          // Donation Form Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -95,6 +117,7 @@ class _DonatePageState extends State<DonatePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ===== DATABASE FIELD: drop_off_sched =====
                   const Text('Preferred Drop-off Date',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
@@ -113,6 +136,8 @@ class _DonatePageState extends State<DonatePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // ===== DATABASE FIELD: proofimg =====
                   TextFormField(
                     controller: _proofCtrl,
                     decoration: const InputDecoration(
@@ -123,6 +148,8 @@ class _DonatePageState extends State<DonatePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // ===== DATABASE FIELD: notes =====
                   TextFormField(
                     controller: _notesCtrl,
                     maxLines: 3,
@@ -132,7 +159,10 @@ class _DonatePageState extends State<DonatePage> {
                       prefixIcon: Icon(Icons.notes_outlined, size: 18),
                     ),
                   ),
+                  
                   const SizedBox(height: 20),
+
+                  // ===== SUBMIT BUTTON =====
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
