@@ -19,9 +19,22 @@ Future<void> main() async {
     );
   }
 
+  assert(() {
+    // ignore: avoid_print
+    print(kUseMock
+        ? '[SIYAM] Backend: MOCK (sessions do not survive refresh)'
+        : '[SIYAM] Backend: SUPABASE (${SupabaseConfig.url})');
+    return true;
+  }());
+
+  final auth = AuthController();
+  // Restore any persisted GoTrue session before the first frame so a
+  // browser refresh doesn't bounce through /login.
+  await auth.restoreSession();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthController(),
+    ChangeNotifierProvider.value(
+      value: auth,
       child: const SiyamApp(),
     ),
   );
