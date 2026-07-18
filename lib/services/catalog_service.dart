@@ -3,14 +3,14 @@ import '../models/primary_category.dart';
 import '../models/subcategory.dart';
 import '../models/unit.dart';
 import 'backend.dart';
+import 'supabase/supabase_catalog_service.dart';
 
 /// Data-access interface for catalog lookup tables. The factory resolves to
 /// the mock or Supabase implementation based on [kUseMock], chosen at build
 /// time.
 abstract interface class CatalogService {
-  factory CatalogService() => kUseMock
-      ? MockCatalogService()
-      : throw UnimplementedError('Supabase CatalogService not implemented yet');
+  factory CatalogService() =>
+      kUseMock ? MockCatalogService() : SupabaseCatalogService();
 
   Future<List<PrimaryCategory>> fetchPrimaryCategories();
   Future<List<Subcategory>> fetchSubcategories([String? pCategoryId]);

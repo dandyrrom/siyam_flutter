@@ -2,6 +2,7 @@ import '../mock/mock_database.dart';
 import '../models/app_user.dart';
 import '../models/pet.dart';
 import 'backend.dart';
+import 'supabase/supabase_dashboard_service.dart';
 
 /// Aggregate counts for the Manager dashboard.
 class ManagerDashboardStats {
@@ -56,9 +57,8 @@ class DonorDashboardStats {
 /// the mock or Supabase implementation based on [kUseMock], chosen at build
 /// time.
 abstract interface class DashboardService {
-  factory DashboardService() => kUseMock
-      ? MockDashboardService()
-      : throw UnimplementedError('Supabase DashboardService not implemented yet');
+  factory DashboardService() =>
+      kUseMock ? MockDashboardService() : SupabaseDashboardService();
 
   Future<ManagerDashboardStats> fetchManagerStats();
   Future<StaffDashboardStats> fetchStaffStats();

@@ -3,14 +3,14 @@ import '../models/inventory_item.dart';
 import '../models/stock_movement.dart';
 import '../models/stock_out.dart';
 import 'backend.dart';
+import 'supabase/supabase_inventory_service.dart';
 
 /// Data-access interface for inventory items and stock movements. The factory
 /// resolves to the mock or Supabase implementation based on [kUseMock], chosen
 /// at build time.
 abstract interface class InventoryService {
-  factory InventoryService() => kUseMock
-      ? MockInventoryService()
-      : throw UnimplementedError('Supabase InventoryService not implemented yet');
+  factory InventoryService() =>
+      kUseMock ? MockInventoryService() : SupabaseInventoryService();
 
   Future<List<InventoryItem>> fetchItems();
   Future<InventoryItem?> fetchItem(String itemId);

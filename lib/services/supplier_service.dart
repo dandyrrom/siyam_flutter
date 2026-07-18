@@ -2,14 +2,14 @@ import '../mock/mock_database.dart';
 import '../models/supplier.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
+import 'supabase/supabase_supplier_service.dart';
 
 /// Data-access interface for suppliers and purchase orders. The factory
 /// resolves to the mock or Supabase implementation based on [kUseMock], chosen
 /// at build time.
 abstract interface class SupplierService {
-  factory SupplierService() => kUseMock
-      ? MockSupplierService()
-      : throw UnimplementedError('Supabase SupplierService not implemented yet');
+  factory SupplierService() =>
+      kUseMock ? MockSupplierService() : SupabaseSupplierService();
 
   Future<List<Supplier>> fetchSuppliers();
   Future<Supplier> createSupplier({

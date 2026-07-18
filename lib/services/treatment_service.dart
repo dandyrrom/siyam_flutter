@@ -3,15 +3,15 @@ import '../models/pet.dart';
 import '../models/treatment.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
+import 'supabase/supabase_treatment_service.dart';
 import 'unit_conversion.dart';
 
 /// Data-access interface for treatments and treatment items. The factory
 /// resolves to the mock or Supabase implementation based on [kUseMock], chosen
 /// at build time.
 abstract interface class TreatmentService {
-  factory TreatmentService() => kUseMock
-      ? MockTreatmentService()
-      : throw UnimplementedError('Supabase TreatmentService not implemented yet');
+  factory TreatmentService() =>
+      kUseMock ? MockTreatmentService() : SupabaseTreatmentService();
 
   Future<List<TreatmentRecord>> fetchTreatments();
   Future<List<TreatmentItemUsed>> fetchItemsUsed(String treatId);

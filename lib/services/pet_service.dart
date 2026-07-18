@@ -1,13 +1,13 @@
 import '../mock/mock_database.dart';
 import '../models/pet.dart';
 import 'backend.dart';
+import 'supabase/supabase_pet_service.dart';
 
 /// Data-access interface for pets. The factory resolves to the mock or
 /// Supabase implementation based on [kUseMock], chosen at build time.
 abstract interface class PetService {
-  factory PetService() => kUseMock
-      ? MockPetService()
-      : throw UnimplementedError('Supabase PetService not implemented yet');
+  factory PetService() =>
+      kUseMock ? MockPetService() : SupabasePetService();
 
   Future<List<Pet>> fetchPets();
   Future<Pet> createPet({

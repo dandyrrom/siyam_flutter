@@ -1,15 +1,16 @@
 import '../mock/mock_database.dart';
 import '../models/app_user.dart';
 import 'backend.dart';
+import 'supabase/supabase_auth_service.dart';
 
 /// Data-access interface for auth/profile. The factory resolves to the mock
 /// or Supabase implementation based on [kUseMock], chosen at build time.
 abstract interface class AuthService {
-  factory AuthService() => kUseMock
-      ? MockAuthService()
-      : throw UnimplementedError('Supabase AuthService not implemented yet');
+  factory AuthService() =>
+      kUseMock ? MockAuthService() : SupabaseAuthService();
 
   Future<AppUser> signIn({required String email, required String password});
+  Future<void> signOut();
   Future<AppUser> signUpDonor({
     required String firstName,
     required String lastName,
@@ -51,6 +52,9 @@ class MockAuthService implements AuthService {
     }
     return user;
   }
+
+  @override
+  Future<void> signOut() async {}
 
   /// Registers a new donor account.
   @override

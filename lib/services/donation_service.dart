@@ -2,14 +2,14 @@ import '../mock/mock_database.dart';
 import '../models/donation.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
+import 'supabase/supabase_donation_service.dart';
 
 /// Data-access interface for submissions and donations. The factory resolves
 /// to the mock or Supabase implementation based on [kUseMock], chosen at build
 /// time.
 abstract interface class DonationService {
-  factory DonationService() => kUseMock
-      ? MockDonationService()
-      : throw UnimplementedError('Supabase DonationService not implemented yet');
+  factory DonationService() =>
+      kUseMock ? MockDonationService() : SupabaseDonationService();
 
   Future<List<DonationSubmission>> fetchSubmissions({String? donorId});
   Future<DonationSubmission> createSubmission({

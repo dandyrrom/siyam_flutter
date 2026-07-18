@@ -69,6 +69,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _authService.signOut();
     profile = null;
     status = AuthStatus.unauthenticated;
     notifyListeners();
