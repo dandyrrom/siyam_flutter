@@ -3,14 +3,14 @@
 Role-based web app for managing an animal sanctuary: inventory, medical
 treatments, animal records, suppliers, purchases, donations, and reports, plus
 a donor-facing portal. It is a Flutter Web port of the original
-`Design-SIYAM-Web-Application` React project.
+`Design-SIYAM-Web-Application` React project!
 
 ## Current backend: in-memory mock
 
 The app currently runs entirely on an **in-memory mock data layer**
 (`lib/mock/mock_database.dart`), seeded at startup. There is no external
 backend, database, or secrets required to run it. The data model mirrors the
-Postgres schema documented in [`updated_db.md`](updated_db.md), which is the
+Postgres schema documented in `[updated_db.md](updated_db.md)`, which is the
 single source of truth for what fields/tables exist.
 
 A compile-time toggle (`USE_MOCK`) selects the backend so a Supabase
@@ -23,6 +23,8 @@ non-mock path throws until those services are written.
 - Flutter SDK on the **stable** channel (Dart `>=3.3.0 <4.0.0`).
 - Chrome (the app targets web).
 
+
+
 ## First-time setup
 
 The repo tracks only `lib/`, `pubspec.yaml`, and a minimal `web/`. The rest of
@@ -34,6 +36,8 @@ flutter create . --platforms web   # keep the existing web/index.html if prompte
 flutter pub get
 ```
 
+
+
 ## Run locally
 
 ```bash
@@ -42,11 +46,13 @@ flutter run -d chrome
 
 Seeded test accounts (all use password `password123`):
 
-| Role    | Email               |
-|---------|---------------------|
-| Manager | manager@siyam.test  |
-| Staff   | staff@siyam.test    |
-| Donor   | donor@siyam.test    |
+
+| Role    | Email                                           |
+| ------- | ----------------------------------------------- |
+| Manager | [manager@siyam.test](mailto:manager@siyam.test) |
+| Staff   | [staff@siyam.test](mailto:staff@siyam.test)     |
+| Donor   | [donor@siyam.test](mailto:donor@siyam.test)     |
+
 
 Each role sees a different navigation set and dashboard. Donors can also
 self-register from the login screen. Note: mock data is in-memory only, so any
@@ -91,6 +97,8 @@ flutter build web --release --dart-define=USE_MOCK=true
 # output: build/web/
 ```
 
+
+
 ## Deploy to Vercel
 
 Flutter Web is static output, so any static host works. Vercel's build image has
@@ -106,7 +114,9 @@ repository secrets:
 
 - `VERCEL_TOKEN` — a Vercel token.
 - `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` — from `vercel link` (written to
-  `.vercel/project.json`) or the Vercel dashboard.
+`.vercel/project.json`) or the Vercel dashboard.
+
+
 
 ### Manual (one-off)
 
@@ -117,15 +127,18 @@ cd build/web
 npx vercel --prod        # framework preset: Other; it deploys the static files
 ```
 
+
+
 ## Next: Supabase (planned)
 
 Wiring up Supabase for auth + data is the next phase and is not done yet:
 
 1. Add `supabase_flutter`; create `lib/core/supabase_config.dart` reading
-   `SUPABASE_URL` / anon key via `--dart-define`; init conditionally in
+  `SUPABASE_URL` / anon key via `--dart-define`; init conditionally in
    `lib/main.dart` when `USE_MOCK=false`.
-2. Create the schema from [`updated_db.md`](updated_db.md) plus RLS policies.
+2. Create the schema from `[updated_db.md](updated_db.md)` plus RLS policies.
 3. Wire Supabase auth (GoTrue) into `AuthController`, using the existing
-   `AuthStatus.unknown` state for session restore.
+  `AuthStatus.unknown` state for session restore.
 4. Implement each `Supabase<Name>Service` against the existing service
-   interfaces and flip the factory branch — one service at a time.
+  interfaces and flip the factory branch — one service at a time.
+
