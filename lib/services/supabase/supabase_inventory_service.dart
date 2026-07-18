@@ -1,0 +1,291 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../models/inventory_item.dart';
+import '../../models/stock_movement.dart';
+import '../../models/stock_out.dart';
+import '../inventory_service.dart';
+
+/// Supabase-backed inventory access for public.item, with category/unit FKs
+/// resolved into display names via lookup maps (mirrors the mock's
+/// denormalization onto [InventoryItem]).
+class SupabaseInventoryService implements InventoryService {
+  final SupabaseClient _client = Supabase.instance.client;
+
+  static const String _itemColumns =
+      'id, name, p_category, s_category, purchase_unit, package_unit, '
+      'package_quantity, dispense_unit, purchase_stocks';
+
+  Future<Map<String, String>> _map(String table, String labelCol) async {
+    final rows = await _client.from(table).select('id, $labelCol');
+    return {
+      for (final r in rows) r['id'] as String: (r[labelCol] as String?) ?? '',
+    };
+  }
+
+  Future<Map<String, String>> _userNameMap() async {
+    final rows = await _client.from('users').select('id, fname, lname');
+    return {
+      for (final r in rows)
+        r['id'] as String:
+            '${(r['fname'] as String?) ?? ''} ${(r['lname'] as String?) ?? ''}'
+                .trim(),
+    };
+  }
+
+  double? _toDouble(dynamic v) => v == null ? null : (v as num).toDouble();
+
+  InventoryItem _mapItem(
+    Map<String, dynamic> r, {
+    required Map<String, String> pcats,
+    required Map<String, String> scats,
+    required Map<String, String> units,
+  }) {
+    final sCategoryId = r['s_category'] as String?;
+    final packageUnitId = r['package_unit'] as String?;
+    final dispenseUnitId = r['dispense_unit'] as String?;
+    return InventoryItem(
+      itemId: r['id'] as String,
+      itemName: (r['name'] as String?) ?? '',
+      pCategoryId: r['p_category'] as String,
+      pCategoryName: pcats[r['p_category']] ?? 'Unknown category',
+      sCategoryId: sCategoryId,
+      sCategoryName: sCategoryId == null ? null : scats[sCategoryId],
+      purchaseUnitId: r['purchase_unit'] as String,
+      purchaseUnitAbbr: units[r['purchase_unit']] ?? '',
+      packageUnitId: packageUnitId,
+      packageUnitAbbr: packageUnitId == null ? null : units[packageUnitId],
+      packageQuantity: _toDouble(r['package_quantity']),
+      dispenseUnitId: dispenseUnitId,
+      dispenseUnitAbbr: dispenseUnitId == null ? null : units[dispenseUnitId],
+      stockQty: _toDouble(r['purchase_stocks']) ?? 0,
+    );
+  }
+
+  Future<double> _currentStock(String itemId) async {
+    final row = await _client
+        .from('item')
+        .select('purchase_stocks')
+        .eq('id', itemId)
+        .maybeSingle();
+    if (row == null) throw Exception('Item not found');
+    return _toDouble(row['purchase_stocks']) ?? 0;
+  }
+
+  @override
+  Future<List<InventoryItem>> fetchItems() async {
+    final pcats = await _map('primary_category', 'type');
+    final scats = await _map('subcategory', 'type');
+    final units = await _map('units', 'abbr_name');
+    final rows = await _client.from('item').select(_itemColumns).order('name');
+    return rows
+        .map((r) => _mapItem(r, pcats: pcats, scats: scats, units: units))
+        .toList();
+  }
+
+  @override
+  Future<InventoryItem?> fetchItem(String itemId) async {
+    final row = await _client
+        .from('item')
+        .select(_itemColumns)
+        .eq('id', itemId)
+        .maybeSingle();
+    if (row == null) return null;
+    final pcats = await _map('primary_category', 'type');
+    final scats = await _map('subcategory', 'type');
+    final units = await _map('units', 'abbr_name');
+    return _mapItem(row, pcats: pcats, scats: scats, units: units);
+  }
+
+  @override
+  Future<InventoryItem> createItem({
+    required String itemName,
+    required String pCategoryId,
+    required String purchaseUnitId,
+    String? sCategoryId,
+    String? packageUnitId,
+    double? packageQuantity,
+    String? dispenseUnitId,
+    double initialQty = 0,
+  }) async {
+    final row = await _client
+        .from('item')
+        .insert({
+          'name': itemName,
+          'p_category': pCategoryId,
+          's_category': sCategoryId,
+          'purchase_unit': purchaseUnitId,
+          'package_unit': packageUnitId,
+          'package_quantity': packageQuantity,
+          'dispense_unit': dispenseUnitId,
+          'purchase_stocks': initialQty,
+        })
+        .select('id')
+        .single();
+    final created = await fetchItem(row['id'] as String);
+    return created!;
+  }
+
+  @override
+  Future<InventoryItem> updateDetails({
+    required String itemId,
+    String? itemName,
+    String? pCategoryId,
+    String? sCategoryId,
+    String? purchaseUnitId,
+  }) async {
+    final current = await fetchItem(itemId);
+    if (current == null) throw Exception('Item not found');
+
+    final updates = <String, dynamic>{};
+    if (itemName != null) updates['name'] = itemName;
+    if (pCategoryId != null && pCategoryId != current.pCategoryId) {
+      updates['p_category'] = pCategoryId;
+      // Subcategory belonged to the old primary category -- clear the stale FK.
+      updates['s_category'] = null;
+    }
+    if (sCategoryId != null) updates['s_category'] = sCategoryId;
+    if (purchaseUnitId != null) updates['purchase_unit'] = purchaseUnitId;
+
+    if (updates.isNotEmpty) {
+      await _client.from('item').update(updates).eq('id', itemId);
+    }
+    final updated = await fetchItem(itemId);
+    return updated!;
+  }
+
+  @override
+  Future<InventoryItem> adjustStock({
+    required String itemId,
+    required double delta,
+  }) async {
+    final current = await _currentStock(itemId);
+    final next = current + delta;
+    if (next < 0) {
+      throw Exception('Not enough stock: only ${formatQty(current)} left');
+    }
+    await _client
+        .from('item')
+        .update({'purchase_stocks': next}).eq('id', itemId);
+    final updated = await fetchItem(itemId);
+    return updated!;
+  }
+
+  @override
+  Future<InventoryItem> stockOut({
+    required String itemId,
+    required double qty,
+    required StockOutReason reason,
+    required String recordedByUserId,
+  }) async {
+    await _client.from('stock_out').insert({
+      'itemid': itemId,
+      'qty': qty,
+      'reason': stockOutReasonToString(reason),
+      'recordedby': recordedByUserId,
+    });
+    return adjustStock(itemId: itemId, delta: -qty);
+  }
+
+  @override
+  Future<void> deleteItem(String itemId) async {
+    await _client.from('item').delete().eq('id', itemId);
+  }
+
+  String _stockOutReasonLabel(StockOutReason reason) {
+    switch (reason) {
+      case StockOutReason.waste:
+        return 'Waste';
+      case StockOutReason.expired:
+        return 'Expired';
+      case StockOutReason.adjustment:
+        return 'Adjustment';
+    }
+  }
+
+  @override
+  Future<List<StockMovement>> fetchStockHistory(String itemId) async {
+    final item = await fetchItem(itemId);
+    final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
+    final users = await _userNameMap();
+    final units = await _map('units', 'abbr_name');
+    final movements = <StockMovement>[];
+
+    final purchaseRows = await _client
+        .from('purchase_item')
+        .select('qty, purchaseid, purchase(id, receiveddate, recordedby)')
+        .eq('itemid', itemId);
+    for (final r in purchaseRows) {
+      final purchase = r['purchase'] as Map<String, dynamic>?;
+      if (purchase == null) continue;
+      movements.add(StockMovement(
+        id: '${purchase['id']}-$itemId',
+        date: DateTime.parse(purchase['receiveddate'] as String),
+        direction: StockDirection.stockIn,
+        qty: _toDouble(r['qty']) ?? 0,
+        unitAbbr: purchaseUnitAbbr,
+        typeLabel: 'Purchased',
+        recordedByName: users[purchase['recordedby']] ?? 'Unknown user',
+      ));
+    }
+
+    final donationRows = await _client
+        .from('donation_item')
+        .select('qty, dntid, donation(id, receiveddate, recordedby)')
+        .eq('itemid', itemId);
+    for (final r in donationRows) {
+      final donation = r['donation'] as Map<String, dynamic>?;
+      if (donation == null) continue;
+      movements.add(StockMovement(
+        id: '${donation['id']}-$itemId',
+        date: DateTime.parse(donation['receiveddate'] as String),
+        direction: StockDirection.stockIn,
+        qty: _toDouble(r['qty']) ?? 0,
+        unitAbbr: purchaseUnitAbbr,
+        typeLabel: 'Donated',
+        recordedByName: users[donation['recordedby']] ?? 'Unknown user',
+      ));
+    }
+
+    final treatmentRows = await _client
+        .from('treatment_item')
+        .select('treatid, dispensed_qty, dispense_unit, consumeddate, '
+            'recordedby, treatment(id, name)')
+        .eq('itemid', itemId);
+    for (final r in treatmentRows) {
+      final treatment = r['treatment'] as Map<String, dynamic>?;
+      final dispenseUnit = r['dispense_unit'] as String?;
+      movements.add(StockMovement(
+        id: '${r['treatid']}-$itemId',
+        date: DateTime.parse(r['consumeddate'] as String),
+        direction: StockDirection.stockOut,
+        qty: _toDouble(r['dispensed_qty']) ?? 0,
+        unitAbbr: (dispenseUnit == null ? null : units[dispenseUnit]) ??
+            purchaseUnitAbbr,
+        typeLabel: 'Treatment',
+        treatmentId: r['treatid'] as String?,
+        treatmentName: treatment?['name'] as String? ?? 'Unknown treatment',
+        recordedByName: users[r['recordedby']] ?? 'Unknown user',
+      ));
+    }
+
+    final stockOutRows = await _client
+        .from('stock_out')
+        .select('id, qty, reason, recordeddate, recordedby')
+        .eq('itemid', itemId);
+    for (final r in stockOutRows) {
+      movements.add(StockMovement(
+        id: r['id'] as String,
+        date: DateTime.parse(r['recordeddate'] as String),
+        direction: StockDirection.stockOut,
+        qty: _toDouble(r['qty']) ?? 0,
+        unitAbbr: purchaseUnitAbbr,
+        typeLabel: _stockOutReasonLabel(
+            stockOutReasonFromString(r['reason'] as String)),
+        recordedByName: users[r['recordedby']] ?? 'Unknown user',
+      ));
+    }
+
+    movements.sort((a, b) => b.date.compareTo(a.date));
+    return movements;
+  }
+}

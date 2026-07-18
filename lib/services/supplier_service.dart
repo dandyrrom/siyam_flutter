@@ -1,6 +1,35 @@
 import '../mock/mock_database.dart';
 import '../models/supplier.dart';
+import 'backend.dart';
 import 'inventory_service.dart';
+import 'supabase/supabase_supplier_service.dart';
+
+/// Data-access interface for suppliers and purchase orders. The factory
+/// resolves to the mock or Supabase implementation based on [kUseMock], chosen
+/// at build time.
+abstract interface class SupplierService {
+  factory SupplierService() =>
+      kUseMock ? MockSupplierService() : SupabaseSupplierService();
+
+  Future<List<Supplier>> fetchSuppliers();
+  Future<Supplier> createSupplier({
+    required String suppName,
+    String? contactNum,
+    String? address,
+  });
+  Future<List<PurchaseOrder>> fetchAllPurchaseOrders();
+  Future<List<PurchaseOrder>> fetchPurchaseOrdersForSupplier(String suppId);
+  Future<PurchaseOrder?> fetchPurchaseOrder(String purId);
+  Future<List<OrderLineItem>> fetchOrderItems(String purId);
+  Future<List<OrderSpendEntry>> fetchOrderSpendEntries();
+  Future<PurchaseOrder> createPurchaseOrder({
+    required String suppId,
+    required String recordedByUserId,
+    required String receivedBy,
+    required List<OrderItemInput> items,
+    DateTime? receivedDate,
+  });
+}
 
 /// In-memory equivalent of the old public.supplier / purchase / purchase_item
 /// access layer.
@@ -8,9 +37,9 @@ import 'inventory_service.dart';
 /// Creating a purchase order also increments stock for each item ordered,
 /// via [InventoryService] -- the same "receiving increases stock" pattern
 /// used when a donation is approved.
-class SupplierService {
+class MockSupplierService implements SupplierService {
   final MockDatabase _db = MockDatabase.instance;
-  final InventoryService _inventoryService = InventoryService();
+  final InventoryService _inventoryService = MockInventoryService();
 
   String _userName(String userId) {
     final user = firstWhereOrNull(_db.users, (u) => u.userId == userId);
@@ -30,12 +59,14 @@ class SupplierService {
     );
   }
 
+  @override
   Future<List<Supplier>> fetchSuppliers() async {
     final list = List<Supplier>.from(_db.suppliers);
     list.sort((a, b) => a.suppName.compareTo(b.suppName));
     return list;
   }
 
+  @override
   Future<Supplier> createSupplier({
     required String suppName,
     String? contactNum,
@@ -52,12 +83,14 @@ class SupplierService {
   }
 
   /// All purchase orders across every supplier, most recent first.
+  @override
   Future<List<PurchaseOrder>> fetchAllPurchaseOrders() async {
     final list = _db.purchases.map(_toPurchaseOrder).toList();
     list.sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
     return list;
   }
 
+  @override
   Future<List<PurchaseOrder>> fetchPurchaseOrdersForSupplier(String suppId) async {
     final list = _db.purchases
         .where((p) => p.suppId == suppId)
@@ -67,11 +100,13 @@ class SupplierService {
     return list;
   }
 
+  @override
   Future<PurchaseOrder?> fetchPurchaseOrder(String purId) async {
     final row = firstWhereOrNull(_db.purchases, (p) => p.id == purId);
     return row == null ? null : _toPurchaseOrder(row);
   }
 
+  @override
   Future<List<OrderLineItem>> fetchOrderItems(String purId) async {
     final rows = _db.purchaseItems.where((oi) => oi.purchaseId == purId);
     final result = <OrderLineItem>[];
@@ -90,6 +125,7 @@ class SupplierService {
 
   /// Spend per purchase_item row, with its parent purchase's date -- used
   /// to bucket total purchase spend by month on the Reports page.
+  @override
   Future<List<OrderSpendEntry>> fetchOrderSpendEntries() async {
     final result = <OrderSpendEntry>[];
     for (final row in _db.purchaseItems) {
@@ -107,6 +143,7 @@ class SupplierService {
   /// stock for each item received. [recordedByUserId] is the signed-in user
   /// entering the transaction; [receivedBy] is free text for who physically
   /// received the goods. [receivedDate] defaults to now() if omitted.
+  @override
   Future<PurchaseOrder> createPurchaseOrder({
     required String suppId,
     required String recordedByUserId,
