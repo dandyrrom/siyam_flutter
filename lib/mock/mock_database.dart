@@ -37,6 +37,7 @@ class ItemRow {
   double? packageQuantity;
   String? dispenseUnitId;
   double purchaseStocks;
+  double? packageStocks;
 
   ItemRow({
     required this.id,
@@ -48,6 +49,7 @@ class ItemRow {
     this.packageQuantity,
     this.dispenseUnitId,
     required this.purchaseStocks,
+    this.packageStocks,
   });
 }
 
@@ -309,6 +311,7 @@ class MockDatabase {
         packageQuantity: 30,
         dispenseUnitId: unitTablet.id,
         purchaseStocks: 2,
+        packageStocks: 60,
       ),
       ItemRow(
         id: newMockId('item'),
@@ -320,6 +323,7 @@ class MockDatabase {
         packageQuantity: 100,
         dispenseUnitId: unitMl.id,
         purchaseStocks: 10,
+        packageStocks: 1000,
       ),
       ItemRow(
         id: newMockId('item'),
@@ -331,6 +335,7 @@ class MockDatabase {
         packageQuantity: 200,
         dispenseUnitId: unitDrop.id, // differs from package_unit (ml) on purpose
         purchaseStocks: 26,
+        packageStocks: 5200,
       ),
       ItemRow(
         id: newMockId('item'),
@@ -342,6 +347,7 @@ class MockDatabase {
         packageQuantity: 9,
         dispenseUnitId: unitKg.id,
         purchaseStocks: 4,
+        packageStocks: 36,
       ),
       ItemRow(
         id: newMockId('item'),
@@ -353,6 +359,7 @@ class MockDatabase {
         packageQuantity: 450,
         dispenseUnitId: unitMl.id,
         purchaseStocks: 2,
+        packageStocks: 900,
       ),
       ItemRow(
         id: newMockId('item'),

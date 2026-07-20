@@ -9,8 +9,9 @@ import '../unit_conversion.dart';
 /// Supabase-backed access for public.treatment / treatment_item.
 ///
 /// Logging a treatment always writes a treatment_item row per item, and
-/// additionally decrements stock via [InventoryService] when a safe unit
-/// conversion exists (see [toPurchaseUnits]).
+/// additionally applies the stock effect via [applyTreatmentDeduction] --
+/// see that function for the package-stock vs. purchase-stock vs.
+/// not-deductible branching.
 class SupabaseTreatmentService implements TreatmentService {
   final SupabaseClient _client = Supabase.instance.client;
   final InventoryService _inventoryService = InventoryService();
@@ -156,11 +157,7 @@ class SupabaseTreatmentService implements TreatmentService {
         'recordedby': performedByUserId,
       });
 
-      final purchaseUnitsUsed = toPurchaseUnits(item, row.qty);
-      if (purchaseUnitsUsed != null) {
-        await _inventoryService.adjustStock(
-            itemId: row.itemId, delta: -purchaseUnitsUsed);
-      }
+      await applyTreatmentDeduction(_inventoryService, item, row.qty);
     }
 
     final records = await fetchTreatments();
