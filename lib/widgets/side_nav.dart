@@ -35,6 +35,8 @@ class SideNav extends StatelessWidget {
               border: Border(bottom: BorderSide(color: AppColors.sidebarBorder)),
             ),
             child: Row(
+              mainAxisAlignment:
+                  collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
                 Container(
                   width: 32,
@@ -119,6 +121,9 @@ class SideNav extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 11),
                         child: Row(
+                          mainAxisAlignment: collapsed
+                              ? MainAxisAlignment.center
+                              : MainAxisAlignment.start,
                           children: [
                             Icon(item.icon,
                                 size: 18,

@@ -1,5 +1,11 @@
 enum StockLevel { inStock, needsRestock, low, outOfStock }
 
+/// How an item's stock has been acquired, derived from whether it has any
+/// rows in `purchase_item` and/or `donation_item` -- not a stored column.
+/// An item can carry both (restocked once by purchase, once by donation), so
+/// this is not a single fixed attribute of the item.
+enum AcquisitionSource { purchased, donated, both, none }
+
 /// Formats a quantity for display, trimming a trailing ".0" so whole
 /// numbers don't render with a spurious decimal (stock is stored as a float
 /// to allow fractional doses/stock, but most values are whole).
@@ -46,6 +52,11 @@ class InventoryItem {
   final double stockQty; // total_purchase_stocks, in purchaseUnit terms
   final double? packageStockQty; // total_package_stocks, in packageUnit terms
 
+  /// Whether this item has ever appeared in a purchase_item / donation_item
+  /// row -- see [AcquisitionSource].
+  final bool hasPurchaseHistory;
+  final bool hasDonationHistory;
+
   const InventoryItem({
     required this.itemId,
     required this.itemName,
@@ -62,7 +73,18 @@ class InventoryItem {
     this.dispenseUnitAbbr,
     required this.stockQty,
     this.packageStockQty,
+    this.hasPurchaseHistory = false,
+    this.hasDonationHistory = false,
   });
+
+  /// See [AcquisitionSource] -- derived from [hasPurchaseHistory] /
+  /// [hasDonationHistory], not a stored attribute.
+  AcquisitionSource get acquisitionSource {
+    if (hasPurchaseHistory && hasDonationHistory) return AcquisitionSource.both;
+    if (hasPurchaseHistory) return AcquisitionSource.purchased;
+    if (hasDonationHistory) return AcquisitionSource.donated;
+    return AcquisitionSource.none;
+  }
 
   /// Package quantity + unit for display beside the item name, e.g.
   /// "(60 tab per box)". Null when the item has no package breakdown.

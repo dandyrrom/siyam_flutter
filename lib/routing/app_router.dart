@@ -9,6 +9,7 @@ import '../pages/inventory_item_page.dart';
 import '../pages/add_item_page.dart';
 import '../pages/add_treatment_page.dart';
 import '../pages/donations_page.dart';
+import '../pages/submission_detail_page.dart';
 import '../pages/purchase_orders_page.dart';
 import '../pages/purchase_trans_page.dart';
 import '../pages/donor/donate_page.dart';
@@ -103,6 +104,12 @@ GoRouter buildRouter(AuthController authState) {
             path: '/donations',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: DonationsPage()),
+          ),
+          GoRoute(
+            path: '/donations/:id',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: SubmissionDetailPage(subId: state.pathParameters['id']!),
+            ),
           ),
           GoRoute(
             path: '/donate',

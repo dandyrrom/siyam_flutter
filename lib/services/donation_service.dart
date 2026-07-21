@@ -12,6 +12,7 @@ abstract interface class DonationService {
       kUseMock ? MockDonationService() : SupabaseDonationService();
 
   Future<List<DonationSubmission>> fetchSubmissions({String? donorId});
+  Future<DonationSubmission?> fetchSubmission(String subId);
   Future<DonationSubmission> createSubmission({
     required String donorId,
     DateTime? schedDate,
@@ -86,6 +87,12 @@ class MockDonationService implements DonationService {
     final list = rows.map(_toDonationSubmission).toList();
     list.sort((a, b) => b.dateSub.compareTo(a.dateSub));
     return list;
+  }
+
+  @override
+  Future<DonationSubmission?> fetchSubmission(String subId) async {
+    final row = firstWhereOrNull(_db.submissions, (s) => s.id == subId);
+    return row == null ? null : _toDonationSubmission(row);
   }
 
   @override

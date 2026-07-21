@@ -35,11 +35,18 @@ class SupabaseInventoryService implements InventoryService {
 
   double? _toDouble(dynamic v) => v == null ? null : (v as num).toDouble();
 
+  Future<Set<String>> _itemIdsIn(String table) async {
+    final rows = await _client.from(table).select('itemid');
+    return rows.map((r) => r['itemid'] as String).toSet();
+  }
+
   InventoryItem _mapItem(
     Map<String, dynamic> r, {
     required Map<String, String> pcats,
     required Map<String, String> scats,
     required Map<String, String> units,
+    required Set<String> purchasedItemIds,
+    required Set<String> donatedItemIds,
   }) {
     final sCategoryId = r['s_category'] as String?;
     final packageUnitId = r['package_unit'] as String?;
@@ -60,6 +67,8 @@ class SupabaseInventoryService implements InventoryService {
       dispenseUnitAbbr: dispenseUnitId == null ? null : units[dispenseUnitId],
       stockQty: _toDouble(r['total_purchase_stocks']) ?? 0,
       packageStockQty: _toDouble(r['total_package_stocks']),
+      hasPurchaseHistory: purchasedItemIds.contains(r['id']),
+      hasDonationHistory: donatedItemIds.contains(r['id']),
     );
   }
 
@@ -68,9 +77,16 @@ class SupabaseInventoryService implements InventoryService {
     final pcats = await _map('primary_category', 'type');
     final scats = await _map('subcategory', 'type');
     final units = await _map('units', 'abbr_name');
+    final purchasedItemIds = await _itemIdsIn('purchase_item');
+    final donatedItemIds = await _itemIdsIn('donation_item');
     final rows = await _client.from('item').select(_itemColumns).order('name');
     return rows
-        .map((r) => _mapItem(r, pcats: pcats, scats: scats, units: units))
+        .map((r) => _mapItem(r,
+            pcats: pcats,
+            scats: scats,
+            units: units,
+            purchasedItemIds: purchasedItemIds,
+            donatedItemIds: donatedItemIds))
         .toList();
   }
 
@@ -85,7 +101,22 @@ class SupabaseInventoryService implements InventoryService {
     final pcats = await _map('primary_category', 'type');
     final scats = await _map('subcategory', 'type');
     final units = await _map('units', 'abbr_name');
-    return _mapItem(row, pcats: pcats, scats: scats, units: units);
+    final hasPurchaseHistory = (await _client
+            .from('purchase_item')
+            .select('itemid')
+            .eq('itemid', itemId))
+        .isNotEmpty;
+    final hasDonationHistory = (await _client
+            .from('donation_item')
+            .select('itemid')
+            .eq('itemid', itemId))
+        .isNotEmpty;
+    return _mapItem(row,
+        pcats: pcats,
+        scats: scats,
+        units: units,
+        purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
+        donatedItemIds: hasDonationHistory ? {itemId} : {});
   }
 
   @override

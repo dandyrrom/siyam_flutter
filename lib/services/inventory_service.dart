@@ -56,6 +56,8 @@ class MockInventoryService implements InventoryService {
   final MockDatabase _db = MockDatabase.instance;
 
   InventoryItem _toInventoryItem(ItemRow row) {
+    final hasPurchaseHistory = _db.purchaseItems.any((p) => p.itemId == row.id);
+    final hasDonationHistory = _db.donationItems.any((d) => d.itemId == row.id);
     final pCategory =
         firstWhereOrNull(_db.primaryCategories, (c) => c.id == row.pCategoryId);
     final sCategory = row.sCategoryId == null
@@ -86,6 +88,8 @@ class MockInventoryService implements InventoryService {
       dispenseUnitAbbr: dispenseUnit?.abbrName,
       stockQty: row.purchaseStocks,
       packageStockQty: row.packageStocks,
+      hasPurchaseHistory: hasPurchaseHistory,
+      hasDonationHistory: hasDonationHistory,
     );
   }
 
