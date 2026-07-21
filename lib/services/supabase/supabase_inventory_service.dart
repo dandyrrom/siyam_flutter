@@ -13,7 +13,8 @@ class SupabaseInventoryService implements InventoryService {
 
   static const String _itemColumns =
       'id, name, p_category, s_category, purchase_unit, package_unit, '
-      'package_quantity, dispense_unit, purchase_stocks';
+      'package_quantity, dispense_unit, total_purchase_stocks, '
+      'total_package_stocks';
 
   Future<Map<String, String>> _map(String table, String labelCol) async {
     final rows = await _client.from(table).select('id, $labelCol');
@@ -34,11 +35,18 @@ class SupabaseInventoryService implements InventoryService {
 
   double? _toDouble(dynamic v) => v == null ? null : (v as num).toDouble();
 
+  Future<Set<String>> _itemIdsIn(String table) async {
+    final rows = await _client.from(table).select('itemid');
+    return rows.map((r) => r['itemid'] as String).toSet();
+  }
+
   InventoryItem _mapItem(
     Map<String, dynamic> r, {
     required Map<String, String> pcats,
     required Map<String, String> scats,
     required Map<String, String> units,
+    required Set<String> purchasedItemIds,
+    required Set<String> donatedItemIds,
   }) {
     final sCategoryId = r['s_category'] as String?;
     final packageUnitId = r['package_unit'] as String?;
@@ -57,18 +65,11 @@ class SupabaseInventoryService implements InventoryService {
       packageQuantity: _toDouble(r['package_quantity']),
       dispenseUnitId: dispenseUnitId,
       dispenseUnitAbbr: dispenseUnitId == null ? null : units[dispenseUnitId],
-      stockQty: _toDouble(r['purchase_stocks']) ?? 0,
+      stockQty: _toDouble(r['total_purchase_stocks']) ?? 0,
+      packageStockQty: _toDouble(r['total_package_stocks']),
+      hasPurchaseHistory: purchasedItemIds.contains(r['id']),
+      hasDonationHistory: donatedItemIds.contains(r['id']),
     );
-  }
-
-  Future<double> _currentStock(String itemId) async {
-    final row = await _client
-        .from('item')
-        .select('purchase_stocks')
-        .eq('id', itemId)
-        .maybeSingle();
-    if (row == null) throw Exception('Item not found');
-    return _toDouble(row['purchase_stocks']) ?? 0;
   }
 
   @override
@@ -76,9 +77,16 @@ class SupabaseInventoryService implements InventoryService {
     final pcats = await _map('primary_category', 'type');
     final scats = await _map('subcategory', 'type');
     final units = await _map('units', 'abbr_name');
+    final purchasedItemIds = await _itemIdsIn('purchase_item');
+    final donatedItemIds = await _itemIdsIn('donation_item');
     final rows = await _client.from('item').select(_itemColumns).order('name');
     return rows
-        .map((r) => _mapItem(r, pcats: pcats, scats: scats, units: units))
+        .map((r) => _mapItem(r,
+            pcats: pcats,
+            scats: scats,
+            units: units,
+            purchasedItemIds: purchasedItemIds,
+            donatedItemIds: donatedItemIds))
         .toList();
   }
 
@@ -93,7 +101,22 @@ class SupabaseInventoryService implements InventoryService {
     final pcats = await _map('primary_category', 'type');
     final scats = await _map('subcategory', 'type');
     final units = await _map('units', 'abbr_name');
-    return _mapItem(row, pcats: pcats, scats: scats, units: units);
+    final hasPurchaseHistory = (await _client
+            .from('purchase_item')
+            .select('itemid')
+            .eq('itemid', itemId))
+        .isNotEmpty;
+    final hasDonationHistory = (await _client
+            .from('donation_item')
+            .select('itemid')
+            .eq('itemid', itemId))
+        .isNotEmpty;
+    return _mapItem(row,
+        pcats: pcats,
+        scats: scats,
+        units: units,
+        purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
+        donatedItemIds: hasDonationHistory ? {itemId} : {});
   }
 
   @override
@@ -117,7 +140,9 @@ class SupabaseInventoryService implements InventoryService {
           'package_unit': packageUnitId,
           'package_quantity': packageQuantity,
           'dispense_unit': dispenseUnitId,
-          'purchase_stocks': initialQty,
+          'total_purchase_stocks': initialQty,
+          'total_package_stocks':
+              packageQuantity == null ? null : initialQty * packageQuantity,
         })
         .select('id')
         .single();
@@ -153,19 +178,52 @@ class SupabaseInventoryService implements InventoryService {
     return updated!;
   }
 
+  /// Whole-container events (purchase, donation, waste, expired,
+  /// adjustment). Keeps total_package_stocks in sync by the same
+  /// proportion (delta * package_quantity) so the two pools don't drift.
   @override
   Future<InventoryItem> adjustStock({
     required String itemId,
     required double delta,
   }) async {
-    final current = await _currentStock(itemId);
-    final next = current + delta;
+    final current = await fetchItem(itemId);
+    if (current == null) throw Exception('Item not found');
+    final next = current.stockQty + delta;
     if (next < 0) {
-      throw Exception('Not enough stock: only ${formatQty(current)} left');
+      throw Exception('Not enough stock: only ${formatQty(current.stockQty)} left');
+    }
+    final updates = <String, dynamic>{'total_purchase_stocks': next};
+    final packageQuantity = current.packageQuantity;
+    if (packageQuantity != null) {
+      final currentPackage = current.packageStockQty ?? current.stockQty * packageQuantity;
+      updates['total_package_stocks'] = currentPackage + delta * packageQuantity;
+    }
+    await _client.from('item').update(updates).eq('id', itemId);
+    final updated = await fetchItem(itemId);
+    return updated!;
+  }
+
+  /// Deducts treatment usage (already in package_unit terms) from
+  /// total_package_stocks only -- total_purchase_stocks (whole containers)
+  /// is untouched, since using part of a bottle doesn't remove the bottle
+  /// from inventory.
+  @override
+  Future<InventoryItem> deductPackageStock({
+    required String itemId,
+    required double delta,
+  }) async {
+    final current = await fetchItem(itemId);
+    if (current == null) throw Exception('Item not found');
+    final packageQuantity = current.packageQuantity;
+    final currentPackage = current.packageStockQty ??
+        (packageQuantity == null ? 0 : current.stockQty * packageQuantity);
+    final next = currentPackage + delta;
+    if (next < 0) {
+      throw Exception('Not enough stock: only ${formatQty(currentPackage)} left');
     }
     await _client
         .from('item')
-        .update({'purchase_stocks': next}).eq('id', itemId);
+        .update({'total_package_stocks': next}).eq('id', itemId);
     final updated = await fetchItem(itemId);
     return updated!;
   }

@@ -35,6 +35,10 @@ abstract interface class InventoryService {
     required String itemId,
     required double delta,
   });
+  Future<InventoryItem> deductPackageStock({
+    required String itemId,
+    required double delta,
+  });
   Future<InventoryItem> stockOut({
     required String itemId,
     required double qty,
@@ -52,6 +56,8 @@ class MockInventoryService implements InventoryService {
   final MockDatabase _db = MockDatabase.instance;
 
   InventoryItem _toInventoryItem(ItemRow row) {
+    final hasPurchaseHistory = _db.purchaseItems.any((p) => p.itemId == row.id);
+    final hasDonationHistory = _db.donationItems.any((d) => d.itemId == row.id);
     final pCategory =
         firstWhereOrNull(_db.primaryCategories, (c) => c.id == row.pCategoryId);
     final sCategory = row.sCategoryId == null
@@ -81,6 +87,9 @@ class MockInventoryService implements InventoryService {
       dispenseUnitId: row.dispenseUnitId,
       dispenseUnitAbbr: dispenseUnit?.abbrName,
       stockQty: row.purchaseStocks,
+      packageStockQty: row.packageStocks,
+      hasPurchaseHistory: hasPurchaseHistory,
+      hasDonationHistory: hasDonationHistory,
     );
   }
 
@@ -140,6 +149,7 @@ class MockInventoryService implements InventoryService {
       packageQuantity: packageQuantity,
       dispenseUnitId: dispenseUnitId,
       purchaseStocks: initialQty,
+      packageStocks: packageQuantity == null ? null : initialQty * packageQuantity,
     );
     _db.items.add(row);
     return _toInventoryItem(row);
@@ -167,7 +177,9 @@ class MockInventoryService implements InventoryService {
   }
 
   /// Adjusts purchase_stocks by [delta] (positive = stock in, negative =
-  /// stock out).
+  /// stock out) -- whole-container events (purchase, donation, waste,
+  /// expired, adjustment). Keeps package_stocks in sync by the same
+  /// proportion (delta * package_quantity) so the two pools don't drift.
   @override
   Future<InventoryItem> adjustStock({
     required String itemId,
@@ -180,12 +192,36 @@ class MockInventoryService implements InventoryService {
           'Not enough stock: only ${formatQty(row.purchaseStocks)} left');
     }
     row.purchaseStocks = next;
+    if (row.packageQuantity != null) {
+      final currentPackage = row.packageStocks ?? (row.purchaseStocks - delta) * row.packageQuantity!;
+      row.packageStocks = currentPackage + delta * row.packageQuantity!;
+    }
+    return _toInventoryItem(row);
+  }
+
+  /// Deducts treatment usage (already in package_unit terms) from
+  /// package_stocks only -- purchase_stocks (whole containers) is untouched,
+  /// since using part of a bottle doesn't remove the bottle from inventory.
+  @override
+  Future<InventoryItem> deductPackageStock({
+    required String itemId,
+    required double delta,
+  }) async {
+    final row = _requireRow(itemId);
+    final current = row.packageStocks ??
+        (row.packageQuantity == null ? 0 : row.purchaseStocks * row.packageQuantity!);
+    final next = current + delta;
+    if (next < 0) {
+      throw Exception('Not enough stock: only ${formatQty(current)} left');
+    }
+    row.packageStocks = next;
     return _toInventoryItem(row);
   }
 
   /// Records a non-treatment stock-out (waste/expired/adjustment) and
-  /// decrements purchase_stocks. Purchase-unit granularity -- these are
-  /// whole-package events.
+  /// decrements purchase_stocks (and package_stocks in lockstep via
+  /// [adjustStock]). Purchase-unit granularity -- these are whole-package
+  /// events.
   @override
   Future<InventoryItem> stockOut({
     required String itemId,

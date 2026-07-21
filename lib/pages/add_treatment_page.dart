@@ -76,6 +76,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
       deductible: item.stockOutIsDeductible,
       stockQty: item.stockQty,
       packageQuantity: item.packageQuantity,
+      packageStockQty: item.packageStockQty,
       qty: qty,
     );
   }
@@ -365,10 +366,14 @@ class _ItemRow extends StatelessWidget {
   /// The max dose quantity this row can validly deduct, in dose-unit terms.
   /// Only meaningful when [row.deductible] -- otherwise usage is logged
   /// without a stock check, since there's no conversion to validate against.
+  /// For items with a package breakdown, this is the running remainder
+  /// (total_package_stocks), not stockQty * packageQuantity -- those two
+  /// diverge once prior treatments have consumed part of a container.
   double get _maxDoseQty {
     if (!row.deductible) return double.infinity;
     final packageQuantity = row.packageQuantity;
-    return packageQuantity == null ? row.stockQty : row.stockQty * packageQuantity;
+    if (packageQuantity == null) return row.stockQty;
+    return row.packageStockQty ?? row.stockQty * packageQuantity;
   }
 
   @override

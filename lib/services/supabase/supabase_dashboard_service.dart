@@ -30,8 +30,14 @@ class SupabaseDashboardService implements DashboardService {
   Future<StaffDashboardStats> fetchStaffStats() async {
     final weekAgo =
         DateTime.now().toUtc().subtract(const Duration(days: 7));
-    final outOfStock =
-        await _client.from('item').select('id').lte('purchase_stocks', 0);
+    // Out of stock: no whole containers left AND no usable remainder in an
+    // opened one (or no package breakdown at all) -- mirrors
+    // InventoryItem.isOutOfStock.
+    final outOfStock = await _client
+        .from('item')
+        .select('id')
+        .lte('total_purchase_stocks', 0)
+        .or('total_package_stocks.is.null,total_package_stocks.lte.0');
     final underTreatment = await _client
         .from('pet')
         .select('id')

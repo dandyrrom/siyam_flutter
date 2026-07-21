@@ -25,16 +25,26 @@ existing patterns in this same schema (not invented from nothing):
 
 ## PRIMARY_CATEGORY
 - id — uuid, PK
-- type — text
+- type — text (Medical / Food / General, as of `0002_recategorize_and_units.sql`)
 
 ## SUBCATEGORY
 - id — uuid, PK
 - p_category — fk PRIMARY_CATEGORY.id
-- type — text
+- type — text (per `0002_recategorize_and_units.sql`: Medical has Capsule, Tablets,
+  Oral Suspension, Syrup, Ointment, Anti-Inflammatory, Spray, Shampoo, Drops, Powder,
+  Vetwrap, Test Kit, Vaccine, Oxygen, Medical Equipment, IV Injectables, Nebulizer —
+  mirroring how the DAS Stock In/Out CSVs group items, split on "/". Food has Dry, Wet,
+  Treats. General has Cleaning, Supplies.)
 
 ## UNITS
 - id — uuid, PK
-- abbr_name — text (e.g. "ml", "tablet", "drop", "bottle", "box", "bag", "kg", "pcs")
+- name — text, not null — full unit name (e.g. "Bottle", "Tablet"). Added in
+  `0002_recategorize_and_units.sql`; **not yet read by the app** — `lib/models/unit.dart`
+  only has `abbrName`. Wire this up if/when the UI needs to show full names.
+- abbr_name — text, not null — short form used in the app today (e.g. "bot", "tab",
+  "pc", "box", "bag", "kg", "ml", "drop", "vial", "amp", "cap", "strip", "pouch",
+  "test"). As of `0002_recategorize_and_units.sql`, these are genuine abbreviations
+  (previously this column held full words like "tablet"/"bottle").
 
 ## ITEM
 - id — uuid, PK
@@ -42,7 +52,7 @@ existing patterns in this same schema (not invented from nothing):
 - p_category — fk PRIMARY_CATEGORY.id
 - s_category — fk SUBCATEGORY.id, nullable
 - purchase_unit — fk UNITS.id — the container/unit actually bought (box, bottle, bag).
-  `purchase_stocks` is counted in this unit.
+  `total_purchase_stocks` is counted in this unit.
 - package_unit — fk UNITS.id, nullable — the unit the package's contents are measured
   in (tablet, ml, kg). Null for items with no breakdown (mop, food bowl).
 - package_quantity — float, nullable — how many `package_unit`s are in one
@@ -53,7 +63,36 @@ existing patterns in this same schema (not invented from nothing):
   dispense_unit=drop) with no stored conversion between them. When it differs from
   `package_unit`, stock cannot be automatically deducted for that item (see
   TREATMENT_ITEM below) — usage is still logged, just not converted.
-- purchase_stocks — float — running stock, denominated in `purchase_unit`.
+- total_purchase_stocks — float, not null, default 0 — count of whole containers
+  physically present, denominated in `purchase_unit`. (Renamed from `purchase_stocks`.)
+  Changed only by whole-container events: purchase/donation stock-in, and
+  waste/expired/adjustment stock-out. Treatment usage does NOT change this — see
+  `total_package_stocks` below and the TREATMENT_ITEM stock deduction rule.
+- total_package_stocks — float, nullable — running remainder in `package_unit` terms
+  (e.g. ml left across all bottles, opened or not). Starts in sync with
+  `total_purchase_stocks * package_quantity` at stock-in, and every whole-container
+  stock-in/out event moves both by the same proportion to keep them in sync. Treatment
+  usage (for deductible items with a package breakdown) deducts from this pool only,
+  leaving `total_purchase_stocks` untouched — using part of a bottle doesn't remove it
+  from the shelf. Null for items with no package breakdown (`package_quantity` unset).
+
+  **Unused Stocks / Used Stocks** (derived, not stored columns): once the two pools can
+  diverge, "how many bottles are still sealed" is no longer just
+  `total_purchase_stocks`. `unused_stocks = floor(total_package_stocks /
+  package_quantity)` (whole containers with nothing touched yet); `used_stocks =
+  total_purchase_stocks - unused_stocks` (containers that have been opened, whether
+  partially or fully consumed, but not yet discarded via stock-out). Example: 2 bottles
+  at 100ml each (`total_package_stocks` = 200), 1.5ml used in a treatment →
+  `total_package_stocks` = 198.5 → unused = 1, used = 1. See
+  `InventoryItem.unusedStockQty` / `.usedStockQty` in `lib/models/inventory_item.dart`.
+  Both equal `total_purchase_stocks` / 0 for items with no package breakdown.
+
+  **Out of stock**: an item is out of stock only when NEITHER pool has anything left —
+  `total_purchase_stocks <= 0` AND (`total_package_stocks` is null or `<= 0`). A bottle
+  that's been fully drained (used=2, unused=0, `total_package_stocks`=0) but not yet
+  discarded via stock-out still shows as "In Stock" as long as `total_purchase_stocks`
+  is still > 0 — the empty container is still physically on the shelf. See
+  `InventoryItem.isOutOfStock`.
 
 ## PET
 - id — uuid, PK
@@ -104,11 +143,17 @@ existing patterns in this same schema (not invented from nothing):
 - recordeddate — timestamptz
 - recordedby — fk USER.id
 
-Stock deduction rule: `dispensed_qty` converts to `purchase_unit` via
-`dispensed_qty / item.package_quantity` only when `item.dispense_unit ==
-item.package_unit`. When they differ, the row is still written (full audit trail on the
-item and the treatment), but `item.purchase_stocks` is left untouched — there is no
-conversion factor between `package_unit` and `dispense_unit` in this schema.
+Stock deduction rule (see `applyTreatmentDeduction` in `lib/services/unit_conversion.dart`):
+- `item.dispense_unit == item.package_unit` (package breakdown, deductible, e.g. syrup
+  dosed in ml): `dispensed_qty` is already in `package_unit` terms — deducted straight
+  from `item.total_package_stocks`. `item.total_purchase_stocks` (whole containers) is
+  NOT touched.
+- `item.dispense_unit` is null (no breakdown at all, e.g. a mop counted per-piece):
+  `dispensed_qty` is in `purchase_unit` terms — deducted 1:1 from
+  `item.total_purchase_stocks`.
+- `item.dispense_unit` is set and differs from `item.package_unit` (e.g. package_unit=ml,
+  dispense_unit=drop): no known conversion between them — the row is still written (full
+  audit trail on the item and the treatment), but neither stock pool is touched.
 
 ## SUBMISSION
 - id — uuid, PK

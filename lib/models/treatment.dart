@@ -78,8 +78,9 @@ class TreatmentItemInput {
   final String doseUnitId;
   final String doseUnitAbbr;
   final bool deductible;
-  final double stockQty; // current purchase_stocks, for validation
+  final double stockQty; // current total_purchase_stocks, for validation
   final double? packageQuantity; // for converting dose -> purchase_units
+  final double? packageStockQty; // current total_package_stocks, for validation
   double qty;
 
   TreatmentItemInput({
@@ -90,6 +91,7 @@ class TreatmentItemInput {
     required this.deductible,
     required this.stockQty,
     this.packageQuantity,
+    this.packageStockQty,
     this.qty = 1,
   });
 }

@@ -168,8 +168,22 @@ class _DonationsPageState extends State<DonationsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Donations',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text('Donations',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => context.push('/inventory/add?type=donated'),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add Donation'),
+            ),
+          ],
+        ),
         const SizedBox(height: 2),
         Text('${_submissions.length} submissions',
             style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
@@ -264,69 +278,94 @@ class _DonationsPageState extends State<DonationsPage> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filtered.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final sub = _filtered[index];
-                final (statusLabel, statusColor) = _statusMeta(sub.status);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  child: Wrap(
-                    spacing: 16,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 200,
-                        child: Text(sub.donorName,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ),
-                      SizedBox(
-                        width: 160,
-                        child: Text('Submitted ${_formatDate(sub.dateSub)}',
-                            style: const TextStyle(
-                                fontSize: 12.5, color: AppColors.mutedForeground)),
-                      ),
-                      SizedBox(
-                        width: 160,
-                        child: Text(
-                            sub.schedDate == null
-                                ? 'No drop-off date'
-                                : 'Drop-off ${_formatDate(sub.schedDate!)}',
-                            style: const TextStyle(
-                                fontSize: 12.5, color: AppColors.mutedForeground)),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(statusLabel,
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
-                      ),
-                      if (sub.status == SubmissionStatus.pending) ...[
-                        OutlinedButton(
-                          onPressed: () => _reject(sub),
-                          child: const Text('Reject'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _approve(sub),
-                          child: const Text('Approve'),
-                        ),
-                      ],
-                    ],
+            // Plain Column (not ListView) -- AppShell already scrolls, and a
+            // nested ListView+InkWell triggers layout asserts on Flutter Web.
+            child: Column(
+              children: [
+                for (var i = 0; i < _filtered.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  _SubmissionRow(
+                    submission: _filtered[i],
+                    statusMeta: _statusMeta(_filtered[i].status),
+                    onReject: () => _reject(_filtered[i]),
+                    onApprove: () => _approve(_filtered[i]),
                   ),
-                );
-              },
+                ],
+              ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _SubmissionRow extends StatelessWidget {
+  final DonationSubmission submission;
+  final (String, Color) statusMeta;
+  final VoidCallback onReject;
+  final VoidCallback onApprove;
+
+  const _SubmissionRow({
+    required this.submission,
+    required this.statusMeta,
+    required this.onReject,
+    required this.onApprove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sub = submission;
+    final (statusLabel, statusColor) = statusMeta;
+    return InkWell(
+      onTap: () => context.push('/donations/${sub.subId}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: 200,
+              child: Text(sub.donorName,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            SizedBox(
+              width: 160,
+              child: Text('Submitted ${_formatDate(sub.dateSub)}',
+                  style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+            ),
+            SizedBox(
+              width: 160,
+              child: Text(
+                  sub.schedDate == null
+                      ? 'No drop-off date'
+                      : 'Drop-off ${_formatDate(sub.schedDate!)}',
+                  style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(statusLabel,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+            ),
+            if (sub.status == SubmissionStatus.pending) ...[
+              OutlinedButton(
+                onPressed: onReject,
+                child: const Text('Reject'),
+              ),
+              ElevatedButton(
+                onPressed: onApprove,
+                child: const Text('Approve'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

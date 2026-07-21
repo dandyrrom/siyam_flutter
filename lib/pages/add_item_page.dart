@@ -608,10 +608,20 @@ class _AddItemPageState extends State<AddItemPage> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: Text('Donor: ${_selectedSubmission!.donorName}',
-                                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Donor: ${_selectedSubmission!.donorName}',
+                                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 4),
+                                      Text('Submission ID: ${_selectedSubmission!.subId}',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: AppColors.mutedForeground)),
+                                    ],
+                                  ),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.close, size: 16),

@@ -32,10 +32,9 @@ abstract interface class TreatmentService {
 ///
 /// Logging a treatment with items used always writes a treatment_item row
 /// per item (the usage itself is always recorded), and additionally
-/// decrements item.purchase_stocks via [InventoryService] -- but only when
-/// [toPurchaseUnits] can compute a safe conversion. When an item's
-/// dispense_unit differs from its package_unit (no known conversion), the
-/// row is still written for history, stock is just left untouched.
+/// applies the stock effect via [applyTreatmentDeduction] -- see that
+/// function for the package-stock vs. purchase-stock vs. not-deductible
+/// branching.
 class MockTreatmentService implements TreatmentService {
   final MockDatabase _db = MockDatabase.instance;
   final InventoryService _inventoryService = MockInventoryService();
@@ -143,11 +142,7 @@ class MockTreatmentService implements TreatmentService {
         recordedByUserId: performedByUserId,
       ));
 
-      final purchaseUnitsUsed = toPurchaseUnits(item, row.qty);
-      if (purchaseUnitsUsed != null) {
-        await _inventoryService.adjustStock(
-            itemId: row.itemId, delta: -purchaseUnitsUsed);
-      }
+      await applyTreatmentDeduction(_inventoryService, item, row.qty);
     }
 
     return _toTreatmentRecord(treatmentRow);

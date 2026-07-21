@@ -80,8 +80,22 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Purchase Orders',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text('Purchase Orders',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => context.push('/inventory/add?type=purchased'),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add Purchase'),
+            ),
+          ],
+        ),
         const SizedBox(height: 2),
         Text(
           _orders.length == 1

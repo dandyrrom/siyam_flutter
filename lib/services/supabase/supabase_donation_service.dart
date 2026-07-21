@@ -63,6 +63,18 @@ class SupabaseDonationService implements DonationService {
   }
 
   @override
+  Future<DonationSubmission?> fetchSubmission(String subId) async {
+    final row = await _client
+        .from('submission')
+        .select(_subColumns)
+        .eq('id', subId)
+        .maybeSingle();
+    if (row == null) return null;
+    final users = await _userNameMap();
+    return _mapSubmission(row, users);
+  }
+
+  @override
   Future<DonationSubmission> createSubmission({
     required String donorId,
     DateTime? schedDate,

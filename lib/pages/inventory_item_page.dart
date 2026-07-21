@@ -232,7 +232,7 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
     }
 
     final item = _item!;
-    final outOfStock = item.stockQty <= 0;
+    final outOfStock = item.isOutOfStock;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 720),
@@ -312,6 +312,11 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
           const SizedBox(height: 24),
 
           _FieldRow(
+            label: 'Item ID',
+            value: item.displayId,
+          ),
+          const SizedBox(height: 16),
+          _FieldRow(
             label: 'Name',
             value: item.itemName,
             onEdit: () => _editField(
@@ -353,22 +358,85 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
             ],
           ),
           const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _FieldRow(
+                  label: 'Package Unit',
+                  value: item.packageUnitAbbr ?? '—',
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _FieldRow(
+                  label: 'Package Quantity',
+                  value: item.packageQuantity == null
+                      ? '—'
+                      : formatQty(item.packageQuantity!),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _FieldRow(
+            label: 'Dispense Unit',
+            value: item.dispenseUnitAbbr ?? '—',
+          ),
+          const SizedBox(height: 16),
 
-          const _FieldLabel('Quantity'),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border, width: 1.5),
-            ),
-            child: Row(
-              children: [
-                Text(formatQty(item.stockQty), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                const SizedBox(width: 6),
-                Text(item.itemUom, style: const TextStyle(color: AppColors.mutedForeground)),
-              ],
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('Unused Stocks'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(formatQty(item.unusedStockQty),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 6),
+                          Text(item.itemUom, style: const TextStyle(color: AppColors.mutedForeground)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('Used Stocks'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(formatQty(item.usedStockQty),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 6),
+                          Text(item.itemUom, style: const TextStyle(color: AppColors.mutedForeground)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -496,9 +564,9 @@ class _FieldLabel extends StatelessWidget {
 class _FieldRow extends StatelessWidget {
   final String label;
   final String value;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;
 
-  const _FieldRow({required this.label, required this.value, required this.onEdit});
+  const _FieldRow({required this.label, required this.value, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -516,11 +584,12 @@ class _FieldRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 15, color: AppColors.mutedForeground),
-                onPressed: onEdit,
-                splashRadius: 18,
-              ),
+              if (onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 15, color: AppColors.mutedForeground),
+                  onPressed: onEdit,
+                  splashRadius: 18,
+                ),
             ],
           ),
         ),

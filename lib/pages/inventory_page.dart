@@ -15,8 +15,11 @@ class InventoryPage extends StatefulWidget {
   State<InventoryPage> createState() => _InventoryPageState();
 }
 
+enum _SortOption { nameAsc, nameDesc, stockAsc, stockDesc }
+
 class _InventoryPageState extends State<InventoryPage> {
   final InventoryService _service = InventoryService();
+  final _searchCtrl = TextEditingController();
 
   List<InventoryItem> _items = [];
   bool _loading = true;
@@ -27,6 +30,8 @@ class _InventoryPageState extends State<InventoryPage> {
   String? _selectedSCategoryId;
   String _categoryLabel = 'Category';
   StockLevel? _stockLevelFilter; // null = All
+  AcquisitionSource? _sourceFilter; // null = All
+  _SortOption _sortOption = _SortOption.nameAsc;
 
   int _pageSize = 12;
   int _page = 0;
@@ -35,6 +40,33 @@ class _InventoryPageState extends State<InventoryPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _hasActiveFilters =>
+      _search.isNotEmpty ||
+      _selectedPCategoryId != null ||
+      _stockLevelFilter != null ||
+      _sourceFilter != null ||
+      _sortOption != _SortOption.nameAsc;
+
+  void _resetFilters() {
+    setState(() {
+      _search = '';
+      _searchCtrl.clear();
+      _selectedPCategoryId = null;
+      _selectedSCategoryId = null;
+      _categoryLabel = 'Category';
+      _stockLevelFilter = null;
+      _sourceFilter = null;
+      _sortOption = _SortOption.nameAsc;
+      _page = 0;
+    });
   }
 
   Future<void> _load() async {
@@ -86,7 +118,7 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   List<InventoryItem> get _filtered {
-    return _items.where((i) {
+    final list = _items.where((i) {
       final matchesSearch = _search.isEmpty ||
           i.itemName.toLowerCase().contains(_search.toLowerCase());
       final matchesCategory = _selectedSCategoryId != null
@@ -96,8 +128,52 @@ class _InventoryPageState extends State<InventoryPage> {
               : true;
       final matchesStockLevel =
           _stockLevelFilter == null || i.stockLevel == _stockLevelFilter;
-      return matchesSearch && matchesCategory && matchesStockLevel;
+      final matchesSource =
+          _sourceFilter == null || i.acquisitionSource == _sourceFilter;
+      return matchesSearch && matchesCategory && matchesStockLevel && matchesSource;
     }).toList();
+
+    switch (_sortOption) {
+      case _SortOption.nameAsc:
+        list.sort((a, b) => a.itemName.compareTo(b.itemName));
+        break;
+      case _SortOption.nameDesc:
+        list.sort((a, b) => b.itemName.compareTo(a.itemName));
+        break;
+      case _SortOption.stockAsc:
+        list.sort((a, b) => a.stockQty.compareTo(b.stockQty));
+        break;
+      case _SortOption.stockDesc:
+        list.sort((a, b) => b.stockQty.compareTo(a.stockQty));
+        break;
+    }
+    return list;
+  }
+
+  (String, IconData) _sortMeta(_SortOption option) {
+    switch (option) {
+      case _SortOption.nameAsc:
+        return ('Name (A–Z)', Icons.arrow_upward);
+      case _SortOption.nameDesc:
+        return ('Name (Z–A)', Icons.arrow_downward);
+      case _SortOption.stockAsc:
+        return ('Stock (Low–High)', Icons.arrow_upward);
+      case _SortOption.stockDesc:
+        return ('Stock (High–Low)', Icons.arrow_downward);
+    }
+  }
+
+  (String, Color) _sourceMeta(AcquisitionSource source) {
+    switch (source) {
+      case AcquisitionSource.purchased:
+        return ('Purchased', AppColors.roleStaff);
+      case AcquisitionSource.donated:
+        return ('Donated', AppColors.roleDonor);
+      case AcquisitionSource.both:
+        return ('Both', AppColors.primary);
+      case AcquisitionSource.none:
+        return ('None', AppColors.mutedForeground);
+    }
   }
 
   int get _pageCount => (_filtered.length / _pageSize).ceil().clamp(1, 999);
@@ -226,6 +302,7 @@ class _InventoryPageState extends State<InventoryPage> {
                     SizedBox(
                       width: 360,
                       child: TextField(
+                        controller: _searchCtrl,
                         style: const TextStyle(fontSize: 14),
                         onChanged: (v) => setState(() {
                           _search = v;
@@ -278,6 +355,31 @@ class _InventoryPageState extends State<InventoryPage> {
                       ],
                       onSelect: (v) => setState(() { _stockLevelFilter = v; _page = 0; }),
                     ),
+                    AppDropdown<AcquisitionSource?>(
+                      label: _sourceFilter == null
+                          ? 'Source'
+                          : _sourceMeta(_sourceFilter!).$1,
+                      options: [
+                        const AppDropdownOption(null, 'All sources'),
+                        for (final s in AcquisitionSource.values)
+                          AppDropdownOption(s, _sourceMeta(s).$1),
+                      ],
+                      onSelect: (v) => setState(() { _sourceFilter = v; _page = 0; }),
+                    ),
+                    AppDropdown<_SortOption>(
+                      label: 'Sort: ${_sortMeta(_sortOption).$1}',
+                      options: [
+                        for (final o in _SortOption.values)
+                          AppDropdownOption(o, _sortMeta(o).$1),
+                      ],
+                      onSelect: (v) => setState(() => _sortOption = v),
+                    ),
+                    if (_hasActiveFilters)
+                      TextButton.icon(
+                        onPressed: _resetFilters,
+                        icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
+                        label: const Text('Reset Filters'),
+                      ),
                   ],
                 ),
               ),
@@ -330,7 +432,9 @@ class _InventoryPageState extends State<InventoryPage> {
                       SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Category')),
                       SizedBox(width: 16),
-                      Expanded(flex: 2, child: _HeaderCell('Stock')),
+                      Expanded(flex: 2, child: _HeaderCell('Unused Stocks')),
+                      SizedBox(width: 16),
+                      Expanded(flex: 2, child: _HeaderCell('Source')),
                       SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Stock Level')),
                       SizedBox(width: 56, child: _HeaderCell('Action', alignEnd: true)),
@@ -358,9 +462,23 @@ class _InventoryPageState extends State<InventoryPage> {
                             flex: 4,
                             child: InkWell(
                               onTap: () => context.push('/inventory/${item.itemId}'),
-                              child: Text(item.itemName,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                              child: RichText(
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600, color: AppColors.foreground),
+                                  children: [
+                                    TextSpan(text: item.itemName),
+                                    if (item.packageLabel != null)
+                                      TextSpan(
+                                        text: ' ${item.packageLabel}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w400,
+                                            color: AppColors.mutedForeground),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -383,9 +501,17 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(width: 16),
                           Expanded(
                             flex: 2,
-                            child: Text('${formatQty(item.stockQty)} ${item.itemUom}',
+                            child: Text('${formatQty(item.unusedStockQty)} ${item.itemUom}',
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _SourceBadge(source: item.acquisitionSource),
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -631,6 +757,42 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
         onTap: toggleDropdown,
         child: AppDropdownButton(label: widget.label),
       ),
+    );
+  }
+}
+
+class _SourceBadge extends StatelessWidget {
+  final AcquisitionSource source;
+  const _SourceBadge({required this.source});
+
+  (String, Color) get _meta {
+    switch (source) {
+      case AcquisitionSource.purchased:
+        return ('Purchased', AppColors.roleStaff);
+      case AcquisitionSource.donated:
+        return ('Donated', AppColors.roleDonor);
+      case AcquisitionSource.both:
+        return ('Both', AppColors.primary);
+      case AcquisitionSource.none:
+        return ('—', AppColors.mutedForeground);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = _meta;
+    if (source == AcquisitionSource.none) {
+      return Text(label, style: const TextStyle(color: AppColors.mutedForeground));
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
     );
   }
 }

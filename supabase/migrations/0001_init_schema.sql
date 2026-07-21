@@ -71,15 +71,16 @@ create table public.units (
 );
 
 create table public.item (
-  id               uuid primary key default gen_random_uuid(),
-  name             text not null,
-  p_category       uuid not null references public.primary_category (id),
-  s_category       uuid references public.subcategory (id),
-  purchase_unit    uuid not null references public.units (id),
-  package_unit     uuid references public.units (id),
-  package_quantity double precision,
-  dispense_unit    uuid references public.units (id),
-  purchase_stocks  double precision not null default 0
+  id                     uuid primary key default gen_random_uuid(),
+  name                   text not null,
+  p_category             uuid not null references public.primary_category (id),
+  s_category             uuid references public.subcategory (id),
+  purchase_unit          uuid not null references public.units (id),
+  package_unit           uuid references public.units (id),
+  package_quantity       double precision,
+  dispense_unit          uuid references public.units (id),
+  total_purchase_stocks  double precision not null default 0,
+  total_package_stocks   double precision
 );
 
 create table public.pet (
@@ -259,45 +260,46 @@ insert into public.pet (name, species, breed, gender, spayed_neutered, status) v
   ('Bella',    'dog', 'Aspin',  'female', true,  'available'),
   ('Whiskers', 'cat', 'Puspin', 'male',   false, 'under_treatment');
 
--- Items (mirrors mock; category/unit resolved by lookup).
+-- Items (mirrors mock; category/unit resolved by lookup). total_package_stocks
+-- starts in sync with total_purchase_stocks * package_quantity.
 insert into public.item
-  (name, p_category, s_category, purchase_unit, package_unit, package_quantity, dispense_unit, purchase_stocks)
+  (name, p_category, s_category, purchase_unit, package_unit, package_quantity, dispense_unit, total_purchase_stocks, total_package_stocks)
 values
   ('Uticare',
     (select id from public.primary_category where type = 'Medical'),
     (select id from public.subcategory where type = 'Tablets'),
     (select id from public.units where abbr_name = 'box'),
     (select id from public.units where abbr_name = 'tablet'), 30,
-    (select id from public.units where abbr_name = 'tablet'), 2),
+    (select id from public.units where abbr_name = 'tablet'), 2, 60),
   ('Royal Canin Adult Dry Food',
     (select id from public.primary_category where type = 'Medical'),
     (select id from public.subcategory where type = 'Oral Suspension'),
     (select id from public.units where abbr_name = 'bottle'),
     (select id from public.units where abbr_name = 'ml'), 100,
-    (select id from public.units where abbr_name = 'ml'), 10),
+    (select id from public.units where abbr_name = 'ml'), 10, 1000),
   ('Eye Vitamin Drop',
     (select id from public.primary_category where type = 'Medical'),
     (select id from public.subcategory where type = 'Drops'),
     (select id from public.units where abbr_name = 'bottle'),
     (select id from public.units where abbr_name = 'ml'), 200,
-    (select id from public.units where abbr_name = 'drop'), 26),
+    (select id from public.units where abbr_name = 'drop'), 26, 5200),
   ('Adult Dog Dry Food',
     (select id from public.primary_category where type = 'Food'),
     (select id from public.subcategory where type = 'Dry'),
     (select id from public.units where abbr_name = 'bag'),
     (select id from public.units where abbr_name = 'kg'), 9,
-    (select id from public.units where abbr_name = 'kg'), 4),
+    (select id from public.units where abbr_name = 'kg'), 4, 36),
   ('Zonrox Bleach',
     (select id from public.primary_category where type = 'Cleaning Supplies'),
     (select id from public.subcategory where type = 'Bleach'),
     (select id from public.units where abbr_name = 'bottle'),
     (select id from public.units where abbr_name = 'ml'), 450,
-    (select id from public.units where abbr_name = 'ml'), 2),
+    (select id from public.units where abbr_name = 'ml'), 2, 900),
   ('Mop',
     (select id from public.primary_category where type = 'Equipment'),
     (select id from public.subcategory where type = 'Tools'),
     (select id from public.units where abbr_name = 'pcs'),
-    null, null, null, 5);
+    null, null, null, 5, null);
 
 -- ----------------------------------------------------------------------------
 -- 6. Seed users (RUN AFTER creating the auth users).

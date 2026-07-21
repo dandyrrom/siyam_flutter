@@ -152,66 +152,63 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 420,
-              mainAxisExtent: 130,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: _filtered.length,
-            itemBuilder: (context, index) {
-              final record = _filtered[index];
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => context.push('/medical-records/${record.treatId}'),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              for (final record in _filtered)
+                SizedBox(
+                  width: 420,
+                  height: 130,
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    onTap: () => context.push('/medical-records/${record.treatId}'),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(_speciesIcon(record.petSpecies),
-                              size: 20, color: AppColors.mutedForeground),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(record.petName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w700)),
+                          Row(
+                            children: [
+                              Icon(_speciesIcon(record.petSpecies),
+                                  size: 20, color: AppColors.mutedForeground),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(record.petName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(record.treatName,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(record.performedByName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 12, color: AppColors.mutedForeground)),
+                              ),
+                              Text(_formatDate(record.recDate),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColors.mutedForeground)),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(record.treatName,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(record.performedByName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontSize: 12, color: AppColors.mutedForeground)),
-                          ),
-                          Text(_formatDate(record.recDate),
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.mutedForeground)),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              );
-            },
+            ],
           ),
       ],
     );

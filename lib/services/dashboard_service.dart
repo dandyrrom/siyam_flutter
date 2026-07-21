@@ -22,8 +22,10 @@ class ManagerDashboardStats {
 /// Aggregate counts for the Staff dashboard.
 ///
 /// Note: `item` has no reorder-point column, so "low stock" can't be
-/// computed against a threshold. This uses `purchase_stocks = 0` (out of
-/// stock) instead, which is derivable from the schema as-is.
+/// computed against a threshold. This uses "out of stock" instead: no whole
+/// containers left (total_purchase_stocks <= 0) AND no usable remainder in
+/// an opened one (total_package_stocks <= 0, or no package breakdown at
+/// all) -- see [InventoryItem.isOutOfStock].
 class StaffDashboardStats {
   final int outOfStockItems;
   final int animalsUnderTreatment;
@@ -68,6 +70,15 @@ abstract interface class DashboardService {
 class MockDashboardService implements DashboardService {
   final MockDatabase _db = MockDatabase.instance;
 
+  /// Mirrors [InventoryItem.isOutOfStock]: no whole containers left AND no
+  /// usable remainder in an opened one (or no package breakdown at all).
+  bool _isOutOfStock(ItemRow row) {
+    if (row.purchaseStocks > 0) return false;
+    if (row.packageQuantity == null) return true;
+    final packageStock = row.packageStocks ?? row.purchaseStocks * row.packageQuantity!;
+    return packageStock <= 0;
+  }
+
   @override
   Future<ManagerDashboardStats> fetchManagerStats() async {
     return ManagerDashboardStats(
@@ -82,7 +93,7 @@ class MockDashboardService implements DashboardService {
   Future<StaffDashboardStats> fetchStaffStats() async {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
     return StaffDashboardStats(
-      outOfStockItems: _db.items.where((i) => i.purchaseStocks <= 0).length,
+      outOfStockItems: _db.items.where(_isOutOfStock).length,
       animalsUnderTreatment:
           _db.pets.where((p) => p.status == PetStatus.underTreatment).length,
       donationsThisWeek:
