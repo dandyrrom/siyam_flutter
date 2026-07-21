@@ -360,9 +360,23 @@ class _InventoryPageState extends State<InventoryPage> {
                             flex: 4,
                             child: InkWell(
                               onTap: () => context.push('/inventory/${item.itemId}'),
-                              child: Text(item.itemName,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                              child: RichText(
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600, color: AppColors.foreground),
+                                  children: [
+                                    TextSpan(text: item.itemName),
+                                    if (item.packageLabel != null)
+                                      TextSpan(
+                                        text: ' ${item.packageLabel}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w400,
+                                            color: AppColors.mutedForeground),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),

@@ -64,6 +64,13 @@ class InventoryItem {
     this.packageStockQty,
   });
 
+  /// Package quantity + unit for display beside the item name, e.g.
+  /// "(60 tab per box)". Null when the item has no package breakdown.
+  String? get packageLabel {
+    if (packageQuantity == null || packageUnitAbbr == null) return null;
+    return '(${formatQty(packageQuantity!)} $packageUnitAbbr per $purchaseUnitAbbr)';
+  }
+
   /// Combined category label for display, e.g. "Medical > Tablets".
   String get itemCategory =>
       sCategoryName == null ? pCategoryName : '$pCategoryName > $sCategoryName';
