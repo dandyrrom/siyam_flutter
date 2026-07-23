@@ -397,54 +397,30 @@ class _InventoryItemPageState extends State<InventoryItemPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _FieldLabel('Unused Stocks'),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border, width: 1.5),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(formatQty(item.unusedStockQty),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 6),
-                          Text(item.itemUom, style: const TextStyle(color: AppColors.mutedForeground)),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: _StockStatCard(
+                  label: 'Unused Stocks',
+                  qty: item.unusedStockQty,
+                  unit: item.itemUom,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _FieldLabel('Used Stocks'),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border, width: 1.5),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(formatQty(item.usedStockQty),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 6),
-                          Text(item.itemUom, style: const TextStyle(color: AppColors.mutedForeground)),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: _StockStatCard(
+                  label: 'Used Stocks',
+                  qty: item.usedStockQty,
+                  unit: item.itemUom,
                 ),
               ),
+              if (item.packageQuantity != null) ...[
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _StockStatCard(
+                    label: 'In Use',
+                    qty: item.inUseQty,
+                    unit: item.packageUnitAbbr ?? item.itemUom,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 24),
@@ -599,6 +575,40 @@ class _FieldRow extends StatelessWidget {
                   onPressed: onEdit,
                   splashRadius: 18,
                 ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StockStatCard extends StatelessWidget {
+  final String label;
+  final double qty;
+  final String unit;
+
+  const _StockStatCard({required this.label, required this.qty, required this.unit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(label),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Text(formatQty(qty),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 6),
+              Text(unit, style: const TextStyle(color: AppColors.mutedForeground)),
             ],
           ),
         ),

@@ -91,7 +91,8 @@ class SupabaseTreatmentService implements TreatmentService {
         .from('treatment_item')
         .select('itemid, dispensed_qty, dispense_unit, consumeddate, givenby, '
             'recordeddate, recordedby, item(name)')
-        .eq('treatid', treatId);
+        .eq('treatid', treatId)
+        .order('recordeddate', ascending: false);
     return rows.map((r) {
       final item = r['item'] as Map<String, dynamic>?;
       final dispenseUnit = r['dispense_unit'] as String?;
@@ -164,5 +165,32 @@ class SupabaseTreatmentService implements TreatmentService {
     final records = await fetchTreatments();
     DataChangeBus.instance.ping();
     return records.firstWhere((t) => t.treatId == treatId);
+  }
+
+  @override
+  Future<void> addTreatmentItem({
+    required String treatId,
+    required TreatmentItemInput item,
+    required String administeredByName,
+    required String performedByUserId,
+    DateTime? dateAdministered,
+  }) async {
+    if (item.qty <= 0) return;
+    final invItem = await _inventoryService.fetchItem(item.itemId);
+    if (invItem == null) throw Exception('Item not found');
+
+    final consumedDate = (dateAdministered ?? DateTime.now()).toUtc();
+    await _client.from('treatment_item').insert({
+      'treatid': treatId,
+      'itemid': item.itemId,
+      'dispensed_qty': item.qty,
+      'dispense_unit': item.doseUnitId,
+      'consumeddate': consumedDate.toIso8601String(),
+      'givenby': administeredByName,
+      'recordedby': performedByUserId,
+    });
+
+    await applyTreatmentDeduction(_inventoryService, invItem, item.qty);
+    DataChangeBus.instance.ping();
   }
 }

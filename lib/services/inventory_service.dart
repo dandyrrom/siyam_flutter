@@ -59,6 +59,12 @@ class MockInventoryService implements InventoryService {
   InventoryItem _toInventoryItem(ItemRow row) {
     final hasPurchaseHistory = _db.purchaseItems.any((p) => p.itemId == row.id);
     final hasDonationHistory = _db.donationItems.any((d) => d.itemId == row.id);
+    final lifetimeStockOutQty = _db.stockOuts
+        .where((s) => s.itemId == row.id)
+        .fold(0.0, (sum, s) => sum + s.qty);
+    final lifetimeTreatmentQty = _db.treatmentItems
+        .where((t) => t.itemId == row.id)
+        .fold(0.0, (sum, t) => sum + t.dispensedQty);
     final pCategory =
         firstWhereOrNull(_db.primaryCategories, (c) => c.id == row.pCategoryId);
     final sCategory = row.sCategoryId == null
@@ -91,6 +97,8 @@ class MockInventoryService implements InventoryService {
       packageStockQty: row.packageStocks,
       hasPurchaseHistory: hasPurchaseHistory,
       hasDonationHistory: hasDonationHistory,
+      lifetimeStockOutQty: lifetimeStockOutQty,
+      lifetimeTreatmentQty: lifetimeTreatmentQty,
     );
   }
 

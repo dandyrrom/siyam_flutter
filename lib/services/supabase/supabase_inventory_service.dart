@@ -41,6 +41,20 @@ class SupabaseInventoryService implements InventoryService {
     return rows.map((r) => r['itemid'] as String).toSet();
   }
 
+  /// Sums [qtyCol] per itemid across every row of [table] -- used for the
+  /// lifetime stock-out / treatment totals behind `InventoryItem.
+  /// usedStockQty`, which (unlike current stock levels) can't be recovered
+  /// from the item row alone once a container's left inventory entirely.
+  Future<Map<String, double>> _qtySumByItem(String table, String qtyCol) async {
+    final rows = await _client.from(table).select('itemid, $qtyCol');
+    final totals = <String, double>{};
+    for (final r in rows) {
+      final itemId = r['itemid'] as String;
+      totals[itemId] = (totals[itemId] ?? 0) + (_toDouble(r[qtyCol]) ?? 0);
+    }
+    return totals;
+  }
+
   InventoryItem _mapItem(
     Map<String, dynamic> r, {
     required Map<String, String> pcats,
@@ -48,6 +62,8 @@ class SupabaseInventoryService implements InventoryService {
     required Map<String, String> units,
     required Set<String> purchasedItemIds,
     required Set<String> donatedItemIds,
+    required Map<String, double> lifetimeStockOutTotals,
+    required Map<String, double> lifetimeTreatmentTotals,
   }) {
     final sCategoryId = r['s_category'] as String?;
     final packageUnitId = r['package_unit'] as String?;
@@ -70,6 +86,8 @@ class SupabaseInventoryService implements InventoryService {
       packageStockQty: _toDouble(r['total_package_stocks']),
       hasPurchaseHistory: purchasedItemIds.contains(r['id']),
       hasDonationHistory: donatedItemIds.contains(r['id']),
+      lifetimeStockOutQty: lifetimeStockOutTotals[r['id']] ?? 0,
+      lifetimeTreatmentQty: lifetimeTreatmentTotals[r['id']] ?? 0,
     );
   }
 
@@ -80,6 +98,9 @@ class SupabaseInventoryService implements InventoryService {
     final units = await _map('units', 'abbr_name');
     final purchasedItemIds = await _itemIdsIn('purchase_item');
     final donatedItemIds = await _itemIdsIn('donation_item');
+    final lifetimeStockOutTotals = await _qtySumByItem('stock_out', 'qty');
+    final lifetimeTreatmentTotals =
+        await _qtySumByItem('treatment_item', 'dispensed_qty');
     final rows = await _client.from('item').select(_itemColumns).order('name');
     return rows
         .map((r) => _mapItem(r,
@@ -87,7 +108,9 @@ class SupabaseInventoryService implements InventoryService {
             scats: scats,
             units: units,
             purchasedItemIds: purchasedItemIds,
-            donatedItemIds: donatedItemIds))
+            donatedItemIds: donatedItemIds,
+            lifetimeStockOutTotals: lifetimeStockOutTotals,
+            lifetimeTreatmentTotals: lifetimeTreatmentTotals))
         .toList();
   }
 
@@ -112,12 +135,24 @@ class SupabaseInventoryService implements InventoryService {
             .select('itemid')
             .eq('itemid', itemId))
         .isNotEmpty;
+    final stockOutRows =
+        await _client.from('stock_out').select('qty').eq('itemid', itemId);
+    final lifetimeStockOutQty =
+        stockOutRows.fold(0.0, (sum, r) => sum + (_toDouble(r['qty']) ?? 0));
+    final treatmentRows = await _client
+        .from('treatment_item')
+        .select('dispensed_qty')
+        .eq('itemid', itemId);
+    final lifetimeTreatmentQty = treatmentRows.fold(
+        0.0, (sum, r) => sum + (_toDouble(r['dispensed_qty']) ?? 0));
     return _mapItem(row,
         pcats: pcats,
         scats: scats,
         units: units,
         purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
-        donatedItemIds: hasDonationHistory ? {itemId} : {});
+        donatedItemIds: hasDonationHistory ? {itemId} : {},
+        lifetimeStockOutTotals: {itemId: lifetimeStockOutQty},
+        lifetimeTreatmentTotals: {itemId: lifetimeTreatmentQty});
   }
 
   @override
