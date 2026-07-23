@@ -5,6 +5,7 @@ import '../core/app_theme.dart';
 import '../models/donation.dart';
 import '../services/donation_service.dart';
 import '../state/auth_state.dart';
+import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 
@@ -15,7 +16,8 @@ class DonationsPage extends StatefulWidget {
   State<DonationsPage> createState() => _DonationsPageState();
 }
 
-class _DonationsPageState extends State<DonationsPage> {
+class _DonationsPageState extends State<DonationsPage>
+    with DataBusRefreshMixin<DonationsPage> {
   final DonationService _service = DonationService();
 
   List<DonationSubmission> _submissions = [];
@@ -31,11 +33,16 @@ class _DonationsPageState extends State<DonationsPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final submissions = await _service.fetchSubmissions();
       if (!mounted) return;
@@ -45,10 +52,12 @@ class _DonationsPageState extends State<DonationsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load donations: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load donations: $e';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -69,6 +78,10 @@ class _DonationsPageState extends State<DonationsPage> {
         return ('Approved', AppColors.primary);
       case SubmissionStatus.rejected:
         return ('Rejected', AppColors.destructive);
+      case SubmissionStatus.received:
+        return ('Received', AppColors.primary);
+      case SubmissionStatus.stocked:
+        return ('Stocked In', AppColors.primary);
     }
   }
 
@@ -127,7 +140,9 @@ class _DonationsPageState extends State<DonationsPage> {
       );
       if (!mounted) return;
       if (choice == 'approve_and_stock_in') {
-        context.push('/inventory/add?type=donated&subId=${sub.subId}');
+        await context.push('/inventory/add?type=donated&subId=${sub.subId}');
+        if (!mounted) return;
+        _load();
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

@@ -1,5 +1,6 @@
 import '../mock/mock_database.dart';
 import '../models/pet.dart';
+import '../state/data_bus.dart';
 import 'backend.dart';
 import 'supabase/supabase_pet_service.dart';
 
@@ -50,6 +51,7 @@ class MockPetService implements PetService {
       status: PetStatus.available,
     );
     _db.pets.add(pet);
+    DataChangeBus.instance.ping();
     return pet;
   }
 
@@ -71,11 +73,13 @@ class MockPetService implements PetService {
       status: status,
     );
     _db.pets[index] = updated;
+    DataChangeBus.instance.ping();
     return updated;
   }
 
   @override
   Future<void> deletePet(String petId) async {
     _db.pets.removeWhere((p) => p.petId == petId);
+    DataChangeBus.instance.ping();
   }
 }

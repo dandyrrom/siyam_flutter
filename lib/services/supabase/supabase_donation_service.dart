@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/donation.dart';
+import '../../state/data_bus.dart';
 import '../donation_service.dart';
 import '../inventory_service.dart';
 
@@ -33,12 +34,13 @@ class SupabaseDonationService implements DonationService {
 
   static const String _subColumns =
       'id, donorid, updatedby, status, drop_off_sched, datesubmitted, '
-      'proof_img, notes';
+      'date_received, proof_img, notes';
 
   DonationSubmission _mapSubmission(
       Map<String, dynamic> r, Map<String, String> users) {
     final updatedBy = r['updatedby'] as String?;
     final sched = r['drop_off_sched'] as String?;
+    final received = r['date_received'] as String?;
     return DonationSubmission(
       subId: r['id'] as String,
       donorId: r['donorid'] as String,
@@ -48,6 +50,7 @@ class SupabaseDonationService implements DonationService {
       status: submissionStatusFromString((r['status'] as String?) ?? 'pending'),
       schedDate: sched == null ? null : DateTime.parse(sched),
       dateSub: DateTime.parse(r['datesubmitted'] as String),
+      dateReceived: received == null ? null : DateTime.parse(received),
       proofImg: r['proof_img'] as String?,
       notes: r['notes'] as String?,
     );
@@ -96,6 +99,7 @@ class SupabaseDonationService implements DonationService {
         .select(_subColumns)
         .single();
     final users = await _userNameMap();
+    DataChangeBus.instance.ping();
     return _mapSubmission(row, users);
   }
 
@@ -109,6 +113,7 @@ class SupabaseDonationService implements DonationService {
       'status': submissionStatusToString(status),
       'updatedby': updatedByUserId,
     }).eq('id', subId);
+    DataChangeBus.instance.ping();
   }
 
   @override
@@ -125,7 +130,8 @@ class SupabaseDonationService implements DonationService {
 
   Future<void> _createDonationAndItems({
     String? subId,
-    required String donorId,
+    String? donorId,
+    String? donorName,
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
@@ -133,6 +139,7 @@ class SupabaseDonationService implements DonationService {
   }) async {
     final insert = <String, dynamic>{
       'donorid': donorId,
+      'donor_name': donorName,
       'subid': subId,
       'receivedby': receivedBy,
       'recordedby': recordedByUserId,
@@ -153,6 +160,7 @@ class SupabaseDonationService implements DonationService {
       });
       await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
     }
+    DataChangeBus.instance.ping();
   }
 
   @override
@@ -162,23 +170,38 @@ class SupabaseDonationService implements DonationService {
     required String updatedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    DateTime? receivedDate,
   }) async {
     await _client.from('submission').update({
-      'status': 'approved',
+      'status': 'stocked',
       'updatedby': updatedByUserId,
     }).eq('id', subId);
+    DataChangeBus.instance.ping();
     await _createDonationAndItems(
       subId: subId,
       donorId: donorId,
       recordedByUserId: updatedByUserId,
       receivedBy: receivedBy,
       items: items,
+      receivedDate: receivedDate,
     );
+  }
+
+  /// Persists the "Items Received" confirmation for a submission, before
+  /// Stock In actually creates the donation/donation_item rows.
+  @override
+  Future<void> markSubmissionReceived({required String subId}) async {
+    await _client.from('submission').update({
+      'date_received': DateTime.now().toUtc().toIso8601String(),
+      'status': 'received',
+    }).eq('id', subId);
+    DataChangeBus.instance.ping();
   }
 
   @override
   Future<void> recordDirectDonation({
-    required String donorId,
+    String? donorId,
+    String? donorName,
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
@@ -186,6 +209,7 @@ class SupabaseDonationService implements DonationService {
   }) {
     return _createDonationAndItems(
       donorId: donorId,
+      donorName: donorName,
       recordedByUserId: recordedByUserId,
       receivedBy: receivedBy,
       items: items,
@@ -237,8 +261,7 @@ class SupabaseDonationService implements DonationService {
         .toSet();
     return subs
         .where((s) =>
-            !linkedIds.contains(s.subId) &&
-            s.status != SubmissionStatus.rejected)
+            !linkedIds.contains(s.subId) && s.status == SubmissionStatus.received)
         .toList();
   }
 }

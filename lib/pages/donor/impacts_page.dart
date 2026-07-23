@@ -4,8 +4,10 @@ import '../../core/app_theme.dart';
 import '../../models/donation_impact.dart';
 import '../../models/inventory_item.dart';
 import '../../models/pet.dart';
+import '../../models/stock_out.dart';
 import '../../services/impact_service.dart';
 import '../../state/auth_state.dart';
+import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
 
 /// Donor-facing view of what happened to what they gave.
@@ -16,6 +18,15 @@ import '../../widgets/stat_card.dart';
 /// treatment or stock-out actually drew from. It assumes stock is consumed
 /// in the order it arrived (oldest batch first, across every purchase and
 /// donation of that item) and attributes outcomes on that basis.
+///
+/// Two different units show up on purpose: "Used Stocks"/"Still in Stock"
+/// are whole purchase_unit counts (bottles, boxes -- the unit the donor
+/// actually gave in, and always a whole number: any bottle touched at all
+/// counts as one used bottle, see [wholeUnitBreakdown]). The per-event
+/// messages below that instead quote the raw recorded amount for that one
+/// event -- dispense_unit (ml, drops) for a treatment, purchase_unit for a
+/// stock-out -- since those figures need no FIFO assumption at all and are
+/// shown exactly as staff entered them.
 class ImpactsPage extends StatefulWidget {
   const ImpactsPage({super.key});
 
@@ -23,7 +34,8 @@ class ImpactsPage extends StatefulWidget {
   State<ImpactsPage> createState() => _ImpactsPageState();
 }
 
-class _ImpactsPageState extends State<ImpactsPage> {
+class _ImpactsPageState extends State<ImpactsPage>
+    with DataBusRefreshMixin<ImpactsPage> {
   final ImpactService _service = ImpactService();
 
   List<DonationImpactLine> _lines = [];
@@ -36,14 +48,19 @@ class _ImpactsPageState extends State<ImpactsPage> {
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
     final donorId = context.read<AuthController>().profile?.userId;
     if (donorId == null) return;
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final lines = await _service.fetchDonorImpact(donorId);
       if (!mounted) return;
@@ -53,15 +70,14 @@ class _ImpactsPageState extends State<ImpactsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load your impact: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load your impact: $e';
+          _loading = false;
+        });
+      }
     }
   }
-
-  IconData _speciesIcon(PetSpecies species) =>
-      species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
 
   @override
   Widget build(BuildContext context) {
@@ -81,10 +97,11 @@ class _ImpactsPageState extends State<ImpactsPage> {
       );
     }
 
-    final treatmentCount =
-        _lines.expand((l) => l.contributions).map((c) => c.treatmentId).toSet().length;
-    final animalsHelped =
-        _lines.expand((l) => l.contributions).map((c) => c.petId).toSet().length;
+    final treatmentContributions = _lines
+        .expand((l) => l.contributions)
+        .where((c) => c.kind == ImpactEventKind.treatment);
+    final treatmentCount = treatmentContributions.map((c) => c.treatmentId).toSet().length;
+    final animalsHelped = treatmentContributions.map((c) => c.petId).toSet().length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,21 +155,88 @@ class _ImpactsPageState extends State<ImpactsPage> {
           for (final line in _lines)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: _ImpactCard(line: line, speciesIcon: _speciesIcon),
+              child: _ImpactCard(line: line),
             ),
       ],
     );
   }
 }
 
+/// Builds the per-event sentence, straight from the raw recorded figures,
+/// independent of the FIFO stock math on [DonationImpactLine]:
+///  - Treatment: "[amount] [unit] of your donated [item] was used to treat
+///    [pet] for his/her [treatment]."
+///  - Stock-out: "[amount] [unit] of your donated [item] was stocked out
+///    for [reason]."
+String _impactMessage(DonationImpactLine line, ImpactContribution c) {
+  final amount = '${formatQty(c.amount)} ${c.unitAbbr}';
+  switch (c.kind) {
+    case ImpactEventKind.treatment:
+      final pronoun = c.petGender == PetGender.male ? 'his' : 'her';
+      return '$amount of your donated ${line.itemName} was used to treat '
+          '${c.petName} for $pronoun ${c.treatmentName}.';
+    case ImpactEventKind.stockOut:
+      return '$amount of your donated ${line.itemName} was stocked out for '
+          '${_stockOutReasonPhrase(c.stockOutReason!)}.';
+  }
+}
+
+String _stockOutReasonPhrase(StockOutReason reason) {
+  switch (reason) {
+    case StockOutReason.waste:
+      return 'waste';
+    case StockOutReason.expired:
+      return 'expiration';
+    case StockOutReason.adjustment:
+      return 'an inventory adjustment';
+  }
+}
+
+IconData _speciesIcon(PetSpecies species) =>
+    species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
+
+/// Number of contribution messages shown inline before collapsing the rest
+/// behind a "View all" action -- keeps a card with many treatments from
+/// dominating the page.
+const _previewContributionCount = 2;
+
 class _ImpactCard extends StatelessWidget {
   final DonationImpactLine line;
-  final IconData Function(PetSpecies) speciesIcon;
 
-  const _ImpactCard({required this.line, required this.speciesIcon});
+  const _ImpactCard({required this.line});
+
+  void _openAllContributions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('${line.itemName}: full history'),
+        content: SizedBox(
+          width: 420,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final c in line.contributions) _ContributionTile(line: line, contribution: c),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final preview = line.contributions.take(_previewContributionCount).toList();
+    final remaining = line.contributions.length - preview.length;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -180,65 +264,49 @@ class _ImpactCard extends StatelessWidget {
           const SizedBox(height: 14),
           if (line.isQuantityPrecise) ...[
             _ImpactBar(line: line),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
           ],
           Wrap(
-            spacing: 16,
-            runSpacing: 6,
+            spacing: 10,
+            runSpacing: 8,
             children: [
               if (line.isQuantityPrecise)
-                _StatLine(
-                    label: 'Used',
-                    value: '${formatQty(line.usedQty)} ${line.itemUom}',
-                    color: AppColors.primary),
+                _StatChip(
+                  label: 'Used Stocks',
+                  value: '${formatQty(line.usedQty)} ${line.itemUom}',
+                  color: AppColors.primary,
+                )
+              else
+                const _StatChip(
+                  label: 'Used Stocks',
+                  value: 'Not tracked for this item',
+                  color: AppColors.mutedForeground,
+                ),
               if (line.discardedQty > 0)
-                _StatLine(
-                    label: 'No longer in stock',
-                    value: '${formatQty(line.discardedQty)} ${line.itemUom}',
-                    color: AppColors.mutedForeground),
-              _StatLine(
-                  label: 'Still in stock',
-                  value: '${formatQty(line.remainingQty)} ${line.itemUom}',
-                  color: AppColors.stockInStock),
+                _StatChip(
+                  label: 'No longer in stock',
+                  value: '${formatQty(line.discardedQty)} ${line.itemUom}',
+                  color: AppColors.mutedForeground,
+                ),
+              _StatChip(
+                label: 'Still in Stock',
+                value: '${formatQty(line.remainingQty)} ${line.itemUom}',
+                color: AppColors.stockInStock,
+              ),
             ],
           ),
-          if (line.contributions.isNotEmpty) ...[
-            const SizedBox(height: 14),
+          if (preview.isNotEmpty) ...[
+            const SizedBox(height: 16),
             const Divider(height: 1),
-            const SizedBox(height: 12),
-            Text(
-              line.isQuantityPrecise
-                  ? 'Helped treat'
-                  : 'Helped treat (exact amount used per treatment isn\'t tracked for this item)',
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            for (final c in line.contributions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Icon(speciesIcon(c.petSpecies), size: 16, color: AppColors.mutedForeground),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          style: const TextStyle(fontSize: 13),
-                          children: [
-                            TextSpan(
-                                text: c.petName,
-                                style: const TextStyle(fontWeight: FontWeight.w600)),
-                            TextSpan(
-                                text: ' — ${c.treatmentName}',
-                                style: const TextStyle(color: AppColors.mutedForeground)),
-                          ],
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(_formatDate(c.date),
-                        style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
-                  ],
+            const SizedBox(height: 14),
+            for (final c in preview) _ContributionTile(line: line, contribution: c),
+            if (remaining > 0)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => _openAllContributions(context),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: Text('View all ${line.contributions.length} updates'),
                 ),
               ),
           ],
@@ -248,10 +316,57 @@ class _ImpactCard extends StatelessWidget {
   }
 }
 
+/// One "what happened" entry: an icon badge (species for a treatment,
+/// a neutral stock icon for a stock-out) then the full sentence from
+/// [_impactMessage], with the date trailing.
+class _ContributionTile extends StatelessWidget {
+  final DonationImpactLine line;
+  final ImpactContribution contribution;
+
+  const _ContributionTile({required this.line, required this.contribution});
+
+  @override
+  Widget build(BuildContext context) {
+    final isTreatment = contribution.kind == ImpactEventKind.treatment;
+    final badgeColor = isTreatment ? AppColors.primary : AppColors.mutedForeground;
+    final icon = isTreatment
+        ? _speciesIcon(contribution.petSpecies!)
+        : Icons.inventory_2_outlined;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: badgeColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 15, color: badgeColor),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _impactMessage(line, contribution),
+              style: const TextStyle(fontSize: 13, height: 1.35),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(_formatDate(contribution.date),
+              style: const TextStyle(fontSize: 11.5, color: AppColors.mutedForeground)),
+        ],
+      ),
+    );
+  }
+}
+
 /// Stacked proportion bar: used / no-longer-in-stock / still-in-stock,
 /// against the total donated. Reflects the precise FIFO-derived fractions
 /// (see [DonationImpactLine]) even when a single event happened to draw from
-/// more than one batch.
+/// more than one batch. Only rendered for quantity-precise items.
 class _ImpactBar extends StatelessWidget {
   final DonationImpactLine line;
   const _ImpactBar({required this.line});
@@ -269,7 +384,9 @@ class _ImpactBar extends StatelessWidget {
         height: 10,
         child: Row(
           children: [
-            if (usedFrac > 0) Expanded(flex: (usedFrac * 1000).round(), child: Container(color: AppColors.primary)),
+            if (usedFrac > 0)
+              Expanded(
+                  flex: (usedFrac * 1000).round(), child: Container(color: AppColors.primary)),
             if (discardedFrac > 0)
               Expanded(
                   flex: (discardedFrac * 1000).round(),
@@ -285,27 +402,35 @@ class _ImpactBar extends StatelessWidget {
   }
 }
 
-class _StatLine extends StatelessWidget {
+class _StatChip extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _StatLine({required this.label, required this.value, required this.color});
+  const _StatChip({required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text('$label: ',
-            style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-        Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: color)),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }

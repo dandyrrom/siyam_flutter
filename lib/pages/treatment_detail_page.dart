@@ -5,6 +5,7 @@ import '../models/inventory_item.dart';
 import '../models/pet.dart';
 import '../models/treatment.dart';
 import '../services/treatment_service.dart';
+import '../state/data_bus.dart';
 
 /// Full detail page for one treatment record, mirroring the structure of
 /// InventoryItemPage. Surfaces every TREATMENT/TREATMENT_ITEM column --
@@ -18,7 +19,8 @@ class TreatmentDetailPage extends StatefulWidget {
   State<TreatmentDetailPage> createState() => _TreatmentDetailPageState();
 }
 
-class _TreatmentDetailPageState extends State<TreatmentDetailPage> {
+class _TreatmentDetailPageState extends State<TreatmentDetailPage>
+    with DataBusRefreshMixin<TreatmentDetailPage> {
   final TreatmentService _service = TreatmentService();
 
   TreatmentRecord? _record;
@@ -32,11 +34,16 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _notFound = false;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _notFound = false;
+      });
+    }
     try {
       final treatments = await _service.fetchTreatments();
       final record = treatments
@@ -60,10 +67,12 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _notFound = true;
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _notFound = true;
+          _loading = false;
+        });
+      }
     }
   }
 

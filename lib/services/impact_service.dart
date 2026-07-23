@@ -23,6 +23,9 @@ class MockImpactService implements ImpactService {
   final MockDatabase _db = MockDatabase.instance;
   final InventoryService _inventoryService = MockInventoryService();
 
+  String _unitAbbr(String unitId) =>
+      firstWhereOrNull(_db.units, (u) => u.id == unitId)?.abbrName ?? '';
+
   @override
   Future<List<DonationImpactLine>> fetchDonorImpact(String donorId) async {
     final donorDonationIds =
@@ -44,15 +47,28 @@ class MockImpactService implements ImpactService {
         if (donation == null) continue;
         final res = ledger['${di.donId}-${di.itemId}'];
         if (res == null) continue;
+
+        // The ledger runs in package_unit terms for quantity-precise items
+        // (see _computeItemLedger) -- convert to whole purchase_unit counts
+        // for display (see wholeUnitBreakdown). Count-mode items are already
+        // in purchase_unit terms with no fractional-container concept.
+        final breakdown = quantityPrecise
+            ? wholeUnitBreakdown(
+                donatedQty: di.qty,
+                ledgerResult: res,
+                packageQuantity: item.packageQuantity!,
+              )
+            : (used: res.used, discarded: res.discarded, remaining: res.remaining);
+
         result.add(DonationImpactLine(
           itemId: item.itemId,
           itemName: item.itemName,
           itemUom: item.itemUom,
           donatedQty: di.qty,
           receivedDate: donation.receivedDate,
-          usedQty: res.used,
-          discardedQty: res.discarded,
-          remainingQty: res.remaining,
+          usedQty: breakdown.used,
+          discardedQty: breakdown.discarded,
+          remainingQty: breakdown.remaining,
           contributions: res.contributions,
           isQuantityPrecise: quantityPrecise,
         ));
@@ -112,11 +128,14 @@ class MockImpactService implements ImpactService {
         qty: quantityMode ? row.dispensedQty : 0.0,
         consumesCapacity: quantityMode,
         date: row.consumedDate,
+        messageAmount: row.dispensedQty,
+        messageUnitAbbr: _unitAbbr(row.dispenseUnitId),
         treatmentId: treatment.id,
         treatmentName: treatment.name,
         petId: treatment.petId,
         petName: pet?.petName ?? 'Unknown animal',
         petSpecies: pet?.species ?? PetSpecies.dog,
+        petGender: pet?.gender ?? PetGender.male,
       ));
     }
     for (final row in _db.stockOuts.where((s) => s.itemId == item.itemId)) {
@@ -124,6 +143,9 @@ class MockImpactService implements ImpactService {
         type: ImpactEventType.stockOut,
         qty: quantityMode ? row.qty * packageQty : row.qty,
         date: row.recordedDate,
+        messageAmount: row.qty,
+        messageUnitAbbr: item.itemUom,
+        stockOutReason: row.reason,
       ));
     }
 

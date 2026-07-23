@@ -9,6 +9,7 @@ import '../models/unit.dart';
 import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
+import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 import '../widgets/stock_out_dialog.dart';
@@ -21,7 +22,8 @@ class InventoryItemPage extends StatefulWidget {
   State<InventoryItemPage> createState() => _InventoryItemPageState();
 }
 
-class _InventoryItemPageState extends State<InventoryItemPage> {
+class _InventoryItemPageState extends State<InventoryItemPage>
+    with DataBusRefreshMixin<InventoryItemPage> {
   final InventoryService _service = InventoryService();
   final CatalogService _catalogService = CatalogService();
 
@@ -38,11 +40,16 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _notFound = false;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _notFound = false;
+      });
+    }
     try {
       final results = await Future.wait([
         _service.fetchItem(widget.itemId),
@@ -62,10 +69,12 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _notFound = true;
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _notFound = true;
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -349,7 +358,7 @@ class _InventoryItemPageState extends State<InventoryItemPage> {
                   onEdit: () => _editPickerField<Unit>(
                     label: 'Purchase Unit',
                     options: _units,
-                    displayStringForOption: (u) => u.abbrName,
+                    displayStringForOption: (u) => u.name,
                     onSave: (u) =>
                         _service.updateDetails(itemId: item.itemId, purchaseUnitId: u.id),
                   ),

@@ -1,5 +1,6 @@
 import '../models/donation_impact.dart';
 import '../models/pet.dart';
+import '../models/stock_out.dart';
 
 /// One incoming purchase_item or donation_item row, normalized to whichever
 /// unit [runFifoLedger] is replaying in for this item (see the mode split in
@@ -16,7 +17,8 @@ enum ImpactEventType { treatment, stockOut }
 
 /// One outgoing treatment_item or stock_out row, normalized to the same unit
 /// as the batches it's drawn against. Treatment metadata is only present
-/// when [type] is [ImpactEventType.treatment].
+/// when [type] is [ImpactEventType.treatment]; [stockOutReason] only when
+/// [type] is [ImpactEventType.stockOut].
 ///
 /// [consumesCapacity] is always true for stock-outs (always a precise
 /// purchase_unit quantity). For treatment usage it depends on the item: true
@@ -27,8 +29,8 @@ enum ImpactEventType { treatment, stockOut }
 /// as "one whole container consumed" would make a donor's batch look used up
 /// after a single dose. For those items the event still attaches to whoever
 /// is the current batch (see [runFifoLedger]) so it shows up in the donor's
-/// list of treatments helped, it just doesn't drain any capacity -- only a
-/// real stock-out (waste/expired/adjustment) does that.
+/// list, it just doesn't drain any capacity -- only a real stock-out
+/// (waste/expired/adjustment) does that.
 class ImpactEvent {
   final ImpactEventType type;
   final double qty;
@@ -39,17 +41,31 @@ class ImpactEvent {
   final String? petId;
   final String? petName;
   final PetSpecies? petSpecies;
+  final PetGender? petGender;
+  final StockOutReason? stockOutReason;
+
+  /// The raw figure for this single event, as staff entered it -- dispensed
+  /// amount/unit for a treatment, or qty/purchase_unit for a stock-out.
+  /// Independent of [qty] (which is normalized for the FIFO draw above) and
+  /// carried straight through to [ImpactContribution] for the per-event
+  /// message, since it needs no conversion or FIFO assumption.
+  final double messageAmount;
+  final String messageUnitAbbr;
 
   const ImpactEvent({
     required this.type,
     required this.qty,
     required this.date,
+    required this.messageAmount,
+    required this.messageUnitAbbr,
     this.consumesCapacity = true,
     this.treatmentId,
     this.treatmentName,
     this.petId,
     this.petName,
     this.petSpecies,
+    this.petGender,
+    this.stockOutReason,
   });
 }
 
@@ -76,9 +92,10 @@ class ImpactBatchResult {
 ///
 /// Quantity math (used/discarded/remaining) can split a single event across
 /// two batches when it drains the tail of one and the head of the next --
-/// that's kept precise. [ImpactBatchResult.contributions] instead attributes
-/// each whole event to only the *first* batch it touched, so the donor-facing
-/// list of treatments/animals stays simple to read.
+/// that's kept precise (whole-unit rounding for display happens separately,
+/// see [wholeUnitBreakdown]). [ImpactBatchResult.contributions] instead
+/// attributes each whole event to only the *first* batch it touched, so the
+/// donor-facing list stays simple to read.
 Map<String, ImpactBatchResult> runFifoLedger({
   required List<ImpactBatch> batches,
   required List<ImpactEvent> events,
@@ -94,6 +111,24 @@ Map<String, ImpactBatchResult> runFifoLedger({
   const epsilon = 1e-9;
   var queueIndex = 0;
 
+  void addContribution(String batchId, ImpactEvent event) {
+    contributions[batchId]!.add(ImpactContribution(
+      kind: event.type == ImpactEventType.treatment
+          ? ImpactEventKind.treatment
+          : ImpactEventKind.stockOut,
+      amount: event.messageAmount,
+      unitAbbr: event.messageUnitAbbr,
+      date: event.date,
+      treatmentId: event.treatmentId,
+      treatmentName: event.treatmentName,
+      petId: event.petId,
+      petName: event.petName,
+      petSpecies: event.petSpecies,
+      petGender: event.petGender,
+      stockOutReason: event.stockOutReason,
+    ));
+  }
+
   for (final event in sortedEvents) {
     // Advance past any already-exhausted batches to find the current front
     // of the queue, regardless of whether this event will draw from it.
@@ -105,17 +140,9 @@ Map<String, ImpactBatchResult> runFifoLedger({
     if (!event.consumesCapacity) {
       // Non-deductible treatment usage: attaches to the current batch as a
       // contribution, but the amount dispensed is unmeasurable in this
-      // item's terms, so no capacity is drained.
-      if (event.type == ImpactEventType.treatment) {
-        contributions[sortedBatches[queueIndex].id]!.add(ImpactContribution(
-          treatmentId: event.treatmentId!,
-          treatmentName: event.treatmentName!,
-          petId: event.petId!,
-          petName: event.petName!,
-          petSpecies: event.petSpecies!,
-          date: event.date,
-        ));
-      }
+      // item's terms, so no capacity is drained. (Stock-outs always
+      // consumeCapacity, so this branch is treatment-only in practice.)
+      addContribution(sortedBatches[queueIndex].id, event);
       continue;
     }
 
@@ -140,15 +167,8 @@ Map<String, ImpactBatchResult> runFifoLedger({
       }
     }
 
-    if (event.type == ImpactEventType.treatment && firstBatchTouched != null) {
-      contributions[firstBatchTouched]!.add(ImpactContribution(
-        treatmentId: event.treatmentId!,
-        treatmentName: event.treatmentName!,
-        petId: event.petId!,
-        petName: event.petName!,
-        petSpecies: event.petSpecies!,
-        date: event.date,
-      ));
+    if (firstBatchTouched != null) {
+      addContribution(firstBatchTouched, event);
     }
   }
 
@@ -161,4 +181,23 @@ Map<String, ImpactBatchResult> runFifoLedger({
         contributions: contributions[b.id]!,
       ),
   };
+}
+
+/// Converts one batch's package-unit-precise ledger result into whole
+/// purchase-unit counts for donor display -- any container touched at all
+/// (partially used or fully drained but not yet stocked out) counts as one
+/// whole "used" container, matching `InventoryItem.usedStockQty`'s own
+/// convention: donors are told "1 bottle used", not "0.01 bottle used" for
+/// 1.5ml out of a 150ml bottle. [remaining] only counts bottles that are
+/// still fully sealed; [discarded] is already an exact whole-container count
+/// (stock-outs are always whole purchase_unit events).
+({double used, double discarded, double remaining}) wholeUnitBreakdown({
+  required double donatedQty,
+  required ImpactBatchResult ledgerResult,
+  required double packageQuantity,
+}) {
+  final sealedRemaining = (ledgerResult.remaining / packageQuantity).floorToDouble();
+  final discardedUnits = (ledgerResult.discarded / packageQuantity).roundToDouble();
+  final usedUnits = (donatedQty - discardedUnits - sealedRemaining).clamp(0.0, donatedQty);
+  return (used: usedUnits, discarded: discardedUnits, remaining: sealedRemaining);
 }

@@ -1,5 +1,6 @@
 import '../mock/mock_database.dart';
 import '../models/supplier.dart';
+import '../state/data_bus.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
 import 'supabase/supabase_supplier_service.dart';
@@ -79,6 +80,7 @@ class MockSupplierService implements SupplierService {
       address: address,
     );
     _db.suppliers.add(supplier);
+    DataChangeBus.instance.ping();
     return supplier;
   }
 
@@ -172,6 +174,7 @@ class MockSupplierService implements SupplierService {
       await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
     }
 
+    DataChangeBus.instance.ping();
     return _toPurchaseOrder(row);
   }
 }

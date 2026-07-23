@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
 import '../../services/dashboard_service.dart';
 import '../../state/auth_state.dart';
+import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
 
 class DonorDashboard extends StatefulWidget {
@@ -12,7 +13,8 @@ class DonorDashboard extends StatefulWidget {
   State<DonorDashboard> createState() => _DonorDashboardState();
 }
 
-class _DonorDashboardState extends State<DonorDashboard> {
+class _DonorDashboardState extends State<DonorDashboard>
+    with DataBusRefreshMixin<DonorDashboard> {
   final DashboardService _service = DashboardService();
 
   DonorDashboardStats? _stats;
@@ -25,14 +27,19 @@ class _DonorDashboardState extends State<DonorDashboard> {
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
     final donorId = context.read<AuthController>().profile?.userId;
     if (donorId == null) return;
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final stats = await _service.fetchDonorStats(donorId);
       if (!mounted) return;
@@ -42,10 +49,12 @@ class _DonorDashboardState extends State<DonorDashboard> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load dashboard: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load dashboard: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

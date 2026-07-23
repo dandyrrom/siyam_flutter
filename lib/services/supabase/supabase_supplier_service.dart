@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/supplier.dart';
+import '../../state/data_bus.dart';
 import '../inventory_service.dart';
 import '../supplier_service.dart';
 
@@ -76,6 +77,7 @@ class SupabaseSupplierService implements SupplierService {
         .insert({'name': suppName, 'contactnum': contactNum, 'address': address})
         .select('id, name, contactnum, contacttel, address')
         .single();
+    DataChangeBus.instance.ping();
     return _mapSupplier(row);
   }
 
@@ -182,6 +184,7 @@ class SupabaseSupplierService implements SupplierService {
     }
 
     final created = await fetchPurchaseOrder(purId);
+    DataChangeBus.instance.ping();
     return created!;
   }
 }

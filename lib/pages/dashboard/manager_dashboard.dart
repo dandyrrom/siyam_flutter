@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
 import '../../services/dashboard_service.dart';
+import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
 
 class ManagerDashboard extends StatefulWidget {
@@ -10,7 +11,8 @@ class ManagerDashboard extends StatefulWidget {
   State<ManagerDashboard> createState() => _ManagerDashboardState();
 }
 
-class _ManagerDashboardState extends State<ManagerDashboard> {
+class _ManagerDashboardState extends State<ManagerDashboard>
+    with DataBusRefreshMixin<ManagerDashboard> {
   final DashboardService _service = DashboardService();
 
   ManagerDashboardStats? _stats;
@@ -23,11 +25,16 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final stats = await _service.fetchManagerStats();
       if (!mounted) return;
@@ -37,10 +44,12 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load dashboard: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load dashboard: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import '../mock/mock_database.dart';
 import '../models/pet.dart';
 import '../models/treatment.dart';
+import '../state/data_bus.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
 import 'supabase/supabase_treatment_service.dart';
@@ -145,6 +146,7 @@ class MockTreatmentService implements TreatmentService {
       await applyTreatmentDeduction(_inventoryService, item, row.qty);
     }
 
+    DataChangeBus.instance.ping();
     return _toTreatmentRecord(treatmentRow);
   }
 }

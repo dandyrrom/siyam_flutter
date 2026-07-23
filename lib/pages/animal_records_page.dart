@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../models/pet.dart';
 import '../services/pet_service.dart';
+import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 
@@ -12,7 +13,8 @@ class AnimalRecordsPage extends StatefulWidget {
   State<AnimalRecordsPage> createState() => _AnimalRecordsPageState();
 }
 
-class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
+class _AnimalRecordsPageState extends State<AnimalRecordsPage>
+    with DataBusRefreshMixin<AnimalRecordsPage> {
   final PetService _service = PetService();
 
   List<Pet> _pets = [];
@@ -29,11 +31,16 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final pets = await _service.fetchPets();
       if (!mounted) return;
@@ -43,10 +50,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load animal records: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load animal records: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

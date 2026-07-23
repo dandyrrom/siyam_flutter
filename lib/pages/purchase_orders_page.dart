@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
+import '../state/data_bus.dart';
 
 /// Staff-only list of every purchase transaction (public.purchase), most
 /// recent first. Each row opens the read-only detail/receipt view at
@@ -14,7 +15,8 @@ class PurchaseOrdersPage extends StatefulWidget {
   State<PurchaseOrdersPage> createState() => _PurchaseOrdersPageState();
 }
 
-class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
+class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
+    with DataBusRefreshMixin<PurchaseOrdersPage> {
   final SupplierService _service = SupplierService();
 
   List<PurchaseOrder> _orders = [];
@@ -28,11 +30,16 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final orders = await _service.fetchAllPurchaseOrders();
       if (!mounted) return;
@@ -42,10 +49,12 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load purchase orders: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load purchase orders: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

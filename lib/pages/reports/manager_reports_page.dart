@@ -7,6 +7,7 @@ import '../../services/donation_service.dart';
 import '../../services/inventory_service.dart';
 import '../../services/supplier_service.dart';
 import '../../services/treatment_service.dart';
+import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
 
 /// Reports derived strictly from what the schema actually stores.
@@ -24,7 +25,8 @@ class ManagerReportsPage extends StatefulWidget {
   State<ManagerReportsPage> createState() => _ManagerReportsPageState();
 }
 
-class _ManagerReportsPageState extends State<ManagerReportsPage> {
+class _ManagerReportsPageState extends State<ManagerReportsPage>
+    with DataBusRefreshMixin<ManagerReportsPage> {
   final InventoryService _inventoryService = InventoryService();
   final DonationService _donationService = DonationService();
   final TreatmentService _treatmentService = TreatmentService();
@@ -44,11 +46,16 @@ class _ManagerReportsPageState extends State<ManagerReportsPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait([
         _inventoryService.fetchItems(),
@@ -66,10 +73,12 @@ class _ManagerReportsPageState extends State<ManagerReportsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load reports: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load reports: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

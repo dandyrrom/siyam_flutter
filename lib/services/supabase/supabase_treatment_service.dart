@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/pet.dart';
 import '../../models/treatment.dart';
+import '../../state/data_bus.dart';
 import '../inventory_service.dart';
 import '../treatment_service.dart';
 import '../unit_conversion.dart';
@@ -161,6 +162,7 @@ class SupabaseTreatmentService implements TreatmentService {
     }
 
     final records = await fetchTreatments();
+    DataChangeBus.instance.ping();
     return records.firstWhere((t) => t.treatId == treatId);
   }
 }

@@ -267,23 +267,26 @@ class AppDropdown<T> extends StatelessWidget {
 /// sibling text fields instead of adding its own label row above a
 /// differently-shaped box. Wires validation/error display through
 /// [FormField], so it drops into a [Form] exactly like a
-/// [DropdownButtonFormField] did. Always has a value (no "All X" option) --
-/// pass the field's default in [initialValue].
+/// [DropdownButtonFormField] did. Pass the field's default in
+/// [initialValue], or leave it null (with [placeholder] text) to start
+/// blank -- e.g. a Stock In form opened with no preselected type.
 class AppDropdownField<T> extends FormField<T> {
   AppDropdownField({
     super.key,
     required String label,
-    required T initialValue,
+    super.initialValue,
+    String? placeholder,
     required List<AppDropdownOption<T>> options,
     required ValueChanged<T> onChanged,
     super.validator,
   }) : super(
-          initialValue: initialValue,
           builder: (state) {
-            final selected = options.firstWhere(
-              (o) => o.value == state.value,
-              orElse: () => options.first,
-            );
+            final selected = state.value == null
+                ? null
+                : options.firstWhere(
+                    (o) => o.value == state.value,
+                    orElse: () => options.first,
+                  );
             return AppMenuButton<T>(
               options: options,
               onSelected: (v) {
@@ -298,7 +301,13 @@ class AppDropdownField<T> extends FormField<T> {
                 ),
                 isEmpty: false,
                 isFocused: isOpen,
-                child: Text(selected.label, style: const TextStyle(fontSize: 14)),
+                child: Text(
+                  selected?.label ?? placeholder ?? '',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: selected == null ? AppColors.mutedForeground : null,
+                  ),
+                ),
               ),
             );
           },

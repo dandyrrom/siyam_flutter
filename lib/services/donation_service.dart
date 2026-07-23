@@ -1,5 +1,6 @@
 import '../mock/mock_database.dart';
 import '../models/donation.dart';
+import '../state/data_bus.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
 import 'supabase/supabase_donation_service.dart';
@@ -34,9 +35,18 @@ abstract interface class DonationService {
     required String updatedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    DateTime? receivedDate,
   });
+  /// Persists the moment staff confirm a submission's items physically
+  /// arrived (the "Items Received" step, before Stock In).
+  Future<void> markSubmissionReceived({required String subId});
+  /// [donorId] is only set when linking a submission (which always has a
+  /// real donor account); otherwise the donor may be unregistered, so
+  /// [donorName] carries a free-text name for documentation only -- see
+  /// KNOWN_LIMITATIONS.md.
   Future<void> recordDirectDonation({
-    required String donorId,
+    String? donorId,
+    String? donorName,
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
@@ -74,6 +84,7 @@ class MockDonationService implements DonationService {
       status: submissionStatusFromString(row.status),
       schedDate: row.schedDate,
       dateSub: row.dateSub,
+      dateReceived: row.dateReceived,
       proofImg: row.proofImg,
       notes: row.notes,
     );
@@ -112,6 +123,7 @@ class MockDonationService implements DonationService {
       notes: notes,
     );
     _db.submissions.add(row);
+    DataChangeBus.instance.ping();
     return _toDonationSubmission(row);
   }
 
@@ -130,6 +142,7 @@ class MockDonationService implements DonationService {
     if (row == null) throw Exception('Submission not found');
     row.status = submissionStatusToString(status);
     row.updatedByUserId = updatedByUserId;
+    DataChangeBus.instance.ping();
   }
 
   @override
@@ -146,11 +159,14 @@ class MockDonationService implements DonationService {
 
   /// Creates the donation row (optionally linked to a submission) plus one
   /// donation_item row per item, and increments each item's stock. Shared
-  /// by [approveSubmission] (submission-linked) and [recordDirectDonation]
-  /// (walk-in, no submission).
+  /// by [approveSubmission] (submission-linked, always a real donorId) and
+  /// [recordDirectDonation] (donorId only when a submission was linked;
+  /// otherwise donorName documents an unregistered donor -- see
+  /// KNOWN_LIMITATIONS.md).
   Future<void> _createDonationAndItems({
     String? subId,
-    required String donorId,
+    String? donorId,
+    String? donorName,
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
@@ -159,6 +175,7 @@ class MockDonationService implements DonationService {
     final donationRow = DonationRow(
       id: newMockId('donation'),
       donorId: donorId,
+      donorName: donorName,
       subId: subId,
       receivedBy: receivedBy,
       receivedDate: receivedDate ?? DateTime.now(),
@@ -176,6 +193,7 @@ class MockDonationService implements DonationService {
       ));
       await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
     }
+    DataChangeBus.instance.ping();
   }
 
   /// Marks the submission approved and records what was actually received:
@@ -188,25 +206,40 @@ class MockDonationService implements DonationService {
     required String updatedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    DateTime? receivedDate,
   }) async {
     final row = firstWhereOrNull(_db.submissions, (s) => s.id == subId);
     if (row == null) throw Exception('Submission not found');
-    row.status = 'approved';
+    row.status = 'stocked';
     row.updatedByUserId = updatedByUserId;
+    DataChangeBus.instance.ping();
     await _createDonationAndItems(
       subId: subId,
       donorId: donorId,
       recordedByUserId: updatedByUserId,
       receivedBy: receivedBy,
       items: items,
+      receivedDate: receivedDate,
     );
   }
 
-  /// Records a walk-in donation directly from the Stock In Item form (not
-  /// linked to a prior donor submission).
+  /// Persists the "Items Received" confirmation for a submission, before
+  /// Stock In actually creates the donation/donation_item rows.
+  @override
+  Future<void> markSubmissionReceived({required String subId}) async {
+    final row = firstWhereOrNull(_db.submissions, (s) => s.id == subId);
+    if (row == null) throw Exception('Submission not found');
+    row.dateReceived = DateTime.now();
+    row.status = 'received';
+    DataChangeBus.instance.ping();
+  }
+
+  /// Records a donation directly from the Stock In Item form, not linked to
+  /// a prior submission -- donorId/donorName as documented on the interface.
   @override
   Future<void> recordDirectDonation({
-    required String donorId,
+    String? donorId,
+    String? donorName,
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
@@ -214,6 +247,7 @@ class MockDonationService implements DonationService {
   }) {
     return _createDonationAndItems(
       donorId: donorId,
+      donorName: donorName,
       recordedByUserId: recordedByUserId,
       receivedBy: receivedBy,
       items: items,
@@ -257,7 +291,7 @@ class MockDonationService implements DonationService {
     final linkedIds = _db.donations.map((d) => d.subId).whereType<String>().toSet();
     return subs
         .where((s) =>
-            !linkedIds.contains(s.subId) && s.status != SubmissionStatus.rejected)
+            !linkedIds.contains(s.subId) && s.status == SubmissionStatus.received)
         .toList();
   }
 }

@@ -5,6 +5,7 @@ import '../../core/app_theme.dart';
 import '../../models/donation.dart';
 import '../../services/donation_service.dart';
 import '../../state/auth_state.dart';
+import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
 
 class DonorDonationsPage extends StatefulWidget {
@@ -14,7 +15,8 @@ class DonorDonationsPage extends StatefulWidget {
   State<DonorDonationsPage> createState() => _DonorDonationsPageState();
 }
 
-class _DonorDonationsPageState extends State<DonorDonationsPage> {
+class _DonorDonationsPageState extends State<DonorDonationsPage>
+    with DataBusRefreshMixin<DonorDonationsPage> {
   final DonationService _service = DonationService();
 
   List<DonationSubmission> _submissions = [];
@@ -27,14 +29,19 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
     final donorId = context.read<AuthController>().profile?.userId;
     if (donorId == null) return;
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final rows = await _service.fetchSubmissions(donorId: donorId);
       if (!mounted) return;
@@ -44,10 +51,12 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load your donations: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load your donations: $e';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -59,6 +68,10 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
         return ('Approved', AppColors.primary);
       case SubmissionStatus.rejected:
         return ('Rejected', AppColors.destructive);
+      case SubmissionStatus.received:
+        return ('Received', AppColors.primary);
+      case SubmissionStatus.stocked:
+        return ('Stocked In', AppColors.primary);
     }
   }
 
@@ -70,7 +83,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          if (sub.status == SubmissionStatus.approved &&
+          if (sub.status == SubmissionStatus.stocked &&
               items == null &&
               itemsError == null) {
             _service.fetchReceivedItems(sub.subId).then((rows) {
@@ -108,7 +121,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
                           style: TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
                     ),
-                    if (sub.status == SubmissionStatus.approved) ...[
+                    if (sub.status == SubmissionStatus.stocked) ...[
                       const SizedBox(height: 16),
                       const Text('Items Received',
                           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
@@ -243,51 +256,71 @@ class _DonorDonationsPageState extends State<DonorDonationsPage> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _submissions.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final sub = _submissions[index];
-                final (statusLabel, statusColor) = _statusMeta(sub.status);
-                return InkWell(
-                  onTap: () => _openDetailDialog(sub),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Submitted ${_formatDate(sub.dateSub)}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600)),
-                              if (sub.schedDate != null)
-                                Text('Drop-off: ${_formatDate(sub.schedDate!)}',
-                                    style: const TextStyle(
-                                        fontSize: 12.5, color: AppColors.mutedForeground)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(statusLabel,
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
-                        ),
-                      ],
-                    ),
+            // Plain Column (not ListView) -- AppShell already scrolls, and a
+            // nested ListView+InkWell triggers layout asserts on Flutter Web.
+            child: Column(
+              children: [
+                for (var i = 0; i < _submissions.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  _SubmissionRow(
+                    submission: _submissions[i],
+                    statusMeta: _statusMeta(_submissions[i].status),
+                    onTap: () => _openDetailDialog(_submissions[i]),
                   ),
-                );
-              },
+                ],
+              ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _SubmissionRow extends StatelessWidget {
+  final DonationSubmission submission;
+  final (String, Color) statusMeta;
+  final VoidCallback onTap;
+
+  const _SubmissionRow({
+    required this.submission,
+    required this.statusMeta,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sub = submission;
+    final (statusLabel, statusColor) = statusMeta;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Submitted ${_formatDate(sub.dateSub)}',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  if (sub.schedDate != null)
+                    Text('Drop-off: ${_formatDate(sub.schedDate!)}',
+                        style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(statusLabel,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
