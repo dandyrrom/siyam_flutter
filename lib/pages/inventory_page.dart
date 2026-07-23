@@ -510,9 +510,22 @@ class _InventoryPageState extends State<InventoryPage>
                           const SizedBox(width: 16),
                           Expanded(
                             flex: 2,
-                            child: Text('${formatQty(item.unusedStockQty)} ${item.itemUom}',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('${formatQty(item.unusedStockQty)} ${item.itemUom}',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                                if (item.inUseQty > 0)
+                                  Text(
+                                    '${formatQty(item.inUseQty)} ${item.packageUnitAbbr ?? item.itemUom} in use',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 11.5, color: AppColors.mutedForeground),
+                                  ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(

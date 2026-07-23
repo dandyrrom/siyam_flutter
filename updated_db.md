@@ -76,23 +76,33 @@ existing patterns in this same schema (not invented from nothing):
   leaving `total_purchase_stocks` untouched — using part of a bottle doesn't remove it
   from the shelf. Null for items with no package breakdown (`package_quantity` unset).
 
-  **Unused Stocks / Used Stocks** (derived, not stored columns): once the two pools can
-  diverge, "how many bottles are still sealed" is no longer just
-  `total_purchase_stocks`. `unused_stocks = floor(total_package_stocks /
-  package_quantity)` (whole containers with nothing touched yet); `used_stocks =
-  total_purchase_stocks - unused_stocks` (containers that have been opened, whether
-  partially or fully consumed, but not yet discarded via stock-out). Example: 2 bottles
-  at 100ml each (`total_package_stocks` = 200), 1.5ml used in a treatment →
-  `total_package_stocks` = 198.5 → unused = 1, used = 1. See
-  `InventoryItem.unusedStockQty` / `.usedStockQty` in `lib/models/inventory_item.dart`.
-  Both equal `total_purchase_stocks` / 0 for items with no package breakdown.
+  **Unused Stocks / Used Stocks / In Use** (derived, not stored columns): once the two
+  pools can diverge, "how many bottles are still sealed" is no longer just
+  `total_purchase_stocks`. Let `total_consumed = total_purchase_stocks * package_quantity
+  - total_package_stocks` (cumulative package-unit qty ever drawn down). Then:
+  `unused_stocks = floor(total_package_stocks / package_quantity)` (whole containers with
+  nothing touched yet); `used_stocks = floor(total_consumed / package_quantity)`
+  (containers *fully* depleted, not just opened); `in_use = total_consumed %
+  package_quantity` (the partial qty consumed from the one container that's currently
+  open but not yet depleted — 0 if nothing's currently open). Example: 2 bottles at
+  100ml each (`total_package_stocks` = 200), 6ml used in a treatment →
+  `total_package_stocks` = 194 → unused = 1, used = 0, in_use = 6ml (one bottle opened,
+  not yet fully consumed). See `InventoryItem.unusedStockQty` / `.usedStockQty` /
+  `.inUseQty` in `lib/models/inventory_item.dart`. `unused_stocks` equals
+  `total_purchase_stocks`, and `used`/`in_use` are both 0, for items with no package
+  breakdown.
+
+  Donor-facing impact reporting (`lib/services/impact_fifo.dart`) intentionally uses a
+  *different*, simpler convention — any container touched at all (even partially) counts
+  as one whole "used" container — so a donor is told "1 bottle used" rather than a
+  fraction. It does not share `usedStockQty`'s "fully depleted only" definition.
 
   **Out of stock**: an item is out of stock only when NEITHER pool has anything left —
   `total_purchase_stocks <= 0` AND (`total_package_stocks` is null or `<= 0`). A bottle
-  that's been fully drained (used=2, unused=0, `total_package_stocks`=0) but not yet
-  discarded via stock-out still shows as "In Stock" as long as `total_purchase_stocks`
-  is still > 0 — the empty container is still physically on the shelf. See
-  `InventoryItem.isOutOfStock`.
+  that's been fully drained (used=2, unused=0, in_use=0, `total_package_stocks`=0) but
+  not yet discarded via stock-out still shows as "In Stock" as long as
+  `total_purchase_stocks` is still > 0 — the empty container is still physically on the
+  shelf. See `InventoryItem.isOutOfStock`.
 
 ## PET
 - id — uuid, PK

@@ -33,8 +33,9 @@ String formatQty(double qty) {
 /// package-unit terms and IS decremented by treatment usage (for deductible
 /// items with a package breakdown). It starts in sync with
 /// `stockQty * packageQuantity` but diverges from it as doses are consumed
-/// without a whole container being removed -- see [unusedStockQty] /
-/// [usedStockQty].
+/// without a whole container being removed -- see [unusedStockQty],
+/// [usedStockQty] (fully depleted containers only), and [inUseQty] (the
+/// partial amount consumed from the one container that's currently open).
 class InventoryItem {
   final String itemId;
   final String itemName;
@@ -125,13 +126,37 @@ class InventoryItem {
     return unused.clamp(0, _containerCount);
   }
 
-  /// Containers that have been opened/started by treatment usage but not
-  /// (yet) fully consumed and discarded -- `_containerCount -
-  /// unusedStockQty`. Always 0 for items with no package breakdown, and
-  /// always a whole number.
-  double get usedStockQty => packageQuantity == null
-      ? 0
-      : (_containerCount - unusedStockQty).clamp(0, _containerCount);
+  /// Cumulative package-unit quantity ever drawn down from the pool
+  /// (treatment usage, mainly) -- the capacity of every container currently
+  /// on hand minus what's actually left in the pool. Assumes
+  /// [packageQuantity] hasn't changed since any of that stock was added
+  /// (it's a fixed item attribute). 0 for items with no package breakdown.
+  double get _totalConsumed {
+    if (packageQuantity == null || packageQuantity == 0) return 0;
+    final capacity = _containerCount * packageQuantity!;
+    final remaining = packageStockQty ?? capacity;
+    return (capacity - remaining).clamp(0, capacity);
+  }
+
+  /// Purchase units that have been fully consumed/depleted -- not just
+  /// opened -- `floor(total consumed / package quantity)`. A container
+  /// that's been opened but still has some package-unit quantity left in it
+  /// is NOT counted here; see [inUseQty] for that partial amount. Always 0
+  /// for items with no package breakdown, and always a whole number.
+  double get usedStockQty {
+    if (packageQuantity == null || packageQuantity == 0) return 0;
+    return (_totalConsumed / packageQuantity!).floorToDouble().clamp(0, _containerCount);
+  }
+
+  /// Package-unit quantity consumed so far from the one container that's
+  /// currently open but not yet fully depleted (e.g. 6 out of a 30-tablet
+  /// box) -- `total consumed % package quantity`. 0 when nothing is
+  /// currently open: either untouched, or consumption lines up exactly on a
+  /// container boundary (a whole unit was just fully used up).
+  double get inUseQty {
+    if (packageQuantity == null || packageQuantity == 0) return 0;
+    return _totalConsumed % packageQuantity!;
+  }
 
   /// True only when there's nothing usable left by either measure: no
   /// sealed containers AND no partial amount remaining in an opened one.
