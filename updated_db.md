@@ -76,20 +76,44 @@ existing patterns in this same schema (not invented from nothing):
   leaving `total_purchase_stocks` untouched — using part of a bottle doesn't remove it
   from the shelf. Null for items with no package breakdown (`package_quantity` unset).
 
-  **Unused Stocks / Used Stocks / In Use** (derived, not stored columns): once the two
-  pools can diverge, "how many bottles are still sealed" is no longer just
+  **Unused Stocks / In Use** (derived from the item row alone, not stored columns): once
+  the two pools can diverge, "how many bottles are still sealed" is no longer just
   `total_purchase_stocks`. Let `total_consumed = total_purchase_stocks * package_quantity
-  - total_package_stocks` (cumulative package-unit qty ever drawn down). Then:
-  `unused_stocks = floor(total_package_stocks / package_quantity)` (whole containers with
-  nothing touched yet); `used_stocks = floor(total_consumed / package_quantity)`
-  (containers *fully* depleted, not just opened); `in_use = total_consumed %
-  package_quantity` (the partial qty consumed from the one container that's currently
-  open but not yet depleted — 0 if nothing's currently open). Example: 2 bottles at
-  100ml each (`total_package_stocks` = 200), 6ml used in a treatment →
-  `total_package_stocks` = 194 → unused = 1, used = 0, in_use = 6ml (one bottle opened,
-  not yet fully consumed). See `InventoryItem.unusedStockQty` / `.usedStockQty` /
-  `.inUseQty` in `lib/models/inventory_item.dart`. `unused_stocks` equals
-  `total_purchase_stocks`, and `used`/`in_use` are both 0, for items with no package
+  - total_package_stocks` (cumulative package-unit qty drawn down by treatment against
+  the containers currently on hand — stock-in/out events always move both pools by an
+  exact multiple of `package_quantity`, so this value is unaffected by them; only
+  treatment usage changes it). Then: `unused_stocks = floor(total_package_stocks /
+  package_quantity)` (whole containers with nothing touched yet); `in_use =
+  total_consumed % package_quantity` (the partial qty consumed from the one container
+  that's currently open but not yet depleted — 0 if nothing's currently open).
+
+  **Used Stocks** (derived from full history, not just the item row): unlike Unused/In
+  Use, a container that's been stocked out (waste/expired/adjustment) is gone from
+  `total_purchase_stocks` entirely, with nothing left on the item row to show it ever
+  existed — so Used Stocks is a lifetime tally across STOCK_OUT and TREATMENT_ITEM,
+  not derived from current pool state. `used_stocks = (sum of STOCK_OUT.qty for this
+  item, always whole purchase_unit events) + floor(total_consumed / package_quantity)`
+  (the whole-container equivalent of fully-depleted treatment usage). Using an item in a
+  treatment and stocking it out for any other reason are both just "this container is no
+  longer available," so both count. For items with no package breakdown, every dose is
+  itself a direct whole-purchase-unit deduction (see the TREATMENT_ITEM stock deduction
+  rule), so `used_stocks` there is simply `sum(STOCK_OUT.qty) + sum(TREATMENT_ITEM.
+  dispensed_qty)`. Non-deductible treatment usage (dispense unit differs from package
+  unit, no stored conversion) never draws from any pool and isn't counted anywhere.
+
+  Example: 2 bottles at 100ml each (`total_package_stocks` = 200), 6ml used in a
+  treatment → `total_package_stocks` = 194 → unused = 1, in_use = 6ml (one bottle
+  opened, not yet fully consumed), used = 0 (nothing fully depleted or stocked out yet).
+  If a whole bottle is then thrown out via a waste stock-out (qty=1): `total_purchase_
+  stocks` drops to 1, `total_package_stocks` drops to 94 (both pools move by the same
+  exact multiple of `package_quantity`). Recomputed against the new, smaller container
+  count: unused drops to 0 (94/100 floors to 0), in_use is still 6ml (total_consumed is
+  unchanged by whole-container events — see above), and used becomes 1 (the STOCK_OUT
+  sum) — the wasted bottle is accounted for even though it no longer appears in
+  `total_purchase_stocks` at all, and the model doesn't track *which* physical bottle
+  was discarded, only the aggregate pools. See `InventoryItem.unusedStockQty` /
+  `.usedStockQty` / `.inUseQty` in `lib/models/inventory_item.dart`. `unused_stocks`
+  equals `total_purchase_stocks`, and `in_use` is 0, for items with no package
   breakdown.
 
   Donor-facing impact reporting (`lib/services/impact_fifo.dart`) intentionally uses a
@@ -144,8 +168,13 @@ existing patterns in this same schema (not invented from nothing):
 - notes — text, nullable
 
 ## TREATMENT_ITEM
-- treatid — PK, fk TREATMENT.id
-- itemid — PK, fk ITEM.id
+- id — uuid, PK (`0008_treatment_item_surrogate_key.sql` -- was originally `primary key
+  (treatid, itemid)`, which only allowed one row per item per treatment. An ongoing
+  treatment can come back for a second, separately-timed dose of the same item, and
+  that has to be its own row, not merged into/overwriting the first -- so treatid/itemid
+  are now plain FKs, not unique together)
+- treatid — fk TREATMENT.id
+- itemid — fk ITEM.id
 - dispensed_qty — float
 - dispense_unit — fk UNITS.id (copied from `item.dispense_unit` at time of logging)
 - consumeddate — timestamptz

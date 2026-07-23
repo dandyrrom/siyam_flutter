@@ -104,6 +104,7 @@ class TreatmentRow {
 }
 
 class TreatmentItemRow {
+  final String id;
   final String treatId;
   final String itemId;
   final double dispensedQty;
@@ -114,6 +115,7 @@ class TreatmentItemRow {
   final String recordedByUserId;
 
   TreatmentItemRow({
+    required this.id,
     required this.treatId,
     required this.itemId,
     required this.dispensedQty,

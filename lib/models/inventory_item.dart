@@ -58,6 +58,23 @@ class InventoryItem {
   final bool hasPurchaseHistory;
   final bool hasDonationHistory;
 
+  /// Lifetime sum of stock_out.qty for this item (waste + expired +
+  /// adjustment combined, purchase_unit terms) -- unlike [stockQty], this
+  /// never decreases, since a stocked-out container is gone from
+  /// [stockQty]/[_containerCount] entirely and would otherwise vanish from
+  /// every stock stat with no record it ever existed. See [usedStockQty].
+  final double lifetimeStockOutQty;
+
+  /// Lifetime sum of treatment_item.dispensed_qty for this item, in
+  /// whatever unit each row was actually recorded in. Only meaningful (used
+  /// by [usedStockQty]) for items with no package breakdown, where every
+  /// dose is deducted 1:1 from [stockQty] directly -- for items with a
+  /// package breakdown, treatment consumption instead draws down
+  /// [packageStockQty], already fully recoverable from the current
+  /// snapshot via the package-unit math in [usedStockQty]/[inUseQty], so
+  /// this field is ignored there.
+  final double lifetimeTreatmentQty;
+
   const InventoryItem({
     required this.itemId,
     required this.itemName,
@@ -76,6 +93,8 @@ class InventoryItem {
     this.packageStockQty,
     this.hasPurchaseHistory = false,
     this.hasDonationHistory = false,
+    this.lifetimeStockOutQty = 0,
+    this.lifetimeTreatmentQty = 0,
   });
 
   /// See [AcquisitionSource] -- derived from [hasPurchaseHistory] /
@@ -138,14 +157,31 @@ class InventoryItem {
     return (capacity - remaining).clamp(0, capacity);
   }
 
-  /// Purchase units that have been fully consumed/depleted -- not just
-  /// opened -- `floor(total consumed / package quantity)`. A container
-  /// that's been opened but still has some package-unit quantity left in it
-  /// is NOT counted here; see [inUseQty] for that partial amount. Always 0
-  /// for items with no package breakdown, and always a whole number.
+  /// Whole purchase units ever fully consumed, by any means, across this
+  /// item's entire history -- not just what's still on the shelf. Combines:
+  ///  - Every stock-out ([lifetimeStockOutQty]: waste, expired, adjustment)
+  ///    -- always whole purchase-unit events, and always counted, since
+  ///    using an item up (via treatment) and stocking it out (for any other
+  ///    reason) are both just "this container is no longer available."
+  ///  - Treatment usage: for items with no package breakdown, every dose is
+  ///    itself a direct whole-purchase-unit deduction, so
+  ///    [lifetimeTreatmentQty] is added straight in. For items with a
+  ///    package breakdown and a deductible dispense unit, treatment instead
+  ///    draws down the package pool -- `floor(total consumed / package
+  ///    quantity)` (via [_totalConsumed]) gives the whole-container
+  ///    equivalent of that, e.g. modulo package quantity is 0. A container
+  ///    that's been opened but not yet fully depleted this way is NOT
+  ///    counted here; see [inUseQty] for that partial amount. Non-deductible
+  ///    treatment usage (dispense unit differs from package unit, no stored
+  ///    conversion) never draws from any pool and isn't counted anywhere.
+  /// Always a whole number; NOT clamped to the current [_containerCount],
+  /// since stocked-out containers no longer count toward it at all.
   double get usedStockQty {
-    if (packageQuantity == null || packageQuantity == 0) return 0;
-    return (_totalConsumed / packageQuantity!).floorToDouble().clamp(0, _containerCount);
+    if (packageQuantity == null || packageQuantity == 0) {
+      return lifetimeStockOutQty + lifetimeTreatmentQty;
+    }
+    final treatmentUnits = (_totalConsumed / packageQuantity!).floorToDouble();
+    return lifetimeStockOutQty + treatmentUnits;
   }
 
   /// Package-unit quantity consumed so far from the one container that's

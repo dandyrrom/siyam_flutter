@@ -112,12 +112,12 @@ class _InventoryPageState extends State<InventoryPage>
         opt.subcategories[i.sCategoryId!] = i.sCategoryName!;
       }
     }
-    final list = byId.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final list = byId.values.toList()..sort((a, b) => a.name.compareTo(b.name));
     return list;
   }
 
-  void _selectCategory({String? pCategoryId, String? sCategoryId, required String label}) {
+  void _selectCategory(
+      {String? pCategoryId, String? sCategoryId, required String label}) {
     setState(() {
       _selectedPCategoryId = pCategoryId;
       _selectedSCategoryId = sCategoryId;
@@ -139,7 +139,10 @@ class _InventoryPageState extends State<InventoryPage>
           _stockLevelFilter == null || i.stockLevel == _stockLevelFilter;
       final matchesSource =
           _sourceFilter == null || i.acquisitionSource == _sourceFilter;
-      return matchesSearch && matchesCategory && matchesStockLevel && matchesSource;
+      return matchesSearch &&
+          matchesCategory &&
+          matchesStockLevel &&
+          matchesSource;
     }).toList();
 
     switch (_sortOption) {
@@ -234,7 +237,8 @@ class _InventoryPageState extends State<InventoryPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!, style: const TextStyle(color: AppColors.mutedForeground)),
+            Text(_error!,
+                style: const TextStyle(color: AppColors.mutedForeground)),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -266,12 +270,14 @@ class _InventoryPageState extends State<InventoryPage>
                     AppDropdownOption('stockout', 'Stock out'),
                   ],
                   onSelected: (v) {
-                    if (v == 'purchase') context.push('/inventory/add?type=purchased');
-                    if (v == 'donation') context.push('/inventory/add?type=donated');
+                    if (v == 'purchase')
+                      context.push('/inventory/add?type=purchased');
+                    if (v == 'donation')
+                      context.push('/inventory/add?type=donated');
                     if (v == 'stockout') _openStockOutDialog();
                   },
-                  triggerBuilder: (context, isOpen) =>
-                      const AppDropdownButton(label: 'New', leadingIcon: Icons.add),
+                  triggerBuilder: (context, isOpen) => const AppDropdownButton(
+                      label: 'New', leadingIcon: Icons.add),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
@@ -289,9 +295,9 @@ class _InventoryPageState extends State<InventoryPage>
         ),
         const SizedBox(height: 2),
         Text('${_items.length} items',
-            style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
+            style: const TextStyle(
+                fontSize: 13, color: AppColors.mutedForeground)),
         const SizedBox(height: 20),
-
         Container(
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -334,7 +340,8 @@ class _InventoryPageState extends State<InventoryPage>
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(8)),
-                            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: BorderSide(
+                                color: AppColors.primary, width: 1.5),
                           ),
                         ),
                       ),
@@ -362,7 +369,10 @@ class _InventoryPageState extends State<InventoryPage>
                         for (final lvl in StockLevel.values)
                           AppDropdownOption(lvl, _stockLevelMeta(lvl).$1),
                       ],
-                      onSelect: (v) => setState(() { _stockLevelFilter = v; _page = 0; }),
+                      onSelect: (v) => setState(() {
+                        _stockLevelFilter = v;
+                        _page = 0;
+                      }),
                     ),
                     AppDropdown<AcquisitionSource?>(
                       label: _sourceFilter == null
@@ -373,7 +383,10 @@ class _InventoryPageState extends State<InventoryPage>
                         for (final s in AcquisitionSource.values)
                           AppDropdownOption(s, _sourceMeta(s).$1),
                       ],
-                      onSelect: (v) => setState(() { _sourceFilter = v; _page = 0; }),
+                      onSelect: (v) => setState(() {
+                        _sourceFilter = v;
+                        _page = 0;
+                      }),
                     ),
                     AppDropdown<_SortOption>(
                       label: 'Sort: ${_sortMeta(_sortOption).$1}',
@@ -386,7 +399,8 @@ class _InventoryPageState extends State<InventoryPage>
                     if (_hasActiveFilters)
                       TextButton.icon(
                         onPressed: _resetFilters,
-                        icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
+                        icon:
+                            const Icon(Icons.filter_alt_off_outlined, size: 16),
                         label: const Text('Reset Filters'),
                       ),
                   ],
@@ -407,7 +421,9 @@ class _InventoryPageState extends State<InventoryPage>
                             style: TextStyle(fontWeight: FontWeight.w600)),
                         SizedBox(height: 4),
                         Text('Items you add will show up here.',
-                            style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                            style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.mutedForeground)),
                       ],
                     ),
                   ),
@@ -419,7 +435,8 @@ class _InventoryPageState extends State<InventoryPage>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.search_off, size: 32, color: AppColors.mutedForeground),
+                        Icon(Icons.search_off,
+                            size: 32, color: AppColors.mutedForeground),
                         SizedBox(height: 8),
                         Text('No items match your filters.',
                             style: TextStyle(color: AppColors.mutedForeground)),
@@ -446,7 +463,9 @@ class _InventoryPageState extends State<InventoryPage>
                       Expanded(flex: 2, child: _HeaderCell('Source')),
                       SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Stock Level')),
-                      SizedBox(width: 56, child: _HeaderCell('Action', alignEnd: true)),
+                      SizedBox(
+                          width: 56,
+                          child: _HeaderCell('Action', alignEnd: true)),
                     ],
                   ),
                 ),
@@ -456,136 +475,185 @@ class _InventoryPageState extends State<InventoryPage>
                     for (var index = 0; index < _pageItems.length; index++) ...[
                       if (index > 0) const Divider(height: 1),
                       Builder(builder: (context) {
-                    final item = _pageItems[index];
-                    final (levelLabel, levelColor) = _stockLevelMeta(item.stockLevel);
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(item.displayId,
-                                style: const TextStyle(color: AppColors.mutedForeground)),
-                          ),
-                          Expanded(
-                            flex: 4,
-                            child: InkWell(
-                              onTap: () => context.push('/inventory/${item.itemId}'),
-                              child: RichText(
-                                overflow: TextOverflow.ellipsis,
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600, color: AppColors.foreground),
-                                  children: [
-                                    TextSpan(text: item.itemName),
-                                    if (item.packageLabel != null)
-                                      TextSpan(
-                                        text: ' ${item.packageLabel}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w400,
-                                            color: AppColors.mutedForeground),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(item.itemCategory,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 12)),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
+                        final item = _pageItems[index];
+                        final (levelLabel, levelColor) =
+                            _stockLevelMeta(item.stockLevel);
+                        final isOutOfStock =
+                            item.stockQty <= 0 && item.inUseQty <= 0;
+                        return InkWell(
+                          onTap: () =>
+                              context.push('/inventory/${item.itemId}'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                            child: Row(
                               children: [
-                                Text('${formatQty(item.unusedStockQty)} ${item.itemUom}',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                                if (item.inUseQty > 0)
-                                  Text(
-                                    '${formatQty(item.inUseQty)} ${item.packageUnitAbbr ?? item.itemUom} in use',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 11.5, color: AppColors.mutedForeground),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(item.displayId,
+                                      style: const TextStyle(
+                                          color: AppColors.mutedForeground)),
+                                ),
+                                Expanded(
+                                  flex: 4,
+                                  child: Row(
+                                    children: [
+                                      Flexible(
+                                        child: RichText(
+                                          overflow: TextOverflow.ellipsis,
+                                          text: TextSpan(
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.foreground),
+                                            children: [
+                                              TextSpan(text: item.itemName),
+                                              if (item.packageLabel != null)
+                                                TextSpan(
+                                                  text: ' ${item.packageLabel}',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      color: AppColors
+                                                          .mutedForeground),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      if (isOutOfStock) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.stockOut
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: const Text('Out of Stock',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.stockOut)),
+                                        ),
+                                      ],
+                                    ],
                                   ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(item.itemCategory,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 12)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                          '${formatQty(item.unusedStockQty)} ${item.itemUom}',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                      if (item.inUseQty > 0)
+                                        Text(
+                                          '${formatQty(item.inUseQty)} ${item.packageUnitAbbr ?? item.itemUom} in use',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: 11.5,
+                                              color: AppColors.mutedForeground),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: _SourceBadge(
+                                        source: item.acquisitionSource),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            levelColor.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(levelLabel,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: levelColor)),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 56,
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: AppMenuButton<String>(
+                                      options: const [
+                                        AppDropdownOption(
+                                            'view', 'View details'),
+                                        AppDropdownOption('in', 'Stock In'),
+                                        AppDropdownOption('out', 'Stock Out'),
+                                      ],
+                                      onSelected: (v) {
+                                        if (v == 'in')
+                                          context.push(
+                                              '/inventory/add?itemId=${item.itemId}');
+                                        if (v == 'out')
+                                          _openStockOutDialog(item: item);
+                                        if (v == 'view')
+                                          context.push(
+                                              '/inventory/${item.itemId}');
+                                      },
+                                      triggerBuilder: (context, isOpen) =>
+                                          const Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Icon(Icons.more_horiz, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: _SourceBadge(source: item.acquisitionSource),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: levelColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(levelLabel,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: levelColor)),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 56,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: AppMenuButton<String>(
-                                options: const [
-                                  AppDropdownOption('view', 'View details'),
-                                  AppDropdownOption('in', 'Stock In'),
-                                  AppDropdownOption('out', 'Stock Out'),
-                                ],
-                                onSelected: (v) {
-                                  if (v == 'in') context.push('/inventory/add?itemId=${item.itemId}');
-                                  if (v == 'out') _openStockOutDialog(item: item);
-                                  if (v == 'view') context.push('/inventory/${item.itemId}');
-                                },
-                                triggerBuilder: (context, isOpen) => const Padding(
-                                  padding: EdgeInsets.all(6),
-                                  child: Icon(Icons.more_horiz, size: 18),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                        );
                       }),
                     ],
                   ],
                 ),
                 const Divider(height: 1),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Wrap(
                     alignment: WrapAlignment.spaceBetween,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -602,34 +670,43 @@ class _InventoryPageState extends State<InventoryPage>
                             options: const [12, 25, 50]
                                 .map((n) => AppDropdownOption(n, '$n'))
                                 .toList(),
-                            onSelect: (v) => setState(() { _pageSize = v; _page = 0; }),
+                            onSelect: (v) => setState(() {
+                              _pageSize = v;
+                              _page = 0;
+                            }),
                           ),
                           const SizedBox(width: 8),
-                          const Text('Per Page', style: TextStyle(fontSize: 12.5)),
+                          const Text('Per Page',
+                              style: TextStyle(fontSize: 12.5)),
                         ],
                       ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TextButton.icon(
-                            onPressed: _page > 0 ? () => setState(() => _page--) : null,
+                            onPressed: _page > 0
+                                ? () => setState(() => _page--)
+                                : null,
                             icon: const Icon(Icons.chevron_left, size: 16),
                             label: const Text('Previous'),
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text('${_page + 1} / $_pageCount',
-                                style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12)),
                           ),
                           const SizedBox(width: 4),
                           TextButton.icon(
-                            onPressed:
-                                _page < _pageCount - 1 ? () => setState(() => _page++) : null,
+                            onPressed: _page < _pageCount - 1
+                                ? () => setState(() => _page++)
+                                : null,
                             icon: const Icon(Icons.chevron_right, size: 16),
                             label: const Text('Next'),
                           ),
@@ -670,7 +747,8 @@ class _CategoryFilterMenu extends StatefulWidget {
   final List<_PrimaryCategoryOption> primaryCategories;
   final VoidCallback onSelectAll;
   final ValueChanged<_PrimaryCategoryOption> onSelectPrimary;
-  final void Function(_PrimaryCategoryOption p, String subId, String subName) onSelectSub;
+  final void Function(_PrimaryCategoryOption p, String subId, String subName)
+      onSelectSub;
 
   const _CategoryFilterMenu({
     required this.label,
@@ -752,13 +830,14 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
                   children: [
                     AppDropdownMenuRow(
                       label: 'All ${hovered.name}',
-                      onTap: () => _select(() => widget.onSelectPrimary(hovered!)),
+                      onTap: () =>
+                          _select(() => widget.onSelectPrimary(hovered!)),
                     ),
                     for (final e in subs)
                       AppDropdownMenuRow(
                         label: e.value,
-                        onTap: () =>
-                            _select(() => widget.onSelectSub(hovered!, e.key, e.value)),
+                        onTap: () => _select(
+                            () => widget.onSelectSub(hovered!, e.key, e.value)),
                       ),
                   ],
                 ),
@@ -804,7 +883,8 @@ class _SourceBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color) = _meta;
     if (source == AcquisitionSource.none) {
-      return Text(label, style: const TextStyle(color: AppColors.mutedForeground));
+      return Text(label,
+          style: const TextStyle(color: AppColors.mutedForeground));
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -814,7 +894,8 @@ class _SourceBadge extends StatelessWidget {
       ),
       child: Text(label,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          style: TextStyle(
+              fontSize: 12, fontWeight: FontWeight.w600, color: color)),
     );
   }
 }

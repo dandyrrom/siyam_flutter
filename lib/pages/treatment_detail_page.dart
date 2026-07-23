@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../models/pet.dart';
 import '../models/treatment.dart';
+import '../services/inventory_service.dart';
 import '../services/treatment_service.dart';
+import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../widgets/search_select_field.dart';
 
 /// Full detail page for one treatment record, mirroring the structure of
 /// InventoryItemPage. Surfaces every TREATMENT/TREATMENT_ITEM column --
@@ -22,11 +26,14 @@ class TreatmentDetailPage extends StatefulWidget {
 class _TreatmentDetailPageState extends State<TreatmentDetailPage>
     with DataBusRefreshMixin<TreatmentDetailPage> {
   final TreatmentService _service = TreatmentService();
+  final InventoryService _inventoryService = InventoryService();
 
   TreatmentRecord? _record;
   List<TreatmentItemUsed> _itemsUsed = [];
+  List<InventoryItem> _items = [];
   bool _loading = true;
   bool _notFound = false;
+  bool _addingItem = false;
 
   @override
   void initState() {
@@ -58,11 +65,15 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
         });
         return;
       }
-      final itemsUsed = await _service.fetchItemsUsed(widget.treatId);
+      final results = await Future.wait([
+        _service.fetchItemsUsed(widget.treatId),
+        _inventoryService.fetchItems(),
+      ]);
       if (!mounted) return;
       setState(() {
         _record = record;
-        _itemsUsed = itemsUsed;
+        _itemsUsed = results[0] as List<TreatmentItemUsed>;
+        _items = results[1] as List<InventoryItem>;
         _loading = false;
       });
     } catch (_) {
@@ -78,6 +89,50 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
 
   IconData _speciesIcon(PetSpecies species) =>
       species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
+
+  Future<void> _openAddItemDialog() async {
+    if (_items.isEmpty) return;
+    final currentUser = context.read<AuthController>().profile;
+    final existingByItemId = <String, List<TreatmentItemUsed>>{};
+    for (final u in _itemsUsed) {
+      (existingByItemId[u.itemId] ??= []).add(u);
+    }
+    final result = await showDialog<_AddTreatmentItemResult>(
+      context: context,
+      builder: (context) => _AddTreatmentItemDialog(
+        items: _items,
+        existingByItemId: existingByItemId,
+        defaultAdministeredBy: currentUser?.fullName ?? '',
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final performedByUserId = currentUser?.userId;
+    if (performedByUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not identify the signed-in user.')));
+      return;
+    }
+
+    setState(() => _addingItem = true);
+    try {
+      await _service.addTreatmentItem(
+        treatId: widget.treatId,
+        item: result.input,
+        administeredByName: result.administeredBy,
+        performedByUserId: performedByUserId,
+        dateAdministered: result.dateAdministered,
+      );
+      if (!mounted) return;
+      setState(() => _addingItem = false);
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _addingItem = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not add item: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +222,30 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
           ],
           const SizedBox(height: 24),
 
-          const Text('Items Used', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Items Used',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              TextButton.icon(
+                onPressed: (_addingItem || _items.isEmpty) ? null : _openAddItemDialog,
+                icon: _addingItem
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add, size: 16),
+                label: const Text('Add Item'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'This treatment is ongoing -- log another item (or another dose of one '
+            'already listed) as it happens.',
+            style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+          ),
           const SizedBox(height: 12),
           if (_itemsUsed.isEmpty)
             const Padding(
@@ -282,3 +360,224 @@ const _monthAbbrev = [
 
 String _formatDate(DateTime date) =>
     '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
+
+class _AddTreatmentItemResult {
+  final TreatmentItemInput input;
+  final String administeredBy;
+  final DateTime dateAdministered;
+
+  const _AddTreatmentItemResult({
+    required this.input,
+    required this.administeredBy,
+    required this.dateAdministered,
+  });
+}
+
+/// Dialog for logging another item (or another dose of one already given
+/// during this treatment) against an already-existing, ongoing treatment.
+/// Re-picking an item already in [existingByItemId] does NOT merge with or
+/// overwrite its prior dose(s) -- see [TreatmentService.addTreatmentItem] --
+/// it's always written as its own separate, independently-timed dose. This
+/// surfaces the prior dose(s) as context, not a merge warning.
+class _AddTreatmentItemDialog extends StatefulWidget {
+  final List<InventoryItem> items;
+  final Map<String, List<TreatmentItemUsed>> existingByItemId;
+  final String defaultAdministeredBy;
+
+  const _AddTreatmentItemDialog({
+    required this.items,
+    required this.existingByItemId,
+    required this.defaultAdministeredBy,
+  });
+
+  @override
+  State<_AddTreatmentItemDialog> createState() => _AddTreatmentItemDialogState();
+}
+
+class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _itemCtrl = TextEditingController();
+  final _qtyCtrl = TextEditingController(text: '1');
+  late final _administeredByCtrl =
+      TextEditingController(text: widget.defaultAdministeredBy);
+  DateTime _dateAdministered = DateTime.now();
+  InventoryItem? _selectedItem;
+
+  @override
+  void dispose() {
+    _itemCtrl.dispose();
+    _qtyCtrl.dispose();
+    _administeredByCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Mirrors AddTreatmentPage's `_inputFromItem` -- the dose unit is fixed
+  /// to the item's own configuration, not a per-transaction choice.
+  TreatmentItemInput _inputFromItem(InventoryItem item, double qty) {
+    final doseUnitId = item.dispenseUnitId ?? item.packageUnitId ?? item.purchaseUnitId;
+    final doseUnitAbbr =
+        item.dispenseUnitAbbr ?? item.packageUnitAbbr ?? item.purchaseUnitAbbr;
+    return TreatmentItemInput(
+      itemId: item.itemId,
+      itemName: item.itemName,
+      doseUnitId: doseUnitId,
+      doseUnitAbbr: doseUnitAbbr,
+      deductible: item.stockOutIsDeductible,
+      stockQty: item.stockQty,
+      packageQuantity: item.packageQuantity,
+      packageStockQty: item.packageStockQty,
+      qty: qty,
+    );
+  }
+
+  /// The max dose this can validly deduct, in dose-unit terms -- see
+  /// AddTreatmentPage's `_ItemRow._maxDoseQty` for the same logic.
+  double get _maxDoseQty {
+    final item = _selectedItem;
+    if (item == null || !item.stockOutIsDeductible) return double.infinity;
+    final packageQuantity = item.packageQuantity;
+    if (packageQuantity == null) return item.stockQty;
+    return item.packageStockQty ?? item.stockQty * packageQuantity;
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateAdministered,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _dateAdministered = picked);
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    final item = _selectedItem;
+    if (item == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Select an item.')));
+      return;
+    }
+    final qty = double.tryParse(_qtyCtrl.text) ?? 0;
+    Navigator.of(context).pop(_AddTreatmentItemResult(
+      input: _inputFromItem(item, qty),
+      administeredBy: _administeredByCtrl.text.trim(),
+      dateAdministered: _dateAdministered,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = _selectedItem;
+    final priorDoses = item == null ? null : widget.existingByItemId[item.itemId];
+    final mostRecentDose = priorDoses == null || priorDoses.isEmpty
+        ? null
+        : priorDoses.reduce(
+            (a, b) => a.consumedDate.isAfter(b.consumedDate) ? a : b);
+    final doseUnitAbbr =
+        item?.dispenseUnitAbbr ?? item?.packageUnitAbbr ?? item?.purchaseUnitAbbr;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Add Item to Treatment'),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SearchSelectField<InventoryItem>(
+                labelText: 'Item',
+                controller: _itemCtrl,
+                options: widget.items,
+                displayStringForOption: (i) => i.itemName,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                onSelected: (picked) => setState(() {
+                  _selectedItem = picked;
+                  _qtyCtrl.text = '1';
+                }),
+              ),
+              if (mostRecentDose != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Already given ${priorDoses!.length} '
+                  '${priorDoses.length == 1 ? 'time' : 'times'} in this treatment -- most '
+                  'recently ${formatQty(mostRecentDose.dispensedQty)} '
+                  '${mostRecentDose.dispenseUnitAbbr} on ${_formatDate(mostRecentDose.consumedDate)}. '
+                  'This will be logged as a separate, additional dose.',
+                  style: const TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _qtyCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                    labelText: doseUnitAbbr == null ? 'Dose' : 'Dose ($doseUnitAbbr)'),
+                validator: (v) {
+                  final n = double.tryParse(v ?? '');
+                  if (n == null || n <= 0) return 'Invalid';
+                  if (n > _maxDoseQty) return 'Only ${formatQty(_maxDoseQty)} left';
+                  return null;
+                },
+              ),
+              if (item != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      item.stockOutIsDeductible
+                          ? Icons.check_circle_outline
+                          : Icons.info_outline,
+                      size: 14,
+                      color: item.stockOutIsDeductible
+                          ? AppColors.roleManager
+                          : AppColors.mutedForeground,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        item.stockOutIsDeductible
+                            ? 'Will deduct from stock'
+                            : 'Logged only — no stock conversion available for this '
+                                'item\'s dispense unit',
+                        style:
+                            const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _administeredByCtrl,
+                decoration: const InputDecoration(labelText: 'Administered by'),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: _pickDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Date administered'),
+                  child: Text(_formatDate(_dateAdministered)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}

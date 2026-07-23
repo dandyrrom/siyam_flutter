@@ -26,6 +26,18 @@ abstract interface class TreatmentService {
     DateTime? dateAdministered,
     required List<TreatmentItemInput> items,
   });
+  /// Logs another item against an already-existing treatment (an ongoing
+  /// course of care coming back for a follow-up dose). Always writes a new
+  /// treatment_item row -- even if this item was already logged on this
+  /// treatment before, a later dose is a distinct event at a distinct time
+  /// and must not be merged into / overwrite the earlier one.
+  Future<void> addTreatmentItem({
+    required String treatId,
+    required TreatmentItemInput item,
+    required String administeredByName,
+    required String performedByUserId,
+    DateTime? dateAdministered,
+  });
 }
 
 /// In-memory equivalent of the old public.treatment / treatment_item access
@@ -91,6 +103,7 @@ class MockTreatmentService implements TreatmentService {
         recordedDate: row.recordedDate,
       ));
     }
+    result.sort((a, b) => b.recordedDate.compareTo(a.recordedDate));
     return result;
   }
 
@@ -133,6 +146,7 @@ class MockTreatmentService implements TreatmentService {
       if (item == null) continue;
 
       _db.treatmentItems.add(TreatmentItemRow(
+        id: newMockId('treatitem'),
         treatId: treatId,
         itemId: row.itemId,
         dispensedQty: row.qty,
@@ -148,5 +162,38 @@ class MockTreatmentService implements TreatmentService {
 
     DataChangeBus.instance.ping();
     return _toTreatmentRecord(treatmentRow);
+  }
+
+  @override
+  Future<void> addTreatmentItem({
+    required String treatId,
+    required TreatmentItemInput item,
+    required String administeredByName,
+    required String performedByUserId,
+    DateTime? dateAdministered,
+  }) async {
+    if (item.qty <= 0) return;
+    if (firstWhereOrNull(_db.treatments, (t) => t.id == treatId) == null) {
+      throw Exception('Treatment not found');
+    }
+    final invItem = await _inventoryService.fetchItem(item.itemId);
+    if (invItem == null) throw Exception('Item not found');
+
+    final now = DateTime.now();
+    final consumedDate = dateAdministered ?? now;
+    _db.treatmentItems.add(TreatmentItemRow(
+      id: newMockId('treatitem'),
+      treatId: treatId,
+      itemId: item.itemId,
+      dispensedQty: item.qty,
+      dispenseUnitId: item.doseUnitId,
+      consumedDate: consumedDate,
+      givenBy: administeredByName,
+      recordedDate: now,
+      recordedByUserId: performedByUserId,
+    ));
+
+    await applyTreatmentDeduction(_inventoryService, invItem, item.qty);
+    DataChangeBus.instance.ping();
   }
 }
