@@ -2,6 +2,7 @@ import '../mock/mock_database.dart';
 import '../models/inventory_item.dart';
 import '../models/stock_movement.dart';
 import '../models/stock_out.dart';
+import '../state/data_bus.dart';
 import 'backend.dart';
 import 'supabase/supabase_inventory_service.dart';
 
@@ -152,6 +153,7 @@ class MockInventoryService implements InventoryService {
       packageStocks: packageQuantity == null ? null : initialQty * packageQuantity,
     );
     _db.items.add(row);
+    DataChangeBus.instance.ping();
     return _toInventoryItem(row);
   }
 
@@ -173,6 +175,7 @@ class MockInventoryService implements InventoryService {
     }
     if (sCategoryId != null) row.sCategoryId = sCategoryId;
     if (purchaseUnitId != null) row.purchaseUnitId = purchaseUnitId;
+    DataChangeBus.instance.ping();
     return _toInventoryItem(row);
   }
 
@@ -196,6 +199,7 @@ class MockInventoryService implements InventoryService {
       final currentPackage = row.packageStocks ?? (row.purchaseStocks - delta) * row.packageQuantity!;
       row.packageStocks = currentPackage + delta * row.packageQuantity!;
     }
+    DataChangeBus.instance.ping();
     return _toInventoryItem(row);
   }
 
@@ -215,6 +219,7 @@ class MockInventoryService implements InventoryService {
       throw Exception('Not enough stock: only ${formatQty(current)} left');
     }
     row.packageStocks = next;
+    DataChangeBus.instance.ping();
     return _toInventoryItem(row);
   }
 
@@ -243,6 +248,7 @@ class MockInventoryService implements InventoryService {
   @override
   Future<void> deleteItem(String itemId) async {
     _db.items.removeWhere((i) => i.id == itemId);
+    DataChangeBus.instance.ping();
   }
 
   /// Unified stock movement history for one item -- merges every table that

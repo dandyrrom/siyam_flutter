@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/pet.dart';
+import '../../state/data_bus.dart';
 import '../pet_service.dart';
 
 /// Supabase-backed access for public.pet.
@@ -46,6 +47,7 @@ class SupabasePetService implements PetService {
         })
         .select(_columns)
         .single();
+    DataChangeBus.instance.ping();
     return _mapPet(row);
   }
 
@@ -60,11 +62,13 @@ class SupabasePetService implements PetService {
         .eq('id', petId)
         .select(_columns)
         .single();
+    DataChangeBus.instance.ping();
     return _mapPet(row);
   }
 
   @override
   Future<void> deletePet(String petId) async {
     await _client.from('pet').delete().eq('id', petId);
+    DataChangeBus.instance.ping();
   }
 }

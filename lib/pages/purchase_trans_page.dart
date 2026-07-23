@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
+import '../state/data_bus.dart';
 
 /// Read-only detail/receipt view for a single public.purchase_trans row:
 /// who it was placed with and by whom, when it was received, and every
@@ -16,7 +17,8 @@ class PurchaseTransPage extends StatefulWidget {
   State<PurchaseTransPage> createState() => _PurchaseTransPageState();
 }
 
-class _PurchaseTransPageState extends State<PurchaseTransPage> {
+class _PurchaseTransPageState extends State<PurchaseTransPage>
+    with DataBusRefreshMixin<PurchaseTransPage> {
   final SupplierService _service = SupplierService();
 
   PurchaseOrder? _order;
@@ -30,11 +32,16 @@ class _PurchaseTransPageState extends State<PurchaseTransPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _notFound = false;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _notFound = false;
+      });
+    }
     try {
       final results = await Future.wait([
         _service.fetchPurchaseOrder(widget.purId),
@@ -50,10 +57,12 @@ class _PurchaseTransPageState extends State<PurchaseTransPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _notFound = true;
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _notFound = true;
+          _loading = false;
+        });
+      }
     }
   }
 

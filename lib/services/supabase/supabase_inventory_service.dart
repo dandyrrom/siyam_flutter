@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/inventory_item.dart';
 import '../../models/stock_movement.dart';
 import '../../models/stock_out.dart';
+import '../../state/data_bus.dart';
 import '../inventory_service.dart';
 
 /// Supabase-backed inventory access for public.item, with category/unit FKs
@@ -147,6 +148,7 @@ class SupabaseInventoryService implements InventoryService {
         .select('id')
         .single();
     final created = await fetchItem(row['id'] as String);
+    DataChangeBus.instance.ping();
     return created!;
   }
 
@@ -175,6 +177,7 @@ class SupabaseInventoryService implements InventoryService {
       await _client.from('item').update(updates).eq('id', itemId);
     }
     final updated = await fetchItem(itemId);
+    DataChangeBus.instance.ping();
     return updated!;
   }
 
@@ -200,6 +203,7 @@ class SupabaseInventoryService implements InventoryService {
     }
     await _client.from('item').update(updates).eq('id', itemId);
     final updated = await fetchItem(itemId);
+    DataChangeBus.instance.ping();
     return updated!;
   }
 
@@ -225,6 +229,7 @@ class SupabaseInventoryService implements InventoryService {
         .from('item')
         .update({'total_package_stocks': next}).eq('id', itemId);
     final updated = await fetchItem(itemId);
+    DataChangeBus.instance.ping();
     return updated!;
   }
 
@@ -247,6 +252,7 @@ class SupabaseInventoryService implements InventoryService {
   @override
   Future<void> deleteItem(String itemId) async {
     await _client.from('item').delete().eq('id', itemId);
+    DataChangeBus.instance.ping();
   }
 
   String _stockOutReasonLabel(StockOutReason reason) {

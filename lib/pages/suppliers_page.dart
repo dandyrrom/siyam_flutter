@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
+import '../state/data_bus.dart';
 import '../widgets/stat_card.dart';
 
 class SuppliersPage extends StatefulWidget {
@@ -11,7 +12,8 @@ class SuppliersPage extends StatefulWidget {
   State<SuppliersPage> createState() => _SuppliersPageState();
 }
 
-class _SuppliersPageState extends State<SuppliersPage> {
+class _SuppliersPageState extends State<SuppliersPage>
+    with DataBusRefreshMixin<SuppliersPage> {
   final SupplierService _service = SupplierService();
 
   List<Supplier> _suppliers = [];
@@ -26,11 +28,16 @@ class _SuppliersPageState extends State<SuppliersPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait([
         _service.fetchSuppliers(),
@@ -44,10 +51,12 @@ class _SuppliersPageState extends State<SuppliersPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load suppliers: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load suppliers: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

@@ -94,6 +94,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
   final _formKey = GlobalKey<FormState>();
   final _receivedByCtrl = TextEditingController();
+  final _donorNameCtrl = TextEditingController();
 
   bool _loading = true;
   String? _error;
@@ -101,7 +102,6 @@ class _AddItemPageState extends State<AddItemPage> {
 
   List<InventoryItem> _items = [];
   List<Supplier> _suppliers = [];
-  List<AppUser> _donors = [];
   List<AppUser> _receivers = []; // staff + manager
   List<DonationSubmission> _linkableSubmissions = [];
   List<PrimaryCategory> _primaryCategories = [];
@@ -110,10 +110,8 @@ class _AddItemPageState extends State<AddItemPage> {
 
   final List<_StockInLineItem> _lines = [];
 
-  String _procurementType = 'purchased'; // 'purchased' | 'donated'
-  String _donationMode = 'walkin'; // 'walkin' | 'submission'
+  String? _procurementType; // 'purchased' | 'donated'
   Supplier? _selectedSupplier;
-  AppUser? _selectedDonor;
   DonationSubmission? _selectedSubmission;
   AppUser? _selectedReceiver;
   DateTime _dateReceived = DateTime.now();
@@ -123,7 +121,6 @@ class _AddItemPageState extends State<AddItemPage> {
     super.initState();
     if (widget.type == 'donated') _procurementType = 'donated';
     if (widget.type == 'purchased') _procurementType = 'purchased';
-    if (widget.subId != null) _donationMode = 'submission';
     _load();
   }
 
@@ -133,6 +130,7 @@ class _AddItemPageState extends State<AddItemPage> {
       line.dispose();
     }
     _receivedByCtrl.dispose();
+    _donorNameCtrl.dispose();
     super.dispose();
   }
 
@@ -141,12 +139,10 @@ class _AddItemPageState extends State<AddItemPage> {
       _loading = true;
       _error = null;
     });
-    final currentUser = context.read<AuthController>().profile;
     try {
       final results = await Future.wait([
         _inventoryService.fetchItems(),
         _supplierService.fetchSuppliers(),
-        _authService.fetchUsersByRole([AppRole.donor]),
         _authService.fetchUsersByRole([AppRole.staff, AppRole.manager]),
         _donationService.fetchLinkableSubmissions(),
         _catalogService.fetchPrimaryCategories(),
@@ -165,13 +161,7 @@ class _AddItemPageState extends State<AddItemPage> {
         locked ??= await _inventoryService.fetchItem(widget.itemId!);
       }
 
-      final receivers = results[3] as List<AppUser>;
-      final defaultReceiver = currentUser == null
-          ? null
-          : receivers.where((u) => u.userId == currentUser.userId).cast<AppUser?>().firstWhere(
-                (u) => u != null,
-                orElse: () => currentUser,
-              );
+      final receivers = results[2] as List<AppUser>;
 
       final firstLine = _StockInLineItem();
       if (locked != null) {
@@ -180,7 +170,7 @@ class _AddItemPageState extends State<AddItemPage> {
         firstLine.nameCtrl.text = locked.itemName;
       }
 
-      final linkableSubmissions = results[4] as List<DonationSubmission>;
+      final linkableSubmissions = results[3] as List<DonationSubmission>;
       DonationSubmission? preselectedSubmission;
       if (widget.subId != null) {
         preselectedSubmission = linkableSubmissions
@@ -192,15 +182,15 @@ class _AddItemPageState extends State<AddItemPage> {
       setState(() {
         _items = items;
         _suppliers = results[1] as List<Supplier>;
-        _donors = results[2] as List<AppUser>;
         _receivers = receivers;
-        _linkableSubmissions = results[4] as List<DonationSubmission>;
-        _primaryCategories = results[5] as List<PrimaryCategory>;
-        _subcategories = results[6] as List<Subcategory>;
-        _units = results[7] as List<Unit>;
-        _selectedReceiver = defaultReceiver;
-        _receivedByCtrl.text = defaultReceiver?.fullName ?? '';
-        if (preselectedSubmission != null) _selectedSubmission = preselectedSubmission;
+        _linkableSubmissions = linkableSubmissions;
+        _primaryCategories = results[4] as List<PrimaryCategory>;
+        _subcategories = results[5] as List<Subcategory>;
+        _units = results[6] as List<Unit>;
+        if (preselectedSubmission != null) {
+          _selectedSubmission = preselectedSubmission;
+          _donorNameCtrl.text = preselectedSubmission.donorName;
+        }
         _lines
           ..clear()
           ..add(firstLine);
@@ -366,14 +356,14 @@ class _AddItemPageState extends State<AddItemPage> {
     void Function(Unit) assign,
   ) async {
     Navigator.of(context).maybePop();
-    final name = await _promptForText('Add Unit', 'Unit (e.g. ml, tablet, box)');
+    final name = await _promptForText('Add Unit', 'Unit name (e.g. Milliliter, Tablet, Box)');
     if (name == null) return;
     final created = await _catalogService.createUnit(name);
     if (!mounted) return;
     setState(() {
       _units = [..._units, created];
       assign(created);
-      targetCtrl.text = created.abbrName;
+      targetCtrl.text = created.name;
     });
   }
 
@@ -394,16 +384,6 @@ class _AddItemPageState extends State<AddItemPage> {
     if (isPurchased && _selectedSupplier == null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Select a supplier.')));
-      return;
-    }
-    if (!isPurchased && _donationMode == 'walkin' && _selectedDonor == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select a donor.')));
-      return;
-    }
-    if (!isPurchased && _donationMode == 'submission' && _selectedSubmission == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select a submission to link.')));
       return;
     }
     if (_selectedReceiver == null) {
@@ -478,17 +458,18 @@ class _AddItemPageState extends State<AddItemPage> {
               qty: double.parse(_lines[i].qtyCtrl.text.trim()),
             ),
         ];
-        if (_donationMode == 'submission') {
+        if (_selectedSubmission != null) {
           await _donationService.approveSubmission(
             subId: _selectedSubmission!.subId,
             donorId: _selectedSubmission!.donorId,
             updatedByUserId: currentUserId,
             receivedBy: _receivedByCtrl.text.trim(),
             items: items,
+            receivedDate: _dateReceived,
           );
         } else {
           await _donationService.recordDirectDonation(
-            donorId: _selectedDonor!.userId,
+            donorName: _donorNameCtrl.text.trim().isEmpty ? null : _donorNameCtrl.text.trim(),
             recordedByUserId: currentUserId,
             receivedBy: _receivedByCtrl.text.trim(),
             items: items,
@@ -526,6 +507,7 @@ class _AddItemPageState extends State<AddItemPage> {
     }
 
     final isPurchased = _procurementType == 'purchased';
+    final isDonated = _procurementType == 'donated';
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 640),
@@ -547,17 +529,23 @@ class _AddItemPageState extends State<AddItemPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionLabel(isPurchased ? 'Purchase details' : 'Donation details'),
+                _SectionLabel(isPurchased
+                    ? 'Purchase details'
+                    : isDonated
+                        ? 'Donation details'
+                        : 'Procurement details'),
                 Row(
                   children: [
                     Expanded(
                       child: AppDropdownField<String>(
                         label: 'Type',
                         initialValue: _procurementType,
+                        placeholder: 'Select type',
                         options: const [
                           AppDropdownOption('purchased', 'Purchased'),
                           AppDropdownOption('donated', 'Donated'),
                         ],
+                        validator: (v) => v == null ? 'Required' : null,
                         onChanged: (v) => setState(() => _procurementType = v),
                       ),
                     ),
@@ -579,65 +567,55 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                   ],
                 ),
-                if (!isPurchased) ...[
+                if (isDonated) ...[
                   const SizedBox(height: 12),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'walkin', label: Text('Walk-in donation')),
-                      ButtonSegment(value: 'submission', label: Text('Link to submission')),
-                    ],
-                    selected: {_donationMode},
-                    onSelectionChanged: (s) => setState(() => _donationMode = s.first),
-                  ),
-                  const SizedBox(height: 12),
-                  if (_donationMode == 'submission')
-                    _selectedSubmission == null
-                        ? SearchSelectField<DonationSubmission>(
-                            labelText: 'Submission',
-                            options: _linkableSubmissions,
-                            displayStringForOption: (s) =>
-                                '${s.donorName} — ${_formatDate(s.dateSub)}',
-                            validator: (v) =>
-                                _selectedSubmission == null ? 'Required' : null,
-                            onSelected: (s) => setState(() => _selectedSubmission = s),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Donor: ${_selectedSubmission!.donorName}',
-                                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                                      const SizedBox(height: 4),
-                                      Text('Submission ID: ${_selectedSubmission!.subId}',
-                                          style: const TextStyle(
-                                              fontSize: 12, color: AppColors.mutedForeground)),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close, size: 16),
-                                  onPressed: () => setState(() => _selectedSubmission = null),
-                                ),
-                              ],
-                            ),
-                          )
-                  else
-                    SearchSelectField<AppUser>(
-                      labelText: 'Donor',
-                      options: _donors,
-                      displayStringForOption: (u) => u.fullName,
-                      initialText: _selectedDonor?.fullName,
-                      onSelected: (u) => setState(() => _selectedDonor = u),
+                  _selectedSubmission == null
+                      ? SearchSelectField<DonationSubmission>(
+                          labelText: 'Link to submission (optional)',
+                          options: _linkableSubmissions,
+                          displayStringForOption: (s) =>
+                              '${s.subId} — ${s.donorName} — '
+                              '${_formatDate(s.dateReceived!)}',
+                          onSelected: (s) => setState(() {
+                            _selectedSubmission = s;
+                            _donorNameCtrl.text = s.donorName;
+                          }),
+                        )
+                      : InputDecorator(
+                          decoration:
+                              const InputDecoration(labelText: 'Link to submission (optional)'),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(_selectedSubmission!.subId,
+                                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, size: 16),
+                                onPressed: () => setState(() {
+                                  _selectedSubmission = null;
+                                  _donorNameCtrl.clear();
+                                }),
+                              ),
+                            ],
+                          ),
+                        ),
+                  if (_selectedSubmission == null) ...[
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Leave the submission link blank for a donor who isn\'t registered in '
+                      'SIYAM -- type their name below for your records only.',
+                      style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
                     ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _donorNameCtrl,
+                    readOnly: _selectedSubmission != null,
+                    decoration: const InputDecoration(
+                        labelText: 'Donor name (optional, for documentation only)'),
+                  ),
                 ],
                 const SizedBox(height: 12),
                 Row(
@@ -872,7 +850,7 @@ class _ItemDetailsBlock extends StatelessWidget {
               labelText: 'Purchase unit (the container bought, e.g. box, bottle)',
               controller: line.purchaseUnitCtrl,
               options: units,
-              displayStringForOption: (u) => u.abbrName,
+              displayStringForOption: (u) => u.name,
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               onAddNew: onAddPurchaseUnit,
               onSelected: (u) {
@@ -895,7 +873,7 @@ class _ItemDetailsBlock extends StatelessWidget {
                     labelText: 'Package unit (optional)',
                     controller: line.packageUnitCtrl,
                     options: units,
-                    displayStringForOption: (u) => u.abbrName,
+                    displayStringForOption: (u) => u.name,
                     onAddNew: onAddPackageUnit,
                     onSelected: (u) {
                       line.selectedPackageUnit = u;
@@ -919,7 +897,7 @@ class _ItemDetailsBlock extends StatelessWidget {
               labelText: 'Dispense unit (optional -- unit doses are recorded in)',
               controller: line.dispenseUnitCtrl,
               options: units,
-              displayStringForOption: (u) => u.abbrName,
+              displayStringForOption: (u) => u.name,
               onAddNew: onAddDispenseUnit,
               onSelected: (u) {
                 line.selectedDispenseUnit = u;

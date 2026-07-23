@@ -5,6 +5,7 @@ import '../core/app_theme.dart';
 import '../models/inventory_item.dart';
 import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
+import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stock_out_dialog.dart';
 
@@ -17,7 +18,8 @@ class InventoryPage extends StatefulWidget {
 
 enum _SortOption { nameAsc, nameDesc, stockAsc, stockDesc }
 
-class _InventoryPageState extends State<InventoryPage> {
+class _InventoryPageState extends State<InventoryPage>
+    with DataBusRefreshMixin<InventoryPage> {
   final InventoryService _service = InventoryService();
   final _searchCtrl = TextEditingController();
 
@@ -69,11 +71,16 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final items = await _service.fetchItems();
       if (!mounted) return;
@@ -83,10 +90,12 @@ class _InventoryPageState extends State<InventoryPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load inventory: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load inventory: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

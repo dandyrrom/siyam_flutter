@@ -5,6 +5,7 @@ import '../models/pet.dart';
 import '../models/treatment.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
+import '../state/data_bus.dart';
 
 class MedicalRecordsPage extends StatefulWidget {
   const MedicalRecordsPage({super.key});
@@ -13,7 +14,8 @@ class MedicalRecordsPage extends StatefulWidget {
   State<MedicalRecordsPage> createState() => _MedicalRecordsPageState();
 }
 
-class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
+class _MedicalRecordsPageState extends State<MedicalRecordsPage>
+    with DataBusRefreshMixin<MedicalRecordsPage> {
   final TreatmentService _treatmentService = TreatmentService();
   final PetService _petService = PetService();
 
@@ -30,11 +32,16 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait([
         _treatmentService.fetchTreatments(),
@@ -48,10 +55,12 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not load medical records: $e';
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = 'Could not load medical records: $e';
+          _loading = false;
+        });
+      }
     }
   }
 

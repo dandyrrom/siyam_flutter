@@ -2,6 +2,7 @@ import '../mock/mock_database.dart';
 import '../models/primary_category.dart';
 import '../models/subcategory.dart';
 import '../models/unit.dart';
+import '../state/data_bus.dart';
 import 'backend.dart';
 import 'supabase/supabase_catalog_service.dart';
 
@@ -20,7 +21,7 @@ abstract interface class CatalogService {
     required String pCategoryId,
     required String type,
   });
-  Future<Unit> createUnit(String abbrName);
+  Future<Unit> createUnit(String name);
 }
 
 /// Lookup-table access for public.primary_category / subcategory / units --
@@ -49,7 +50,7 @@ class MockCatalogService implements CatalogService {
   @override
   Future<List<Unit>> fetchUnits() async {
     final list = List<Unit>.from(_db.units);
-    list.sort((a, b) => a.abbrName.compareTo(b.abbrName));
+    list.sort((a, b) => a.name.compareTo(b.name));
     return list;
   }
 
@@ -57,6 +58,7 @@ class MockCatalogService implements CatalogService {
   Future<PrimaryCategory> createPrimaryCategory(String type) async {
     final category = PrimaryCategory(id: newMockId('pcat'), type: type);
     _db.primaryCategories.add(category);
+    DataChangeBus.instance.ping();
     return category;
   }
 
@@ -68,13 +70,15 @@ class MockCatalogService implements CatalogService {
     final subcategory =
         Subcategory(id: newMockId('scat'), pCategoryId: pCategoryId, type: type);
     _db.subcategories.add(subcategory);
+    DataChangeBus.instance.ping();
     return subcategory;
   }
 
   @override
-  Future<Unit> createUnit(String abbrName) async {
-    final unit = Unit(id: newMockId('unit'), abbrName: abbrName);
+  Future<Unit> createUnit(String name) async {
+    final unit = Unit(id: newMockId('unit'), name: name, abbrName: name);
     _db.units.add(unit);
+    DataChangeBus.instance.ping();
     return unit;
   }
 }

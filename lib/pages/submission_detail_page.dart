@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
@@ -7,18 +8,14 @@ import '../models/donation.dart';
 import '../services/auth_service.dart';
 import '../services/donation_service.dart';
 import '../state/auth_state.dart';
+import '../state/data_bus.dart';
 
 /// Staff-only detail view for a single donor submission (public.submission):
-/// full donor + submission details, plus the status flow --
-/// Reject/Approve while pending, then once approved an "Items Received"
-/// confirmation gate, which reveals the Stock In entry point.
-///
-/// "Items received" isn't a stored status -- the `sub_status` enum is only
-/// pending/approved/rejected (see updated_db.md). The confirmation gate is
-/// client-side only ([_itemsReceivedConfirmed]); the durable record of
-/// receipt is whether a `donation` row is linked to this submission yet
-/// (via [DonationService.fetchReceivedItems]), which is what actually
-/// happens when Stock In is completed.
+/// full donor + submission details, plus the status flow -- Reject/Approve
+/// while pending, then once approved an "Items Received" confirmation gate
+/// (`status` -> received, `date_received` set), which reveals the Stock In
+/// entry point (`status` -> stocked, once a `donation` row is linked --
+/// see [DonationService.fetchReceivedItems]).
 class SubmissionDetailPage extends StatefulWidget {
   final String subId;
   const SubmissionDetailPage({super.key, required this.subId});
@@ -27,7 +24,8 @@ class SubmissionDetailPage extends StatefulWidget {
   State<SubmissionDetailPage> createState() => _SubmissionDetailPageState();
 }
 
-class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
+class _SubmissionDetailPageState extends State<SubmissionDetailPage>
+    with DataBusRefreshMixin<SubmissionDetailPage> {
   final DonationService _donationService = DonationService();
   final AuthService _authService = AuthService();
 
@@ -38,22 +36,22 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
   bool _notFound = false;
   bool _acting = false;
 
-  /// Client-side confirmation gate only, not persisted -- staff must
-  /// explicitly confirm the physical items have arrived before the Stock In
-  /// button (which records the actual donation/donation_item rows) appears.
-  bool _itemsReceivedConfirmed = false;
-
   @override
   void initState() {
     super.initState();
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _notFound = false;
-    });
+  @override
+  void onExternalDataChanged() => _load(silent: true);
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _notFound = false;
+      });
+    }
     try {
       final submission = await _donationService.fetchSubmission(widget.subId);
       if (submission == null) {
@@ -77,10 +75,12 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _notFound = true;
-        _loading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _notFound = true;
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -92,6 +92,10 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
         return ('Approved', AppColors.primary);
       case SubmissionStatus.rejected:
         return ('Rejected', AppColors.destructive);
+      case SubmissionStatus.received:
+        return ('Received', AppColors.primary);
+      case SubmissionStatus.stocked:
+        return ('Stocked In', AppColors.primary);
     }
   }
 
@@ -175,8 +179,18 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
     }
   }
 
-  void _confirmItemsReceived() =>
-      setState(() => _itemsReceivedConfirmed = true);
+  Future<void> _confirmItemsReceived() async {
+    setState(() => _acting = true);
+    try {
+      await _donationService.markSubmissionReceived(subId: widget.subId);
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not confirm items received: $e')));
+    }
+  }
 
   Future<void> _stockIn() async {
     await context.push('/inventory/add?type=donated&subId=${widget.subId}');
@@ -211,12 +225,8 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
     final sub = _submission!;
     final (statusLabel, statusColor) = _statusMeta(sub.status);
     final hasReceivedItems = _receivedItems.isNotEmpty;
-    final showItemsReceivedButton = sub.status == SubmissionStatus.approved &&
-        !hasReceivedItems &&
-        !_itemsReceivedConfirmed;
-    final showStockInButton = sub.status == SubmissionStatus.approved &&
-        !hasReceivedItems &&
-        _itemsReceivedConfirmed;
+    final showItemsReceivedButton = sub.status == SubmissionStatus.approved;
+    final showStockInButton = sub.status == SubmissionStatus.received;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 720),
@@ -235,10 +245,37 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(sub.donorName,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.w800)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(sub.donorName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () async {
+                        await Clipboard.setData(ClipboardData(text: sub.subId));
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Submission ID copied')));
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(sub.subId,
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColors.mutedForeground)),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.copy,
+                              size: 13, color: AppColors.mutedForeground),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 12),
               Container(
@@ -254,22 +291,6 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage> {
                         fontWeight: FontWeight.w700,
                         color: statusColor)),
               ),
-              if (hasReceivedItems) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text('Items Received',
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary)),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 20),

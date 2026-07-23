@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/primary_category.dart';
 import '../../models/subcategory.dart';
 import '../../models/unit.dart';
+import '../../state/data_bus.dart';
 import '../catalog_service.dart';
 
 /// Supabase-backed catalog lookups: public.primary_category / subcategory /
@@ -19,8 +20,11 @@ class SupabaseCatalogService implements CatalogService {
         type: (r['type'] as String?) ?? '',
       );
 
-  Unit _mapUnit(Map<String, dynamic> r) =>
-      Unit(id: r['id'] as String, abbrName: (r['abbr_name'] as String?) ?? '');
+  Unit _mapUnit(Map<String, dynamic> r) => Unit(
+        id: r['id'] as String,
+        name: (r['name'] as String?) ?? '',
+        abbrName: (r['abbr_name'] as String?) ?? '',
+      );
 
   @override
   Future<List<PrimaryCategory>> fetchPrimaryCategories() async {
@@ -42,7 +46,7 @@ class SupabaseCatalogService implements CatalogService {
   @override
   Future<List<Unit>> fetchUnits() async {
     final rows =
-        await _client.from('units').select('id, abbr_name').order('abbr_name');
+        await _client.from('units').select('id, name, abbr_name').order('name');
     return rows.map((r) => _mapUnit(r)).toList();
   }
 
@@ -53,6 +57,7 @@ class SupabaseCatalogService implements CatalogService {
         .insert({'type': type})
         .select('id, type')
         .single();
+    DataChangeBus.instance.ping();
     return _mapPrimary(row);
   }
 
@@ -66,16 +71,18 @@ class SupabaseCatalogService implements CatalogService {
         .insert({'p_category': pCategoryId, 'type': type})
         .select('id, p_category, type')
         .single();
+    DataChangeBus.instance.ping();
     return _mapSub(row);
   }
 
   @override
-  Future<Unit> createUnit(String abbrName) async {
+  Future<Unit> createUnit(String name) async {
     final row = await _client
         .from('units')
-        .insert({'abbr_name': abbrName})
-        .select('id, abbr_name')
+        .insert({'name': name, 'abbr_name': name})
+        .select('id, name, abbr_name')
         .single();
+    DataChangeBus.instance.ping();
     return _mapUnit(row);
   }
 }

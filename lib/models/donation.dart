@@ -1,5 +1,9 @@
-/// Mirrors the Postgres `sub_status` enum: 'pending', 'approved', 'rejected'.
-enum SubmissionStatus { pending, approved, rejected }
+/// Mirrors the Postgres `submission_status` enum: 'pending', 'approved',
+/// 'rejected', 'received', 'stocked'. Flow: pending -> approved (staff
+/// review) -> received (staff confirms items physically arrived) ->
+/// stocked (Stock In creates the donation/donation_item rows); rejected is
+/// a terminal state reachable only from pending.
+enum SubmissionStatus { pending, approved, rejected, received, stocked }
 
 SubmissionStatus submissionStatusFromString(String value) {
   switch (value) {
@@ -7,6 +11,10 @@ SubmissionStatus submissionStatusFromString(String value) {
       return SubmissionStatus.approved;
     case 'rejected':
       return SubmissionStatus.rejected;
+    case 'received':
+      return SubmissionStatus.received;
+    case 'stocked':
+      return SubmissionStatus.stocked;
     case 'pending':
     default:
       return SubmissionStatus.pending;
@@ -26,6 +34,7 @@ class DonationSubmission {
   final SubmissionStatus status;
   final DateTime? schedDate;
   final DateTime dateSub;
+  final DateTime? dateReceived;
   final String? proofImg;
   final String? notes;
 
@@ -38,6 +47,7 @@ class DonationSubmission {
     required this.status,
     this.schedDate,
     required this.dateSub,
+    this.dateReceived,
     this.proofImg,
     this.notes,
   });

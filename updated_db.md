@@ -159,9 +159,14 @@ Stock deduction rule (see `applyTreatmentDeduction` in `lib/services/unit_conver
 - id — uuid, PK
 - donorid — fk USER.id (role=donor)
 - updatedby — fk USER.id, nullable
-- status — enum: pending / approved / rejected
+- status — enum: pending / approved / rejected / received / stocked -- flow:
+  pending -> approved (staff review) -> received (staff confirms items
+  physically arrived, sets date_received) -> stocked (Stock In creates the
+  linked DONATION/DONATION_ITEM rows); rejected is terminal, reachable only
+  from pending
 - drop_off_sched — timestamptz, nullable
 - datesubmitted — timestamptz
+- date_received — timestamptz, nullable — set when staff confirms the items physically arrived (the "Items Received" step, before Stock In)
 - proof_img — text, nullable
 - notes — text, nullable
 

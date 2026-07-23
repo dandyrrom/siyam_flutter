@@ -132,6 +132,7 @@ class SubmissionRow {
   String status;
   final DateTime? schedDate;
   final DateTime dateSub;
+  DateTime? dateReceived;
   final String? proofImg;
   final String? notes;
 
@@ -142,6 +143,7 @@ class SubmissionRow {
     required this.status,
     this.schedDate,
     required this.dateSub,
+    this.dateReceived,
     this.proofImg,
     this.notes,
   });
@@ -149,7 +151,11 @@ class SubmissionRow {
 
 class DonationRow {
   final String id;
-  final String donorId;
+  /// Null when the donor has no SIYAM account -- see [donorName].
+  final String? donorId;
+  /// Free-text donor name, for documentation only, when [donorId] is null
+  /// (an unregistered/walk-in donor). Not a real donor reference.
+  final String? donorName;
   final String? subId;
   final String receivedBy;
   final DateTime receivedDate;
@@ -158,7 +164,8 @@ class DonationRow {
 
   DonationRow({
     required this.id,
-    required this.donorId,
+    this.donorId,
+    this.donorName,
     this.subId,
     required this.receivedBy,
     required this.receivedDate,
@@ -267,14 +274,14 @@ class MockDatabase {
       address: 'Quezon City, Metro Manila',
     ));
 
-    final unitBox = Unit(id: newMockId('unit'), abbrName: 'box');
-    final unitTablet = Unit(id: newMockId('unit'), abbrName: 'tablet');
-    final unitBottle = Unit(id: newMockId('unit'), abbrName: 'bottle');
-    final unitMl = Unit(id: newMockId('unit'), abbrName: 'ml');
-    final unitBag = Unit(id: newMockId('unit'), abbrName: 'bag');
-    final unitKg = Unit(id: newMockId('unit'), abbrName: 'kg');
-    final unitDrop = Unit(id: newMockId('unit'), abbrName: 'drop');
-    final unitPcs = Unit(id: newMockId('unit'), abbrName: 'pcs');
+    final unitBox = Unit(id: newMockId('unit'), name: 'Box', abbrName: 'box');
+    final unitTablet = Unit(id: newMockId('unit'), name: 'Tablet', abbrName: 'tablet');
+    final unitBottle = Unit(id: newMockId('unit'), name: 'Bottle', abbrName: 'bottle');
+    final unitMl = Unit(id: newMockId('unit'), name: 'Milliliter', abbrName: 'ml');
+    final unitBag = Unit(id: newMockId('unit'), name: 'Bag', abbrName: 'bag');
+    final unitKg = Unit(id: newMockId('unit'), name: 'Kilogram', abbrName: 'kg');
+    final unitDrop = Unit(id: newMockId('unit'), name: 'Drop', abbrName: 'drop');
+    final unitPcs = Unit(id: newMockId('unit'), name: 'Piece', abbrName: 'pcs');
     units.addAll(
         [unitBox, unitTablet, unitBottle, unitMl, unitBag, unitKg, unitDrop, unitPcs]);
 
