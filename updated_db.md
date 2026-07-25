@@ -9,7 +9,9 @@ backend is stood up again, it should be created to match this document.
 Notes on fields not explicitly typed in the original draft, resolved by inference from
 existing patterns in this same schema (not invented from nothing):
 - `donorid` (on SUBMISSION, DONATION) is a FK to `USER.id` where `role = 'donor'` —
-  there's no separate donor table.
+  there's no separate donor table. Required on SUBMISSION (a submission can only be
+  created by a logged-in donor account); nullable on DONATION (a walk-in/drop-off
+  donation may have no linked donor account) — see DONATION.donorid below.
 - `PURCHASE.receivedby` / `DONATION.receivedby` are free text (no FK), matching the
   free-text `givenby` pattern already on `TREATMENT_ITEM`.
 
@@ -211,8 +213,33 @@ Stock deduction rule (see `applyTreatmentDeduction` in `lib/services/unit_conver
 
 ## DONATION
 - id — uuid, PK
-- donorid — fk USER.id (role=donor)
-- subid — fk SUBMISSION.id, nullable (null for a direct/walk-in donation)
+- type — enum: walk_in / drop_off. Added in `0009_donation_type.sql`. Purely
+  descriptive (how the donation physically came in) — does not constrain
+  donorid/subid/donor_name, all of which stay independently optional
+  regardless of type. Backfilled on existing rows from subid (set -> 'drop_off',
+  null -> 'walk_in'), since that was the only signal for this before the
+  column existed.
+- donorid — fk USER.id (role=donor), **nullable** as of
+  `0005_donation_optional_donor.sql` (the original draft had this required).
+  A walk-in donor may have no SIYAM account at all; a drop-off donation's
+  donorid is populated from the linked SUBMISSION.donorid when a submission
+  is picked, but no submission link is required either.
+- donor_name — text, nullable. `0005_donation_optional_donor.sql` was meant
+  to add this (plus the donorid nullability above and a check constraint
+  requiring donorid or donor_name to be set) but was never actually applied
+  to the live database -- confirmed via `information_schema.columns`, the
+  column didn't exist and donorid was still not-null. donorid nullability
+  was fixed manually; `0011_donation_add_donor_name.sql` adds this column on
+  its own, deliberately without recreating 0005's check constraint,
+  since a donation can now be recorded with neither donorid nor donor_name
+  set (no submission linked, no name typed) -- both fields are independently
+  optional regardless of type. `0010_donation_drop_donor_identified_check.sql`
+  drops that constraint too, using `IF EXISTS` since it may never have
+  existed on this database. Free-text, matching the `receivedby`/`givenby`
+  pattern used elsewhere. For a drop-off linked to a submission, this is
+  populated from the submission's donor (via donorid), not typed by staff.
+- subid — fk SUBMISSION.id, nullable (null for a direct/walk-in donation, or
+  any donation not linked to a prior submission)
 - receivedby — text (free text, see notes above)
 - receiveddate — timestamptz
 - recordedby — fk USER.id

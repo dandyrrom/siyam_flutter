@@ -135,9 +135,11 @@ class SupabaseDonationService implements DonationService {
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   }) async {
     final insert = <String, dynamic>{
+      'type': donationTypeToString(type),
       'donorid': donorId,
       'donor_name': donorName,
       'subid': subId,
@@ -170,6 +172,7 @@ class SupabaseDonationService implements DonationService {
     required String updatedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   }) async {
     await _client.from('submission').update({
@@ -183,6 +186,7 @@ class SupabaseDonationService implements DonationService {
       recordedByUserId: updatedByUserId,
       receivedBy: receivedBy,
       items: items,
+      type: type,
       receivedDate: receivedDate,
     );
   }
@@ -205,6 +209,7 @@ class SupabaseDonationService implements DonationService {
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   }) {
     return _createDonationAndItems(
@@ -213,6 +218,7 @@ class SupabaseDonationService implements DonationService {
       recordedByUserId: recordedByUserId,
       receivedBy: receivedBy,
       items: items,
+      type: type,
       receivedDate: receivedDate,
     );
   }

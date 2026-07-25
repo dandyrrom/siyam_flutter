@@ -4,14 +4,14 @@ import '../widgets/public_nav_bar.dart';
 import '../widgets/public_footer.dart';
 
 /// Blank pending content -- nav bar and footer only.
-class LandingPage extends StatelessWidget {
-  const LandingPage({super.key});
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: AppColors.cream,
-      appBar: PublicNavBar(currentPath: '/'),
+      appBar: PublicNavBar(currentPath: '/about'),
       body: Column(
         children: [
           Expanded(child: SizedBox.shrink()),

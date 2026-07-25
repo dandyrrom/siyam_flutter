@@ -1,3 +1,27 @@
+/// Mirrors the Postgres `donation_type` enum: 'walk_in', 'drop_off'. Purely
+/// descriptive -- independent of whether a submission/donor is actually
+/// linked (both fields are optional regardless of type).
+enum DonationType { walkIn, dropOff }
+
+DonationType donationTypeFromString(String value) {
+  switch (value) {
+    case 'drop_off':
+      return DonationType.dropOff;
+    case 'walk_in':
+    default:
+      return DonationType.walkIn;
+  }
+}
+
+String donationTypeToString(DonationType type) {
+  switch (type) {
+    case DonationType.walkIn:
+      return 'walk_in';
+    case DonationType.dropOff:
+      return 'drop_off';
+  }
+}
+
 /// Mirrors the Postgres `submission_status` enum: 'pending', 'approved',
 /// 'rejected', 'received', 'stocked'. Flow: pending -> approved (staff
 /// review) -> received (staff confirms items physically arrived) ->
