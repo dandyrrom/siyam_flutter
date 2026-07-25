@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/pet.dart';
 import '../services/pet_service.dart';
 import '../state/data_bus.dart';
@@ -96,7 +96,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('Add Animal'),
           content: Form(
             key: formKey,
@@ -182,7 +182,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(_speciesIcon(pet.species), size: 20, color: AppColors.mutedForeground),

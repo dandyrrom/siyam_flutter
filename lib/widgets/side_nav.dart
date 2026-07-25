@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
-import '../models/app_user.dart';
+import '../core/app_colors.dart';
 import '../routing/nav_config.dart';
 import '../state/auth_state.dart';
 
@@ -10,14 +9,16 @@ class SideNav extends StatelessWidget {
   final bool collapsed;
   final String currentPath;
 
-  const SideNav({super.key, required this.collapsed, required this.currentPath});
+  const SideNav(
+      {super.key, required this.collapsed, required this.currentPath});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final user = auth.profile;
-    final items =
-        kNavItems.where((i) => user != null && i.roles.contains(user.role)).toList();
+    final items = kNavItems
+        .where((i) => user != null && i.roles.contains(user.role))
+        .toList();
 
     return Container(
       width: collapsed ? 72 : 248,
@@ -32,21 +33,18 @@ class SideNav extends StatelessWidget {
             height: 64,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.sidebarBorder)),
+              border:
+                  Border(bottom: BorderSide(color: AppColors.sidebarBorder)),
             ),
             child: Row(
-              mainAxisAlignment:
-                  collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              mainAxisAlignment: collapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
               children: [
-                Container(
+                Image.asset(
+                  'assets/branding/pet-house-green.png',
                   width: 32,
                   height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.sidebarPrimary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.pets,
-                      size: 16, color: AppColors.sidebarPrimaryForeground),
                 ),
                 if (!collapsed) ...[
                   const SizedBox(width: 10),
@@ -74,35 +72,6 @@ class SideNav extends StatelessWidget {
             ),
           ),
 
-          // Role badge
-          if (!collapsed && user != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.sidebarAccent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.apartment,
-                        size: 13, color: AppColors.sidebarAccentForeground),
-                    const SizedBox(width: 6),
-                    Text(
-                      appRoleToString(user.role).toUpperCase(),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                          color: AppColors.sidebarAccentForeground),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
           // Nav items
           Expanded(
             child: ListView(
@@ -112,10 +81,14 @@ class SideNav extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 2),
                   child: Material(
-                    color: active ? AppColors.sidebarPrimary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
+                    color:
+                        active ? AppColors.sidebarAccent : Colors.transparent,
+                    elevation: active ? 1 : 0,
+                    shadowColor:
+                        AppColors.sidebarForeground.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(16),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                       onTap: () => context.go(item.path),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -128,7 +101,7 @@ class SideNav extends StatelessWidget {
                             Icon(item.icon,
                                 size: 18,
                                 color: active
-                                    ? AppColors.sidebarPrimaryForeground
+                                    ? AppColors.sidebarPrimary
                                     : AppColors.sidebarAccentForeground),
                             if (!collapsed) ...[
                               const SizedBox(width: 12),
@@ -138,11 +111,10 @@ class SideNav extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 13.5,
-                                    fontWeight:
-                                        active ? FontWeight.w600 : FontWeight.w400,
-                                    color: active
-                                        ? AppColors.sidebarPrimaryForeground
-                                        : AppColors.sidebarForeground,
+                                    fontWeight: active
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: AppColors.sidebarForeground,
                                   ),
                                 ),
                               ),
@@ -168,7 +140,8 @@ class SideNav extends StatelessWidget {
               children: [
                 if (!collapsed && user != null)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     child: Row(
                       children: [
                         CircleAvatar(
@@ -196,29 +169,39 @@ class SideNav extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color: AppColors.sidebarAccentForeground)),
+                                      color:
+                                          AppColors.sidebarAccentForeground)),
                             ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                TextButton.icon(
-                  onPressed: () async {
-                    await context.read<AuthController>().logout();
-                    if (context.mounted) context.go('/login');
-                  },
-                  icon: const Icon(Icons.logout,
-                      size: 16, color: AppColors.sidebarAccentForeground),
-                  label: collapsed
-                      ? const SizedBox.shrink()
-                      : const Text('Logout',
-                          style: TextStyle(color: AppColors.sidebarForeground)),
-                  style: TextButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                ),
+                collapsed
+                    ? IconButton(
+                        onPressed: () async {
+                          await context.read<AuthController>().logout();
+                          if (context.mounted) context.go('/login');
+                        },
+                        icon: const Icon(Icons.logout,
+                            size: 16, color: AppColors.sidebarAccentForeground),
+                      )
+                    : TextButton.icon(
+                        onPressed: () async {
+                          await context.read<AuthController>().logout();
+                          if (context.mounted) context.go('/login');
+                        },
+                        icon: const Icon(Icons.logout,
+                            size: 16, color: AppColors.sidebarAccentForeground),
+                        label: const Text('Logout',
+                            style:
+                                TextStyle(color: AppColors.sidebarForeground)),
+                        style: TextButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                        ),
+                      ),
               ],
             ),
           ),

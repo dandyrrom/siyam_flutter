@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/app_user.dart';
 import '../state/auth_state.dart';
 import '../widgets/stat_card.dart';

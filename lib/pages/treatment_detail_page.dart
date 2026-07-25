@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/pet.dart';
 import '../models/treatment.dart';
@@ -478,7 +478,7 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
         item?.dispenseUnitAbbr ?? item?.packageUnitAbbr ?? item?.purchaseUnitAbbr;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text('Add Item to Treatment'),
       content: SizedBox(
         width: 420,

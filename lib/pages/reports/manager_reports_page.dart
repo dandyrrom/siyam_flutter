@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/app_theme.dart';
+import '../../core/app_colors.dart';
 import '../../models/inventory_item.dart';
 import '../../models/supplier.dart';
 import '../../models/treatment.dart';

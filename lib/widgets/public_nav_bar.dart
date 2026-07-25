@@ -45,51 +45,11 @@ class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final narrow = constraints.maxWidth < _kNarrowBreakpoint;
-                    return Row(
-                      children: [
-                        _Brand(onTap: () => context.go('/')),
-                        if (!narrow)
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                for (final tab in _kPublicTabs)
-                                  _NavTabButton(
-                                    label: tab.label,
-                                    active: _isActive(tab.path),
-                                    onTap: () => context.go(tab.path),
-                                  ),
-                              ],
-                            ),
-                          )
-                        else
+                    if (narrow) {
+                      return Row(
+                        children: [
+                          _Brand(onTap: () => context.go('/')),
                           const Spacer(),
-                        if (!narrow) ...[
-                          TextButton(
-                            onPressed: () => context.go('/register'),
-                            style: TextButton.styleFrom(
-                              backgroundColor: AppColors.cream,
-                              foregroundColor: AppColors.deepBrown,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                side: BorderSide(
-                                    color:
-                                        AppColors.catGray.withValues(alpha: 0.8)),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 22, vertical: 12),
-                            ),
-                            child: const Text('Register',
-                                style: TextStyle(
-                                    fontSize: 13.5, fontWeight: FontWeight.w600)),
-                          ),
-                          const SizedBox(width: 16),
-                          _NavTabButton(
-                            label: 'Sign In',
-                            active: _isActive('/login'),
-                            onTap: () => context.go('/login'),
-                          ),
-                        ] else
                           PopupMenuButton<String>(
                             icon: const Icon(Icons.menu,
                                 color: AppColors.deepBrown),
@@ -105,6 +65,62 @@ class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
                                   value: '/login', child: Text('Sign In')),
                             ],
                           ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: _Brand(onTap: () => context.go('/')),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            for (final tab in _kPublicTabs)
+                              _NavTabButton(
+                                label: tab.label,
+                                active: _isActive(tab.path),
+                                onTap: () => context.go(tab.path),
+                              ),
+                          ],
+                        ),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextButton(
+                                  onPressed: () => context.go('/register'),
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: AppColors.cream,
+                                    foregroundColor: AppColors.deepBrown,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                      side: BorderSide(
+                                          color: AppColors.catGray
+                                              .withValues(alpha: 0.8)),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 22, vertical: 12),
+                                  ),
+                                  child: const Text('Register',
+                                      style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                                const SizedBox(width: 16),
+                                _NavTabButton(
+                                  label: 'Sign In',
+                                  active: _isActive('/login'),
+                                  onTap: () => context.go('/login'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     );
                   },

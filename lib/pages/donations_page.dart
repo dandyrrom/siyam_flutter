@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/donation.dart';
 import '../services/donation_service.dart';
 import '../state/auth_state.dart';
@@ -110,7 +110,7 @@ class _DonationsPageState extends State<DonationsPage>
     final choice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Approve donation from ${sub.donorName}?'),
         content: const Text(
           'This marks the submission approved. You can record the items '

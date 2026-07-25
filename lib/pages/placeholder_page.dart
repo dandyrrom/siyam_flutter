@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 
 /// Generic "coming soon" placeholder used for every content page
 /// except the ones we've actually built out.
