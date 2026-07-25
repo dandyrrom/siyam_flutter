@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -6,11 +7,8 @@ import '../state/auth_state.dart';
 import '../widgets/public_nav_bar.dart';
 
 /// Sign-in page -- full-width like every other public page (shares
-/// [PublicNavBar] rather than a page-specific bar), laid out to match the
-/// reference mockup's content (headline + "Register here!" column with a
-/// small illustration, a large standing-figure illustration, and the
-/// sign-in form) with our brand illustrations in place of the mockup's
-/// generic figures and [AppColors] instead of the mockup's purple.
+/// [PublicNavBar] rather than a page-specific bar), laid out as a centered
+/// card (logo, heading, form) to match the reference mockup.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -64,20 +62,65 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1280),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final narrow = constraints.maxWidth < 900;
-                      final leftText = _LeftIntro(narrow: narrow);
-                      final illustration = Image.asset(
-                        'assets/girl-carry-dog.png',
-                        height: narrow ? 220 : 340,
-                        fit: BoxFit.contain,
-                      );
-                      final formCard = _SignInForm(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/das-no-bg.png',
+                            height: 72,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(width: 16),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/branding/pet-house-green.png',
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      const Text(
+                        'Sign in to your account',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.deepBrown,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text.rich(
+                        TextSpan(
+                          style: const TextStyle(
+                              fontSize: 13.5, color: AppColors.deepBrown),
+                          children: [
+                            const TextSpan(
+                                text: "If you don't have an account, you can\n"),
+                            TextSpan(
+                              text: 'Register here!',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.sageGreen),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => context.go('/register'),
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      _SignInForm(
                         formKey: _formKey,
                         emailController: _emailController,
                         passwordController: _passwordController,
@@ -89,29 +132,8 @@ class _LoginPageState extends State<LoginPage> {
                         errorMessage: auth.errorMessage,
                         onSocialTap: _notAvailable,
                         onForgotPassword: () => _notAvailable('Password reset'),
-                      );
-
-                      if (narrow) {
-                        return Column(
-                          children: [
-                            leftText,
-                            const SizedBox(height: 28),
-                            illustration,
-                            const SizedBox(height: 28),
-                            formCard,
-                          ],
-                        );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(flex: 4, child: leftText),
-                          Expanded(flex: 3, child: Center(child: illustration)),
-                          const SizedBox(width: 12),
-                          Expanded(flex: 4, child: formCard),
-                        ],
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -119,57 +141,6 @@ class _LoginPageState extends State<LoginPage> {
           );
         },
       ),
-    );
-  }
-}
-
-class _LeftIntro extends StatelessWidget {
-  final bool narrow;
-  const _LeftIntro({required this.narrow});
-
-  @override
-  Widget build(BuildContext context) {
-    final crossAlign =
-        narrow ? CrossAxisAlignment.center : CrossAxisAlignment.start;
-    final textAlign = narrow ? TextAlign.center : TextAlign.start;
-    return Column(
-      crossAxisAlignment: crossAlign,
-      children: [
-        Text('Sign In to',
-            textAlign: textAlign,
-            style: const TextStyle(
-                fontSize: 34,
-                height: 1.15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.deepBrown)),
-        const Text('SIYAM',
-            style: TextStyle(
-                fontSize: 34,
-                height: 1.15,
-                fontWeight: FontWeight.w800,
-                color: AppColors.deepBrown)),
-        const SizedBox(height: 20),
-        Text('If you don\'t have an account',
-            textAlign: textAlign,
-            style: const TextStyle(fontSize: 13.5, color: AppColors.deepBrown)),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('You can  ',
-                style: TextStyle(fontSize: 13.5, color: AppColors.deepBrown)),
-            GestureDetector(
-              onTap: () => context.go('/register'),
-              child: const Text('Register here!',
-                  style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.sageGreen)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
-        Image.asset('assets/dog-human-cat.png', height: 170, fit: BoxFit.contain),
-      ],
     );
   }
 }
