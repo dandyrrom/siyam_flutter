@@ -39,59 +39,77 @@ class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: SizedBox(
             height: 76,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final narrow = constraints.maxWidth < _kNarrowBreakpoint;
-                return Row(
-                  children: [
-                    _Brand(onTap: () => context.go('/')),
-                    const Spacer(),
-                    if (!narrow) ...[
-                      for (final tab in _kPublicTabs)
-                        _NavTabButton(
-                          label: tab.label,
-                          active: _isActive(tab.path),
-                          onTap: () => context.go(tab.path),
-                        ),
-                      const SizedBox(width: 12),
-                      _NavTabButton(
-                        label: 'Sign In',
-                        active: _isActive('/login'),
-                        onTap: () => context.go('/login'),
-                      ),
-                      const SizedBox(width: 16),
-                      TextButton(
-                        onPressed: () => context.go('/register'),
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppColors.cream,
-                          foregroundColor: AppColors.deepBrown,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            side: BorderSide(
-                                color: AppColors.catGray.withValues(alpha: 0.8)),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < _kNarrowBreakpoint;
+                    return Row(
+                      children: [
+                        _Brand(onTap: () => context.go('/')),
+                        if (!narrow)
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                for (final tab in _kPublicTabs)
+                                  _NavTabButton(
+                                    label: tab.label,
+                                    active: _isActive(tab.path),
+                                    onTap: () => context.go(tab.path),
+                                  ),
+                              ],
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        if (!narrow) ...[
+                          TextButton(
+                            onPressed: () => context.go('/register'),
+                            style: TextButton.styleFrom(
+                              backgroundColor: AppColors.cream,
+                              foregroundColor: AppColors.deepBrown,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                side: BorderSide(
+                                    color:
+                                        AppColors.catGray.withValues(alpha: 0.8)),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 22, vertical: 12),
+                            ),
+                            child: const Text('Register',
+                                style: TextStyle(
+                                    fontSize: 13.5, fontWeight: FontWeight.w600)),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 22, vertical: 12),
-                        ),
-                        child: const Text('Register',
-                            style: TextStyle(
-                                fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      ),
-                    ] else
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.menu, color: AppColors.deepBrown),
-                        onSelected: (path) => context.go(path),
-                        itemBuilder: (context) => [
-                          for (final tab in _kPublicTabs)
-                            PopupMenuItem(value: tab.path, child: Text(tab.label)),
-                          const PopupMenuDivider(),
-                          const PopupMenuItem(value: '/login', child: Text('Sign In')),
-                          const PopupMenuItem(value: '/register', child: Text('Register')),
-                        ],
-                      ),
-                  ],
-                );
-              },
+                          const SizedBox(width: 16),
+                          _NavTabButton(
+                            label: 'Sign In',
+                            active: _isActive('/login'),
+                            onTap: () => context.go('/login'),
+                          ),
+                        ] else
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.menu,
+                                color: AppColors.deepBrown),
+                            onSelected: (path) => context.go(path),
+                            itemBuilder: (context) => [
+                              for (final tab in _kPublicTabs)
+                                PopupMenuItem(
+                                    value: tab.path, child: Text(tab.label)),
+                              const PopupMenuDivider(),
+                              const PopupMenuItem(
+                                  value: '/register', child: Text('Register')),
+                              const PopupMenuItem(
+                                  value: '/login', child: Text('Sign In')),
+                            ],
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
@@ -119,7 +137,7 @@ class _Brand extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(9),
               child: Image.asset(
-                'assets/branding/pet-house.png',
+                'assets/branding/pet-house-green.png',
                 width: 36,
                 height: 36,
                 fit: BoxFit.cover,
@@ -149,7 +167,7 @@ class _NavTabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = active ? AppColors.sageGreen : AppColors.deepBrown;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(6),
