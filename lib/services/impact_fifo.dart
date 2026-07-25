@@ -187,10 +187,10 @@ Map<String, ImpactBatchResult> runFifoLedger({
 /// purchase-unit counts for donor display -- any container touched at all
 /// (partially used or fully drained but not yet stocked out) counts as one
 /// whole "used" container. This is a deliberately simpler, donor-facing
-/// convention than the staff-facing `InventoryItem.usedStockQty` (which
+/// convention than the staff-facing `InventoryItem.usedPurchaseUnitQty` (which
 /// only counts *fully* depleted containers, with the partial amount shown
-/// separately via `.inUseQty`): donors are told "1 bottle used", not "0.01
-/// bottle used" for 1.5ml out of a 150ml bottle, and not left wondering
+/// separately via `.usedPackageUnitQty`): donors are told "1 bottle used",
+/// not "0.01 bottle used" for 1.5ml out of a 150ml bottle, and not left wondering
 /// where a partially-used bottle went. [remaining] only counts bottles that
 /// are still fully sealed; [discarded] is already an exact whole-container
 /// count (stock-outs are always whole purchase_unit events).

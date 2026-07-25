@@ -367,6 +367,18 @@ class _AddItemPageState extends State<AddItemPage> {
     });
   }
 
+  /// Fills "Received by" with the logged-in user's first name -- for staff
+  /// recording a stock-in they physically received themselves, rather than
+  /// on someone else's behalf.
+  void _useMyNameAsReceiver() {
+    final profile = context.read<AuthController>().profile;
+    if (profile == null) return;
+    setState(() {
+      _receivedByCtrl.text = profile.firstName;
+      _selectedReceiver = profile;
+    });
+  }
+
   Future<void> _pickDateReceived() async {
     final picked = await showDatePicker(
       context: context,
@@ -632,13 +644,29 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: SearchSelectField<AppUser>(
-                        labelText: 'Received by',
-                        controller: _receivedByCtrl,
-                        options: _receivers,
-                        displayStringForOption: (u) => u.fullName,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                        onSelected: (u) => setState(() => _selectedReceiver = u),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SearchSelectField<AppUser>(
+                            labelText: 'Received by',
+                            controller: _receivedByCtrl,
+                            options: _receivers,
+                            displayStringForOption: (u) => u.fullName,
+                            validator: (v) =>
+                                (v == null || v.trim().isEmpty) ? 'Required' : null,
+                            onSelected: (u) => setState(() => _selectedReceiver = u),
+                          ),
+                          TextButton(
+                            onPressed: _useMyNameAsReceiver,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              alignment: Alignment.centerLeft,
+                            ),
+                            child: const Text('I received this', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
                       ),
                     ),
                   ],

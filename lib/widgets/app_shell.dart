@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
+import '../core/page_title.dart';
 import 'side_nav.dart';
 import 'top_nav.dart';
 
@@ -19,6 +20,29 @@ class _AppShellState extends State<AppShell> {
   bool _collapsed = false;
 
   void _toggle() => setState(() => _collapsed = !_collapsed);
+
+  /// Keeps the browser tab title in sync with the current tab, e.g.
+  /// "Dashboard - Siyam" -- same label the breadcrumb in [TopNav] shows.
+  void _updatePageTitle() {
+    final firstSegment = widget.currentPath.split('/').firstWhere(
+          (p) => p.isNotEmpty,
+          orElse: () => '',
+        );
+    final label = kBreadcrumbLabels[firstSegment];
+    setPageTitle(label == null ? 'Siyam' : '$label - Siyam');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _updatePageTitle();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentPath != widget.currentPath) _updatePageTitle();
+  }
 
   @override
   Widget build(BuildContext context) {
