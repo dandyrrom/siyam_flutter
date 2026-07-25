@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_theme.dart';
+import '../../core/app_colors.dart';
 import '../../models/donation.dart';
 import '../../services/donation_service.dart';
 import '../../state/auth_state.dart';
@@ -95,7 +95,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
           final (statusLabel, statusColor) = _statusMeta(sub.status);
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('Donation Details'),
             content: SizedBox(
               width: 400,

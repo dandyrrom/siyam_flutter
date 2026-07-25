@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/app_theme.dart';
+import '../../core/app_colors.dart';
 
 /// Staff-side Reports tab. Analytics (stat cards, category breakdown,
 /// monthly charts) are Manager-only -- see [ManagerReportsPage].

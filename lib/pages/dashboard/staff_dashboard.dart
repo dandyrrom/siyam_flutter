@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/app_theme.dart';
+import '../../core/app_colors.dart';
 import '../../services/dashboard_service.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';

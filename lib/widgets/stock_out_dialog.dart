@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/stock_out.dart';
 import '../services/inventory_service.dart';
@@ -38,7 +38,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
             Icon(Icons.arrow_downward, size: 18, color: AppColors.destructive),

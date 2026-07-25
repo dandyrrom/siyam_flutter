@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/primary_category.dart';
 import '../models/stock_movement.dart';
@@ -89,7 +89,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Edit $label'),
         content: Form(
           key: formKey,
@@ -136,7 +136,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Edit $label'),
         content: Form(
           key: formKey,
@@ -194,7 +194,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete item?'),
         content: Text('This will permanently remove "${item.itemName}" from inventory.'),
         actions: [

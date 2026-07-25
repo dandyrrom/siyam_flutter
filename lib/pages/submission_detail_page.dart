@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/donation.dart';
 import '../services/auth_service.dart';
@@ -104,7 +104,7 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Reject donation from ${_submission!.donorName}?'),
         content: const Text(
             'The donor will no longer be able to have this submission stocked in.'),
@@ -145,7 +145,7 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Approve donation from ${_submission!.donorName}?'),
         content: const Text(
           'This marks the submission approved. Once the items physically '

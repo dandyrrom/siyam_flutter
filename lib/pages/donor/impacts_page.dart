@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_theme.dart';
+import '../../core/app_colors.dart';
 import '../../models/donation_impact.dart';
 import '../../models/inventory_item.dart';
 import '../../models/pet.dart';
@@ -209,7 +209,7 @@ class _ImpactCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('${line.itemName}: full history'),
         content: SizedBox(
           width: 420,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 
 /// A single selectable option: the value it carries and the text shown for
 /// it, both as a row in a flyout panel and (for [AppDropdown]/
@@ -51,7 +51,7 @@ class AppDropdownMenuRow extends StatelessWidget {
 Widget appDropdownFlyoutPanel({required double width, required List<Widget> rows}) {
   return Material(
     elevation: 6,
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.circular(16),
     color: AppColors.card,
     child: SizedBox(
       width: width,
@@ -85,7 +85,7 @@ class AppDropdownButton extends StatelessWidget {
       width: expand ? double.infinity : null,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(expand ? 28 : 16),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
@@ -223,7 +223,7 @@ class _AppMenuButtonState<T> extends State<AppMenuButton<T>>
     final trigger = CompositedTransformTarget(
       link: dropdownLink,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => setState(toggleDropdown),
         child: widget.triggerBuilder(context, isDropdownOpen),
       ),

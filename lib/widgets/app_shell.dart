@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../core/page_title.dart';
 import 'side_nav.dart';
 import 'top_nav.dart';

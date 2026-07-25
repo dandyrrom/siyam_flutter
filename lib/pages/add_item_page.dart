@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/donation.dart';
 import '../models/inventory_item.dart';
@@ -223,7 +223,7 @@ class _AddItemPageState extends State<AddItemPage> {
     final created = await showDialog<Supplier>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Add Supplier'),
         content: Form(
           key: formKey,
@@ -291,7 +291,7 @@ class _AddItemPageState extends State<AddItemPage> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(title),
         content: Form(
           key: formKey,

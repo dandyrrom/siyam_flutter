@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
+import '../core/app_colors.dart';
 
 /// A simple metric card used across the role dashboards.
 /// Values are placeholders for now -- these will get wired up to real
@@ -24,7 +24,7 @@ class StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -114,16 +114,16 @@ class ComingSoonNotice extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.accent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, size: 18, color: AppColors.mutedForeground),
+          const Icon(Icons.info_outline, size: 18, color: Colors.white),
           const SizedBox(width: 10),
           Expanded(
             child: Text(text,
-                style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                style: const TextStyle(fontSize: 12.5, color: Colors.white)),
           ),
         ],
       ),
