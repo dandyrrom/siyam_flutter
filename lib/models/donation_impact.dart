@@ -61,7 +61,7 @@ class ImpactContribution {
 /// drawn from it at all (even 1.5ml out of 150ml) counts as one whole "used"
 /// bottle, not "0.01 bottle used". [remainingQty] only counts bottles that
 /// are still fully sealed -- untouched. This mirrors
-/// `InventoryItem.usedStockQty`/`.unusedStockQty`'s own convention, applied
+/// `InventoryItem.usedPurchaseUnitQty`/`.unusedStockQty`'s own convention, applied
 /// to this donor's specific batch instead of the item's whole pool. The
 /// precise fractional amount that was actually dispensed is not lost, it's
 /// just not what these three fields represent -- see [ImpactContribution]

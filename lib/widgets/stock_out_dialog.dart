@@ -13,10 +13,10 @@ import 'search_select_field.dart';
 /// [InventoryService.stockOut]) and decrements `purchase_stocks`, then
 /// returns null.
 ///
-/// For Treatment, this does NOT touch inventory itself -- it returns the
-/// entered quantity so the caller can redirect to the Add Treatment
-/// page, which records the usage (and the actual stock deduction) via
-/// treatment_item.
+/// For Treatment, this does NOT touch inventory itself -- the quantity
+/// field is hidden and the caller redirects to the Add Treatment page,
+/// which records the usage (and the actual stock deduction, with its own
+/// quantity entry) via treatment_item.
 ///
 /// If [item] is null (opened from the Inventory page's "New" menu rather
 /// than a specific row), a TSS item picker is shown first -- the returned
@@ -79,22 +79,24 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                     ],
                   ),
                 ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: qtyCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                autofocus: item != null,
-                decoration: InputDecoration(
-                    labelText: 'Quantity${selectedItem == null ? '' : ' (${selectedItem!.itemUom})'}'),
-                validator: (v) {
-                  final n = double.tryParse(v ?? '');
-                  if (n == null || n <= 0) return 'Enter a quantity greater than 0';
-                  if (selectedItem != null && n > selectedItem!.stockQty) {
-                    return 'Only ${formatQty(selectedItem!.stockQty)} ${selectedItem!.itemUom} available';
-                  }
-                  return null;
-                },
-              ),
+              if (reason != 'Treatment') ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: qtyCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  autofocus: item != null,
+                  decoration: InputDecoration(
+                      labelText: 'Quantity${selectedItem == null ? '' : ' (${selectedItem!.itemUom})'}'),
+                  validator: (v) {
+                    final n = double.tryParse(v ?? '');
+                    if (n == null || n <= 0) return 'Enter a quantity greater than 0';
+                    if (selectedItem != null && n > selectedItem!.stockQty) {
+                      return 'Only ${formatQty(selectedItem!.stockQty)} ${selectedItem!.itemUom} available';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 12),
               AppDropdownField<String>(
                 label: 'Reason',
@@ -118,12 +120,13 @@ Future<(InventoryItem, double)?> showStockOutDialog(
               if (!formKey.currentState!.validate()) return;
               final target = selectedItem;
               if (target == null) return;
-              final qty = double.parse(qtyCtrl.text);
 
               if (reason == 'Treatment') {
-                Navigator.of(context).pop((target, qty));
+                Navigator.of(context).pop((target, 1.0));
                 return;
               }
+
+              final qty = double.parse(qtyCtrl.text);
 
               try {
                 await service.stockOut(

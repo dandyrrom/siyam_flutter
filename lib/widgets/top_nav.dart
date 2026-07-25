@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../state/auth_state.dart';
 
-const Map<String, String> _breadcrumbLabels = {
+/// Path segment -> display label, shared with [setPageTitle] so the browser
+/// tab title and the breadcrumb always agree.
+const Map<String, String> kBreadcrumbLabels = {
   'dashboard': 'Dashboard',
   'inventory': 'Inventory',
   'donations': 'Donations',
@@ -65,7 +67,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                         size: 14, color: AppColors.mutedForeground),
                     const SizedBox(width: 6),
                     Text(
-                      _breadcrumbLabels[part] ?? part,
+                      kBreadcrumbLabels[part] ?? part,
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: part == parts.last ? FontWeight.w600 : FontWeight.w400,

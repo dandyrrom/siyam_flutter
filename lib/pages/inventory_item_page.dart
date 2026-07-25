@@ -403,21 +403,14 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                   unit: item.itemUom,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _StockStatCard(
-                  label: 'Used Stocks',
-                  qty: item.usedStockQty,
-                  unit: item.itemUom,
-                ),
-              ),
-              if (item.packageQuantity != null) ...[
+              if (item.packageQuantity != null &&
+                  item.packageUnitAbbr != null) ...[
                 const SizedBox(width: 16),
                 Expanded(
                   child: _StockStatCard(
-                    label: 'In Use',
-                    qty: item.inUseQty,
-                    unit: item.packageUnitAbbr ?? item.itemUom,
+                    label: 'Left in Opened ${item.purchaseUnitAbbr}',
+                    qty: item.openContainerRemainingQty,
+                    unit: item.packageUnitAbbr!,
                   ),
                 ),
               ],

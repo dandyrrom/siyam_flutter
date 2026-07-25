@@ -43,8 +43,9 @@ class SupabaseInventoryService implements InventoryService {
 
   /// Sums [qtyCol] per itemid across every row of [table] -- used for the
   /// lifetime stock-out / treatment totals behind `InventoryItem.
-  /// usedStockQty`, which (unlike current stock levels) can't be recovered
-  /// from the item row alone once a container's left inventory entirely.
+  /// usedPurchaseUnitQty`, which (unlike current stock levels) can't be
+  /// recovered from the item row alone once a container's left inventory
+  /// entirely.
   Future<Map<String, double>> _qtySumByItem(String table, String qtyCol) async {
     final rows = await _client.from(table).select('itemid, $qtyCol');
     final totals = <String, double>{};

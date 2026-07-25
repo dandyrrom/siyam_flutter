@@ -112,6 +112,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
   String? _procurementType; // 'purchased' | 'donated'
   Supplier? _selectedSupplier;
+  DonationType? _donationType;
   DonationSubmission? _selectedSubmission;
   AppUser? _selectedReceiver;
   DateTime _dateReceived = DateTime.now();
@@ -190,6 +191,7 @@ class _AddItemPageState extends State<AddItemPage> {
         if (preselectedSubmission != null) {
           _selectedSubmission = preselectedSubmission;
           _donorNameCtrl.text = preselectedSubmission.donorName;
+          _donationType = DonationType.dropOff;
         }
         _lines
           ..clear()
@@ -367,6 +369,18 @@ class _AddItemPageState extends State<AddItemPage> {
     });
   }
 
+  /// Fills "Received by" with the logged-in user's first name -- for staff
+  /// recording a stock-in they physically received themselves, rather than
+  /// on someone else's behalf.
+  void _useMyNameAsReceiver() {
+    final profile = context.read<AuthController>().profile;
+    if (profile == null) return;
+    setState(() {
+      _receivedByCtrl.text = profile.firstName;
+      _selectedReceiver = profile;
+    });
+  }
+
   Future<void> _pickDateReceived() async {
     final picked = await showDatePicker(
       context: context,
@@ -465,6 +479,7 @@ class _AddItemPageState extends State<AddItemPage> {
             updatedByUserId: currentUserId,
             receivedBy: _receivedByCtrl.text.trim(),
             items: items,
+            type: _donationType!,
             receivedDate: _dateReceived,
           );
         } else {
@@ -473,13 +488,14 @@ class _AddItemPageState extends State<AddItemPage> {
             recordedByUserId: currentUserId,
             receivedBy: _receivedByCtrl.text.trim(),
             items: items,
+            type: _donationType!,
             receivedDate: _dateReceived,
           );
         }
       }
 
       if (!mounted) return;
-      context.go('/inventory');
+      context.pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -515,7 +531,7 @@ class _AddItemPageState extends State<AddItemPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () => context.go('/inventory'),
+            onPressed: () => context.pop(),
             icon: const Icon(Icons.arrow_back, size: 16),
             label: const Text('Back to Inventory'),
             style: TextButton.styleFrom(foregroundColor: AppColors.mutedForeground),
@@ -538,7 +554,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   children: [
                     Expanded(
                       child: AppDropdownField<String>(
-                        label: 'Type',
+                        label: 'Type *',
                         initialValue: _procurementType,
                         placeholder: 'Select type',
                         options: const [
@@ -553,7 +569,7 @@ class _AddItemPageState extends State<AddItemPage> {
                     Expanded(
                       child: isPurchased
                           ? SearchSelectField<Supplier>(
-                              labelText: 'Supplier',
+                              labelText: 'Supplier *',
                               options: _suppliers,
                               displayStringForOption: (s) => s.suppName,
                               initialText: _selectedSupplier?.suppName,
@@ -563,7 +579,19 @@ class _AddItemPageState extends State<AddItemPage> {
                               },
                               onSelected: (s) => setState(() => _selectedSupplier = s),
                             )
-                          : const SizedBox.shrink(),
+                          : isDonated
+                              ? AppDropdownField<DonationType>(
+                                  label: 'Donation Type *',
+                                  initialValue: _donationType,
+                                  placeholder: 'Select donation type',
+                                  options: const [
+                                    AppDropdownOption(DonationType.walkIn, 'Walk-in'),
+                                    AppDropdownOption(DonationType.dropOff, 'Drop-off'),
+                                  ],
+                                  validator: (v) => v == null ? 'Required' : null,
+                                  onChanged: (v) => setState(() => _donationType = v),
+                                )
+                              : const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -571,7 +599,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   const SizedBox(height: 12),
                   _selectedSubmission == null
                       ? SearchSelectField<DonationSubmission>(
-                          labelText: 'Link to submission (optional)',
+                          labelText: 'Submission ID (optional)',
                           options: _linkableSubmissions,
                           displayStringForOption: (s) =>
                               '${s.subId} — ${s.donorName} — '
@@ -579,11 +607,12 @@ class _AddItemPageState extends State<AddItemPage> {
                           onSelected: (s) => setState(() {
                             _selectedSubmission = s;
                             _donorNameCtrl.text = s.donorName;
+                            _donationType ??= DonationType.dropOff;
                           }),
                         )
                       : InputDecorator(
                           decoration:
-                              const InputDecoration(labelText: 'Link to submission (optional)'),
+                              const InputDecoration(labelText: 'Submission ID (optional)'),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -613,8 +642,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   TextFormField(
                     controller: _donorNameCtrl,
                     readOnly: _selectedSubmission != null,
-                    decoration: const InputDecoration(
-                        labelText: 'Donor name (optional, for documentation only)'),
+                    decoration: const InputDecoration(labelText: 'Donor Name (optional)'),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -632,13 +660,29 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: SearchSelectField<AppUser>(
-                        labelText: 'Received by',
-                        controller: _receivedByCtrl,
-                        options: _receivers,
-                        displayStringForOption: (u) => u.fullName,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                        onSelected: (u) => setState(() => _selectedReceiver = u),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SearchSelectField<AppUser>(
+                            labelText: 'Received By *',
+                            controller: _receivedByCtrl,
+                            options: _receivers,
+                            displayStringForOption: (u) => u.fullName,
+                            validator: (v) =>
+                                (v == null || v.trim().isEmpty) ? 'Required' : null,
+                            onSelected: (u) => setState(() => _selectedReceiver = u),
+                          ),
+                          TextButton(
+                            onPressed: _useMyNameAsReceiver,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              alignment: Alignment.centerLeft,
+                            ),
+                            child: const Text('I received this', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -677,7 +721,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: _saving ? null : () => context.go('/inventory'),
+                      onPressed: _saving ? null : () => context.pop(),
                       child: const Text('Cancel'),
                     ),
                     const SizedBox(width: 8),

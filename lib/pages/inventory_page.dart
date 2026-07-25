@@ -270,11 +270,15 @@ class _InventoryPageState extends State<InventoryPage>
                     AppDropdownOption('stockout', 'Stock out'),
                   ],
                   onSelected: (v) {
-                    if (v == 'purchase')
+                    if (v == 'purchase') {
                       context.push('/inventory/add?type=purchased');
-                    if (v == 'donation')
+                    }
+                    if (v == 'donation') {
                       context.push('/inventory/add?type=donated');
-                    if (v == 'stockout') _openStockOutDialog();
+                    }
+                    if (v == 'stockout') {
+                      _openStockOutDialog();
+                    }
                   },
                   triggerBuilder: (context, isOpen) => const AppDropdownButton(
                       label: 'New', leadingIcon: Icons.add),
@@ -460,8 +464,6 @@ class _InventoryPageState extends State<InventoryPage>
                       SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Unused Stocks')),
                       SizedBox(width: 16),
-                      Expanded(flex: 2, child: _HeaderCell('Source')),
-                      SizedBox(width: 16),
                       Expanded(flex: 2, child: _HeaderCell('Stock Level')),
                       SizedBox(
                           width: 56,
@@ -478,8 +480,7 @@ class _InventoryPageState extends State<InventoryPage>
                         final item = _pageItems[index];
                         final (levelLabel, levelColor) =
                             _stockLevelMeta(item.stockLevel);
-                        final isOutOfStock =
-                            item.stockQty <= 0 && item.inUseQty <= 0;
+                        final isOutOfStock = item.isOutOfStock;
                         return InkWell(
                           onTap: () =>
                               context.push('/inventory/${item.itemId}'),
@@ -553,7 +554,7 @@ class _InventoryPageState extends State<InventoryPage>
                                         color: AppColors.secondary,
                                         borderRadius: BorderRadius.circular(20),
                                       ),
-                                      child: Text(item.itemCategory,
+                                      child: Text(item.pCategoryName,
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(fontSize: 12)),
                                     ),
@@ -572,24 +573,7 @@ class _InventoryPageState extends State<InventoryPage>
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                               fontWeight: FontWeight.w600)),
-                                      if (item.inUseQty > 0)
-                                        Text(
-                                          '${formatQty(item.inUseQty)} ${item.packageUnitAbbr ?? item.itemUom} in use',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontSize: 11.5,
-                                              color: AppColors.mutedForeground),
-                                        ),
                                     ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: _SourceBadge(
-                                        source: item.acquisitionSource),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -625,14 +609,17 @@ class _InventoryPageState extends State<InventoryPage>
                                         AppDropdownOption('out', 'Stock Out'),
                                       ],
                                       onSelected: (v) {
-                                        if (v == 'in')
+                                        if (v == 'in') {
                                           context.push(
                                               '/inventory/add?itemId=${item.itemId}');
-                                        if (v == 'out')
+                                        }
+                                        if (v == 'out') {
                                           _openStockOutDialog(item: item);
-                                        if (v == 'view')
+                                        }
+                                        if (v == 'view') {
                                           context.push(
                                               '/inventory/${item.itemId}');
+                                        }
                                       },
                                       triggerBuilder: (context, isOpen) =>
                                           const Padding(
@@ -858,44 +845,6 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
         onTap: toggleDropdown,
         child: AppDropdownButton(label: widget.label),
       ),
-    );
-  }
-}
-
-class _SourceBadge extends StatelessWidget {
-  final AcquisitionSource source;
-  const _SourceBadge({required this.source});
-
-  (String, Color) get _meta {
-    switch (source) {
-      case AcquisitionSource.purchased:
-        return ('Purchased', AppColors.roleStaff);
-      case AcquisitionSource.donated:
-        return ('Donated', AppColors.roleDonor);
-      case AcquisitionSource.both:
-        return ('Both', AppColors.primary);
-      case AcquisitionSource.none:
-        return ('—', AppColors.mutedForeground);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, color) = _meta;
-    if (source == AcquisitionSource.none) {
-      return Text(label,
-          style: const TextStyle(color: AppColors.mutedForeground));
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w600, color: color)),
     );
   }
 }

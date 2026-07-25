@@ -72,6 +72,7 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
         _donor = results[0] as AppUser?;
         _receivedItems = results[1] as List<DonationLineItem>;
         _loading = false;
+        _acting = false;
       });
     } catch (_) {
       if (!mounted) return;
@@ -198,6 +199,84 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
     _load();
   }
 
+  Widget _buildActionPanel(DonationSubmission sub) {
+    switch (sub.status) {
+      case SubmissionStatus.pending:
+        return _ActionPanel(
+          icon: Icons.rate_review_outlined,
+          iconColor: AppColors.warning,
+          title: 'Awaiting your review',
+          description:
+              'Approve this submission to accept the donation, or reject it '
+              'if it cannot be accepted. This decision is shown to the donor.',
+          actions: [
+            OutlinedButton(
+              onPressed: _acting ? null : _reject,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.destructive,
+                side: const BorderSide(color: AppColors.destructive),
+              ),
+              child: const Text('Reject'),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: _acting ? null : _approve,
+              child: const Text('Approve'),
+            ),
+          ],
+        );
+      case SubmissionStatus.approved:
+        return _ActionPanel(
+          icon: Icons.local_shipping_outlined,
+          iconColor: AppColors.primary,
+          title: 'Waiting for items to arrive',
+          description:
+              'Once the donor drops off (or you receive) the items in '
+              'person, confirm receipt to move this donation forward.',
+          actions: [
+            ElevatedButton.icon(
+              onPressed: _acting ? null : _confirmItemsReceived,
+              icon: const Icon(Icons.inventory_outlined, size: 18),
+              label: const Text('Confirm Items Received'),
+            ),
+          ],
+        );
+      case SubmissionStatus.received:
+        return _ActionPanel(
+          icon: Icons.checklist_outlined,
+          iconColor: AppColors.primary,
+          title: 'Items received — ready to stock in',
+          description:
+              'Record what was received into inventory to complete this '
+              'donation. This is the final step.',
+          actions: [
+            ElevatedButton.icon(
+              onPressed: _acting ? null : _stockIn,
+              icon: const Icon(Icons.inventory_2_outlined, size: 18),
+              label: const Text('Stock In Items'),
+            ),
+          ],
+        );
+      case SubmissionStatus.stocked:
+        return const _InfoPanel(
+          icon: Icons.check_circle_outline,
+          color: AppColors.primary,
+          title: 'Fully stocked in',
+          description:
+              'All items from this donation have been added to inventory. '
+              'No further action is needed.',
+        );
+      case SubmissionStatus.rejected:
+        return const _InfoPanel(
+          icon: Icons.cancel_outlined,
+          color: AppColors.destructive,
+          title: 'Donation rejected',
+          description:
+              'This submission was rejected and cannot proceed further.',
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -225,8 +304,6 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
     final sub = _submission!;
     final (statusLabel, statusColor) = _statusMeta(sub.status);
     final hasReceivedItems = _receivedItems.isNotEmpty;
-    final showItemsReceivedButton = sub.status == SubmissionStatus.approved;
-    final showStockInButton = sub.status == SubmissionStatus.received;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 720),
@@ -294,6 +371,8 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
             ],
           ),
           const SizedBox(height: 20),
+          _StatusStepper(status: sub.status),
+          const SizedBox(height: 24),
           const _SectionLabel('Donor'),
           Container(
             padding: const EdgeInsets.all(16),
@@ -447,33 +526,7 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
             ),
           ],
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (sub.status == SubmissionStatus.pending) ...[
-                OutlinedButton(
-                  onPressed: _acting ? null : _reject,
-                  child: const Text('Reject'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _acting ? null : _approve,
-                  child: const Text('Approve'),
-                ),
-              ] else if (showItemsReceivedButton)
-                ElevatedButton.icon(
-                  onPressed: _acting ? null : _confirmItemsReceived,
-                  icon: const Icon(Icons.inventory_outlined, size: 18),
-                  label: const Text('Items Received'),
-                )
-              else if (showStockInButton)
-                ElevatedButton.icon(
-                  onPressed: _acting ? null : _stockIn,
-                  icon: const Icon(Icons.inventory_2_outlined, size: 18),
-                  label: const Text('Stock In'),
-                ),
-            ],
-          ),
+          _buildActionPanel(sub),
         ],
       ),
     );
@@ -518,6 +571,261 @@ class _FieldBlock extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
       ],
+    );
+  }
+}
+
+enum _StepState { done, current, upcoming }
+
+/// Horizontal progress indicator for the submission lifecycle:
+/// Submitted -> Approved -> Received -> Stocked In. Collapses to a single
+/// rejected banner when the terminal `rejected` state is reached, since
+/// that branches off "Submitted" rather than continuing the happy path.
+class _StatusStepper extends StatelessWidget {
+  final SubmissionStatus status;
+  const _StatusStepper({required this.status});
+
+  static const _labels = ['Submitted', 'Approved', 'Received', 'Stocked In'];
+
+  int get _activeIndex {
+    switch (status) {
+      case SubmissionStatus.pending:
+        return 0;
+      case SubmissionStatus.approved:
+        return 1;
+      case SubmissionStatus.received:
+        return 2;
+      case SubmissionStatus.stocked:
+        return 3;
+      case SubmissionStatus.rejected:
+        return 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (status == SubmissionStatus.rejected) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.destructive.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border:
+              Border.all(color: AppColors.destructive.withValues(alpha: 0.3)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.cancel_outlined, size: 18, color: AppColors.destructive),
+            SizedBox(width: 8),
+            Text('Submitted, then rejected',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.destructive)),
+          ],
+        ),
+      );
+    }
+
+    final active = _activeIndex;
+    return Row(
+      children: [
+        for (var i = 0; i < _labels.length; i++) ...[
+          _StepDot(
+            index: i,
+            label: _labels[i],
+            state: i < active
+                ? _StepState.done
+                : i == active
+                    ? _StepState.current
+                    : _StepState.upcoming,
+          ),
+          if (i != _labels.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.only(bottom: 18),
+                color: i < active ? AppColors.primary : AppColors.border,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _StepDot extends StatelessWidget {
+  final int index;
+  final String label;
+  final _StepState state;
+  const _StepDot(
+      {required this.index, required this.label, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fill = switch (state) {
+      _StepState.done => AppColors.primary,
+      _StepState.current => AppColors.primary,
+      _StepState.upcoming => AppColors.muted,
+    };
+    final Color textColor = switch (state) {
+      _StepState.done => AppColors.foreground,
+      _StepState.current => AppColors.foreground,
+      _StepState.upcoming => AppColors.mutedForeground,
+    };
+
+    return Column(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: state == _StepState.upcoming ? Colors.transparent : fill,
+            border: Border.all(
+              color: state == _StepState.upcoming
+                  ? AppColors.border
+                  : AppColors.primary,
+              width: state == _StepState.current ? 2 : 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: state == _StepState.done
+              ? const Icon(Icons.check, size: 16, color: Colors.white)
+              : Text('${index + 1}',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: state == _StepState.current
+                          ? Colors.white
+                          : AppColors.mutedForeground)),
+        ),
+        const SizedBox(height: 6),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11.5,
+                fontWeight:
+                    state == _StepState.current ? FontWeight.w700 : FontWeight.w500,
+                color: textColor)),
+      ],
+    );
+  }
+}
+
+/// Contextual "what happens next" card shown at the bottom of the page --
+/// pairs an explanation of the current stage with its action button(s), so
+/// staff know *why* they're clicking a button, not just what it's labeled.
+class _ActionPanel extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String description;
+  final List<Widget> actions;
+
+  const _ActionPanel({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.description,
+    required this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(description,
+                    style: const TextStyle(
+                        fontSize: 12.5,
+                        height: 1.4,
+                        color: AppColors.mutedForeground)),
+                const SizedBox(height: 14),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: actions,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Terminal-state variant of [_ActionPanel] with no actions -- used once
+/// the submission is rejected or fully stocked in.
+class _InfoPanel extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String description;
+
+  const _InfoPanel({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 22, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: color)),
+                const SizedBox(height: 3),
+                Text(description,
+                    style: const TextStyle(
+                        fontSize: 12.5,
+                        height: 1.4,
+                        color: AppColors.mutedForeground)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

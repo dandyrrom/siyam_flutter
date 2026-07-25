@@ -35,21 +35,25 @@ abstract interface class DonationService {
     required String updatedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   });
   /// Persists the moment staff confirm a submission's items physically
   /// arrived (the "Items Received" step, before Stock In).
   Future<void> markSubmissionReceived({required String subId});
+  /// [type] is purely descriptive (walk_in/drop_off) and doesn't constrain
+  /// [donorId]/[subId]/[donorName] -- all remain independently optional.
   /// [donorId] is only set when linking a submission (which always has a
-  /// real donor account); otherwise the donor may be unregistered, so
-  /// [donorName] carries a free-text name for documentation only -- see
-  /// KNOWN_LIMITATIONS.md.
+  /// real donor account) or when staff manually link one; otherwise the
+  /// donor may be unregistered, so [donorName] carries a free-text name for
+  /// documentation only -- see KNOWN_LIMITATIONS.md.
   Future<void> recordDirectDonation({
     String? donorId,
     String? donorName,
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   });
   Future<List<DateTime>> fetchDonationDates();
@@ -170,10 +174,12 @@ class MockDonationService implements DonationService {
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   }) async {
     final donationRow = DonationRow(
       id: newMockId('donation'),
+      type: donationTypeToString(type),
       donorId: donorId,
       donorName: donorName,
       subId: subId,
@@ -206,6 +212,7 @@ class MockDonationService implements DonationService {
     required String updatedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   }) async {
     final row = firstWhereOrNull(_db.submissions, (s) => s.id == subId);
@@ -219,6 +226,7 @@ class MockDonationService implements DonationService {
       recordedByUserId: updatedByUserId,
       receivedBy: receivedBy,
       items: items,
+      type: type,
       receivedDate: receivedDate,
     );
   }
@@ -243,6 +251,7 @@ class MockDonationService implements DonationService {
     required String recordedByUserId,
     required String receivedBy,
     required List<DonationItemInput> items,
+    required DonationType type,
     DateTime? receivedDate,
   }) {
     return _createDonationAndItems(
@@ -251,6 +260,7 @@ class MockDonationService implements DonationService {
       recordedByUserId: recordedByUserId,
       receivedBy: receivedBy,
       items: items,
+      type: type,
       receivedDate: receivedDate,
     );
   }

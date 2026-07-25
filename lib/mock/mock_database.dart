@@ -153,6 +153,9 @@ class SubmissionRow {
 
 class DonationRow {
   final String id;
+  /// 'walk_in' or 'drop_off' -- see [DonationType]. Descriptive only; does
+  /// not constrain whether [donorId] or [subId] are set.
+  final String type;
   /// Null when the donor has no SIYAM account -- see [donorName].
   final String? donorId;
   /// Free-text donor name, for documentation only, when [donorId] is null
@@ -166,6 +169,7 @@ class DonationRow {
 
   DonationRow({
     required this.id,
+    required this.type,
     this.donorId,
     this.donorName,
     this.subId,
