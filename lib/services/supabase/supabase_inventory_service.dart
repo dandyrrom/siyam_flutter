@@ -388,4 +388,13 @@ class SupabaseInventoryService implements InventoryService {
     movements.sort((a, b) => b.date.compareTo(a.date));
     return movements;
   }
+
+  @override
+  Future<List<DateTime>> fetchStockOutDates() async {
+    final rows = await _client.from('stock_out').select('recordeddate');
+    return [
+      for (final row in rows)
+        DateTime.parse(row['recordeddate'] as String).toLocal(),
+    ];
+  }
 }
