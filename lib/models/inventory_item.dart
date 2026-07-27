@@ -1,9 +1,5 @@
 enum StockLevel { inStock, needsRestock, low, outOfStock }
 
-/// Placeholder global reorder threshold (purchase-unit containers). No
-/// `system_settings` or per-item reorder column exists in the schema yet.
-const double kLowStockPurchaseUnitThreshold = 10;
-
 /// How an item's stock has been acquired, derived from whether it has any
 /// rows in `purchase_item` and/or `donation_item` -- not a stored column.
 /// An item can carry both (restocked once by purchase, once by donation), so
@@ -250,7 +246,7 @@ class InventoryItem {
   /// per-item `reorder_point` column if you want these tunable per item.
   StockLevel get stockLevel {
     if (isOutOfStock) return StockLevel.outOfStock;
-    if (stockQty <= kLowStockPurchaseUnitThreshold) return StockLevel.low;
+    if (stockQty <= 10) return StockLevel.low;
     if (stockQty <= 30) return StockLevel.needsRestock;
     return StockLevel.inStock;
   }

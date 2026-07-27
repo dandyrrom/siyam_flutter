@@ -48,8 +48,6 @@ abstract interface class InventoryService {
   });
   Future<void> deleteItem(String itemId);
   Future<List<StockMovement>> fetchStockHistory(String itemId);
-  /// One date per stock_out row — used by the manager dashboard usage chart.
-  Future<List<DateTime>> fetchStockOutDates();
 }
 
 /// In-memory equivalent of the old public.item access layer. Every fetch
@@ -331,10 +329,5 @@ class MockInventoryService implements InventoryService {
 
     movements.sort((a, b) => b.date.compareTo(a.date));
     return movements;
-  }
-
-  @override
-  Future<List<DateTime>> fetchStockOutDates() async {
-    return _db.stockOuts.map((s) => s.recordedDate).toList();
   }
 }
