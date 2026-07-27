@@ -67,6 +67,33 @@ class SupabasePetService implements PetService {
   }
 
   @override
+  Future<Pet> updatePet({
+    required String petId,
+    required String petName,
+    required PetSpecies species,
+    required PetGender gender,
+    required PetStatus status,
+    String? breed,
+    bool spayedNeutered = false,
+  }) async {
+    final row = await _client
+        .from('pet')
+        .update({
+          'name': petName,
+          'species': petSpeciesToString(species),
+          'breed': breed,
+          'gender': petGenderToString(gender),
+          'spayed_neutered': spayedNeutered,
+          'status': petStatusToString(status),
+        })
+        .eq('id', petId)
+        .select(_columns)
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapPet(row);
+  }
+
+  @override
   Future<void> deletePet(String petId) async {
     await _client.from('pet').delete().eq('id', petId);
     DataChangeBus.instance.ping();

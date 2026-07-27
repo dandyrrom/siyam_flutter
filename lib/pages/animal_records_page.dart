@@ -84,20 +84,22 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     return species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
   }
 
-  Future<void> _openAddAnimalDialog() async {
-    final nameCtrl = TextEditingController();
-    final breedCtrl = TextEditingController();
+  Future<void> _openAnimalFormDialog({Pet? pet}) async {
+    final isEdit = pet != null;
+    final nameCtrl = TextEditingController(text: pet?.petName ?? '');
+    final breedCtrl = TextEditingController(text: pet?.breed ?? '');
     final formKey = GlobalKey<FormState>();
-    PetSpecies species = PetSpecies.dog;
-    PetGender gender = PetGender.male;
-    bool spayedNeutered = false;
+    PetSpecies species = pet?.species ?? PetSpecies.dog;
+    PetGender gender = pet?.gender ?? PetGender.male;
+    PetStatus status = pet?.status ?? PetStatus.available;
+    bool spayedNeutered = pet?.spayedNeutered ?? false;
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Add Animal'),
+          title: Text(isEdit ? 'Edit Animal' : 'Add Animal'),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -135,6 +137,15 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                         .toList(),
                     onChanged: (v) => setDialogState(() => gender = v),
                   ),
+                  const SizedBox(height: 12),
+                  AppDropdownField<PetStatus>(
+                    label: 'Status',
+                    initialValue: status,
+                    options: PetStatus.values
+                        .map((s) => AppDropdownOption(s, _statusMeta(s).$1))
+                        .toList(),
+                    onChanged: (v) => setDialogState(() => status = v),
+                  ),
                   const SizedBox(height: 8),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
@@ -154,26 +165,71 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 if (!formKey.currentState!.validate()) return;
                 Navigator.of(context).pop();
                 try {
-                  await _service.createPet(
-                    petName: nameCtrl.text.trim(),
-                    species: species,
-                    gender: gender,
-                    breed: breedCtrl.text.trim().isEmpty ? null : breedCtrl.text.trim(),
-                    spayedNeutered: spayedNeutered,
-                  );
+                  if (isEdit) {
+                    await _service.updatePet(
+                      petId: pet.petId,
+                      petName: nameCtrl.text.trim(),
+                      species: species,
+                      gender: gender,
+                      status: status,
+                      breed: breedCtrl.text.trim().isEmpty ? null : breedCtrl.text.trim(),
+                      spayedNeutered: spayedNeutered,
+                    );
+                  } else {
+                    await _service.createPet(
+                      petName: nameCtrl.text.trim(),
+                      species: species,
+                      gender: gender,
+                      breed: breedCtrl.text.trim().isEmpty ? null : breedCtrl.text.trim(),
+                      spayedNeutered: spayedNeutered,
+                    );
+                  }
                   _load();
                 } catch (e) {
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Could not add animal: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content:
+                            Text('Could not ${isEdit ? 'update' : 'add'} animal: $e')),
+                  );
                 }
               },
-              child: const Text('Add Animal'),
+              child: Text(isEdit ? 'Save Changes' : 'Add Animal'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAnimal(Pet pet) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete animal?'),
+        content: Text(
+            'This will permanently remove "${pet.petName}" from animal records. Animals with existing treatment records cannot be deleted.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _service.deletePet(pet.petId);
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not delete animal: $e')));
+    }
   }
 
   Future<void> _openDetailDialog(Pet pet) async {
@@ -214,7 +270,22 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _confirmDeleteAnimal(pet);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
+            child: const Text('Delete'),
+          ),
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openAnimalFormDialog(pet: pet);
+            },
+            child: const Text('Edit'),
+          ),
           AppMenuButton<PetStatus>(
             tooltip: 'Update status',
             options: PetStatus.values
@@ -281,7 +352,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             ),
             ElevatedButton.icon(
-              onPressed: _openAddAnimalDialog,
+              onPressed: () => _openAnimalFormDialog(),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add Animal'),
             ),

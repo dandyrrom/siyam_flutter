@@ -18,6 +18,13 @@ abstract interface class SupplierService {
     String? contactNum,
     String? address,
   });
+  Future<Supplier> updateSupplier({
+    required String suppId,
+    required String suppName,
+    String? contactNum,
+    String? address,
+  });
+  Future<void> deleteSupplier(String suppId);
   Future<List<PurchaseOrder>> fetchAllPurchaseOrders();
   Future<List<PurchaseOrder>> fetchPurchaseOrdersForSupplier(String suppId);
   Future<PurchaseOrder?> fetchPurchaseOrder(String purId);
@@ -82,6 +89,41 @@ class MockSupplierService implements SupplierService {
     _db.suppliers.add(supplier);
     DataChangeBus.instance.ping();
     return supplier;
+  }
+
+  @override
+  Future<Supplier> updateSupplier({
+    required String suppId,
+    required String suppName,
+    String? contactNum,
+    String? address,
+  }) async {
+    final index = _db.suppliers.indexWhere((s) => s.suppId == suppId);
+    if (index == -1) throw Exception('Supplier not found');
+    final current = _db.suppliers[index];
+    final updated = Supplier(
+      suppId: current.suppId,
+      suppName: suppName,
+      contactNum: contactNum,
+      contactTel: current.contactTel,
+      address: address,
+    );
+    _db.suppliers[index] = updated;
+    DataChangeBus.instance.ping();
+    return updated;
+  }
+
+  @override
+  Future<void> deleteSupplier(String suppId) async {
+    final hasOrders = _db.purchases.any((p) => p.suppId == suppId);
+    if (hasOrders) {
+      throw Exception(
+          'Cannot delete a supplier with existing purchase orders. Remove or reassign orders first.');
+    }
+    final index = _db.suppliers.indexWhere((s) => s.suppId == suppId);
+    if (index == -1) throw Exception('Supplier not found');
+    _db.suppliers.removeAt(index);
+    DataChangeBus.instance.ping();
   }
 
   /// All purchase orders across every supplier, most recent first.

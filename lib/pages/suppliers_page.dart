@@ -69,17 +69,18 @@ class _SuppliersPageState extends State<SuppliersPage>
   List<PurchaseOrder> _ordersFor(String suppId) =>
       _allOrders.where((o) => o.suppId == suppId).toList();
 
-  Future<void> _openAddSupplierDialog() async {
-    final nameCtrl = TextEditingController();
-    final contactCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
+  Future<void> _openSupplierFormDialog({Supplier? supplier}) async {
+    final isEdit = supplier != null;
+    final nameCtrl = TextEditingController(text: supplier?.suppName ?? '');
+    final contactCtrl = TextEditingController(text: supplier?.contactNum ?? '');
+    final addressCtrl = TextEditingController(text: supplier?.address ?? '');
     final formKey = GlobalKey<FormState>();
 
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add Supplier'),
+        title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -112,23 +113,74 @@ class _SuppliersPageState extends State<SuppliersPage>
               if (!formKey.currentState!.validate()) return;
               Navigator.of(context).pop();
               try {
-                await _service.createSupplier(
-                  suppName: nameCtrl.text.trim(),
-                  contactNum: contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
-                  address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-                );
+                if (isEdit) {
+                  await _service.updateSupplier(
+                    suppId: supplier.suppId,
+                    suppName: nameCtrl.text.trim(),
+                    contactNum:
+                        contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
+                    address:
+                        addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+                  );
+                } else {
+                  await _service.createSupplier(
+                    suppName: nameCtrl.text.trim(),
+                    contactNum:
+                        contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
+                    address:
+                        addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+                  );
+                }
                 _load();
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Could not add supplier: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(
+                          'Could not ${isEdit ? 'update' : 'add'} supplier: $e')),
+                );
               }
             },
-            child: const Text('Add Supplier'),
+            child: Text(isEdit ? 'Save Changes' : 'Add Supplier'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteSupplier(Supplier supplier) async {
+    final orders = _ordersFor(supplier.suppId);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete supplier?'),
+        content: Text(
+          orders.isEmpty
+              ? 'This will permanently remove "${supplier.suppName}" from the supplier list.'
+              : '"${supplier.suppName}" has ${orders.length} purchase order(s) and cannot be deleted until those orders are removed.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          if (orders.isEmpty)
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteSupplier(supplier.suppId);
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not delete supplier: $e')));
+    }
   }
 
   Future<void> _openDetailDialog(Supplier supplier) async {
@@ -178,7 +230,22 @@ class _SuppliersPageState extends State<SuppliersPage>
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _confirmDeleteSupplier(supplier);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
+            child: const Text('Delete'),
+          ),
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openSupplierFormDialog(supplier: supplier);
+            },
+            child: const Text('Edit'),
+          ),
         ],
       ),
     );
@@ -215,7 +282,7 @@ class _SuppliersPageState extends State<SuppliersPage>
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             ),
             ElevatedButton.icon(
-              onPressed: _openAddSupplierDialog,
+              onPressed: () => _openSupplierFormDialog(),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add Supplier'),
             ),

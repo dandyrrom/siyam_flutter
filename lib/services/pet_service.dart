@@ -19,6 +19,15 @@ abstract interface class PetService {
     bool spayedNeutered,
   });
   Future<Pet> updateStatus({required String petId, required PetStatus status});
+  Future<Pet> updatePet({
+    required String petId,
+    required String petName,
+    required PetSpecies species,
+    required PetGender gender,
+    required PetStatus status,
+    String? breed,
+    bool spayedNeutered,
+  });
   Future<void> deletePet(String petId);
 }
 
@@ -78,8 +87,41 @@ class MockPetService implements PetService {
   }
 
   @override
+  Future<Pet> updatePet({
+    required String petId,
+    required String petName,
+    required PetSpecies species,
+    required PetGender gender,
+    required PetStatus status,
+    String? breed,
+    bool spayedNeutered = false,
+  }) async {
+    final index = _db.pets.indexWhere((p) => p.petId == petId);
+    if (index == -1) throw Exception('Pet not found');
+    final updated = Pet(
+      petId: petId,
+      petName: petName,
+      species: species,
+      breed: breed,
+      gender: gender,
+      spayedNeutered: spayedNeutered,
+      status: status,
+    );
+    _db.pets[index] = updated;
+    DataChangeBus.instance.ping();
+    return updated;
+  }
+
+  @override
   Future<void> deletePet(String petId) async {
-    _db.pets.removeWhere((p) => p.petId == petId);
+    final hasTreatments = _db.treatments.any((t) => t.petId == petId);
+    if (hasTreatments) {
+      throw Exception(
+          'Cannot delete an animal with existing treatment records. Remove treatments first.');
+    }
+    final index = _db.pets.indexWhere((p) => p.petId == petId);
+    if (index == -1) throw Exception('Pet not found');
+    _db.pets.removeAt(index);
     DataChangeBus.instance.ping();
   }
 }
