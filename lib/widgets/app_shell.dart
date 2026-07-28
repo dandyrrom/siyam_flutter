@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../core/app_colors.dart';
 import '../core/page_title.dart';
 import 'side_nav.dart';
 import 'top_nav.dart';
+import 'mobile_drawer.dart';
 
 /// Wraps every authenticated/protected page with the sidebar + top nav,
 /// mirroring ProtectedLayout from the original Layout.tsx.
@@ -18,6 +20,9 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   bool _collapsed = false;
+
+  // GlobalKey for Scaffold (to control drawer)
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _toggle() => setState(() => _collapsed = !_collapsed);
 
@@ -46,6 +51,58 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // ============================================================
+    // MOBILE DETECTION: Check if screen width is less than 600px
+    // ============================================================
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
+    // ============================================================
+    // MOBILE: Scaffold with AppBar and Drawer
+    // ============================================================
+    if (isMobile) {
+      return Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('SIYAM'),
+          leading: IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              if (_scaffoldKey.currentState != null) {
+                _scaffoldKey.currentState!.openDrawer();
+              }
+            },
+          ),
+          elevation: 0,
+          backgroundColor: AppColors.card,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                context.go('/notifications');
+              },
+            ),
+          ],
+        ),
+        // ============================================================
+        // FIX: Pass the actual currentPath, not hardcoded '/dashboard'
+        // ============================================================
+        drawer: MobileDrawer(
+          currentPath: widget.currentPath,  // ← CHANGED: Now uses actual path
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: widget.child,
+          ),
+        ),
+      );
+    }
+
+    // ============================================================
+    // WEB: Original layout (UNCHANGED)
+    // ============================================================
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Row(
