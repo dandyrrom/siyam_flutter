@@ -81,6 +81,8 @@ class _ImpactsPageState extends State<ImpactsPage>
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -106,34 +108,80 @@ class _ImpactsPageState extends State<ImpactsPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('My Impact', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        // ============================================================
+        // HEADER: Responsive title
+        // ============================================================
+        Text(
+          'My Impact',
+          style: TextStyle(
+            fontSize: isMobile ? 20 : 24,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'See how your donations have helped animals in our care.',
-          style: TextStyle(color: AppColors.mutedForeground),
+          style: TextStyle(
+            fontSize: isMobile ? 13 : 14,
+            color: AppColors.mutedForeground,
+          ),
         ),
         const SizedBox(height: 20),
-        StatCardRow(cards: [
-          StatCard(
-            label: 'Items Donated',
-            value: '${_lines.length}',
-            icon: Icons.volunteer_activism_outlined,
-            accent: AppColors.roleDonor,
-          ),
-          StatCard(
-            label: 'Treatments Helped',
-            value: '$treatmentCount',
-            icon: Icons.medical_services_outlined,
-            accent: AppColors.primary,
-          ),
-          StatCard(
-            label: 'Animals Helped',
-            value: '$animalsHelped',
-            icon: Icons.pets_outlined,
-            accent: AppColors.roleStaff,
-          ),
-        ]),
+
+        // ============================================================
+        // STAT CARDS: Responsive - stack on mobile
+        // ============================================================
+        isMobile
+            ? Column(
+                children: [
+                  _buildStatCard(
+                    label: 'Items Donated',
+                    value: '${_lines.length}',
+                    icon: Icons.volunteer_activism_outlined,
+                    accent: AppColors.roleDonor,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildStatCard(
+                    label: 'Treatments Helped',
+                    value: '$treatmentCount',
+                    icon: Icons.medical_services_outlined,
+                    accent: AppColors.primary,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildStatCard(
+                    label: 'Animals Helped',
+                    value: '$animalsHelped',
+                    icon: Icons.pets_outlined,
+                    accent: AppColors.roleStaff,
+                  ),
+                ],
+              )
+            : StatCardRow(cards: [
+                StatCard(
+                  label: 'Items Donated',
+                  value: '${_lines.length}',
+                  icon: Icons.volunteer_activism_outlined,
+                  accent: AppColors.roleDonor,
+                ),
+                StatCard(
+                  label: 'Treatments Helped',
+                  value: '$treatmentCount',
+                  icon: Icons.medical_services_outlined,
+                  accent: AppColors.primary,
+                ),
+                StatCard(
+                  label: 'Animals Helped',
+                  value: '$animalsHelped',
+                  icon: Icons.pets_outlined,
+                  accent: AppColors.roleStaff,
+                ),
+              ]),
+
         const SizedBox(height: 20),
+
+        // ============================================================
+        // EMPTY STATE OR IMPACT CARDS
+        // ============================================================
         if (_lines.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 56),
@@ -158,6 +206,58 @@ class _ImpactsPageState extends State<ImpactsPage>
               child: _ImpactCard(line: line),
             ),
       ],
+    );
+  }
+
+  // ============================================================
+  // MOBILE STAT CARD (Stacked version)
+  // ============================================================
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accent,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 22, color: accent),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -234,11 +334,13 @@ class _ImpactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     final preview = line.contributions.take(_previewContributionCount).toList();
     final remaining = line.contributions.length - preview.length;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
@@ -247,27 +349,57 @@ class _ImpactCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ============================================================
+          // HEADER: Item name + date
+          // ============================================================
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(line.itemName,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
+                child: Text(
+                  line.itemName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: isMobile ? 14 : 15.5,
+                  ),
+                ),
               ),
-              Text(_formatDate(line.receivedDate),
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+              Text(
+                _formatDate(line.receivedDate),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text('Donated ${formatQty(line.donatedQty)} ${line.itemUom}',
-              style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+
+          // ============================================================
+          // DONATED QUANTITY
+          // ============================================================
+          Text(
+            'Donated ${formatQty(line.donatedQty)} ${line.itemUom}',
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: AppColors.mutedForeground,
+            ),
+          ),
           const SizedBox(height: 14),
-          if (line.isQuantityPrecise) ...[
+
+          // ============================================================
+          // IMPACT BAR (web only - hidden on mobile for cleaner look)
+          // ============================================================
+          if (line.isQuantityPrecise && !isMobile) ...[
             _ImpactBar(line: line),
             const SizedBox(height: 12),
           ],
+
+          // ============================================================
+          // STAT CHIPS: Responsive wrap
+          // ============================================================
           Wrap(
-            spacing: 10,
+            spacing: 8,
             runSpacing: 8,
             children: [
               if (line.isQuantityPrecise)
@@ -295,6 +427,10 @@ class _ImpactCard extends StatelessWidget {
               ),
             ],
           ),
+
+          // ============================================================
+          // CONTRIBUTION TILES
+          // ============================================================
           if (preview.isNotEmpty) ...[
             const SizedBox(height: 16),
             const Divider(height: 1),
@@ -327,6 +463,8 @@ class _ContributionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     final isTreatment = contribution.kind == ImpactEventKind.treatment;
     final badgeColor = isTreatment ? AppColors.primary : AppColors.mutedForeground;
     final icon = isTreatment
@@ -351,12 +489,20 @@ class _ContributionTile extends StatelessWidget {
           Expanded(
             child: Text(
               _impactMessage(line, contribution),
-              style: const TextStyle(fontSize: 13, height: 1.35),
+              style: TextStyle(
+                fontSize: isMobile ? 12.5 : 13,
+                height: 1.35,
+              ),
             ),
           ),
           const SizedBox(width: 10),
-          Text(_formatDate(contribution.date),
-              style: const TextStyle(fontSize: 11.5, color: AppColors.mutedForeground)),
+          Text(
+            _formatDate(contribution.date),
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: AppColors.mutedForeground,
+            ),
+          ),
         ],
       ),
     );
@@ -410,6 +556,8 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -421,14 +569,23 @@ class _StatChip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.4,
-                  color: color)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isMobile ? 10 : 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
