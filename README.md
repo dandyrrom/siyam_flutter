@@ -44,10 +44,6 @@ flutter pub get
 flutter run -d chrome
 ```
 
-##Run in Emulator
-
-flutter run -d emulator-5554
-
 Seeded test accounts (all use password `password123`):
 
 
@@ -145,5 +141,4 @@ Wiring up Supabase for auth + data is the next phase and is not done yet:
   `AuthStatus.unknown` state for session restore.
 4. Implement each `Supabase<Name>Service` against the existing service
   interfaces and flip the factory branch — one service at a time.
-
 
