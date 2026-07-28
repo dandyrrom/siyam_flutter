@@ -380,7 +380,7 @@ class _InventoryPageState extends State<InventoryPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ============================================================
-              // FILTER BAR
+              // FILTER BAR: Wrap with responsive sizing
               // ============================================================
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -421,6 +421,7 @@ class _InventoryPageState extends State<InventoryPage>
                         ),
                       ),
                     ),
+                    // Category filter - wraps naturally
                     _CategoryFilterMenu(
                       label: _categoryLabel,
                       primaryCategories: _primaryCategories,
@@ -435,6 +436,7 @@ class _InventoryPageState extends State<InventoryPage>
                         label: subName,
                       ),
                     ),
+                    // Stock Level dropdown
                     AppDropdown<StockLevel?>(
                       label: _stockLevelFilter == null
                           ? 'Stock Level'
@@ -449,6 +451,7 @@ class _InventoryPageState extends State<InventoryPage>
                         _page = 0;
                       }),
                     ),
+                    // Source dropdown
                     AppDropdown<AcquisitionSource?>(
                       label: _sourceFilter == null
                           ? 'Source'
@@ -463,6 +466,7 @@ class _InventoryPageState extends State<InventoryPage>
                         _page = 0;
                       }),
                     ),
+                    // Sort dropdown
                     AppDropdown<_SortOption>(
                       label: 'Sort: ${_sortMeta(_sortOption).$1}',
                       options: [
@@ -471,6 +475,7 @@ class _InventoryPageState extends State<InventoryPage>
                       ],
                       onSelect: (v) => setState(() => _sortOption = v),
                     ),
+                    // Reset filters button
                     if (_hasActiveFilters)
                       TextButton.icon(
                         onPressed: _resetFilters,
@@ -549,7 +554,7 @@ class _InventoryPageState extends State<InventoryPage>
                 if (!isMobile) const Divider(height: 1),
 
                 // ============================================================
-                // ITEM ROWS: Table on web, Cards on mobile
+                // ITEM ROWS: Table rows on web, Cards on mobile
                 // ============================================================
                 Column(
                   children: [
@@ -773,7 +778,7 @@ class _InventoryPageState extends State<InventoryPage>
                                 ),
                                 const SizedBox(height: 6),
 
-                                // Row 2: Category + Stock Level + Quantity
+                                // Row 2: Category + Stock Level
                                 Row(
                                   children: [
                                     Container(
