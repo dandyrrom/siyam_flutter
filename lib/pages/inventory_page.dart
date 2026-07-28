@@ -229,6 +229,11 @@ class _InventoryPageState extends State<InventoryPage>
 
   @override
   Widget build(BuildContext context) {
+    // ============================================================
+    // MOBILE DETECTION: Check if screen width is less than 600px
+    // ============================================================
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -249,59 +254,122 @@ class _InventoryPageState extends State<InventoryPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Expanded(
-              child: Text(
-                'Inventory',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppMenuButton<String>(
-                  options: const [
-                    AppDropdownOption('purchase', 'Purchase'),
-                    AppDropdownOption('donation', 'Donation'),
-                    AppDropdownOption('stockout', 'Stock out'),
-                  ],
-                  onSelected: (v) {
-                    if (v == 'purchase') {
-                      context.push('/inventory/add?type=purchased');
-                    }
-                    if (v == 'donation') {
-                      context.push('/inventory/add?type=donated');
-                    }
-                    if (v == 'stockout') {
-                      _openStockOutDialog();
-                    }
-                  },
-                  triggerBuilder: (context, isOpen) => const AppDropdownButton(
-                      label: 'New', leadingIcon: Icons.add),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.roleDonor,
-                    foregroundColor: Colors.white,
+        // ============================================================
+        // HEADER: Stacked on mobile, Row on web
+        // ============================================================
+        isMobile
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Inventory',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
                   ),
-                  onPressed: () => context.push('/inventory/add'),
-                  icon: const Icon(Icons.arrow_upward, size: 18),
-                  label: const Text('Stock In'),
-                ),
-              ],
-            ),
-          ],
-        ),
+                  const SizedBox(height: 2),
+                  Text('${_items.length} items',
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.mutedForeground)),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppMenuButton<String>(
+                          options: const [
+                            AppDropdownOption('purchase', 'Purchase'),
+                            AppDropdownOption('donation', 'Donation'),
+                            AppDropdownOption('stockout', 'Stock out'),
+                          ],
+                          onSelected: (v) {
+                            if (v == 'purchase') {
+                              context.push('/inventory/add?type=purchased');
+                            }
+                            if (v == 'donation') {
+                              context.push('/inventory/add?type=donated');
+                            }
+                            if (v == 'stockout') {
+                              _openStockOutDialog();
+                            }
+                          },
+                          triggerBuilder: (context, isOpen) =>
+                              const AppDropdownButton(
+                                  label: 'New', leadingIcon: Icons.add),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.roleDonor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => context.push('/inventory/add'),
+                          icon: const Icon(Icons.arrow_upward, size: 18),
+                          label: const Text('Stock In'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Inventory',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppMenuButton<String>(
+                        options: const [
+                          AppDropdownOption('purchase', 'Purchase'),
+                          AppDropdownOption('donation', 'Donation'),
+                          AppDropdownOption('stockout', 'Stock out'),
+                        ],
+                        onSelected: (v) {
+                          if (v == 'purchase') {
+                            context.push('/inventory/add?type=purchased');
+                          }
+                          if (v == 'donation') {
+                            context.push('/inventory/add?type=donated');
+                          }
+                          if (v == 'stockout') {
+                            _openStockOutDialog();
+                          }
+                        },
+                        triggerBuilder: (context, isOpen) =>
+                            const AppDropdownButton(
+                                label: 'New', leadingIcon: Icons.add),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.roleDonor,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => context.push('/inventory/add'),
+                        icon: const Icon(Icons.arrow_upward, size: 18),
+                        label: const Text('Stock In'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
         const SizedBox(height: 2),
-        Text('${_items.length} items',
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.mutedForeground)),
+        if (!isMobile)
+          Text('${_items.length} items',
+              style: const TextStyle(
+                  fontSize: 13, color: AppColors.mutedForeground)),
         const SizedBox(height: 20),
+
+        // ============================================================
+        // MAIN CARD
+        // ============================================================
         Container(
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -311,6 +379,9 @@ class _InventoryPageState extends State<InventoryPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ============================================================
+              // FILTER BAR: Wrap with responsive sizing
+              // ============================================================
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Wrap(
@@ -319,7 +390,7 @@ class _InventoryPageState extends State<InventoryPage>
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
-                      width: 360,
+                      width: isMobile ? double.infinity : 360,
                       child: TextField(
                         controller: _searchCtrl,
                         style: const TextStyle(fontSize: 14),
@@ -350,6 +421,7 @@ class _InventoryPageState extends State<InventoryPage>
                         ),
                       ),
                     ),
+                    // Category filter - wraps naturally
                     _CategoryFilterMenu(
                       label: _categoryLabel,
                       primaryCategories: _primaryCategories,
@@ -364,6 +436,7 @@ class _InventoryPageState extends State<InventoryPage>
                         label: subName,
                       ),
                     ),
+                    // Stock Level dropdown
                     AppDropdown<StockLevel?>(
                       label: _stockLevelFilter == null
                           ? 'Stock Level'
@@ -378,6 +451,7 @@ class _InventoryPageState extends State<InventoryPage>
                         _page = 0;
                       }),
                     ),
+                    // Source dropdown
                     AppDropdown<AcquisitionSource?>(
                       label: _sourceFilter == null
                           ? 'Source'
@@ -392,6 +466,7 @@ class _InventoryPageState extends State<InventoryPage>
                         _page = 0;
                       }),
                     ),
+                    // Sort dropdown
                     AppDropdown<_SortOption>(
                       label: 'Sort: ${_sortMeta(_sortOption).$1}',
                       options: [
@@ -400,6 +475,7 @@ class _InventoryPageState extends State<InventoryPage>
                       ],
                       onSelect: (v) => setState(() => _sortOption = v),
                     ),
+                    // Reset filters button
                     if (_hasActiveFilters)
                       TextButton.icon(
                         onPressed: _resetFilters,
@@ -411,6 +487,10 @@ class _InventoryPageState extends State<InventoryPage>
                 ),
               ),
               const Divider(height: 1),
+
+              // ============================================================
+              // EMPTY STATES
+              // ============================================================
               if (_items.isEmpty)
                 const Center(
                   child: Padding(
@@ -449,29 +529,33 @@ class _InventoryPageState extends State<InventoryPage>
                   ),
                 )
               else ...[
-                // Column proportions -- tune these to match the design's
-                // widths. Using Expanded/flex instead of DataTable's
-                // intrinsic sizing means this also stretches to fill
-                // the full card width instead of hugging its content.
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 2, child: _HeaderCell('ID')),
-                      Expanded(flex: 4, child: _HeaderCell('Item name')),
-                      SizedBox(width: 16),
-                      Expanded(flex: 2, child: _HeaderCell('Category')),
-                      SizedBox(width: 16),
-                      Expanded(flex: 2, child: _HeaderCell('Unused Stocks')),
-                      SizedBox(width: 16),
-                      Expanded(flex: 2, child: _HeaderCell('Stock Level')),
-                      SizedBox(
-                          width: 56,
-                          child: _HeaderCell('Action', alignEnd: true)),
-                    ],
+                // ============================================================
+                // TABLE HEADER: Hidden on mobile
+                // ============================================================
+                if (!isMobile)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 2, child: _HeaderCell('ID')),
+                        Expanded(flex: 4, child: _HeaderCell('Item name')),
+                        SizedBox(width: 16),
+                        Expanded(flex: 2, child: _HeaderCell('Category')),
+                        SizedBox(width: 16),
+                        Expanded(flex: 2, child: _HeaderCell('Unused Stocks')),
+                        SizedBox(width: 16),
+                        Expanded(flex: 2, child: _HeaderCell('Stock Level')),
+                        SizedBox(
+                            width: 56,
+                            child: _HeaderCell('Action', alignEnd: true)),
+                      ],
+                    ),
                   ),
-                ),
-                const Divider(height: 1),
+                if (!isMobile) const Divider(height: 1),
+
+                // ============================================================
+                // ITEM ROWS: Table rows on web, Cards on mobile
+                // ============================================================
                 Column(
                   children: [
                     for (var index = 0; index < _pageItems.length; index++) ...[
@@ -481,153 +565,306 @@ class _InventoryPageState extends State<InventoryPage>
                         final (levelLabel, levelColor) =
                             _stockLevelMeta(item.stockLevel);
                         final isOutOfStock = item.isOutOfStock;
-                        return InkWell(
-                          onTap: () =>
-                              context.push('/inventory/${item.itemId}'),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 14),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(item.displayId,
-                                      style: const TextStyle(
-                                          color: AppColors.mutedForeground)),
-                                ),
-                                Expanded(
-                                  flex: 4,
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        child: RichText(
-                                          overflow: TextOverflow.ellipsis,
-                                          text: TextSpan(
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.foreground),
-                                            children: [
-                                              TextSpan(text: item.itemName),
-                                              if (item.packageLabel != null)
-                                                TextSpan(
-                                                  text: ' ${item.packageLabel}',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                      color: AppColors
-                                                          .mutedForeground),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      if (isOutOfStock) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.stockOut
-                                                .withValues(alpha: 0.12),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: const Text('Out of Stock',
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.stockOut)),
-                                        ),
-                                      ],
-                                    ],
+
+                        // ============================================================
+                        // WEB: Table row layout
+                        // ============================================================
+                        if (!isMobile) {
+                          return InkWell(
+                            onTap: () =>
+                                context.push('/inventory/${item.itemId}'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 14),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(item.displayId,
+                                        style: const TextStyle(
+                                            color: AppColors.mutedForeground)),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.secondary,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(item.pCategoryName,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontSize: 12)),
+                                  Expanded(
+                                    flex: 4,
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: RichText(
+                                            overflow: TextOverflow.ellipsis,
+                                            text: TextSpan(
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.foreground),
+                                              children: [
+                                                TextSpan(text: item.itemName),
+                                                if (item.packageLabel != null)
+                                                  TextSpan(
+                                                    text:
+                                                        ' ${item.packageLabel}',
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w400,
+                                                        color: AppColors
+                                                            .mutedForeground),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (isOutOfStock) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.stockOut
+                                                  .withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: const Text('Out of Stock',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors
+                                                        .stockOut)),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                          '${formatQty(item.unusedStockQty)} ${item.itemUom}',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600)),
-                                    ],
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.secondary,
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(item.pCategoryName,
+                                            overflow: TextOverflow.ellipsis,
+                                            style:
+                                                const TextStyle(fontSize: 12)),
+                                      ),
+                                    ),
                                   ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                            '${formatQty(item.unusedStockQty)} ${item.itemUom}',
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: levelColor
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(levelLabel,
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: levelColor)),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 56,
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: AppMenuButton<String>(
+                                        options: const [
+                                          AppDropdownOption(
+                                              'view', 'View details'),
+                                          AppDropdownOption('in', 'Stock In'),
+                                          AppDropdownOption('out', 'Stock Out'),
+                                        ],
+                                        onSelected: (v) {
+                                          if (v == 'in') {
+                                            context.push(
+                                                '/inventory/add?itemId=${item.itemId}');
+                                          }
+                                          if (v == 'out') {
+                                            _openStockOutDialog(item: item);
+                                          }
+                                          if (v == 'view') {
+                                            context.push(
+                                                '/inventory/${item.itemId}');
+                                          }
+                                        },
+                                        triggerBuilder: (context, isOpen) =>
+                                            const Padding(
+                                          padding: EdgeInsets.all(6),
+                                          child: Icon(Icons.more_horiz,
+                                              size: 18),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        // ============================================================
+                        // MOBILE: Card layout
+                        // ============================================================
+                        return InkWell(
+                          onTap: () => context.push('/inventory/${item.itemId}'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Row 1: ID + Name + Out of Stock badge
+                                Row(
+                                  children: [
+                                    Text(item.displayId,
+                                        style: const TextStyle(
+                                            color: AppColors.mutedForeground,
+                                            fontSize: 12)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        item.itemName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isOutOfStock)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.stockOut
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: const Text('Out of Stock',
+                                            style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.stockOut)),
+                                      ),
+                                  ],
                                 ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Container(
+                                const SizedBox(height: 6),
+
+                                // Row 2: Category + Stock Level
+                                Row(
+                                  children: [
+                                    Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                          horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color:
-                                            levelColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(20),
+                                        color: AppColors.secondary,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(item.pCategoryName,
+                                          style: const TextStyle(fontSize: 11)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: levelColor
+                                            .withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(levelLabel,
                                           style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 11,
                                               fontWeight: FontWeight.w600,
                                               color: levelColor)),
                                     ),
-                                  ),
+                                    const Spacer(),
+                                    Text(
+                                      '${formatQty(item.unusedStockQty)} ${item.itemUom}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(
-                                  width: 56,
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: AppMenuButton<String>(
-                                      options: const [
-                                        AppDropdownOption(
-                                            'view', 'View details'),
-                                        AppDropdownOption('in', 'Stock In'),
-                                        AppDropdownOption('out', 'Stock Out'),
-                                      ],
-                                      onSelected: (v) {
-                                        if (v == 'in') {
-                                          context.push(
-                                              '/inventory/add?itemId=${item.itemId}');
-                                        }
-                                        if (v == 'out') {
-                                          _openStockOutDialog(item: item);
-                                        }
-                                        if (v == 'view') {
-                                          context.push(
-                                              '/inventory/${item.itemId}');
-                                        }
-                                      },
-                                      triggerBuilder: (context, isOpen) =>
-                                          const Padding(
-                                        padding: EdgeInsets.all(6),
-                                        child: Icon(Icons.more_horiz, size: 18),
+                                const SizedBox(height: 8),
+
+                                // Row 3: Action buttons
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => context.push(
+                                            '/inventory/add?itemId=${item.itemId}'),
+                                        icon: const Icon(Icons.arrow_upward,
+                                            size: 14),
+                                        label: const Text('Stock In',
+                                            style: TextStyle(fontSize: 12)),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 6),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () =>
+                                            _openStockOutDialog(item: item),
+                                        icon: const Icon(Icons.arrow_downward,
+                                            size: 14),
+                                        label: const Text('Stock Out',
+                                            style: TextStyle(fontSize: 12)),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 6),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => context.push(
+                                            '/inventory/${item.itemId}'),
+                                        icon: const Icon(Icons.visibility,
+                                            size: 14),
+                                        label: const Text('View',
+                                            style: TextStyle(fontSize: 12)),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 6),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -638,69 +875,137 @@ class _InventoryPageState extends State<InventoryPage>
                   ],
                 ),
                 const Divider(height: 1),
+
+                // ============================================================
+                // PAGINATION: Stacked on mobile, Row on web
+                // ============================================================
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Show', style: TextStyle(fontSize: 12.5)),
-                          const SizedBox(width: 8),
-                          AppDropdown<int>(
-                            label: '$_pageSize',
-                            options: const [12, 25, 50]
-                                .map((n) => AppDropdownOption(n, '$n'))
-                                .toList(),
-                            onSelect: (v) => setState(() {
-                              _pageSize = v;
-                              _page = 0;
-                            }),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('Per Page',
-                              style: TextStyle(fontSize: 12.5)),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextButton.icon(
-                            onPressed: _page > 0
-                                ? () => setState(() => _page--)
-                                : null,
-                            icon: const Icon(Icons.chevron_left, size: 16),
-                            label: const Text('Previous'),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(999),
+                  child: isMobile
+                      ? Column(
+                          children: [
+                            // Rows per page
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('Show',
+                                    style: TextStyle(fontSize: 12.5)),
+                                const SizedBox(width: 8),
+                                AppDropdown<int>(
+                                  label: '$_pageSize',
+                                  options: const [12, 25, 50]
+                                      .map((n) =>
+                                          AppDropdownOption(n, '$n'))
+                                      .toList(),
+                                  onSelect: (v) => setState(() {
+                                    _pageSize = v;
+                                    _page = 0;
+                                  }),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('Per Page',
+                                    style: TextStyle(fontSize: 12.5)),
+                              ],
                             ),
-                            child: Text('${_page + 1} / $_pageCount',
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 12)),
-                          ),
-                          const SizedBox(width: 4),
-                          TextButton.icon(
-                            onPressed: _page < _pageCount - 1
-                                ? () => setState(() => _page++)
-                                : null,
-                            icon: const Icon(Icons.chevron_right, size: 16),
-                            label: const Text('Next'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                            const SizedBox(height: 8),
+                            // Page navigation
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _page > 0
+                                      ? () => setState(() => _page--)
+                                      : null,
+                                  icon: const Icon(Icons.chevron_left, size: 16),
+                                  label: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text('${_page + 1} / $_pageCount',
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 12)),
+                                ),
+                                const SizedBox(width: 4),
+                                TextButton.icon(
+                                  onPressed: _page < _pageCount - 1
+                                      ? () => setState(() => _page++)
+                                      : null,
+                                  icon: const Icon(Icons.chevron_right, size: 16),
+                                  label: const Text('Next'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Show',
+                                    style: TextStyle(fontSize: 12.5)),
+                                const SizedBox(width: 8),
+                                AppDropdown<int>(
+                                  label: '$_pageSize',
+                                  options: const [12, 25, 50]
+                                      .map((n) =>
+                                          AppDropdownOption(n, '$n'))
+                                      .toList(),
+                                  onSelect: (v) => setState(() {
+                                    _pageSize = v;
+                                    _page = 0;
+                                  }),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('Per Page',
+                                    style: TextStyle(fontSize: 12.5)),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _page > 0
+                                      ? () => setState(() => _page--)
+                                      : null,
+                                  icon: const Icon(Icons.chevron_left, size: 16),
+                                  label: const Text('Previous'),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text('${_page + 1} / $_pageCount',
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 12)),
+                                ),
+                                const SizedBox(width: 4),
+                                TextButton.icon(
+                                  onPressed: _page < _pageCount - 1
+                                      ? () => setState(() => _page++)
+                                      : null,
+                                  icon: const Icon(Icons.chevron_right, size: 16),
+                                  label: const Text('Next'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                 ),
               ],
             ],
