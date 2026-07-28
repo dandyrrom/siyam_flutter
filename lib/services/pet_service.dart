@@ -17,6 +17,7 @@ abstract interface class PetService {
     required PetGender gender,
     String? breed,
     bool spayedNeutered,
+    PetStatus status,
   });
   Future<Pet> updateStatus({required String petId, required PetStatus status});
   Future<Pet> updatePet({
@@ -49,6 +50,7 @@ class MockPetService implements PetService {
     required PetGender gender,
     String? breed,
     bool spayedNeutered = false,
+    PetStatus status = PetStatus.available,
   }) async {
     final pet = Pet(
       petId: newMockId('pet'),
@@ -57,7 +59,7 @@ class MockPetService implements PetService {
       breed: breed,
       gender: gender,
       spayedNeutered: spayedNeutered,
-      status: PetStatus.available,
+      status: status,
     );
     _db.pets.add(pet);
     DataChangeBus.instance.ping();

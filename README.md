@@ -147,3 +147,6 @@ Wiring up Supabase for auth + data is the next phase and is not done yet:
   interfaces and flip the factory branch — one service at a time.
 
 
+
+flutter run -d edge --dart-define-from-file=env/supabase.json
+flutter run -d chrome --dart-define-from-file=env/supabase.json

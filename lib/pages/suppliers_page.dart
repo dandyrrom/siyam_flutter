@@ -75,112 +75,132 @@ class _SuppliersPageState extends State<SuppliersPage>
     final contactCtrl = TextEditingController(text: supplier?.contactNum ?? '');
     final addressCtrl = TextEditingController(text: supplier?.address ?? '');
     final formKey = GlobalKey<FormState>();
+    var saving = false;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Supplier name'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(
+                isEdit ? Icons.edit_outlined : Icons.add,
+                size: 20,
+                color: AppColors.mutedForeground,
+              ),
+              const SizedBox(width: 8),
+              Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: nameCtrl,
+                      autofocus: !isEdit,
+                      decoration: const InputDecoration(labelText: 'Supplier name *'),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: contactCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration:
+                          const InputDecoration(labelText: 'Contact number (optional)'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: addressCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(labelText: 'Address (optional)'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: contactCtrl,
-                  decoration: const InputDecoration(labelText: 'Contact number (optional)'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: addressCtrl,
-                  decoration: const InputDecoration(labelText: 'Address (optional)'),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.of(context).pop();
-              try {
-                if (isEdit) {
-                  await _service.updateSupplier(
-                    suppId: supplier.suppId,
-                    suppName: nameCtrl.text.trim(),
-                    contactNum:
-                        contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
-                    address:
-                        addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-                  );
-                } else {
-                  await _service.createSupplier(
-                    suppName: nameCtrl.text.trim(),
-                    contactNum:
-                        contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
-                    address:
-                        addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-                  );
-                }
-                _load();
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(
-                          'Could not ${isEdit ? 'update' : 'add'} supplier: $e')),
-                );
-              }
-            },
-            child: Text(isEdit ? 'Save Changes' : 'Add Supplier'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmDeleteSupplier(Supplier supplier) async {
-    final orders = _ordersFor(supplier.suppId);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete supplier?'),
-        content: Text(
-          orders.isEmpty
-              ? 'This will permanently remove "${supplier.suppName}" from the supplier list.'
-              : '"${supplier.suppName}" has ${orders.length} purchase order(s) and cannot be deleted until those orders are removed.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          if (orders.isEmpty)
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() => saving = true);
+                      try {
+                        if (isEdit) {
+                          await _service.updateSupplier(
+                            suppId: supplier.suppId,
+                            suppName: nameCtrl.text.trim(),
+                            contactNum: contactCtrl.text.trim().isEmpty
+                                ? null
+                                : contactCtrl.text.trim(),
+                            address: addressCtrl.text.trim().isEmpty
+                                ? null
+                                : addressCtrl.text.trim(),
+                          );
+                        } else {
+                          await _service.createSupplier(
+                            suppName: nameCtrl.text.trim(),
+                            contactNum: contactCtrl.text.trim().isEmpty
+                                ? null
+                                : contactCtrl.text.trim(),
+                            address: addressCtrl.text.trim().isEmpty
+                                ? null
+                                : addressCtrl.text.trim(),
+                          );
+                        }
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop();
+                        _load();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isEdit
+                                  ? 'Supplier updated successfully.'
+                                  : 'Supplier added successfully.',
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        setDialogState(() => saving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not ${isEdit ? 'update' : 'add'} supplier: $e',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(isEdit ? 'Save Changes' : 'Add Supplier'),
             ),
-        ],
+          ],
+        ),
       ),
     );
-    if (confirmed != true) return;
 
-    try {
-      await _service.deleteSupplier(supplier.suppId);
-      _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Could not delete supplier: $e')));
-    }
+    nameCtrl.dispose();
+    contactCtrl.dispose();
+    addressCtrl.dispose();
   }
 
   Future<void> _openDetailDialog(Supplier supplier) async {
@@ -230,21 +250,14 @@ class _SuppliersPageState extends State<SuppliersPage>
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _confirmDeleteSupplier(supplier);
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
-            child: const Text('Delete'),
-          ),
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-          OutlinedButton(
+          ElevatedButton.icon(
             onPressed: () {
               Navigator.of(context).pop();
               _openSupplierFormDialog(supplier: supplier);
             },
-            child: const Text('Edit'),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit Supplier'),
           ),
         ],
       ),

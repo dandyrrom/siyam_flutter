@@ -93,143 +93,164 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     PetGender gender = pet?.gender ?? PetGender.male;
     PetStatus status = pet?.status ?? PetStatus.available;
     bool spayedNeutered = pet?.spayedNeutered ?? false;
+    var saving = false;
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(isEdit ? 'Edit Animal' : 'Add Animal'),
+          title: Row(
+            children: [
+              Icon(
+                isEdit ? Icons.edit_outlined : Icons.add,
+                size: 20,
+                color: AppColors.mutedForeground,
+              ),
+              const SizedBox(width: 8),
+              Text(isEdit ? 'Edit Animal' : 'Add Animal'),
+            ],
+          ),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  AppDropdownField<PetSpecies>(
-                    label: 'Species',
-                    initialValue: species,
-                    options: PetSpecies.values
-                        .map((s) =>
-                            AppDropdownOption(s, s == PetSpecies.dog ? 'Dog' : 'Cat'))
-                        .toList(),
-                    onChanged: (v) => setDialogState(() => species = v),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: breedCtrl,
-                    decoration: const InputDecoration(labelText: 'Breed (optional)'),
-                  ),
-                  const SizedBox(height: 12),
-                  AppDropdownField<PetGender>(
-                    label: 'Gender',
-                    initialValue: gender,
-                    options: PetGender.values
-                        .map((g) =>
-                            AppDropdownOption(g, g == PetGender.male ? 'Male' : 'Female'))
-                        .toList(),
-                    onChanged: (v) => setDialogState(() => gender = v),
-                  ),
-                  const SizedBox(height: 12),
-                  AppDropdownField<PetStatus>(
-                    label: 'Status',
-                    initialValue: status,
-                    options: PetStatus.values
-                        .map((s) => AppDropdownOption(s, _statusMeta(s).$1))
-                        .toList(),
-                    onChanged: (v) => setDialogState(() => status = v),
-                  ),
-                  const SizedBox(height: 8),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: const Text('Spayed / Neutered'),
-                    value: spayedNeutered,
-                    onChanged: (v) => setDialogState(() => spayedNeutered = v ?? false),
-                  ),
-                ],
+              child: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: nameCtrl,
+                      autofocus: !isEdit,
+                      decoration: const InputDecoration(labelText: 'Name *'),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    AppDropdownField<PetSpecies>(
+                      label: 'Species *',
+                      initialValue: species,
+                      options: PetSpecies.values
+                          .map((s) => AppDropdownOption(
+                              s, s == PetSpecies.dog ? 'Dog' : 'Cat'))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => species = v),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: breedCtrl,
+                      decoration: const InputDecoration(labelText: 'Breed (optional)'),
+                    ),
+                    const SizedBox(height: 12),
+                    AppDropdownField<PetGender>(
+                      label: 'Gender *',
+                      initialValue: gender,
+                      options: PetGender.values
+                          .map((g) => AppDropdownOption(
+                              g, g == PetGender.male ? 'Male' : 'Female'))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => gender = v),
+                    ),
+                    const SizedBox(height: 12),
+                    AppDropdownField<PetStatus>(
+                      label: 'Status *',
+                      initialValue: status,
+                      options: PetStatus.values
+                          .map((s) => AppDropdownOption(s, _statusMeta(s).$1))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => status = v),
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text('Spayed / Neutered'),
+                      value: spayedNeutered,
+                      onChanged: saving
+                          ? null
+                          : (v) => setDialogState(() => spayedNeutered = v ?? false),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            TextButton(
+              onPressed: saving ? null : () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                Navigator.of(context).pop();
-                try {
-                  if (isEdit) {
-                    await _service.updatePet(
-                      petId: pet.petId,
-                      petName: nameCtrl.text.trim(),
-                      species: species,
-                      gender: gender,
-                      status: status,
-                      breed: breedCtrl.text.trim().isEmpty ? null : breedCtrl.text.trim(),
-                      spayedNeutered: spayedNeutered,
-                    );
-                  } else {
-                    await _service.createPet(
-                      petName: nameCtrl.text.trim(),
-                      species: species,
-                      gender: gender,
-                      breed: breedCtrl.text.trim().isEmpty ? null : breedCtrl.text.trim(),
-                      spayedNeutered: spayedNeutered,
-                    );
-                  }
-                  _load();
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content:
-                            Text('Could not ${isEdit ? 'update' : 'add'} animal: $e')),
-                  );
-                }
-              },
-              child: Text(isEdit ? 'Save Changes' : 'Add Animal'),
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() => saving = true);
+                      try {
+                        if (isEdit) {
+                          await _service.updatePet(
+                            petId: pet.petId,
+                            petName: nameCtrl.text.trim(),
+                            species: species,
+                            gender: gender,
+                            status: status,
+                            breed: breedCtrl.text.trim().isEmpty
+                                ? null
+                                : breedCtrl.text.trim(),
+                            spayedNeutered: spayedNeutered,
+                          );
+                        } else {
+                          await _service.createPet(
+                            petName: nameCtrl.text.trim(),
+                            species: species,
+                            gender: gender,
+                            status: status,
+                            breed: breedCtrl.text.trim().isEmpty
+                                ? null
+                                : breedCtrl.text.trim(),
+                            spayedNeutered: spayedNeutered,
+                          );
+                        }
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop();
+                        _load();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isEdit
+                                  ? 'Animal updated successfully.'
+                                  : 'Animal added successfully.',
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        setDialogState(() => saving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not ${isEdit ? 'update' : 'add'} animal: $e',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(isEdit ? 'Save Changes' : 'Add Animal'),
             ),
           ],
         ),
       ),
     );
-  }
 
-  Future<void> _confirmDeleteAnimal(Pet pet) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete animal?'),
-        content: Text(
-            'This will permanently remove "${pet.petName}" from animal records. Animals with existing treatment records cannot be deleted.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    try {
-      await _service.deletePet(pet.petId);
-      _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Could not delete animal: $e')));
-    }
+    nameCtrl.dispose();
+    breedCtrl.dispose();
   }
 
   Future<void> _openDetailDialog(Pet pet) async {
@@ -270,22 +291,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _confirmDeleteAnimal(pet);
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
-            child: const Text('Delete'),
-          ),
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _openAnimalFormDialog(pet: pet);
-            },
-            child: const Text('Edit'),
-          ),
           AppMenuButton<PetStatus>(
             tooltip: 'Update status',
             options: PetStatus.values
@@ -296,6 +302,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
               try {
                 await _service.updateStatus(petId: pet.petId, status: status);
                 _load();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Status updated successfully.')),
+                );
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context)
@@ -305,11 +315,19 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             triggerBuilder: (context, isOpen) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                border: Border.all(color: AppColors.border),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text('Update Status', style: TextStyle(color: Colors.white)),
+              child: const Text('Update Status'),
             ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openAnimalFormDialog(pet: pet);
+            },
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit Animal'),
           ),
         ],
       ),
