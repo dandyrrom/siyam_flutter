@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/app_colors.dart';
 import '../../models/inventory_item.dart';
 import '../../services/dashboard_service.dart';
@@ -346,9 +345,10 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                         Text(
                           'Quick snapshot of consumption (last 6 months). '
                           'See Reports & Analytics for donations, treatments, and spend.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.mutedForeground,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.mutedForeground,
+                                  ),
                         ),
                       ],
                     ),
@@ -403,7 +403,8 @@ class _UsageChartCard extends StatelessWidget {
       child: usageDates.isEmpty || values.every((v) => v == 0)
           ? const Text(
               'No stock usage recorded in the last 6 months.',
-              style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground),
+              style:
+                  TextStyle(fontSize: 12.5, color: AppColors.mutedForeground),
             )
           : _MonthlyBarChart(labels: monthLabels, values: values),
     );
@@ -447,16 +448,20 @@ class _MonthlyBarChart extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      height: maxValue == 0 ? 2 : (values[i] / maxValue) * chartHeight,
+                      height: maxValue == 0
+                          ? 2
+                          : (values[i] / maxValue) * chartHeight,
                       decoration: const BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(6)),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       labels[i],
-                      style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.mutedForeground),
                     ),
                   ],
                 ),
@@ -469,8 +474,18 @@ class _MonthlyBarChart extends StatelessWidget {
 }
 
 const _monthAbbrev = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// Widget that displays zero and low stock alerts in a responsive layout

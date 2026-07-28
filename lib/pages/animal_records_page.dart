@@ -25,33 +25,58 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   PetSpecies? _speciesFilter; // null = All
   PetStatus? _statusFilter; // null = All
 
+  // Track if the widget is mounted and safe for state updates
+  bool _isMounted = false;
+
   @override
   void initState() {
     super.initState();
-    _load();
+    _isMounted = true;
+    // Use WidgetsBinding to ensure the widget is fully initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isMounted) {
+        _load();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _isMounted = false;
+    super.dispose();
   }
 
   @override
   void onExternalDataChanged() => _load(silent: true);
 
+  // Safe state update method
+  void _safeSetState(VoidCallback fn) {
+    if (_isMounted && mounted) {
+      setState(fn);
+    }
+  }
+
   Future<void> _load({bool silent = false}) async {
+    if (!_isMounted || !mounted) return;
+
     if (!silent) {
-      setState(() {
+      _safeSetState(() {
         _loading = true;
         _error = null;
       });
     }
+
     try {
       final pets = await _service.fetchPets();
-      if (!mounted) return;
-      setState(() {
+      if (!_isMounted || !mounted) return;
+      _safeSetState(() {
         _pets = pets;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!_isMounted || !mounted) return;
       if (!silent) {
-        setState(() {
+        _safeSetState(() {
           _error = 'Could not load animal records: $e';
           _loading = false;
         });
@@ -84,6 +109,213 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     return species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
   }
 
+  void _showSuccessSnackBar(BuildContext context, String message) {
+    // Check if the context is still valid
+    if (!_isMounted || !mounted) return;
+    
+    // Use a try-catch to handle any context issues
+    try {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Flexible(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          width: 500,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Failed to show success snackbar: $e');
+    }
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    if (!_isMounted || !mounted) return;
+    
+    try {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Flexible(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          width: 500,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Failed to show error snackbar: $e');
+    }
+  }
+
+  // Custom elevated button with hover effect
+  Widget _buildElevatedButton({
+    required VoidCallback? onPressed,
+    required Widget child,
+    bool isLoading = false,
+    Color? backgroundColor,
+    Color? foregroundColor,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isHovered = false;
+        return MouseRegion(
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isHovered 
+                  ? (backgroundColor ?? AppColors.primary).withValues(alpha: 0.85)
+                  : backgroundColor ?? AppColors.primary,
+              foregroundColor: foregroundColor ?? Colors.white,
+              elevation: isHovered ? 8 : 2,
+              shadowColor: Colors.black.withValues(alpha: isHovered ? 0.3 : 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : child,
+          ),
+        );
+      },
+    );
+  }
+
+  // Custom text button with hover effect
+  Widget _buildTextButton({
+    required VoidCallback? onPressed,
+    required Widget child,
+    Color? foregroundColor,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isHovered = false;
+        return MouseRegion(
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: TextButton(
+            onPressed: onPressed,
+            style: TextButton.styleFrom(
+              foregroundColor: isHovered 
+                  ? (foregroundColor ?? AppColors.mutedForeground).withValues(alpha: 0.7)
+                  : foregroundColor ?? AppColors.mutedForeground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  // Custom icon button with hover effect
+  Widget _buildIconButton({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    Color? color,
+    bool? disabled,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isHovered = false;
+        return MouseRegion(
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: IconButton(
+            icon: Icon(icon),
+            onPressed: disabled == true ? null : onPressed,
+            color: isHovered && disabled != true
+                ? (color ?? AppColors.mutedForeground).withValues(alpha: 0.7)
+                : color ?? AppColors.mutedForeground,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        );
+      },
+    );
+  }
+
+  // Custom action button with hover effect (for Edit/Update buttons)
+  Widget _buildActionButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    Color? backgroundColor,
+    Color? foregroundColor,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        bool isHovered = false;
+        return MouseRegion(
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isHovered 
+                    ? (backgroundColor ?? AppColors.primary).withValues(alpha: 0.85)
+                    : backgroundColor ?? AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: isHovered
+                    ? [
+                        BoxShadow(
+                          color: (backgroundColor ?? AppColors.primary).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 18, color: foregroundColor ?? Colors.white),
+                  const SizedBox(width: 8),
+                  Text(label, style: TextStyle(color: foregroundColor ?? Colors.white)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _openAnimalFormDialog({Pet? pet}) async {
     final isEdit = pet != null;
     final nameCtrl = TextEditingController(text: pet?.petName ?? '');
@@ -95,9 +327,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     bool spayedNeutered = pet?.spayedNeutered ?? false;
     var saving = false;
 
+    // Store the current context for snackbar display
+    final currentContext = context;
+
     await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
+      context: currentContext,
+      barrierDismissible: !saving,
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
@@ -108,7 +344,15 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 color: AppColors.mutedForeground,
               ),
               const SizedBox(width: 8),
-              Text(isEdit ? 'Edit Animal' : 'Add Animal'),
+              Expanded(
+                child: Text(isEdit ? 'Edit Animal' : 'Add Animal'),
+              ),
+              _buildIconButton(
+                onPressed: saving ? null : () => Navigator.of(context).pop(),
+                icon: Icons.close,
+                color: AppColors.mutedForeground,
+                disabled: saving,
+              ),
             ],
           ),
           content: Form(
@@ -177,11 +421,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             ),
           ),
           actions: [
-            TextButton(
+            _buildTextButton(
               onPressed: saving ? null : () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            _buildElevatedButton(
               onPressed: saving
                   ? null
                   : () async {
@@ -212,37 +456,35 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                             spayedNeutered: spayedNeutered,
                           );
                         }
+                        
+                        // Close the dialog
                         if (!context.mounted) return;
                         Navigator.of(context).pop();
-                        _load();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isEdit
-                                  ? 'Animal updated successfully.'
-                                  : 'Animal added successfully.',
-                            ),
-                          ),
+                        
+                        // Show snackbar after dialog is closed
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        
+                        if (!_isMounted || !mounted) return;
+                        _showSuccessSnackBar(
+                          currentContext,
+                          isEdit
+                              ? '${nameCtrl.text.trim()} updated successfully'
+                              : '${nameCtrl.text.trim()} added successfully',
                         );
+                        
+                        // Refresh the data
+                        await _load();
                       } catch (e) {
                         if (!context.mounted) return;
                         setDialogState(() => saving = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Could not ${isEdit ? 'update' : 'add'} animal: $e',
-                            ),
-                          ),
+                        _showErrorSnackBar(
+                          currentContext,
+                          'Could not ${isEdit ? 'update' : 'add'} animal: $e',
                         );
                       }
                     },
-              child: saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(isEdit ? 'Save Changes' : 'Add Animal'),
+              child: Text(isEdit ? 'Save Changes' : 'Add Animal'),
+              isLoading: saving,
             ),
           ],
         ),
@@ -255,16 +497,25 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
   Future<void> _openDetailDialog(Pet pet) async {
     final (statusLabel, statusColor) = _statusMeta(pet.status);
+    final currentContext = context;
 
     await showDialog(
-      context: context,
+      context: currentContext,
+      barrierDismissible: true,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(_speciesIcon(pet.species), size: 20, color: AppColors.mutedForeground),
             const SizedBox(width: 8),
-            Expanded(child: Text(pet.petName, overflow: TextOverflow.ellipsis)),
+            Expanded(
+              child: Text(pet.petName, overflow: TextOverflow.ellipsis),
+            ),
+            _buildIconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: Icons.close,
+              color: AppColors.mutedForeground,
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -291,7 +542,23 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+          _buildActionButton(
+            onTap: () {
+              Navigator.of(context).pop();
+              _openAnimalFormDialog(pet: pet);
+            },
+            icon: Icons.edit_outlined,
+            label: 'Edit Animal',
+          ),
+          _buildActionButton(
+            onTap: () {
+              // The Update Status button needs to show a dropdown
+              // We'll use the AppMenuButton for that
+            },
+            icon: Icons.update,
+            label: 'Update Status',
+          ),
+          // Use AppMenuButton for Update Status with the same hover style
           AppMenuButton<PetStatus>(
             tooltip: 'Update status',
             options: PetStatus.values
@@ -301,33 +568,26 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
               Navigator.of(context).pop();
               try {
                 await _service.updateStatus(petId: pet.petId, status: status);
-                _load();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Status updated successfully.')),
+                if (!_isMounted || !mounted) return;
+                await _load();
+                if (!_isMounted || !mounted) return;
+                _showSuccessSnackBar(
+                  currentContext,
+                  '${pet.petName}\'s status updated to ${_statusMeta(status).$1}',
                 );
               } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Could not update status: $e')));
+                if (!_isMounted || !mounted) return;
+                _showErrorSnackBar(
+                  currentContext,
+                  'Could not update status for ${pet.petName}: $e',
+                );
               }
             },
-            triggerBuilder: (context, isOpen) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text('Update Status'),
+            triggerBuilder: (context, isOpen) => _buildActionButton(
+              onTap: () {},
+              icon: Icons.update,
+              label: 'Update Status',
             ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _openAnimalFormDialog(pet: pet);
-            },
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Edit Animal'),
           ),
         ],
       ),
