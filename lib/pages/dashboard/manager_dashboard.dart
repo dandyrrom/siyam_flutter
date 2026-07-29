@@ -155,6 +155,35 @@ class _ManagerDashboardState extends State<ManagerDashboard>
     ];
   }
 
+  /// Helper method to get the current user's display name from AuthController
+  String _getUserDisplayName(AuthController authController) {
+    final profile = authController.profile;
+
+    if (profile == null) {
+      return 'User';
+    }
+
+    // Try to get the full name from firstName and lastName
+    final firstName = profile.firstName.trim();
+    final lastName = profile.lastName.trim();
+
+    if (firstName.isNotEmpty && lastName.isNotEmpty) {
+      return '$firstName $lastName';
+    } else if (firstName.isNotEmpty) {
+      return firstName;
+    } else if (lastName.isNotEmpty) {
+      return lastName;
+    }
+
+    // Fallback to email if no name is available
+    if (profile.email.isNotEmpty) {
+      // Show only the part before @
+      return profile.email.split('@')[0];
+    }
+
+    return 'User';
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen to auth state changes
@@ -182,6 +211,10 @@ class _ManagerDashboardState extends State<ManagerDashboard>
       );
     }
 
+    // Get the user's display name from the profile
+    final displayName = _getUserDisplayName(authController);
+    final greeting = 'Welcome, $displayName!';
+
     // Wrap with RefreshIndicator for pull-to-refresh functionality
     return RefreshIndicator(
       onRefresh: _refreshData,
@@ -191,13 +224,28 @@ class _ManagerDashboardState extends State<ManagerDashboard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== SECTION 1: DASHBOARD HEADER =====
-            // Displays the title and subtitle with description
-            const DashboardHeader(
-              title: 'Manager Dashboard',
-              subtitle:
+            // ===== SECTION 1: PERSONALIZED DASHBOARD HEADER =====
+            // Displays a personalized welcome message with the user's name
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.foreground,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
                   'Inventory health, stock alerts, usage trends, and sanctuary-wide overview.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.mutedForeground,
+                      ),
+                ),
+              ],
             ),
+            const SizedBox(height: 24),
 
             // ===== SECTION 2: ERROR STATE =====
             // Shows error message and retry button if data loading fails
@@ -424,44 +472,55 @@ class _MonthlyBarChart extends StatelessWidget {
     const chartHeight = 140.0;
 
     return SizedBox(
-      height: chartHeight + 40,
+      height: chartHeight + 50, // Increased slightly for safety
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < labels.length; i++)
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      values[i] == 0
-                          ? ''
-                          : (values[i] % 1 == 0
-                              ? values[i].toInt().toString()
-                              : values[i].toStringAsFixed(0)),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
+                    // Text above bar (value) - only show if not zero
+                    if (values[i] > 0)
+                      Text(
+                        values[i] % 1 == 0
+                            ? values[i].toInt().toString()
+                            : values[i].toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.mutedForeground,
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 14), // Placeholder for empty value
+                    
                     const SizedBox(height: 4),
+                    
+                    // The bar itself
                     Container(
                       height: maxValue == 0
                           ? 2
-                          : (values[i] / maxValue) * chartHeight,
+                          : ((values[i] / maxValue) * chartHeight).clamp(2.0, chartHeight),
                       decoration: const BoxDecoration(
                         color: AppColors.primary,
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(6)),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
+                    
+                    // Label below bar
                     Text(
                       labels[i],
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.mutedForeground),
+                        fontSize: 11,
+                        color: AppColors.mutedForeground,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),

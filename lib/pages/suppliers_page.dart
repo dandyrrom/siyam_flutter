@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
-import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 
+// The SuppliersPage widget displays a list of suppliers and their details.
 class SuppliersPage extends StatefulWidget {
   const SuppliersPage({super.key});
 
@@ -97,8 +98,26 @@ class _SuppliersPageState extends State<SuppliersPage>
   List<PurchaseOrder> _ordersFor(String suppId) =>
       _allOrders.where((o) => o.suppId == suppId).toList();
 
-  void _showSuccessSnackBar(BuildContext context, String message) {
-    if (!_isMounted || !mounted) return;
+  String? _validatePhoneNumber(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // Optional field
+    }
+
+    // Check if it contains only digits
+    if (!RegExp(r'^\d+$').hasMatch(value.trim())) {
+      return 'Only numbers are allowed';
+    }
+
+    // Must be exactly 11 digits
+    if (value.trim().length != 11) {
+      return 'Phone number must be exactly 11 digits';
+    }
+
+    return null;
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
 
     try {
       ScaffoldMessenger.of(context).clearSnackBars();
@@ -126,35 +145,6 @@ class _SuppliersPageState extends State<SuppliersPage>
     }
   }
 
-  void _showErrorSnackBar(BuildContext context, String message) {
-    if (!_isMounted || !mounted) return;
-
-    try {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Flexible(child: Text(message)),
-            ],
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          width: 500,
-        ),
-      );
-    } catch (e) {
-      debugPrint('Failed to show error snackbar: $e');
-    }
-  }
-
   // Custom elevated button with hover effect
   Widget _buildElevatedButton({
     required VoidCallback? onPressed,
@@ -163,41 +153,30 @@ class _SuppliersPageState extends State<SuppliersPage>
     Color? backgroundColor,
     Color? foregroundColor,
   }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: ElevatedButton(
-            onPressed: onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isHovered
-                  ? (backgroundColor ?? AppColors.primary)
-                      .withValues(alpha: 0.85)
-                  : backgroundColor ?? AppColors.primary,
-              foregroundColor: foregroundColor ?? Colors.white,
-              elevation: isHovered ? 8 : 2,
-              shadowColor:
-                  Colors.black.withValues(alpha: isHovered ? 0.3 : 0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : child,
+    return _Hoverable(
+      builder: (context, isHovered) => ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor ?? AppColors.primary,
+          foregroundColor: foregroundColor ?? Colors.white,
+          elevation: isHovered ? 8 : 2,
+          shadowColor: Colors.black.withValues(alpha: isHovered ? 0.3 : 0.1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
-        );
-      },
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : child,
+      ),
     );
   }
 
@@ -207,28 +186,19 @@ class _SuppliersPageState extends State<SuppliersPage>
     required Widget child,
     Color? foregroundColor,
   }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: TextButton(
-            onPressed: onPressed,
-            style: TextButton.styleFrom(
-              foregroundColor: isHovered
-                  ? (foregroundColor ?? AppColors.mutedForeground)
-                      .withValues(alpha: 0.7)
-                  : foregroundColor ?? AppColors.mutedForeground,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            child: child,
+    return _Hoverable(
+      builder: (context, isHovered) => TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: (foregroundColor ?? AppColors.mutedForeground)
+              .withValues(alpha: isHovered ? 0.85 : 1.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
-        );
-      },
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        child: child,
+      ),
     );
   }
 
@@ -239,23 +209,16 @@ class _SuppliersPageState extends State<SuppliersPage>
     Color? color,
     bool? disabled,
   }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: IconButton(
-            icon: Icon(icon),
-            onPressed: disabled == true ? null : onPressed,
-            color: isHovered && disabled != true
-                ? (color ?? AppColors.mutedForeground).withValues(alpha: 0.7)
-                : color ?? AppColors.mutedForeground,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        );
-      },
+    return _Hoverable(
+      builder: (context, isHovered) => IconButton(
+        icon: Icon(icon),
+        onPressed: disabled == true ? null : onPressed,
+        color: isHovered && disabled != true
+            ? (color ?? AppColors.mutedForeground).withValues(alpha: 0.7)
+            : color ?? AppColors.mutedForeground,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+      ),
     );
   }
 
@@ -267,46 +230,156 @@ class _SuppliersPageState extends State<SuppliersPage>
     Color? backgroundColor,
     Color? foregroundColor,
   }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isHovered
-                    ? (backgroundColor ?? AppColors.primary)
-                        .withValues(alpha: 0.85)
-                    : backgroundColor ?? AppColors.primary,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: isHovered
-                    ? [
-                        BoxShadow(
-                          color: (backgroundColor ?? AppColors.primary)
-                              .withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+    return _Hoverable(
+      builder: (context, isHovered) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isHovered
+                ? (backgroundColor ?? AppColors.primary).withValues(alpha: 0.85)
+                : backgroundColor ?? AppColors.primary,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isHovered
+                ? [
+                    BoxShadow(
+                      color: (backgroundColor ?? AppColors.primary)
+                          .withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: foregroundColor ?? Colors.white),
+              const SizedBox(width: 8),
+              Text(label,
+                  style: TextStyle(color: foregroundColor ?? Colors.white)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build supplier card with hover effect
+  Widget _buildSupplierCard(Supplier supplier) {
+    final orders = _ordersFor(supplier.suppId);
+
+    return _Hoverable(
+      builder: (context, isHovered) => InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openDetailDialog(supplier),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isHovered
+                ? AppColors.card.withValues(alpha: 0.95)
+                : AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHovered
+                  ? AppColors.roleManager.withValues(alpha: 0.3)
+                  : AppColors.border,
+              width: isHovered ? 1.5 : 1,
+            ),
+            boxShadow: isHovered
+                ? [
+                    BoxShadow(
+                      color: AppColors.roleManager.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Icon(icon, size: 18, color: foregroundColor ?? Colors.white),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isHovered
+                          ? AppColors.roleManager.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.local_shipping_outlined,
+                      size: 20,
+                      color: isHovered
+                          ? AppColors.roleManager
+                          : AppColors.mutedForeground,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Text(label,
-                      style: TextStyle(color: foregroundColor ?? Colors.white)),
+                  Expanded(
+                    child: Text(supplier.suppName,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: isHovered ? AppColors.roleManager : null,
+                        )),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: 6),
+              if (supplier.contactNum != null)
+                Text(supplier.contactNum!,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        color: isHovered
+                            ? AppColors.mutedForeground.withValues(alpha: 0.8)
+                            : AppColors.mutedForeground)),
+              if (supplier.address != null)
+                Text(supplier.address!,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        color: isHovered
+                            ? AppColors.mutedForeground.withValues(alpha: 0.8)
+                            : AppColors.mutedForeground)),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('${orders.length} orders',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isHovered
+                              ? AppColors.mutedForeground.withValues(alpha: 0.7)
+                              : AppColors.mutedForeground)),
+                  Text(
+                      orders.isEmpty
+                          ? 'No orders yet'
+                          : 'Last: ${_formatDate(orders.first.receivedDate)}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isHovered
+                              ? AppColors.mutedForeground.withValues(alpha: 0.7)
+                              : AppColors.mutedForeground)),
+                ],
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -318,14 +391,11 @@ class _SuppliersPageState extends State<SuppliersPage>
     final formKey = GlobalKey<FormState>();
     var saving = false;
 
-    // Store the current context for snackbar display
-    final currentContext = context;
-
     await showDialog(
-      context: currentContext,
+      context: context,
       barrierDismissible: !saving,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (builderContext, setDialogState) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
@@ -340,7 +410,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                 child: Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
               ),
               _buildIconButton(
-                onPressed: saving ? null : () => Navigator.of(context).pop(),
+                onPressed:
+                    saving ? null : () => Navigator.of(builderContext).pop(),
                 icon: Icons.close,
                 color: AppColors.mutedForeground,
                 disabled: saving,
@@ -368,8 +439,18 @@ class _SuppliersPageState extends State<SuppliersPage>
                     TextFormField(
                       controller: contactCtrl,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(11),
+                      ],
+                      maxLength: 11,
                       decoration: const InputDecoration(
-                          labelText: 'Contact number (optional)'),
+                        labelText: 'Contact number (optional)',
+                        hintText: '09XXXXXXXXX',
+                        helperText: 'Enter exactly 11 digits',
+                        counterText: '',
+                      ),
+                      validator: _validatePhoneNumber,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -385,7 +466,8 @@ class _SuppliersPageState extends State<SuppliersPage>
           ),
           actions: [
             _buildTextButton(
-              onPressed: saving ? null : () => Navigator.of(context).pop(),
+              onPressed:
+                  saving ? null : () => Navigator.of(builderContext).pop(),
               child: const Text('Cancel'),
             ),
             _buildElevatedButton(
@@ -395,13 +477,16 @@ class _SuppliersPageState extends State<SuppliersPage>
                       if (!formKey.currentState!.validate()) return;
                       setDialogState(() => saving = true);
                       try {
+                        // Get phone number - should already be clean digits only
+                        final cleanPhone = contactCtrl.text.trim().isEmpty
+                            ? null
+                            : contactCtrl.text.trim();
+
                         if (isEdit) {
                           await _service.updateSupplier(
                             suppId: supplier.suppId,
                             suppName: nameCtrl.text.trim(),
-                            contactNum: contactCtrl.text.trim().isEmpty
-                                ? null
-                                : contactCtrl.text.trim(),
+                            contactNum: cleanPhone,
                             address: addressCtrl.text.trim().isEmpty
                                 ? null
                                 : addressCtrl.text.trim(),
@@ -409,9 +494,7 @@ class _SuppliersPageState extends State<SuppliersPage>
                         } else {
                           await _service.createSupplier(
                             suppName: nameCtrl.text.trim(),
-                            contactNum: contactCtrl.text.trim().isEmpty
-                                ? null
-                                : contactCtrl.text.trim(),
+                            contactNum: cleanPhone,
                             address: addressCtrl.text.trim().isEmpty
                                 ? null
                                 : addressCtrl.text.trim(),
@@ -419,15 +502,16 @@ class _SuppliersPageState extends State<SuppliersPage>
                         }
 
                         // Close the dialog
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop();
+                        if (builderContext.mounted) {
+                          Navigator.of(builderContext).pop();
+                        }
 
-                        // Show snackbar after dialog is closed
+                        // Wait for dialog to close
                         await Future.delayed(const Duration(milliseconds: 100));
 
-                        if (!_isMounted || !mounted) return;
+                        // Use State.mounted to check if page is still mounted
+                        if (!mounted) return;
                         _showSuccessSnackBar(
-                          currentContext,
                           isEdit
                               ? '${nameCtrl.text.trim()} updated successfully'
                               : '${nameCtrl.text.trim()} added successfully',
@@ -436,12 +520,20 @@ class _SuppliersPageState extends State<SuppliersPage>
                         // Refresh the data
                         await _load();
                       } catch (e) {
-                        if (!context.mounted) return;
+                        if (!builderContext.mounted) return;
                         setDialogState(() => saving = false);
-                        _showErrorSnackBar(
-                          currentContext,
-                          'Could not ${isEdit ? 'update' : 'add'} supplier: $e',
-                        );
+                        // Use builderContext for error since dialog is still open
+                        if (builderContext.mounted) {
+                          ScaffoldMessenger.of(builderContext).clearSnackBars();
+                          ScaffoldMessenger.of(builderContext).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Could not ${isEdit ? 'update' : 'add'} supplier: $e',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
               child: Text(isEdit ? 'Save Changes' : 'Add Supplier'),
@@ -459,23 +551,22 @@ class _SuppliersPageState extends State<SuppliersPage>
 
   Future<void> _openDetailDialog(Supplier supplier) async {
     final orders = _ordersFor(supplier.suppId);
-    final currentContext = context;
 
     await showDialog(
-      context: currentContext,
+      context: context,
       barrierDismissible: true,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.local_shipping_outlined,
+            const Icon(Icons.local_shipping_outlined,
                 size: 20, color: AppColors.mutedForeground),
             const SizedBox(width: 8),
             Expanded(
               child: Text(supplier.suppName, overflow: TextOverflow.ellipsis),
             ),
             _buildIconButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               icon: Icons.close,
               color: AppColors.mutedForeground,
             ),
@@ -528,7 +619,7 @@ class _SuppliersPageState extends State<SuppliersPage>
         actions: [
           _buildActionButton(
             onTap: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               _openSupplierFormDialog(supplier: supplier);
             },
             icon: Icons.edit_outlined,
@@ -539,6 +630,7 @@ class _SuppliersPageState extends State<SuppliersPage>
     );
   }
 
+  // Build the main UI of the SuppliersPage
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -652,58 +744,7 @@ class _SuppliersPageState extends State<SuppliersPage>
             itemCount: _filtered.length,
             itemBuilder: (context, index) {
               final supplier = _filtered[index];
-              final orders = _ordersFor(supplier.suppId);
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _openDetailDialog(supplier),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(supplier.suppName,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 15)),
-                      const SizedBox(height: 6),
-                      if (supplier.contactNum != null)
-                        Text(supplier.contactNum!,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 12.5,
-                                color: AppColors.mutedForeground)),
-                      if (supplier.address != null)
-                        Text(supplier.address!,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 12.5,
-                                color: AppColors.mutedForeground)),
-                      const Spacer(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('${orders.length} orders',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.mutedForeground)),
-                          Text(
-                              orders.isEmpty
-                                  ? 'No orders yet'
-                                  : 'Last: ${_formatDate(orders.first.receivedDate)}',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.mutedForeground)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return _buildSupplierCard(supplier);
             },
           ),
       ],
@@ -711,11 +752,36 @@ class _SuppliersPageState extends State<SuppliersPage>
   }
 }
 
+/// Small reusable widget that tracks its own hover state.
+class _Hoverable extends StatefulWidget {
+  final Widget Function(BuildContext context, bool isHovered) builder;
+
+  const _Hoverable({required this.builder});
+
+  @override
+  State<_Hoverable> createState() => _HoverableState();
+}
+
+class _HoverableState extends State<_Hoverable> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: widget.builder(context, _isHovered),
+    );
+  }
+}
+
+// Helper widget to display a label-value pair in the supplier detail dialog
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   const _DetailRow({required this.label, required this.value});
 
+  // Build the row with a fixed width for the label and flexible width for the value
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -739,6 +805,7 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
+// Helper function to format DateTime to a readable string
 const _monthAbbrev = [
   'Jan',
   'Feb',
@@ -754,5 +821,6 @@ const _monthAbbrev = [
   'Dec',
 ];
 
+// Formats a DateTime object into a string like "Jan 1, 2024"
 String _formatDate(DateTime date) =>
     '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
