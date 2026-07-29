@@ -6,8 +6,8 @@ import '../state/auth_state.dart';
 import '../widgets/public_nav_bar.dart';
 
 /// Registration page -- styled to match [LoginPage]: centered logos, the
-/// same pill-shaped fields, rounded green submit button, and icon-only
-/// social row, all built on [AppColors] instead of a page-specific palette.
+/// same pill-shaped fields, rounded green submit button.
+/// Social login options removed (not implemented).
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -26,6 +26,9 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscure = true;
   bool _agreed = false;
 
+  // Track which fields have been touched
+  final _touchedFields = <String>{};
+
   @override
   void dispose() {
     _firstName.dispose();
@@ -37,7 +40,35 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  // Strong password validator
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must contain at least 1 uppercase letter';
+    }
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Password must contain at least 1 lowercase letter';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least 1 number';
+    }
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
+      return 'Password must contain at least 1 symbol (!@#\$%^&* etc.)';
+    }
+    return null;
+  }
+
   Future<void> _handleSubmit() async {
+    // Mark all fields as touched to show validation errors
+    setState(() {
+      _touchedFields.addAll(['email', 'password', 'confirm']);
+    });
+    
     if (!_formKey.currentState!.validate()) return;
     if (!_agreed) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,6 +76,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       return;
     }
+    
     final auth = context.read<AuthController>();
     final success = await auth.registerDonor(
       firstName: _firstName.text.trim(),
@@ -53,20 +85,46 @@ class _RegisterPageState extends State<RegisterPage> {
       password: _password.text,
       contactNum: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     );
+    
     if (success && mounted) {
+      // ============================================================
+      // Log out immediately so user stays on login page
+      // ============================================================
+      await auth.logout();
+      
+      // ============================================================
+      // Show snackbar after logout
+      // ============================================================
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created! Please sign in.')),
+        const SnackBar(
+          content: Text('Account created! Please sign in.'),
+          backgroundColor: AppColors.sageGreen,
+          duration: Duration(seconds: 2),
+        ),
       );
-      context.go('/login');
+      
+      // ============================================================
+      // Navigate to login after delay
+      // ============================================================
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (mounted) {
+        context.go('/login');
+      }
     }
   }
 
-  void _notAvailable(String label) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('$label isn\'t available yet.')));
-  }
-
-  InputDecoration _decoration({required String hintText, Widget? suffixIcon}) {
+  // ============================================================
+  // MODIFIED: Decoration with red border for errors
+  // ============================================================
+  InputDecoration _decoration({
+    required String hintText,
+    Widget? suffixIcon,
+    String? errorText,
+    bool showError = false,
+  }) {
+    final hasError = showError && errorText != null;
+    
     return InputDecoration(
       hintText: hintText,
       suffixIcon: suffixIcon,
@@ -75,15 +133,26 @@ class _RegisterPageState extends State<RegisterPage> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide.none,
+        borderSide: hasError
+            ? const BorderSide(color: AppColors.coralRed, width: 2)
+            : BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide.none,
+        borderSide: hasError
+            ? const BorderSide(color: AppColors.coralRed, width: 2)
+            : BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: const BorderSide(color: AppColors.sageGreen, width: 1.5),
+        borderSide: hasError
+            ? const BorderSide(color: AppColors.coralRed, width: 2)
+            : const BorderSide(color: AppColors.sageGreen, width: 1.5),
+      ),
+      errorText: showError ? errorText : null,
+      errorStyle: const TextStyle(
+        color: AppColors.coralRed,
+        fontSize: 12,
       ),
     );
   }
@@ -178,7 +247,18 @@ class _RegisterPageState extends State<RegisterPage> {
                             TextFormField(
                               controller: _email,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: _decoration(hintText: 'Email address'),
+                              onChanged: (_) {
+                                setState(() {
+                                  _touchedFields.add('email');
+                                });
+                              },
+                              decoration: _decoration(
+                                hintText: 'Email address',
+                                showError: _touchedFields.contains('email'),
+                                errorText: _email.text.isEmpty || !_email.text.contains('@')
+                                    ? 'Enter a valid email'
+                                    : null,
+                              ),
                               validator: (v) => (v == null || !v.contains('@'))
                                   ? 'Enter a valid email'
                                   : null,
@@ -193,8 +273,15 @@ class _RegisterPageState extends State<RegisterPage> {
                             TextFormField(
                               controller: _password,
                               obscureText: _obscure,
+                              onChanged: (_) {
+                                setState(() {
+                                  _touchedFields.add('password');
+                                });
+                              },
                               decoration: _decoration(
-                                hintText: 'Password',
+                                hintText: 'Password (8+ chars, A-Z, a-z, 0-9, symbol)',
+                                showError: _touchedFields.contains('password'),
+                                errorText: _validatePassword(_password.text),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                       _obscure
@@ -205,18 +292,37 @@ class _RegisterPageState extends State<RegisterPage> {
                                   onPressed: () => setState(() => _obscure = !_obscure),
                                 ),
                               ),
-                              validator: (v) => (v == null || v.length < 6)
-                                  ? 'At least 6 characters'
-                                  : null,
+                              validator: _validatePassword,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _confirm,
                               obscureText: true,
-                              decoration: _decoration(hintText: 'Confirm password'),
+                              onChanged: (_) {
+                                setState(() {
+                                  _touchedFields.add('confirm');
+                                });
+                              },
+                              decoration: _decoration(
+                                hintText: 'Confirm password',
+                                showError: _touchedFields.contains('confirm'),
+                                errorText: _confirm.text != _password.text
+                                    ? 'Passwords do not match'
+                                    : null,
+                              ),
                               validator: (v) => (v != _password.text)
                                   ? 'Passwords do not match'
                                   : null,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6, left: 20),
+                              child: Text(
+                                'Password must be at least 8 characters and include: uppercase, lowercase, number, and symbol',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.mutedForeground,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Row(
@@ -280,52 +386,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                         style: TextStyle(fontWeight: FontWeight.w700)),
                               ),
                             ),
-                            const SizedBox(height: 26),
-                            Row(
-                              children: [
-                                Expanded(
-                                    child: Divider(
-                                        color: AppColors.catGray.withValues(alpha: 0.8))),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  child: Text('Or continue with',
-                                      style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: AppColors.lightScheme.onSurfaceVariant)),
-                                ),
-                                Expanded(
-                                    child: Divider(
-                                        color: AppColors.catGray.withValues(alpha: 0.8))),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _SocialIconButton(
-                                    icon: Icons.g_mobiledata_rounded,
-                                    color: AppColors.coralRed,
-                                    onTap: () => _notAvailable('Google'),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _SocialIconButton(
-                                    icon: Icons.facebook,
-                                    color: AppColors.skyBlue,
-                                    onTap: () => _notAvailable('Facebook'),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _SocialIconButton(
-                                    icon: Icons.apple,
-                                    color: AppColors.deepBrown,
-                                    onTap: () => _notAvailable('Apple/iCloud'),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
@@ -354,34 +414,6 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _SocialIconButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  const _SocialIconButton({required this.icon, required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.catGray.withValues(alpha: 0.8)),
-          ),
-          alignment: Alignment.center,
-          child: Icon(icon, color: color, size: 24),
-        ),
       ),
     );
   }

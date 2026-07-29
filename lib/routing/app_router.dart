@@ -32,7 +32,6 @@ import '../widgets/app_shell.dart';
 import 'nav_config.dart';
 
 const _publicPaths = {
-  '/',
   '/login',
   '/register',
   '/about',
@@ -42,7 +41,7 @@ const _publicPaths = {
 
 GoRouter buildRouter(AuthController authState) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/login',
     refreshListenable: authState,
     redirect: (context, state) {
       final loggedIn = authState.isAuthenticated;
