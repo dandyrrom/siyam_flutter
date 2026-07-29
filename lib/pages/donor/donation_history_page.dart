@@ -76,6 +76,11 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
   }
 
   Future<void> _openDetailDialog(DonationSubmission sub) async {
+    // ============================================================
+    // MOBILE DETECTION so the screen width will be checked and if less than sa pixel then ma consider as mobile? 
+    // ============================================================
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     List<DonationLineItem>? items;
     String? itemsError;
 
@@ -98,7 +103,10 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('Donation Details'),
             content: SizedBox(
-              width: 400,
+              // ============================================================
+              // DIALOG WIDTH: Full width on mobile, 400px on web
+              // ============================================================
+              width: isMobile ? double.infinity : 400,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -165,6 +173,11 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
   @override
   Widget build(BuildContext context) {
+    // ============================================================
+    // MOBILE DETECTION: Check if screen width is less than 600px
+    // ============================================================
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -191,50 +204,113 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Expanded(
-              child: Text('My Donations',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-            ),
-            ElevatedButton.icon(
-              onPressed: () => context.go('/donate'),
-              icon: const Icon(Icons.favorite_outline, size: 18),
-              label: const Text('Donate Now'),
-            ),
-          ],
-        ),
+        // ============================================================
+        // HEADER: Stacked on mobile, Row on web
+        // ============================================================
+        isMobile
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('My Donations',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.go('/donate'),
+                      icon: const Icon(Icons.favorite_outline, size: 18),
+                      label: const Text('Donate Now'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text('My Donations',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => context.go('/donate'),
+                    icon: const Icon(Icons.favorite_outline, size: 18),
+                    label: const Text('Donate Now'),
+                  ),
+                ],
+              ),
         const SizedBox(height: 20),
-        StatCardRow(cards: [
-          StatCard(
-            label: 'Total Submissions',
-            value: '${_submissions.length}',
-            icon: Icons.volunteer_activism_outlined,
-            accent: AppColors.roleDonor,
-          ),
-          StatCard(
-            label: 'Pending',
-            value: '$pendingCount',
-            icon: Icons.schedule_outlined,
-            accent: AppColors.warning,
-          ),
-          StatCard(
-            label: 'Approved',
-            value: '$approvedCount',
-            icon: Icons.check_circle_outline,
-            accent: AppColors.primary,
-          ),
-          StatCard(
-            label: 'Rejected',
-            value: '$rejectedCount',
-            icon: Icons.cancel_outlined,
-            accent: AppColors.destructive,
-          ),
-        ]),
+
+        // ============================================================
+        // STAT CARDS: Stacked on mobile, Row on web
+        // ============================================================
+        isMobile
+            ? Column(
+                children: [
+                  _buildMobileStatCard(
+                    label: 'Total Submissions',
+                    value: '${_submissions.length}',
+                    icon: Icons.volunteer_activism_outlined,
+                    accent: AppColors.roleDonor,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildMobileStatCard(
+                    label: 'Pending',
+                    value: '$pendingCount',
+                    icon: Icons.schedule_outlined,
+                    accent: AppColors.warning,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildMobileStatCard(
+                    label: 'Approved',
+                    value: '$approvedCount',
+                    icon: Icons.check_circle_outline,
+                    accent: AppColors.primary,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildMobileStatCard(
+                    label: 'Rejected',
+                    value: '$rejectedCount',
+                    icon: Icons.cancel_outlined,
+                    accent: AppColors.destructive,
+                  ),
+                ],
+              )
+            : StatCardRow(cards: [
+                StatCard(
+                  label: 'Total Submissions',
+                  value: '${_submissions.length}',
+                  icon: Icons.volunteer_activism_outlined,
+                  accent: AppColors.roleDonor,
+                ),
+                StatCard(
+                  label: 'Pending',
+                  value: '$pendingCount',
+                  icon: Icons.schedule_outlined,
+                  accent: AppColors.warning,
+                ),
+                StatCard(
+                  label: 'Approved',
+                  value: '$approvedCount',
+                  icon: Icons.check_circle_outline,
+                  accent: AppColors.primary,
+                ),
+                StatCard(
+                  label: 'Rejected',
+                  value: '$rejectedCount',
+                  icon: Icons.cancel_outlined,
+                  accent: AppColors.destructive,
+                ),
+              ]),
         const SizedBox(height: 20),
+
+        // ============================================================
+        // EMPTY STATE OR SUBMISSION LIST
+        // ============================================================
         if (_submissions.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 56),
@@ -266,6 +342,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                     submission: _submissions[i],
                     statusMeta: _statusMeta(_submissions[i].status),
                     onTap: () => _openDetailDialog(_submissions[i]),
+                    isMobile: isMobile,
                   ),
                 ],
               ],
@@ -274,49 +351,129 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
       ],
     );
   }
+
+  // ============================================================
+  // MOBILE STAT CARD (Stacked version)
+  // ============================================================
+  Widget _buildMobileStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accent,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 22, color: accent),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SubmissionRow extends StatelessWidget {
   final DonationSubmission submission;
   final (String, Color) statusMeta;
   final VoidCallback onTap;
+  final bool isMobile;
 
   const _SubmissionRow({
     required this.submission,
     required this.statusMeta,
     required this.onTap,
+    this.isMobile = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final sub = submission;
     final (statusLabel, statusColor) = statusMeta;
+
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        // ============================================================
+        // PADDING: Smaller on mobile
+        // ============================================================
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 14 : 20,
+          vertical: isMobile ? 12 : 14,
+        ),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Submitted ${_formatDate(sub.dateSub)}',
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    'Submitted ${_formatDate(sub.dateSub)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: isMobile ? 14 : 15,
+                    ),
+                  ),
                   if (sub.schedDate != null)
-                    Text('Drop-off: ${_formatDate(sub.schedDate!)}',
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                    Text(
+                      'Drop-off: ${_formatDate(sub.schedDate!)}',
+                      style: TextStyle(
+                        fontSize: isMobile ? 11.5 : 12.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
                 ],
               ),
             ),
+            // ============================================================
+            // STATUS BADGE: Smaller on mobile
+            // ============================================================
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(statusLabel,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+              child: Text(
+                statusLabel,
+                style: TextStyle(
+                  fontSize: isMobile ? 11 : 12,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
+                ),
+              ),
             ),
           ],
         ),

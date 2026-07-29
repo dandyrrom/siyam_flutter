@@ -13,6 +13,13 @@ Future<void> main() async {
   if (kUseMock) {
     MockDatabase.instance.seed();
   } else {
+    if (!SupabaseConfig.isConfigured) {
+      throw StateError(
+        'USE_MOCK=false but SUPABASE_URL/SUPABASE_ANON_KEY are not set. '
+        'Run with --dart-define-from-file=env/supabase.json (or the '
+        '"SIYAM (Chrome, Supabase)" launch config).',
+      );
+    }
     await Supabase.initialize(
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,

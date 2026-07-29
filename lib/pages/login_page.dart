@@ -37,7 +37,22 @@ class _LoginPageState extends State<LoginPage> {
       _passwordController.text,
     );
     if (success && mounted) {
-      context.go('/dashboard');
+      // ============================================================
+      // Show success snackbar before navigating
+      // ============================================================
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account successfully registered!'),
+          backgroundColor: AppColors.sageGreen,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Navigate after a short delay to let the snackbar show
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        context.go('/dashboard');
+      }
     }
   }
 
@@ -99,26 +114,6 @@ class _LoginPageState extends State<LoginPage> {
                           color: AppColors.deepBrown,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text.rich(
-                        TextSpan(
-                          style: const TextStyle(
-                              fontSize: 13.5, color: AppColors.deepBrown),
-                          children: [
-                            const TextSpan(
-                                text: "If you don't have an account, you can\n"),
-                            TextSpan(
-                              text: 'Register here!',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.sageGreen),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () => context.go('/register'),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
                       const SizedBox(height: 32),
                       _SignInForm(
                         formKey: _formKey,
@@ -130,8 +125,8 @@ class _LoginPageState extends State<LoginPage> {
                         onSubmit: _handleSubmit,
                         isBusy: auth.isBusy,
                         errorMessage: auth.errorMessage,
-                        onSocialTap: _notAvailable,
                         onForgotPassword: () => _notAvailable('Password reset'),
+                        onRegisterTap: () => context.go('/register'),
                       ),
                     ],
                   ),
@@ -154,8 +149,8 @@ class _SignInForm extends StatelessWidget {
   final VoidCallback onSubmit;
   final bool isBusy;
   final String? errorMessage;
-  final void Function(String label) onSocialTap;
   final VoidCallback onForgotPassword;
+  final VoidCallback onRegisterTap;
 
   const _SignInForm({
     required this.formKey,
@@ -166,8 +161,8 @@ class _SignInForm extends StatelessWidget {
     required this.onSubmit,
     required this.isBusy,
     required this.errorMessage,
-    required this.onSocialTap,
     required this.onForgotPassword,
+    required this.onRegisterTap,
   });
 
   InputDecoration _decoration({required String hintText, Widget? suffixIcon}) {
@@ -275,79 +270,35 @@ class _SignInForm extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
-          const SizedBox(height: 26),
-          Row(
-            children: [
-              Expanded(
-                  child: Divider(color: AppColors.catGray.withValues(alpha: 0.8))),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text('Or continue with',
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.lightScheme.onSurfaceVariant)),
-              ),
-              Expanded(
-                  child: Divider(color: AppColors.catGray.withValues(alpha: 0.8))),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _SocialIconButton(
-                  icon: Icons.g_mobiledata_rounded,
-                  color: AppColors.coralRed,
-                  onTap: () => onSocialTap('Google'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _SocialIconButton(
-                  icon: Icons.facebook,
-                  color: AppColors.skyBlue,
-                  onTap: () => onSocialTap('Facebook'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _SocialIconButton(
-                  icon: Icons.apple,
+          const SizedBox(height: 16),
+          // ============================================================
+          // MOVED: "Register here" text below Sign In button
+          // ============================================================
+          Center(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 13.5,
                   color: AppColors.deepBrown,
-                  onTap: () => onSocialTap('Apple/iCloud'),
                 ),
+                children: [
+                  const TextSpan(
+                    text: "Don't have an account? ",
+                  ),
+                  TextSpan(
+                    text: 'Register here!',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.sageGreen,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = onRegisterTap,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SocialIconButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  const _SocialIconButton({required this.icon, required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.catGray.withValues(alpha: 0.8)),
-          ),
-          alignment: Alignment.center,
-          child: Icon(icon, color: color, size: 24),
-        ),
       ),
     );
   }

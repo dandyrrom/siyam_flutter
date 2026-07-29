@@ -48,27 +48,57 @@ class _ProfilePageState extends State<ProfilePage>
       return const Center(child: CircularProgressIndicator());
     }
 
+    // ============================================================
+    // MOBILE DETECTION: Check if screen width is less than 600px
+    // ============================================================
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 760),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Profile & Settings',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          // ============================================================
+          // TITLE: Responsive
+          // ============================================================
+          Text(
+            isMobile ? 'Profile' : 'Profile & Settings',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 4),
-          const Text('Manage your account information and preferences',
-              style: TextStyle(color: AppColors.mutedForeground)),
+          Text(
+            isMobile
+                ? 'Manage your account'
+                : 'Manage your account information and preferences',
+            style: const TextStyle(color: AppColors.mutedForeground),
+          ),
           const SizedBox(height: 20),
-          _ProfileHeaderCard(user: user),
+
+          // ============================================================
+          // HEADER: Mobile uses centered layout, Web uses row layout
+          // ============================================================
+          isMobile
+              ? _ProfileHeaderCardMobile(user: user)
+              : _ProfileHeaderCard(user: user),
           const SizedBox(height: 20),
-          _SegmentedTabs(controller: _tabController),
+
+          // ============================================================
+          // TABS: Mobile uses shorter labels, Web uses full labels
+          // ============================================================
+          isMobile
+              ? _SegmentedTabsMobile(controller: _tabController)
+              : _SegmentedTabs(controller: _tabController),
           const SizedBox(height: 20),
+
+          // ============================================================
+          // TAB CONTENT: Pass isMobile to child widgets
+          // ============================================================
           IndexedStack(
             index: _visibleTab,
             children: [
-              _ProfileTab(user: user),
-              const _SecurityTab(),
-              const _NotificationsTab(),
+              _ProfileTab(user: user, isMobile: isMobile),
+              _SecurityTab(isMobile: isMobile),
+              _NotificationsTab(isMobile: isMobile),
             ],
           ),
         ],
@@ -77,6 +107,9 @@ class _ProfilePageState extends State<ProfilePage>
   }
 }
 
+// ============================================================
+// WEB HEADER (Original - UNCHANGED)
+// ============================================================
 class _ProfileHeaderCard extends StatelessWidget {
   final AppUser user;
   const _ProfileHeaderCard({required this.user});
@@ -141,6 +174,9 @@ class _ProfileHeaderCard extends StatelessWidget {
   }
 }
 
+// ============================================================
+// WEB TABS (Original - UNCHANGED)
+// ============================================================
 class _SegmentedTabs extends StatelessWidget {
   final TabController controller;
   const _SegmentedTabs({required this.controller});
@@ -174,6 +210,128 @@ class _SegmentedTabs extends StatelessWidget {
   }
 }
 
+// ============================================================
+// MOBILE HEADER (NEW - Mobile Optimized)
+// ============================================================
+class _ProfileHeaderCardMobile extends StatelessWidget {
+  final AppUser user;
+  const _ProfileHeaderCardMobile({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final badgeColor = _roleBadgeColor[user.role] ?? AppColors.mutedForeground;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Avatar - centered on mobile
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                user.initials,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Name - centered
+          Text(
+            user.fullName,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            user.email,
+            style: const TextStyle(color: AppColors.mutedForeground, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          // Role badge - centered
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: badgeColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              appRoleToString(user.role).toUpperCase(),
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700, color: badgeColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// MOBILE TABS (NEW - Mobile Optimized with shorter labels)
+// ============================================================
+class _SegmentedTabsMobile extends StatelessWidget {
+  final TabController controller;
+  const _SegmentedTabsMobile({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.muted,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: controller,
+        indicator: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: AppColors.foreground,
+        unselectedLabelColor: AppColors.mutedForeground,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        tabs: const [
+          Tab(text: 'Profile'),
+          Tab(text: 'Security'),
+          Tab(text: 'Notif'), // Shorter for mobile
+        ],
+      ),
+    );
+  }
+}
+
 /// ----------------------------------------------------------------------
 /// Profile tab: edits public.users (first/last name, phone). Email and
 /// role are shown read-only -- email changes go through Supabase Auth's
@@ -182,7 +340,9 @@ class _SegmentedTabs extends StatelessWidget {
 /// ----------------------------------------------------------------------
 class _ProfileTab extends StatefulWidget {
   final AppUser user;
-  const _ProfileTab({required this.user});
+  final bool isMobile;
+
+  const _ProfileTab({required this.user, required this.isMobile});
 
   @override
   State<_ProfileTab> createState() => _ProfileTabState();
@@ -239,56 +399,102 @@ class _ProfileTabState extends State<_ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
+    final bool isMobile = widget.isMobile;
 
     return _CardSection(
         title: 'Personal Information',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _LabeledField(
-                    label: 'First Name',
-                    icon: Icons.person_outline,
-                    controller: _firstName,
+            // ============================================================
+            // FIRST/LAST NAME: Stacked on mobile, Row on web
+            // ============================================================
+            isMobile
+                ? Column(
+                    children: [
+                      _LabeledField(
+                        label: 'First Name',
+                        icon: Icons.person_outline,
+                        controller: _firstName,
+                      ),
+                      const SizedBox(height: 14),
+                      _LabeledField(
+                        label: 'Last Name',
+                        icon: Icons.person_outline,
+                        controller: _lastName,
+                      ),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _LabeledField(
+                          label: 'First Name',
+                          icon: Icons.person_outline,
+                          controller: _firstName,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _LabeledField(
+                          label: 'Last Name',
+                          icon: Icons.person_outline,
+                          controller: _lastName,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _LabeledField(
-                    label: 'Last Name',
-                    icon: Icons.person_outline,
-                    controller: _lastName,
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 14),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _LabeledField(
-                    label: 'Email Address',
-                    icon: Icons.mail_outline,
-                    controller: TextEditingController(text: widget.user.email),
-                    enabled: false,
-                    helperText: 'Contact an admin to change your email.',
+
+            // ============================================================
+            // EMAIL/PHONE: Stacked on mobile, Row on web
+            // ============================================================
+            isMobile
+                ? Column(
+                    children: [
+                      _LabeledField(
+                        label: 'Email Address',
+                        icon: Icons.mail_outline,
+                        controller: TextEditingController(text: widget.user.email),
+                        enabled: false,
+                        helperText: 'Contact an admin to change your email.',
+                      ),
+                      const SizedBox(height: 14),
+                      _LabeledField(
+                        label: 'Phone Number',
+                        icon: Icons.phone_outlined,
+                        controller: _phone,
+                      ),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _LabeledField(
+                          label: 'Email Address',
+                          icon: Icons.mail_outline,
+                          controller: TextEditingController(text: widget.user.email),
+                          enabled: false,
+                          helperText: 'Contact an admin to change your email.',
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _LabeledField(
+                          label: 'Phone Number',
+                          icon: Icons.phone_outlined,
+                          controller: _phone,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _LabeledField(
-                    label: 'Phone Number',
-                    icon: Icons.phone_outlined,
-                    controller: _phone,
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 14),
+
+            // ============================================================
+            // ROLE (read-only)
+            // ============================================================
             _LabeledField(
               label: 'Role',
               icon: Icons.shield_outlined,
@@ -297,16 +503,23 @@ class _ProfileTabState extends State<_ProfileTab> {
               enabled: false,
             ),
             const SizedBox(height: 18),
-            ElevatedButton.icon(
-              onPressed: auth.isBusy ? null : _save,
-              icon: auth.isBusy
-                  ? const SizedBox(
-                      height: 14,
-                      width: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save_outlined, size: 16),
-              label: const Text('Save Changes'),
+
+            // ============================================================
+            // SAVE BUTTON: Full width on mobile, normal on web
+            // ============================================================
+            SizedBox(
+              width: isMobile ? double.infinity : null,
+              child: ElevatedButton.icon(
+                onPressed: auth.isBusy ? null : _save,
+                icon: auth.isBusy
+                    ? const SizedBox(
+                        height: 14,
+                        width: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.save_outlined, size: 16),
+                label: const Text('Save Changes'),
+              ),
             ),
           ],
         ),
@@ -319,7 +532,9 @@ class _ProfileTabState extends State<_ProfileTab> {
 /// verified by re-authenticating before applying the new one.
 /// ----------------------------------------------------------------------
 class _SecurityTab extends StatefulWidget {
-  const _SecurityTab();
+  final bool isMobile;
+
+  const _SecurityTab({required this.isMobile});
 
   @override
   State<_SecurityTab> createState() => _SecurityTabState();
@@ -364,6 +579,7 @@ class _SecurityTabState extends State<_SecurityTab> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
+    final bool isMobile = widget.isMobile;
 
     return _CardSection(
         title: 'Change Password',
@@ -404,17 +620,23 @@ class _SecurityTabState extends State<_SecurityTab> {
                           (v != _newPassword.text) ? 'Passwords do not match' : null,
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: auth.isBusy ? null : _updatePassword,
-                      icon: auth.isBusy
-                          ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.lock_outline, size: 16),
-                      label: const Text('Update Password'),
+                    // ============================================================
+                    // UPDATE BUTTON: Full width on mobile, normal on web
+                    // ============================================================
+                    SizedBox(
+                      width: isMobile ? double.infinity : null,
+                      child: ElevatedButton.icon(
+                        onPressed: auth.isBusy ? null : _updatePassword,
+                        icon: auth.isBusy
+                            ? const SizedBox(
+                                height: 14,
+                                width: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.lock_outline, size: 16),
+                        label: const Text('Update Password'),
+                      ),
                     ),
                   ],
                 ),
@@ -454,7 +676,9 @@ class _NotifPref {
 }
 
 class _NotificationsTab extends StatefulWidget {
-  const _NotificationsTab();
+  final bool isMobile;
+
+  const _NotificationsTab({required this.isMobile});
 
   @override
   State<_NotificationsTab> createState() => _NotificationsTabState();
@@ -471,6 +695,8 @@ class _NotificationsTabState extends State<_NotificationsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = widget.isMobile;
+
     return _CardSection(
         title: 'Notification Preferences',
         child: Column(
@@ -491,12 +717,14 @@ class _NotificationsTabState extends State<_NotificationsTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(pref.label,
-                              style: const TextStyle(
-                                  fontSize: 13.5, fontWeight: FontWeight.w600)),
+                              style: TextStyle(
+                                  fontSize: isMobile ? 13 : 13.5,
+                                  fontWeight: FontWeight.w600)),
                           const SizedBox(height: 2),
                           Text(pref.description,
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.mutedForeground)),
+                              style: TextStyle(
+                                  fontSize: isMobile ? 11.5 : 12,
+                                  color: AppColors.mutedForeground)),
                         ],
                       ),
                     ),
@@ -591,6 +819,41 @@ class _LabeledField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ============================================================
+// COMING SOON NOTICE
+// ============================================================
+class ComingSoonNotice extends StatelessWidget {
+  final String text;
+  const ComingSoonNotice({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.muted,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 18, color: AppColors.mutedForeground),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

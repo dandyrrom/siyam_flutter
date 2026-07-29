@@ -5,18 +5,19 @@ treatments, animal records, suppliers, purchases, donations, and reports, plus
 a donor-facing portal. It is a Flutter Web port of the original
 `Design-SIYAM-Web-Application` React project!
 
-## Current backend: in-memory mock
+## Backend: in-memory mock or Supabase
 
-The app currently runs entirely on an **in-memory mock data layer**
-(`lib/mock/mock_database.dart`), seeded at startup. There is no external
-backend, database, or secrets required to run it. The data model mirrors the
-Postgres schema documented in `[updated_db.md](updated_db.md)`, which is the
-single source of truth for what fields/tables exist.
+The app can run on either an **in-memory mock data layer**
+(`lib/mock/mock_database.dart`), seeded at startup, or a real **Supabase**
+backend — both are fully implemented. The mock needs no external backend,
+database, or secrets. The data model mirrors the Postgres schema documented in
+`[updated_db.md](updated_db.md)`, which is the single source of truth for what
+fields/tables exist.
 
-A compile-time toggle (`USE_MOCK`) selects the backend so a Supabase
-implementation can be added later without touching the UI (see
-[Backend toggle](#backend-toggle)). Supabase is **not implemented yet** — the
-non-mock path throws until those services are written.
+A compile-time toggle (`USE_MOCK`) selects the backend without touching the UI
+(see [Backend toggle](#backend-toggle)). It defaults to mock; running against
+Supabase requires `SUPABASE_URL`/`SUPABASE_ANON_KEY` to be supplied too (e.g.
+via `--dart-define-from-file=env/supabase.json`), not just `USE_MOCK=false`.
 
 ## Prerequisites
 
@@ -44,6 +45,10 @@ flutter pub get
 flutter run -d chrome
 ```
 
+##Run in Emulator
+
+flutter run -d emulator-5554
+
 Seeded test accounts (all use password `password123`):
 
 
@@ -66,8 +71,8 @@ The backend is chosen at build time via a `--dart-define`:
 # Mock backend (default — no external dependencies)
 flutter run -d chrome --dart-define=USE_MOCK=true
 
-# Supabase backend (NOT implemented yet — will throw at runtime)
-flutter run -d chrome --dart-define=USE_MOCK=false
+# Supabase backend (requires SUPABASE_URL/SUPABASE_ANON_KEY, e.g. via env/supabase.json)
+flutter run -d chrome --dart-define-from-file=env/supabase.json
 ```
 
 The flag is read in `lib/services/backend.dart`:
@@ -129,16 +134,19 @@ npx vercel --prod        # framework preset: Other; it deploys the static files
 
 
 
-## Next: Supabase (planned)
+## Supabase backend (implemented)
 
-Wiring up Supabase for auth + data is the next phase and is not done yet:
+Supabase auth + data are wired up:
 
-1. Add `supabase_flutter`; create `lib/core/supabase_config.dart` reading
-  `SUPABASE_URL` / anon key via `--dart-define`; init conditionally in
-   `lib/main.dart` when `USE_MOCK=false`.
-2. Create the schema from `[updated_db.md](updated_db.md)` plus RLS policies.
-3. Wire Supabase auth (GoTrue) into `AuthController`, using the existing
+1. `supabase_flutter` is a dependency; `lib/core/supabase_config.dart` reads
+  `SUPABASE_URL` / `SUPABASE_ANON_KEY` via `--dart-define`; `lib/main.dart`
+   initializes it conditionally when `USE_MOCK=false`.
+2. The schema from `[updated_db.md](updated_db.md)` plus RLS policies is in
+  place in the Supabase project.
+3. Supabase auth (GoTrue) is wired into `AuthController`, using the existing
   `AuthStatus.unknown` state for session restore.
-4. Implement each `Supabase<Name>Service` against the existing service
-  interfaces and flip the factory branch — one service at a time.
+4. Each `Supabase<Name>Service` is implemented against the existing service
+  interfaces (`lib/services/supabase/`), selected via the `kUseMock` factory
+   branch.
+
 
