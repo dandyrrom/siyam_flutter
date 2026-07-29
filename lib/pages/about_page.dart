@@ -20,4 +20,4 @@ class AboutPage extends StatelessWidget {
       ),
     );
   }
-}
+} //test to merge
