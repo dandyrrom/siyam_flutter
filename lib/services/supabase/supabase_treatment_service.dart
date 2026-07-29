@@ -193,4 +193,19 @@ class SupabaseTreatmentService implements TreatmentService {
     await applyTreatmentDeduction(_inventoryService, invItem, item.qty);
     DataChangeBus.instance.ping();
   }
+
+  @override
+  Future<List<DateTime>> fetchUsageEventDates() async {
+    final rows =
+        await _client.from('treatment_item').select('consumeddate, recordeddate');
+    return [
+      for (final row in rows)
+        _parseUsageDate(row['consumeddate'] ?? row['recordeddate']),
+    ];
+  }
+
+  DateTime _parseUsageDate(dynamic value) {
+    if (value is DateTime) return value.toLocal();
+    return DateTime.parse(value as String).toLocal();
+  }
 }

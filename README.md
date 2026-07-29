@@ -150,3 +150,6 @@ Supabase auth + data are wired up:
    branch.
 
 
+
+flutter run -d edge --dart-define-from-file=env/supabase.json
+flutter run -d chrome --dart-define-from-file=env/supabase.json
