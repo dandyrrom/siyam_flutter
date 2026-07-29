@@ -21,5 +21,5 @@ class AboutPage extends StatelessWidget {
     );
   }
 } //test to merge
-//this line is to check if the merge is working fine
-//this line is to check if the merge is working fine 2
+
+//test 2
