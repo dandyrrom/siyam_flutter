@@ -82,6 +82,29 @@ class SupabaseSupplierService implements SupplierService {
   }
 
   @override
+  Future<Supplier> updateSupplier({
+    required String suppId,
+    required String suppName,
+    String? contactNum,
+    String? address,
+  }) async {
+    final row = await _client
+        .from('supplier')
+        .update({'name': suppName, 'contactnum': contactNum, 'address': address})
+        .eq('id', suppId)
+        .select('id, name, contactnum, contacttel, address')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapSupplier(row);
+  }
+
+  @override
+  Future<void> deleteSupplier(String suppId) async {
+    await _client.from('supplier').delete().eq('id', suppId);
+    DataChangeBus.instance.ping();
+  }
+
+  @override
   Future<List<PurchaseOrder>> fetchAllPurchaseOrders() async {
     final users = await _userNameMap();
     final rows = await _client
