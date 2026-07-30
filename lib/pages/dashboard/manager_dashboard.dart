@@ -327,14 +327,16 @@ class _ManagerDashboardState extends State<ManagerDashboard>
               ]),
 
               // ===== SECTION 5: EXPIRY TRACKING NOTICE =====
-              // Shows informational message when expiry tracking is not yet available
-              // This feature requires an expiration_date field in the item table
+              // Shown only on the Supabase backend, where purchase_item/
+              // donation_item.expiry_date hasn't been migrated yet (mock
+              // already tracks it -- see KNOWN_LIMITATIONS.md).
               if (!_loading && !_stats!.expiryTrackingAvailable) ...[
                 const SizedBox(height: 12),
                 const ComingSoonNotice(
                   text:
-                      'Expiry warnings need an expiration date on stock batches — '
-                      'that field is not in the schema yet, so this alert stays empty.',
+                      'Expiry warnings need batch expiry dates, which aren\'t '
+                      'migrated onto the live backend yet — this alert stays '
+                      'empty until then.',
                 ),
               ],
 
@@ -595,8 +597,8 @@ class _ReplenishmentAlerts extends StatelessWidget {
         ? _StockAlertPanel(
             title: 'Low Stock', // Items below reorder threshold
             subtitle:
-                'At or below $kLowStockPurchaseUnitThreshold whole containers '
-                '(placeholder threshold until system settings exist).',
+                'At or below ${formatQty(lowStockPurchaseUnitThreshold)} whole '
+                'containers (set on the Settings page).',
             accent: AppColors.warning, // Yellow/amber color for caution
             items: lowStockItems,
             emptyLabel: 'No low-stock items.',

@@ -229,12 +229,26 @@ class DonationItemRow {
   });
 }
 
+/// The single settings row -- see updated_db.md's SYSTEM_SETTINGS. There is
+/// always exactly one of these; nothing ever adds a second row.
+class SystemSettingsRow {
+  double lowStockThreshold;
+  int expirationWarningDays;
+
+  SystemSettingsRow({
+    this.lowStockThreshold = 10,
+    this.expirationWarningDays = 30,
+  });
+}
+
 /// In-memory data store standing in for the (currently absent) backend.
 /// Shaped by updated_db.md. Resets every time the app restarts -- there is
 /// no persistence beyond process memory.
 class MockDatabase {
   MockDatabase._();
   static final MockDatabase instance = MockDatabase._();
+
+  final SystemSettingsRow systemSettings = SystemSettingsRow();
 
   final List<AppUser> users = [];
   final List<Pet> pets = [];
@@ -463,10 +477,15 @@ class MockDatabase {
       ));
     }
 
-    addOpeningBatch(itemUticare, DateTime(2026, 12, 31));
+    // Uticare and the dry food are dated within the default 30-day
+    // expiration_warning_days window (relative to seed time, not a fixed
+    // calendar date) so Alerts & Notifications has something to show out of
+    // the box -- see lib/services/expiry_alerts.dart.
+    final soon = DateTime.now();
+    addOpeningBatch(itemUticare, soon.add(const Duration(days: 12)));
     addOpeningBatch(itemRoyalCanin, DateTime(2027, 1, 1));
     addOpeningBatch(itemEyeDrop, DateTime(2027, 3, 15));
-    addOpeningBatch(itemDryFood, DateTime(2026, 10, 1));
+    addOpeningBatch(itemDryFood, soon.add(const Duration(days: 25)));
     addOpeningBatch(itemBleach, null);
     addOpeningBatch(itemMop, null);
   }

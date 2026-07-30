@@ -52,6 +52,14 @@ rollout — they fall back to the pre-redesign aggregate-only behavior
 `total_package_stock_ins` tracking, and `stock_count_mode` silently ignored
 on write, always null on read).
 
+The Alerts & Notifications feature (`lib/services/expiry_alerts.dart`,
+`lib/pages/notifications_page.dart`) now actually consumes `expiry_date` on
+the mock backend to compute Expiry Warning alerts — `ManagerDashboardStats.
+expiryTrackingAvailable` is `true` for `MockDashboardService`, `false` for
+`SupabaseDashboardService`, so the Supabase-backed dashboard/notifications
+pages still show an empty/"not available" state for that one alert type
+until the migration below happens.
+
 **Why:** The client-facing design was worked out and validated against the
 mock layer first (see the FEFO/expiry/package-unit-restock design
 conversation); writing Supabase migrations before the mock shape was final
@@ -61,4 +69,42 @@ would have meant migrating twice.
 then update `SupabaseInventoryService`/`SupabaseSupplierService`/
 `SupabaseDonationService` to match the mock's FEFO/batch logic exactly (see
 the `// not yet migrated` / `// mock-only for now` comments in those files
-for every spot that needs updating).
+for every spot that needs updating), and update
+`SupabaseDashboardService.fetchManagerStats` to compute real expiry alerts
+and set `expiryTrackingAvailable: true`.
+
+## system_settings -- mock-only, session cache on Supabase
+
+`SYSTEM_SETTINGS` (see updated_db.md) is a new single-row table backing the
+Manager Settings page's low-stock threshold and expiration-warning-days.
+`MockSettingsService` persists it on `MockDatabase.instance` like every other
+mock table. `SupabaseSettingsService` (`lib/services/settings_service.dart`)
+has no table to read/write yet, so it keeps edits in a static in-memory
+cache for the current session only (seeded with the same defaults, 10 / 30)
+rather than pretending to persist across reloads or devices.
+
+**Follow-up:** Add a `supabase/migrations/` file for `system_settings` and
+have `SupabaseSettingsService` read/write it instead of the local cache.
+
+## Reorder Point with Safety Stock / batch-level expiry UI -- deferred by scope decision
+
+Alerts & Notifications (increment 1) intentionally ships only: zero-stock
+alerts, a single configurable low-stock threshold (`SYSTEM_SETTINGS.
+low_stock_threshold`, global — not per-item), and expiry warnings driven by a
+configurable window (`SYSTEM_SETTINGS.expiration_warning_days`) over the
+existing batch-level `expiry_date`.
+
+Not built, and not implied by the above:
+- **Reorder Point with Safety Stock** — no lead-time or safety-stock formula,
+  no per-item reorder-point column. `stockLevel`'s low-stock tier is a plain
+  threshold comparison, not a computed reorder point.
+- **Per-item low-stock threshold override** — confirmed out of scope for this
+  increment (would need a nullable `item.low_stock_threshold` column falling
+  back to the global setting); only the global setting exists today.
+- **Batch-level expiry / FEFO reporting UI** — `expiry_date` is read for
+  alerting (soonest date per item), but there is no per-batch expiry list/
+  report page; that data model already exists for FEFO deduction ordering
+  (see updated_db.md's PURCHASE_ITEM), just not surfaced as its own UI.
+
+**Why:** Scope decision, confirmed with the requester before implementation —
+not an oversight. Raise these explicitly if a future increment needs them.

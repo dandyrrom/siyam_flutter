@@ -2,9 +2,12 @@ import 'qty_unit.dart';
 
 enum StockLevel { inStock, needsRestock, low, outOfStock }
 
-/// Placeholder global reorder threshold (purchase-unit containers). No
-/// `system_settings` or per-item reorder column exists in the schema yet.
-const double kLowStockPurchaseUnitThreshold = 10;
+/// Global reorder threshold (purchase-unit containers), backed by
+/// `SYSTEM_SETTINGS.low_stock_threshold` (see updated_db.md). Mutable rather
+/// than a per-item column -- set once at app startup and again whenever the
+/// Manager saves the Settings page (see `SettingsService`); not a
+/// ChangeNotifier since every reader re-evaluates on its own next build.
+double lowStockPurchaseUnitThreshold = 10;
 
 /// How an item's stock has been acquired, derived from whether it has any
 /// rows in `purchase_item` and/or `donation_item` -- not a stored column.
@@ -176,12 +179,12 @@ class InventoryItem {
   String get displayId =>
       'ITM-${itemId.replaceAll('-', '').padRight(4, '0').substring(0, 4).toUpperCase()}';
 
-  /// Stock-level tier thresholds are a placeholder assumption (no
-  /// reorder-point column exists on `item`). Adjust here, or move to a
-  /// per-item `reorder_point` column if you want these tunable per item.
+  /// [needsRestock]'s "30" tier is a coarser visual cue above the
+  /// configurable [lowStockPurchaseUnitThreshold] -- only the low-stock tier
+  /// is backed by a real setting today.
   StockLevel get stockLevel {
     if (isOutOfStock) return StockLevel.outOfStock;
-    if (stockQty <= kLowStockPurchaseUnitThreshold) return StockLevel.low;
+    if (stockQty <= lowStockPurchaseUnitThreshold) return StockLevel.low;
     if (stockQty <= 30) return StockLevel.needsRestock;
     return StockLevel.inStock;
   }

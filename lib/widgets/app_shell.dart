@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../core/app_colors.dart';
 import '../core/page_title.dart';
 import 'side_nav.dart';
 import 'top_nav.dart';
 import 'mobile_drawer.dart';
+import 'notification_bell.dart';
 
 /// Wraps every authenticated/protected page with the sidebar + top nav,
 /// mirroring ProtectedLayout from the original Layout.tsx.
@@ -75,14 +75,7 @@ class _AppShellState extends State<AppShell> {
           ),
           elevation: 0,
           backgroundColor: AppColors.card,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {
-                context.go('/notifications');
-              },
-            ),
-          ],
+          actions: const [NotificationBell()],
         ),
         // ============================================================
         // FIX: Pass the actual currentPath, not hardcoded '/dashboard'

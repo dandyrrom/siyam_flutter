@@ -11,10 +11,10 @@ bool isItemRowOutOfStock(ItemRow row) {
   return packageStock <= 0;
 }
 
-/// In-stock items at or below [kLowStockPurchaseUnitThreshold] whole containers.
+/// In-stock items at or below [lowStockPurchaseUnitThreshold] whole containers.
 bool isItemRowLowStock(ItemRow row) {
   if (isItemRowOutOfStock(row)) return false;
-  return row.purchaseStocks <= kLowStockPurchaseUnitThreshold;
+  return row.purchaseStocks <= lowStockPurchaseUnitThreshold;
 }
 
 /// Same pools check as [isItemRowOutOfStock], for Supabase row maps.
@@ -37,10 +37,10 @@ bool isLowStockFromPools(
   if (isOutOfStockFromPools(purchaseStocks, packageStocks, packageQuantity)) {
     return false;
   }
-  return purchaseStocks <= kLowStockPurchaseUnitThreshold;
+  return purchaseStocks <= lowStockPurchaseUnitThreshold;
 }
 
 bool isInventoryItemLowStock(InventoryItem item) {
   if (item.isOutOfStock) return false;
-  return item.stockQty <= kLowStockPurchaseUnitThreshold;
+  return item.stockQty <= lowStockPurchaseUnitThreshold;
 }

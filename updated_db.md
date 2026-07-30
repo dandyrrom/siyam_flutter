@@ -122,6 +122,27 @@ existing patterns in this same schema (not invented from nothing):
   `total_purchase_stocks` is still > 0 — the empty container is still physically on the
   shelf. See `InventoryItem.isOutOfStock`.
 
+## SYSTEM_SETTINGS (new — not in the original draft)
+
+A single-row config table for app-wide alert thresholds. There was no settings
+table at all in the original draft; the app previously used a hardcoded
+placeholder constant (`kLowStockPurchaseUnitThreshold`) for low-stock alerts and
+had no configurable expiry warning window. Deliberately typed columns rather than
+a generic key-value settings table — only two values exist today, and a
+key-value/EAV design would be premature for that.
+
+- id — uuid, PK (exactly one row ever exists)
+- low_stock_threshold — float, not null, default 10 — an item is "Low Stock" when
+  `total_purchase_stocks` is at or below this many whole `purchase_unit`
+  containers (and not already zero). See `InventoryItem.stockLevel`.
+- expiration_warning_days — int, not null, default 30 — an item is flagged with
+  an expiry warning when any of its `PURCHASE_ITEM`/`DONATION_ITEM` batches (with
+  `qty_remaining > 0`) has an `expiry_date` within this many days of today
+  (including already-past dates). No new column was needed on `ITEM` or the
+  batch tables for this — `expiry_date` already existed for FEFO deduction
+  ordering (see PURCHASE_ITEM below); this setting just defines the alert
+  window over that existing data.
+
 ## PET
 - id — uuid, PK
 - name — text

@@ -26,7 +26,9 @@ import '../pages/suppliers_page.dart';
 import '../pages/audit_trail_page.dart';
 import '../pages/profile_page.dart';
 import '../pages/notifications_page.dart';
+import '../pages/notification_detail_page.dart';
 import '../pages/settings_page.dart';
+import '../widgets/notification_alerts.dart';
 import '../state/auth_state.dart';
 import '../widgets/app_shell.dart';
 import 'nav_config.dart';
@@ -216,6 +218,21 @@ GoRouter buildRouter(AuthController authState) {
             path: '/notifications',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: NotificationsPage()),
+          ),
+          GoRoute(
+            path: '/notifications/:kind/:id',
+            pageBuilder: (context, state) {
+              final kind = NotifKindRoute.fromRouteSegment(
+                    state.pathParameters['kind']!,
+                  ) ??
+                  NotifKind.zeroStock;
+              return NoTransitionPage(
+                child: NotificationDetailPage(
+                  kind: kind,
+                  itemId: state.pathParameters['id']!,
+                ),
+              );
+            },
           ),
           GoRoute(
             path: '/settings',

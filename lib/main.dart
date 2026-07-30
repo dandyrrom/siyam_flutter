@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/supabase_config.dart';
 import 'mock/mock_database.dart';
+import 'models/inventory_item.dart';
 import 'services/backend.dart';
+import 'services/settings_service.dart';
 import 'state/auth_state.dart';
 
 Future<void> main() async {
@@ -38,6 +40,15 @@ Future<void> main() async {
   // Restore any persisted GoTrue session before the first frame so a
   // browser refresh doesn't bounce through /login.
   await auth.restoreSession();
+
+  // Load the low-stock threshold before any page can read it via
+  // lowStockPurchaseUnitThreshold.
+  try {
+    final settings = await SettingsService().fetchSettings();
+    lowStockPurchaseUnitThreshold = settings.lowStockThreshold;
+  } catch (_) {
+    // Keep the default seeded above if settings can't be loaded.
+  }
 
   runApp(
     ChangeNotifierProvider.value(

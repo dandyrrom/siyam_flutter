@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../state/auth_state.dart';
+import 'notification_bell.dart';
 
 /// Path segment -> display label, shared with [setPageTitle] so the browser
 /// tab title and the breadcrumb always agree.
@@ -85,25 +86,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
             icon: const Icon(Icons.search, color: AppColors.mutedForeground, size: 20),
             onPressed: () {},
           ),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined,
-                    color: AppColors.mutedForeground, size: 20),
-                onPressed: () => context.go('/notifications'),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                      color: AppColors.destructive, shape: BoxShape.circle),
-                ),
-              ),
-            ],
-          ),
+          const NotificationBell(),
           const SizedBox(width: 6),
           if (user != null)
             InkWell(

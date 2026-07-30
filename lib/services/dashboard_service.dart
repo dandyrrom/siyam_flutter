@@ -3,6 +3,7 @@ import '../models/app_user.dart';
 import '../models/pet.dart';
 import 'backend.dart';
 import 'dashboard_stock_helpers.dart';
+import 'expiry_alerts.dart';
 import 'supabase/supabase_dashboard_service.dart';
 
 /// One row in a zero- or low-stock alert list on the manager dashboard.
@@ -33,6 +34,7 @@ class ManagerDashboardStats {
   final bool expiryTrackingAvailable;
   final List<DashboardStockAlert> zeroStockItems;
   final List<DashboardStockAlert> lowStockItems;
+  final List<ExpiryAlert> expiringSoonItems;
 
   const ManagerDashboardStats({
     required this.totalAnimals,
@@ -46,6 +48,7 @@ class ManagerDashboardStats {
     required this.expiryTrackingAvailable,
     required this.zeroStockItems,
     required this.lowStockItems,
+    this.expiringSoonItems = const [],
   });
 }
 
@@ -124,6 +127,8 @@ class MockDashboardService implements DashboardService {
   Future<ManagerDashboardStats> fetchManagerStats() async {
     final zeroStockItems = _stockAlerts(isItemRowOutOfStock);
     final lowStockItems = _stockAlerts(isItemRowLowStock);
+    final expiringSoonItems =
+        expiryAlerts(_db, _db.systemSettings.expirationWarningDays);
 
     return ManagerDashboardStats(
       totalAnimals: _db.pets.length,
@@ -133,10 +138,11 @@ class MockDashboardService implements DashboardService {
       totalItems: _db.items.length,
       zeroStockCount: zeroStockItems.length,
       lowStockCount: lowStockItems.length,
-      expiringSoonCount: 0,
-      expiryTrackingAvailable: false,
+      expiringSoonCount: expiringSoonItems.length,
+      expiryTrackingAvailable: true,
       zeroStockItems: zeroStockItems,
       lowStockItems: lowStockItems,
+      expiringSoonItems: expiringSoonItems,
     );
   }
 
