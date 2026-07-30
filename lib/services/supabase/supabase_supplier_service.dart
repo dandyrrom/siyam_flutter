@@ -197,13 +197,21 @@ class SupabaseSupplierService implements SupplierService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
+      // qty_unit/expiry_date: not yet migrated onto public.purchase_item
+      // (see updated_db.md) -- mock-only for now. [item.qtyUnit] still
+      // drives the stock effect via [stockIn] below, since that only
+      // depends on public.item's existing columns.
       await _client.from('purchase_item').insert({
         'purchaseid': purId,
         'itemid': item.itemId,
         'qty': item.qty,
         'purchase_unit_cost': item.unitCost,
       });
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
+      await _inventoryService.stockIn(
+        itemId: item.itemId,
+        qty: item.qty,
+        qtyUnit: item.qtyUnit,
+      );
     }
 
     final created = await fetchPurchaseOrder(purId);

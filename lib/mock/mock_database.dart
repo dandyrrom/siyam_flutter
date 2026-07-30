@@ -1,6 +1,7 @@
 import '../models/app_user.dart';
 import '../models/pet.dart';
 import '../models/primary_category.dart';
+import '../models/qty_unit.dart';
 import '../models/stock_out.dart';
 import '../models/subcategory.dart';
 import '../models/supplier.dart';
@@ -39,6 +40,20 @@ class ItemRow {
   double purchaseStocks;
   double? packageStocks;
 
+  /// Cumulative loose package-unit qty ever stocked in directly (not via a
+  /// whole container) -- see updated_db.md's total_package_stock_ins. Only
+  /// ever increases; needed because a package-unit stock-in adds to
+  /// [packageStocks] without a corresponding whole container to count in
+  /// [purchaseStocks], which would otherwise make the two pools impossible
+  /// to reconcile.
+  double totalPackageStockIns;
+
+  /// Staff-chosen display mode for this item's stock figure (package_unit
+  /// vs purchase_unit) -- null means "not set yet," in which case
+  /// [InventoryItem.effectiveCountMode] derives a default from whether the
+  /// item is deductible with a package breakdown.
+  String? stockCountMode;
+
   ItemRow({
     required this.id,
     required this.name,
@@ -50,6 +65,8 @@ class ItemRow {
     this.dispenseUnitId,
     required this.purchaseStocks,
     this.packageStocks,
+    this.totalPackageStockIns = 0,
+    this.stockCountMode,
   });
 }
 
@@ -71,17 +88,29 @@ class PurchaseRow {
   });
 }
 
+/// One purchase_item row -- also the batch used for FEFO deduction (see
+/// updated_db.md). [qty]/[unitCost] are in [qtyUnit] terms, as entered by
+/// staff. [qtyRemaining] is a separate, mutable running balance in
+/// *canonical* terms (package_unit if the item has a package breakdown,
+/// else purchase_unit terms) -- drawn down by treatment usage / stock-out,
+/// independent of [qty] which stays fixed as the original stock-in record.
 class PurchaseItemRow {
   final String purchaseId;
   final String itemId;
   final double qty;
+  final QtyUnit qtyUnit;
   final double unitCost;
+  final DateTime? expiryDate;
+  double qtyRemaining;
 
   PurchaseItemRow({
     required this.purchaseId,
     required this.itemId,
     required this.qty,
+    this.qtyUnit = QtyUnit.purchaseUnit,
     required this.unitCost,
+    this.expiryDate,
+    required this.qtyRemaining,
   });
 }
 
@@ -180,12 +209,24 @@ class DonationRow {
   });
 }
 
+/// One donation_item row -- also a FEFO batch, mirroring [PurchaseItemRow]
+/// minus cost (donations have no purchase cost).
 class DonationItemRow {
   final String donId;
   final String itemId;
   final double qty;
+  final QtyUnit qtyUnit;
+  final DateTime? expiryDate;
+  double qtyRemaining;
 
-  DonationItemRow({required this.donId, required this.itemId, required this.qty});
+  DonationItemRow({
+    required this.donId,
+    required this.itemId,
+    required this.qty,
+    this.qtyUnit = QtyUnit.purchaseUnit,
+    this.expiryDate,
+    required this.qtyRemaining,
+  });
 }
 
 /// In-memory data store standing in for the (currently absent) backend.
@@ -313,75 +354,120 @@ class MockDatabase {
     subcategories.addAll(
         [subTablets, subOralSuspension, subDrops, subSupplies, subDry, subBleach, subTools]);
 
+    final itemUticare = ItemRow(
+      id: newMockId('item'),
+      name: 'Uticare',
+      pCategoryId: catMedical.id,
+      sCategoryId: subTablets.id,
+      purchaseUnitId: unitBox.id,
+      packageUnitId: unitTablet.id,
+      packageQuantity: 30,
+      dispenseUnitId: unitTablet.id,
+      purchaseStocks: 2,
+      packageStocks: 60,
+    );
+    final itemRoyalCanin = ItemRow(
+      id: newMockId('item'),
+      name: 'Royal Canin Adult Dry Food',
+      pCategoryId: catMedical.id,
+      sCategoryId: subOralSuspension.id,
+      purchaseUnitId: unitBottle.id,
+      packageUnitId: unitMl.id,
+      packageQuantity: 100,
+      dispenseUnitId: unitMl.id,
+      purchaseStocks: 10,
+      packageStocks: 1000,
+    );
+    final itemEyeDrop = ItemRow(
+      id: newMockId('item'),
+      name: 'Eye Vitamin Drop',
+      pCategoryId: catMedical.id,
+      sCategoryId: subDrops.id,
+      purchaseUnitId: unitBottle.id,
+      packageUnitId: unitMl.id,
+      packageQuantity: 200,
+      dispenseUnitId: unitDrop.id, // differs from package_unit (ml) on purpose
+      purchaseStocks: 26,
+      packageStocks: 5200,
+    );
+    final itemDryFood = ItemRow(
+      id: newMockId('item'),
+      name: 'Adult Dog Dry Food',
+      pCategoryId: catFood.id,
+      sCategoryId: subDry.id,
+      purchaseUnitId: unitBag.id,
+      packageUnitId: unitKg.id,
+      packageQuantity: 9,
+      dispenseUnitId: unitKg.id,
+      purchaseStocks: 4,
+      packageStocks: 36,
+    );
+    final itemBleach = ItemRow(
+      id: newMockId('item'),
+      name: 'Zonrox Bleach',
+      pCategoryId: catCleaning.id,
+      sCategoryId: subBleach.id,
+      purchaseUnitId: unitBottle.id,
+      packageUnitId: unitMl.id,
+      packageQuantity: 450,
+      dispenseUnitId: unitMl.id,
+      purchaseStocks: 2,
+      packageStocks: 900,
+    );
+    final itemMop = ItemRow(
+      id: newMockId('item'),
+      name: 'Mop',
+      pCategoryId: catEquipment.id,
+      sCategoryId: subTools.id,
+      purchaseUnitId: unitPcs.id,
+      purchaseStocks: 5,
+    );
+
     items.addAll([
-      ItemRow(
-        id: newMockId('item'),
-        name: 'Uticare',
-        pCategoryId: catMedical.id,
-        sCategoryId: subTablets.id,
-        purchaseUnitId: unitBox.id,
-        packageUnitId: unitTablet.id,
-        packageQuantity: 30,
-        dispenseUnitId: unitTablet.id,
-        purchaseStocks: 2,
-        packageStocks: 60,
-      ),
-      ItemRow(
-        id: newMockId('item'),
-        name: 'Royal Canin Adult Dry Food',
-        pCategoryId: catMedical.id,
-        sCategoryId: subOralSuspension.id,
-        purchaseUnitId: unitBottle.id,
-        packageUnitId: unitMl.id,
-        packageQuantity: 100,
-        dispenseUnitId: unitMl.id,
-        purchaseStocks: 10,
-        packageStocks: 1000,
-      ),
-      ItemRow(
-        id: newMockId('item'),
-        name: 'Eye Vitamin Drop',
-        pCategoryId: catMedical.id,
-        sCategoryId: subDrops.id,
-        purchaseUnitId: unitBottle.id,
-        packageUnitId: unitMl.id,
-        packageQuantity: 200,
-        dispenseUnitId: unitDrop.id, // differs from package_unit (ml) on purpose
-        purchaseStocks: 26,
-        packageStocks: 5200,
-      ),
-      ItemRow(
-        id: newMockId('item'),
-        name: 'Adult Dog Dry Food',
-        pCategoryId: catFood.id,
-        sCategoryId: subDry.id,
-        purchaseUnitId: unitBag.id,
-        packageUnitId: unitKg.id,
-        packageQuantity: 9,
-        dispenseUnitId: unitKg.id,
-        purchaseStocks: 4,
-        packageStocks: 36,
-      ),
-      ItemRow(
-        id: newMockId('item'),
-        name: 'Zonrox Bleach',
-        pCategoryId: catCleaning.id,
-        sCategoryId: subBleach.id,
-        purchaseUnitId: unitBottle.id,
-        packageUnitId: unitMl.id,
-        packageQuantity: 450,
-        dispenseUnitId: unitMl.id,
-        purchaseStocks: 2,
-        packageStocks: 900,
-      ),
-      ItemRow(
-        id: newMockId('item'),
-        name: 'Mop',
-        pCategoryId: catEquipment.id,
-        sCategoryId: subTools.id,
-        purchaseUnitId: unitPcs.id,
-        purchaseStocks: 5,
-      ),
+      itemUticare,
+      itemRoyalCanin,
+      itemEyeDrop,
+      itemDryFood,
+      itemBleach,
+      itemMop,
     ]);
+
+    // Opening-balance batches -- every unit of stock above needs a
+    // purchase_item/donation_item row backing it, or FEFO deduction has
+    // nothing to draw from (see updated_db.md). Modeled as one "opening
+    // balance" purchase per item, dated in the past, with staggered expiry
+    // dates on the medical/food items so a later real stock-in demonstrates
+    // FEFO ordering against these.
+    final openingPurchase = PurchaseRow(
+      id: newMockId('purchase'),
+      suppId: 'supplier-petcare',
+      recordedByUserId: users[0].userId,
+      recordedDate: DateTime(2026, 1, 1),
+      receivedBy: 'Opening balance',
+      receivedDate: DateTime(2026, 1, 1),
+    );
+    purchases.add(openingPurchase);
+
+    void addOpeningBatch(ItemRow item, DateTime? expiryDate) {
+      final qtyRemaining = item.packageQuantity != null
+          ? (item.packageStocks ?? item.purchaseStocks * item.packageQuantity!)
+          : item.purchaseStocks;
+      purchaseItems.add(PurchaseItemRow(
+        purchaseId: openingPurchase.id,
+        itemId: item.id,
+        qty: item.purchaseStocks,
+        qtyUnit: QtyUnit.purchaseUnit,
+        unitCost: 0,
+        expiryDate: expiryDate,
+        qtyRemaining: qtyRemaining,
+      ));
+    }
+
+    addOpeningBatch(itemUticare, DateTime(2026, 12, 31));
+    addOpeningBatch(itemRoyalCanin, DateTime(2027, 1, 1));
+    addOpeningBatch(itemEyeDrop, DateTime(2027, 3, 15));
+    addOpeningBatch(itemDryFood, DateTime(2026, 10, 1));
+    addOpeningBatch(itemBleach, null);
+    addOpeningBatch(itemMop, null);
   }
 }

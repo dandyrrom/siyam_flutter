@@ -155,12 +155,18 @@ class SupabaseDonationService implements DonationService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
+      // qty_unit/expiry_date: not yet migrated onto public.donation_item
+      // (see updated_db.md) -- mock-only for now.
       await _client.from('donation_item').insert({
         'dntid': donationId,
         'itemid': item.itemId,
         'qty': item.qty,
       });
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
+      await _inventoryService.stockIn(
+        itemId: item.itemId,
+        qty: item.qty,
+        qtyUnit: item.qtyUnit,
+      );
     }
     DataChangeBus.instance.ping();
   }

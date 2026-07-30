@@ -268,7 +268,7 @@ class _InventoryPageState extends State<InventoryPage>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                '${formatQty(item.unusedStockQty)} ${item.itemUom} • ${item.pCategoryName}',
+                '${formatQty(item.displayStockQty)} ${item.displayStockUnit} • ${item.pCategoryName}',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.mutedForeground,
@@ -620,7 +620,7 @@ class _InventoryPageState extends State<InventoryPage>
                         SizedBox(width: 16),
                         Expanded(flex: 2, child: _HeaderCell('Category')),
                         SizedBox(width: 16),
-                        Expanded(flex: 2, child: _HeaderCell('Unused Stocks')),
+                        Expanded(flex: 2, child: _HeaderCell('Stock')),
                         SizedBox(width: 16),
                         Expanded(flex: 2, child: _HeaderCell('Stock Level')),
                         SizedBox(
@@ -740,7 +740,7 @@ class _InventoryPageState extends State<InventoryPage>
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                            '${formatQty(item.unusedStockQty)} ${item.itemUom}',
+                                            '${formatQty(item.displayStockQty)} ${item.displayStockUnit}',
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w600)),
@@ -895,7 +895,7 @@ class _InventoryPageState extends State<InventoryPage>
                                     ),
                                     const Spacer(),
                                     Text(
-                                      '${formatQty(item.unusedStockQty)} ${item.itemUom}',
+                                      '${formatQty(item.displayStockQty)} ${item.displayStockUnit}',
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 14),

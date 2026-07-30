@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/inventory_item.dart';
+import '../../models/qty_unit.dart';
 import '../../models/stock_movement.dart';
 import '../../models/stock_out.dart';
 import '../../state/data_bus.dart';
@@ -85,6 +86,12 @@ class SupabaseInventoryService implements InventoryService {
       dispenseUnitAbbr: dispenseUnitId == null ? null : units[dispenseUnitId],
       stockQty: _toDouble(r['total_purchase_stocks']) ?? 0,
       packageStockQty: _toDouble(r['total_package_stocks']),
+      // total_package_stock_ins / stock_count_mode: not yet migrated onto
+      // public.item (see updated_db.md) -- mock-only for now, per the
+      // "implement in mock first" rollout. Add these to [_itemColumns] and
+      // read them here once the Supabase migration lands.
+      totalPackageStockIns: 0,
+      stockCountMode: null,
       hasPurchaseHistory: purchasedItemIds.contains(r['id']),
       hasDonationHistory: donatedItemIds.contains(r['id']),
       lifetimeStockOutQty: lifetimeStockOutTotals[r['id']] ?? 0,
@@ -195,6 +202,7 @@ class SupabaseInventoryService implements InventoryService {
     String? pCategoryId,
     String? sCategoryId,
     String? purchaseUnitId,
+    StockCountMode? stockCountMode,
   }) async {
     final current = await fetchItem(itemId);
     if (current == null) throw Exception('Item not found');
@@ -208,6 +216,10 @@ class SupabaseInventoryService implements InventoryService {
     }
     if (sCategoryId != null) updates['s_category'] = sCategoryId;
     if (purchaseUnitId != null) updates['purchase_unit'] = purchaseUnitId;
+    // stock_count_mode: not yet migrated onto public.item -- mock-only for
+    // now (see the comment in [_mapItem]). Silently ignored here rather
+    // than failing, since the mock UI path that sets this shouldn't break
+    // against a Supabase backend that just doesn't have the column yet.
 
     if (updates.isNotEmpty) {
       await _client.from('item').update(updates).eq('id', itemId);
@@ -267,6 +279,50 @@ class SupabaseInventoryService implements InventoryService {
     final updated = await fetchItem(itemId);
     DataChangeBus.instance.ping();
     return updated!;
+  }
+
+  /// Not yet FEFO-aware -- there's no batch table (expiry_date/qty_remaining
+  /// on purchase_item/donation_item) migrated for Supabase yet, so this
+  /// falls back to the pre-redesign aggregate-only behavior: purchase_unit
+  /// stock-in is a whole-container [adjustStock]; package_unit stock-in
+  /// bumps total_package_stocks directly (total_package_stock_ins isn't
+  /// tracked here yet either -- see [_mapItem]). Mock-first, per the
+  /// rollout plan; revisit once the batch migration lands.
+  @override
+  Future<InventoryItem> stockIn({
+    required String itemId,
+    required double qty,
+    required QtyUnit qtyUnit,
+  }) async {
+    final current = await fetchItem(itemId);
+    if (current == null) throw Exception('Item not found');
+    if (qtyUnit == QtyUnit.purchaseUnit || current.packageQuantity == null) {
+      return adjustStock(itemId: itemId, delta: qty);
+    }
+    final currentPackage =
+        current.packageStockQty ?? current.stockQty * current.packageQuantity!;
+    await _client
+        .from('item')
+        .update({'total_package_stocks': currentPackage + qty}).eq('id', itemId);
+    final updated = await fetchItem(itemId);
+    DataChangeBus.instance.ping();
+    return updated!;
+  }
+
+  /// Not yet FEFO-aware (see [stockIn]) -- deducts from the aggregate pool
+  /// directly, same as the pre-redesign [deductPackageStock]/[adjustStock]
+  /// split, with no per-batch qty_remaining bookkeeping.
+  @override
+  Future<InventoryItem> deductFefo({
+    required String itemId,
+    required double qty,
+  }) async {
+    final current = await fetchItem(itemId);
+    if (current == null) throw Exception('Item not found');
+    if (current.packageQuantity != null) {
+      return deductPackageStock(itemId: itemId, delta: -qty);
+    }
+    return adjustStock(itemId: itemId, delta: -qty);
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'qty_unit.dart';
+
 enum StockLevel { inStock, needsRestock, low, outOfStock }
 
 /// Placeholder global reorder threshold (purchase-unit containers). No
@@ -37,9 +39,12 @@ String formatQty(double qty) {
 /// package-unit terms and IS decremented by treatment usage (for deductible
 /// items with a package breakdown). It starts in sync with
 /// `stockQty * packageQuantity` but diverges from it as doses are consumed
-/// without a whole container being removed -- see [unusedStockQty] and
-/// [usedPurchaseUnitQty]/[usedPackageUnitQty] (whole purchase units used, plus
-/// any partial amount used from the one container currently open).
+/// without a whole container being removed. It can also be increased
+/// directly by a package-unit stock-in that never touches [stockQty] at all
+/// (see [totalPackageStockIns]) -- there is deliberately no rolled-up
+/// "unused/used/in-use" breakdown of these two pools; see [displayStockQty]
+/// for the single figure shown to staff, and KNOWN_LIMITATIONS.md for why
+/// that breakdown was removed rather than patched.
 class InventoryItem {
   final String itemId;
   final String itemName;
@@ -57,27 +62,29 @@ class InventoryItem {
   final double stockQty; // total_purchase_stocks, in purchaseUnit terms
   final double? packageStockQty; // total_package_stocks, in packageUnit terms
 
+  /// Cumulative loose package-unit qty ever stocked in directly (not via a
+  /// whole container) -- see updated_db.md's total_package_stock_ins.
+  final double totalPackageStockIns;
+
+  /// Staff-chosen display mode for this item, or null if not explicitly
+  /// set -- see [effectiveCountMode].
+  final StockCountMode? stockCountMode;
+
   /// Whether this item has ever appeared in a purchase_item / donation_item
   /// row -- see [AcquisitionSource].
   final bool hasPurchaseHistory;
   final bool hasDonationHistory;
 
   /// Lifetime sum of stock_out.qty for this item (waste + expired +
-  /// adjustment combined, purchase_unit terms) -- unlike [stockQty], this
-  /// never decreases, since a stocked-out container is gone from
-  /// [stockQty]/[_containerCount] entirely and would otherwise vanish from
-  /// every stock stat with no record it ever existed. See
-  /// [usedPurchaseUnitQty].
+  /// adjustment combined, purchase_unit terms). Kept for the Stock Movement
+  /// history; not rolled into any current-stock figure.
   final double lifetimeStockOutQty;
 
   /// Lifetime sum of treatment_item.dispensed_qty for this item, in
-  /// whatever unit each row was actually recorded in. Only meaningful (used
-  /// by [usedPurchaseUnitQty]) for items with no package breakdown, where
-  /// every dose is deducted 1:1 from [stockQty] directly -- for items with a
-  /// package breakdown, treatment consumption instead draws down
-  /// [packageStockQty], already fully recoverable from the current
-  /// snapshot via the package-unit math in [usedPurchaseUnitQty]/
-  /// [usedPackageUnitQty], so this field is ignored there.
+  /// whatever unit each row was actually recorded in. Kept for the Stock
+  /// Movement history; not used by any rolled-up stock stat (see
+  /// KNOWN_LIMITATIONS.md -- Unused/Used/In-Use stocks were removed in
+  /// favor of the movement log as the single source for "how much used").
   final double lifetimeTreatmentQty;
 
   const InventoryItem({
@@ -96,6 +103,8 @@ class InventoryItem {
     this.dispenseUnitAbbr,
     required this.stockQty,
     this.packageStockQty,
+    this.totalPackageStockIns = 0,
+    this.stockCountMode,
     this.hasPurchaseHistory = false,
     this.hasDonationHistory = false,
     this.lifetimeStockOutQty = 0,
@@ -133,107 +142,29 @@ class InventoryItem {
   bool get stockOutIsDeductible =>
       dispenseUnitId == null || dispenseUnitId == packageUnitId;
 
-  /// [stockQty] rounded to a whole container count. Containers are only
-  /// ever added/removed in whole units, so this should already be a whole
-  /// number -- rounding here is a defensive guard against leftover
-  /// fractional values (e.g. stock deducted fractionally by older app
-  /// versions before total_package_stocks existed).
-  double get _containerCount => stockQty.roundToDouble();
-
-  /// Whole containers still fully sealed/untouched, e.g. 198.5ml remaining
-  /// at 100ml/bottle = 1 unopened bottle. Falls back to [stockQty] for items
-  /// with no package breakdown (nothing to "open"). Always a whole number.
-  double get unusedStockQty {
-    if (packageQuantity == null || packageQuantity == 0) return _containerCount;
-    final packageStock = packageStockQty ?? (stockQty * packageQuantity!);
-    final unused = (packageStock / packageQuantity!).floorToDouble();
-    return unused.clamp(0, _containerCount);
+  /// Which pool this item's stock figure is displayed in -- a staff choice
+  /// per item ([stockCountMode]) when set, otherwise a default derived from
+  /// whether the item is deductible with a package breakdown (that's the
+  /// unit doses are actually tracked in, so it's the natural default for
+  /// those items; everything else defaults to purchase_unit).
+  StockCountMode get effectiveCountMode {
+    if (stockCountMode != null) return stockCountMode!;
+    return (packageQuantity != null && stockOutIsDeductible)
+        ? StockCountMode.packageUnit
+        : StockCountMode.purchaseUnit;
   }
 
-  /// Cumulative package-unit quantity ever drawn down from the pool
-  /// (treatment usage, mainly) -- the capacity of every container currently
-  /// on hand minus what's actually left in the pool. Assumes
-  /// [packageQuantity] hasn't changed since any of that stock was added
-  /// (it's a fixed item attribute). 0 for items with no package breakdown.
-  double get _totalConsumed {
-    if (packageQuantity == null || packageQuantity == 0) return 0;
-    final capacity = _containerCount * packageQuantity!;
-    final remaining = packageStockQty ?? capacity;
-    return (capacity - remaining).clamp(0, capacity);
-  }
+  /// The stock figure to show wherever the app displays "how much of this
+  /// item is on hand" as a single number, per [effectiveCountMode]. Unused/
+  /// In-Use/Used Stocks breakdowns were removed (see KNOWN_LIMITATIONS.md)
+  /// in favor of this single figure plus the Stock Movement history.
+  double get displayStockQty => effectiveCountMode == StockCountMode.packageUnit
+      ? (packageStockQty ?? stockQty * (packageQuantity ?? 1))
+      : stockQty;
 
-  /// Whole purchase units ever fully consumed, by any means, across this
-  /// item's entire history -- not just what's still on the shelf. Combines:
-  ///  - Every stock-out ([lifetimeStockOutQty]: waste, expired, adjustment)
-  ///    -- always whole purchase-unit events, and always counted, since
-  ///    using an item up (via treatment) and stocking it out (for any other
-  ///    reason) are both just "this container is no longer available."
-  ///  - Treatment usage: for items with no package breakdown, every dose is
-  ///    itself a direct whole-purchase-unit deduction, so
-  ///    [lifetimeTreatmentQty] is added straight in. For items with a
-  ///    package breakdown and a deductible dispense unit, treatment instead
-  ///    draws down the package pool -- `floor(total consumed / package
-  ///    quantity)` (via [_totalConsumed]) gives the whole-container
-  ///    equivalent of that, e.g. modulo package quantity is 0. A container
-  ///    that's been opened but not yet fully depleted this way is NOT
-  ///    counted here; see [usedPackageUnitQty] for that partial amount.
-  ///    Non-deductible treatment usage (dispense unit differs from package
-  ///    unit, no stored conversion) never draws from any pool and isn't
-  ///    counted anywhere.
-  /// Always a whole number; NOT clamped to the current [_containerCount],
-  /// since stocked-out containers no longer count toward it at all.
-  double get usedPurchaseUnitQty {
-    if (packageQuantity == null || packageQuantity == 0) {
-      return lifetimeStockOutQty + lifetimeTreatmentQty;
-    }
-    final treatmentUnits = (_totalConsumed / packageQuantity!).floorToDouble();
-    return lifetimeStockOutQty + treatmentUnits;
-  }
-
-  /// Package-unit quantity consumed so far from the one container that's
-  /// currently open but not yet fully depleted (e.g. 6 out of a 30-tablet
-  /// box) -- `total consumed % package quantity`. 0 when nothing is
-  /// currently open: either untouched, or consumption lines up exactly on a
-  /// container boundary (a whole unit was just fully used up). 0 for items
-  /// with no package breakdown.
-  double get usedPackageUnitQty {
-    if (packageQuantity == null || packageQuantity == 0) return 0;
-    return _totalConsumed % packageQuantity!;
-  }
-
-  /// Human-facing "used stocks" line combining [usedPurchaseUnitQty] and
-  /// [usedPackageUnitQty]:
-  ///  - No package breakdown: just the purchase-unit amount used.
-  ///  - Package breakdown, no whole purchase unit used yet (stocked out by
-  ///    pack qty, less than one purchase unit's worth so far): just the
-  ///    pack-qty amount used.
-  ///  - Package breakdown, 1+ whole purchase units used already: both the
-  ///    purchase-unit count and the additional pack-qty amount used.
-  String get usedStockDisplay {
-    if (packageQuantity == null ||
-        packageQuantity == 0 ||
-        packageUnitAbbr == null) {
-      return '${formatQty(usedPurchaseUnitQty)} $purchaseUnitAbbr';
-    }
-    if (usedPurchaseUnitQty <= 0) {
-      return '${formatQty(usedPackageUnitQty)} $packageUnitAbbr';
-    }
-    return '${formatQty(usedPurchaseUnitQty)} $purchaseUnitAbbr and '
-        '${formatQty(usedPackageUnitQty)} $packageUnitAbbr';
-  }
-
-  /// Package-unit quantity remaining in the single container currently open
-  /// (not yet fully depleted, and not counted in [unusedStockQty] since it's
-  /// no longer sealed) -- e.g. 7 tablets left in a 10-tablet box after 3 were
-  /// used. The complement of [usedPackageUnitQty] within one container: 0
-  /// when nothing is currently open, either because no container has been
-  /// touched yet or because consumption lines up exactly on a container
-  /// boundary. 0 for items with no package breakdown.
-  double get openContainerRemainingQty {
-    if (packageQuantity == null || packageQuantity == 0) return 0;
-    final used = usedPackageUnitQty;
-    return used == 0 ? 0 : packageQuantity! - used;
-  }
+  String get displayStockUnit => effectiveCountMode == StockCountMode.packageUnit
+      ? (packageUnitAbbr ?? purchaseUnitAbbr)
+      : purchaseUnitAbbr;
 
   /// True only when there's nothing usable left by either measure: no
   /// sealed containers AND no partial amount remaining in an opened one.

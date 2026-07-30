@@ -1,3 +1,5 @@
+import 'qty_unit.dart';
+
 /// Mirrors the Postgres `donation_type` enum: 'walk_in', 'drop_off'. Purely
 /// descriptive -- independent of whether a submission/donor is actually
 /// linked (both fields are optional regardless of type).
@@ -94,17 +96,23 @@ class DonationLineItem {
 }
 
 /// Form-side input for one row in the "items received" list while
-/// approving a submission, before it's written to donation_item.
+/// approving a submission, before it's written to donation_item. [qty] is
+/// in [qtyUnit] terms -- see [OrderItemInput] (the purchase-side
+/// equivalent) for why donations can also arrive by package_unit.
 class DonationItemInput {
   final String itemId;
   final String itemName;
   final String itemUom;
   double qty;
+  QtyUnit qtyUnit;
+  DateTime? expiryDate;
 
   DonationItemInput({
     required this.itemId,
     required this.itemName,
     required this.itemUom,
     this.qty = 1,
+    this.qtyUnit = QtyUnit.purchaseUnit,
+    this.expiryDate,
   });
 }

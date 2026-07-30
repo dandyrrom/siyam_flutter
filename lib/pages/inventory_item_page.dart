@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/primary_category.dart';
+import '../models/qty_unit.dart';
 import '../models/stock_movement.dart';
 import '../models/unit.dart';
 import '../services/catalog_service.dart';
@@ -393,29 +394,53 @@ class _InventoryItemPageState extends State<InventoryItemPage>
           ),
           const SizedBox(height: 16),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _StockStatCard(
-                  label: 'Unused Stocks',
-                  qty: item.unusedStockQty,
-                  unit: item.itemUom,
-                ),
+          if (item.packageUnitAbbr != null) ...[
+            _FieldRow(
+              label: 'Stock Count Mode',
+              value: item.effectiveCountMode == StockCountMode.packageUnit
+                  ? 'By package unit (${item.packageUnitAbbr})'
+                  : 'By purchase unit (${item.purchaseUnitAbbr})',
+              onEdit: () => _editPickerField<StockCountMode>(
+                label: 'Stock Count Mode',
+                options: StockCountMode.values,
+                displayStringForOption: (m) => m == StockCountMode.packageUnit
+                    ? 'By package unit (${item.packageUnitAbbr})'
+                    : 'By purchase unit (${item.purchaseUnitAbbr})',
+                onSave: (m) => _service.updateDetails(itemId: item.itemId, stockCountMode: m),
               ),
-              if (item.packageQuantity != null &&
-                  item.packageUnitAbbr != null) ...[
-                const SizedBox(width: 16),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          if (item.effectiveCountMode == StockCountMode.packageUnit)
+            _StockStatCard(
+              label: 'Stock on Hand',
+              qty: item.displayStockQty,
+              unit: item.displayStockUnit,
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Expanded(
                   child: _StockStatCard(
-                    label: 'Left in Opened ${item.purchaseUnitAbbr}',
-                    qty: item.openContainerRemainingQty,
-                    unit: item.packageUnitAbbr!,
+                    label: 'Containers on Hand',
+                    qty: item.stockQty,
+                    unit: item.purchaseUnitAbbr,
                   ),
                 ),
+                if (item.packageUnitAbbr != null) ...[
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _StockStatCard(
+                      label: 'Loose Stock Added (lifetime)',
+                      qty: item.totalPackageStockIns,
+                      unit: item.packageUnitAbbr!,
+                    ),
+                  ),
+                ],
               ],
-            ],
-          ),
+            ),
           const SizedBox(height: 24),
 
           const Text('Stock History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),

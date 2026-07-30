@@ -1,4 +1,5 @@
 import '../mock/mock_database.dart';
+import '../models/qty_unit.dart';
 import '../models/supplier.dart';
 import '../state/data_bus.dart';
 import 'backend.dart';
@@ -207,13 +208,28 @@ class MockSupplierService implements SupplierService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
+      final invItem = await _inventoryService.fetchItem(item.itemId);
+      // Canonical remaining qty for FEFO: package_unit terms when the item
+      // has a breakdown (converting from purchase_unit if that's how this
+      // line was entered), else purchase_unit terms directly.
+      final packageQuantity = invItem?.packageQuantity;
+      final qtyRemaining = packageQuantity == null
+          ? item.qty
+          : (item.qtyUnit == QtyUnit.packageUnit ? item.qty : item.qty * packageQuantity);
       _db.purchaseItems.add(PurchaseItemRow(
         purchaseId: row.id,
         itemId: item.itemId,
         qty: item.qty,
+        qtyUnit: item.qtyUnit,
         unitCost: item.unitCost,
+        expiryDate: item.expiryDate,
+        qtyRemaining: qtyRemaining,
       ));
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
+      await _inventoryService.stockIn(
+        itemId: item.itemId,
+        qty: item.qty,
+        qtyUnit: item.qtyUnit,
+      );
     }
 
     DataChangeBus.instance.ping();

@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../models/donation.dart';
 import '../models/inventory_item.dart';
 import '../models/primary_category.dart';
+import '../models/qty_unit.dart';
 import '../models/subcategory.dart';
 import '../models/supplier.dart';
 import '../models/unit.dart';
@@ -51,6 +52,24 @@ class _StockInLineItem {
   Unit? selectedPurchaseUnit;
   Unit? selectedPackageUnit;
   Unit? selectedDispenseUnit;
+
+  /// Which unit [qtyCtrl]/[costCtrl] are entered in for this stock-in line.
+  /// Only ever [QtyUnit.packageUnit] when the target item actually has a
+  /// package breakdown -- see [hasPackageBreakdown].
+  QtyUnit qtyUnit = QtyUnit.purchaseUnit;
+  DateTime? expiryDate;
+
+  /// Whether the target item (existing or being created here) has a
+  /// package_unit/package_quantity breakdown -- gates the unit selector.
+  bool get hasPackageBreakdown =>
+      existingItem != null ? existingItem!.packageUnitId != null : selectedPackageUnit != null;
+
+  /// Primary category name for the target item, existing or new -- drives
+  /// whether an expiry date is required (Medical/Food only, see
+  /// updated_db.md).
+  String? get categoryName => existingItem?.pCategoryName ?? selectedPCategory?.type;
+
+  bool get expiryRequired => categoryName == 'Medical' || categoryName == 'Food';
 
   void dispose() {
     nameCtrl.dispose();
@@ -419,6 +438,12 @@ class _AddItemPageState extends State<AddItemPage> {
             content: Text('Enter how many package units per purchase unit.')));
         return;
       }
+      if (line.expiryRequired && line.expiryDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                '${line.nameCtrl.text.trim().isEmpty ? 'This item' : line.nameCtrl.text.trim()} needs an expiry date (Medical/Food items).')));
+        return;
+      }
     }
 
     setState(() => _saving = true);
@@ -453,6 +478,8 @@ class _AddItemPageState extends State<AddItemPage> {
               itemUom: _lines[i].existingItem?.itemUom ?? _lines[i].purchaseUnitCtrl.text.trim(),
               qty: double.parse(_lines[i].qtyCtrl.text.trim()),
               unitCost: double.parse(_lines[i].costCtrl.text.trim()),
+              qtyUnit: _lines[i].qtyUnit,
+              expiryDate: _lines[i].expiryDate,
             ),
         ];
         await _supplierService.createPurchaseOrder(
@@ -470,6 +497,8 @@ class _AddItemPageState extends State<AddItemPage> {
               itemName: _lines[i].nameCtrl.text.trim(),
               itemUom: _lines[i].existingItem?.itemUom ?? _lines[i].purchaseUnitCtrl.text.trim(),
               qty: double.parse(_lines[i].qtyCtrl.text.trim()),
+              qtyUnit: _lines[i].qtyUnit,
+              expiryDate: _lines[i].expiryDate,
             ),
         ];
         if (_selectedSubmission != null) {
@@ -949,13 +978,38 @@ class _ItemDetailsBlock extends StatelessWidget {
               },
             ),
           ],
+          if (line.hasPackageBreakdown) ...[
+            const SizedBox(height: 12),
+            const Text('Stock in by', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: Text('Purchase unit (${_purchaseUnitLabel(line, existing)})'),
+                  selected: line.qtyUnit == QtyUnit.purchaseUnit,
+                  onSelected: (_) {
+                    line.qtyUnit = QtyUnit.purchaseUnit;
+                    onChanged();
+                  },
+                ),
+                ChoiceChip(
+                  label: Text('Package unit (${_packageUnitLabel(line, existing)})'),
+                  selected: line.qtyUnit == QtyUnit.packageUnit,
+                  onSelected: (_) {
+                    line.qtyUnit = QtyUnit.packageUnit;
+                    onChanged();
+                  },
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           TextFormField(
             controller: line.qtyCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-                labelText:
-                    'Quantity${existing == null ? '' : ' (${existing.itemUom})'}'),
+                labelText: 'Quantity (${line.qtyUnit == QtyUnit.packageUnit ? _packageUnitLabel(line, existing) : _purchaseUnitLabel(line, existing)})'),
             validator: (v) {
               final n = double.tryParse(v ?? '');
               if (n == null || n <= 0) return 'Enter a quantity greater than 0';
@@ -967,7 +1021,8 @@ class _ItemDetailsBlock extends StatelessWidget {
             TextFormField(
               controller: line.costCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Cost'),
+              decoration: InputDecoration(
+                  labelText: 'Cost per ${line.qtyUnit == QtyUnit.packageUnit ? _packageUnitLabel(line, existing) : _purchaseUnitLabel(line, existing)}'),
               validator: (v) {
                 if (!isPurchased) return null;
                 final n = double.tryParse(v ?? '');
@@ -976,11 +1031,45 @@ class _ItemDetailsBlock extends StatelessWidget {
               },
             ),
           ],
+          if (line.categoryName == 'Medical' || line.categoryName == 'Food') ...[
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: line.expiryDate ?? DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) {
+                  line.expiryDate = picked;
+                  onChanged();
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Expiry date${line.expiryRequired ? ' *' : ' (optional)'}',
+                  errorText: line.expiryRequired && line.expiryDate == null
+                      ? 'Required for Medical/Food items'
+                      : null,
+                ),
+                child: Text(line.expiryDate == null
+                    ? 'Select a date'
+                    : _formatDate(line.expiryDate!)),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
+String _purchaseUnitLabel(_StockInLineItem line, InventoryItem? existing) =>
+    existing?.purchaseUnitAbbr ?? line.selectedPurchaseUnit?.name ?? line.purchaseUnitCtrl.text;
+
+String _packageUnitLabel(_StockInLineItem line, InventoryItem? existing) =>
+    existing?.packageUnitAbbr ?? line.selectedPackageUnit?.name ?? line.packageUnitCtrl.text;
 
 class _SectionLabel extends StatelessWidget {
   final String text;

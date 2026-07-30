@@ -1,5 +1,6 @@
 import '../mock/mock_database.dart';
 import '../models/donation.dart';
+import '../models/qty_unit.dart';
 import '../state/data_bus.dart';
 import 'backend.dart';
 import 'inventory_service.dart';
@@ -192,12 +193,24 @@ class MockDonationService implements DonationService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
+      final invItem = await _inventoryService.fetchItem(item.itemId);
+      final packageQuantity = invItem?.packageQuantity;
+      final qtyRemaining = packageQuantity == null
+          ? item.qty
+          : (item.qtyUnit == QtyUnit.packageUnit ? item.qty : item.qty * packageQuantity);
       _db.donationItems.add(DonationItemRow(
         donId: donationRow.id,
         itemId: item.itemId,
         qty: item.qty,
+        qtyUnit: item.qtyUnit,
+        expiryDate: item.expiryDate,
+        qtyRemaining: qtyRemaining,
       ));
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
+      await _inventoryService.stockIn(
+        itemId: item.itemId,
+        qty: item.qty,
+        qtyUnit: item.qtyUnit,
+      );
     }
     DataChangeBus.instance.ping();
   }
