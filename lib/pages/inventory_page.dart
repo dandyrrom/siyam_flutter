@@ -227,6 +227,89 @@ class _InventoryPageState extends State<InventoryPage>
     }
   }
 
+  // ============================================================
+  // MOBILE: Show action bottom sheet when card is tapped
+  // ============================================================
+  void _showActionSheet(BuildContext context, InventoryItem item) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.mutedForeground,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Item name
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                item.itemName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Stock info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                '${formatQty(item.unusedStockQty)} ${item.itemUom} • ${item.pCategoryName}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mutedForeground,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            // Action buttons
+            ListTile(
+              leading: const Icon(Icons.arrow_upward, color: AppColors.primary),
+              title: const Text('Stock In'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/inventory/add?itemId=${item.itemId}');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_downward, color: AppColors.warning),
+              title: const Text('Stock Out'),
+              onTap: () {
+                Navigator.pop(context);
+                _openStockOutDialog(item: item);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.visibility, color: AppColors.mutedForeground),
+              title: const Text('View Details'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/inventory/${item.itemId}');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // ============================================================
@@ -380,7 +463,7 @@ class _InventoryPageState extends State<InventoryPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ============================================================
-              // FILTER BAR: Wrap with responsive sizing
+              // FILTER BAR
               // ============================================================
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -421,7 +504,6 @@ class _InventoryPageState extends State<InventoryPage>
                         ),
                       ),
                     ),
-                    // Category filter - wraps naturally
                     _CategoryFilterMenu(
                       label: _categoryLabel,
                       primaryCategories: _primaryCategories,
@@ -436,7 +518,6 @@ class _InventoryPageState extends State<InventoryPage>
                         label: subName,
                       ),
                     ),
-                    // Stock Level dropdown
                     AppDropdown<StockLevel?>(
                       label: _stockLevelFilter == null
                           ? 'Stock Level'
@@ -451,7 +532,6 @@ class _InventoryPageState extends State<InventoryPage>
                         _page = 0;
                       }),
                     ),
-                    // Source dropdown
                     AppDropdown<AcquisitionSource?>(
                       label: _sourceFilter == null
                           ? 'Source'
@@ -466,7 +546,6 @@ class _InventoryPageState extends State<InventoryPage>
                         _page = 0;
                       }),
                     ),
-                    // Sort dropdown
                     AppDropdown<_SortOption>(
                       label: 'Sort: ${_sortMeta(_sortOption).$1}',
                       options: [
@@ -475,7 +554,6 @@ class _InventoryPageState extends State<InventoryPage>
                       ],
                       onSelect: (v) => setState(() => _sortOption = v),
                     ),
-                    // Reset filters button
                     if (_hasActiveFilters)
                       TextButton.icon(
                         onPressed: _resetFilters,
@@ -554,7 +632,7 @@ class _InventoryPageState extends State<InventoryPage>
                 if (!isMobile) const Divider(height: 1),
 
                 // ============================================================
-                // ITEM ROWS: Table rows on web, Cards on mobile
+                // ITEM ROWS: Table on web, Cards on mobile
                 // ============================================================
                 Column(
                   children: [
@@ -731,10 +809,11 @@ class _InventoryPageState extends State<InventoryPage>
                         }
 
                         // ============================================================
-                        // MOBILE: Card layout
+                        // MOBILE: Card layout - Clickable card opens action sheet
                         // ============================================================
                         return InkWell(
-                          onTap: () => context.push('/inventory/${item.itemId}'),
+                          onTap: () => _showActionSheet(context, item),
+                          borderRadius: BorderRadius.circular(12),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
@@ -774,11 +853,19 @@ class _InventoryPageState extends State<InventoryPage>
                                                 fontWeight: FontWeight.w600,
                                                 color: AppColors.stockOut)),
                                       ),
+                                    // ============================================================
+                                    // MOBILE: Chevron indicator
+                                    // ============================================================
+                                    Icon(
+                                      Icons.chevron_right,
+                                      size: 18,
+                                      color: AppColors.mutedForeground,
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 6),
 
-                                // Row 2: Category + Stock Level
+                                // Row 2: Category + Stock Level + Quantity
                                 Row(
                                   children: [
                                     Container(
@@ -812,57 +899,6 @@ class _InventoryPageState extends State<InventoryPage>
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 14),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-
-                                // Row 3: Action buttons
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => context.push(
-                                            '/inventory/add?itemId=${item.itemId}'),
-                                        icon: const Icon(Icons.arrow_upward,
-                                            size: 14),
-                                        label: const Text('Stock In',
-                                            style: TextStyle(fontSize: 12)),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 6),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () =>
-                                            _openStockOutDialog(item: item),
-                                        icon: const Icon(Icons.arrow_downward,
-                                            size: 14),
-                                        label: const Text('Stock Out',
-                                            style: TextStyle(fontSize: 12)),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 6),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => context.push(
-                                            '/inventory/${item.itemId}'),
-                                        icon: const Icon(Icons.visibility,
-                                            size: 14),
-                                        label: const Text('View',
-                                            style: TextStyle(fontSize: 12)),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 6),
-                                        ),
-                                      ),
                                     ),
                                   ],
                                 ),
