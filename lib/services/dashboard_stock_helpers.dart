@@ -48,6 +48,19 @@ bool isLowStockFromPools(
   return purchaseStocks <= lowStockPurchaseUnitThreshold;
 }
 
+/// Same pools check as [isItemRowNeedsRestock], for Supabase row maps.
+bool isNeedsRestockFromPools(
+  double purchaseStocks,
+  double? packageStocks,
+  double? packageQuantity,
+) {
+  if (isOutOfStockFromPools(purchaseStocks, packageStocks, packageQuantity) ||
+      isLowStockFromPools(purchaseStocks, packageStocks, packageQuantity)) {
+    return false;
+  }
+  return purchaseStocks <= 30;
+}
+
 bool isInventoryItemLowStock(InventoryItem item) {
   if (item.isOutOfStock) return false;
   return item.stockQty <= lowStockPurchaseUnitThreshold;

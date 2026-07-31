@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../models/qty_unit.dart';
 import '../../models/supplier.dart';
 import '../../state/data_bus.dart';
 import '../inventory_service.dart';
@@ -197,15 +198,25 @@ class SupabaseSupplierService implements SupplierService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
-      // qty_unit/expiry_date: not yet migrated onto public.purchase_item
-      // (see updated_db.md) -- mock-only for now. [item.qtyUnit] still
-      // drives the stock effect via [stockIn] below, since that only
-      // depends on public.item's existing columns.
+      final invItem = await _inventoryService.fetchItem(item.itemId);
+      // Canonical remaining qty for FEFO: package_unit terms when the item
+      // has a breakdown (converting from purchase_unit if that's how this
+      // line was entered), else purchase_unit terms directly. Mirrors
+      // lib/services/supplier_service.dart's mock createPurchaseOrder.
+      final packageQuantity = invItem?.packageQuantity;
+      final qtyRemaining = packageQuantity == null
+          ? item.qty
+          : (item.qtyUnit == QtyUnit.packageUnit
+              ? item.qty
+              : item.qty * packageQuantity);
       await _client.from('purchase_item').insert({
         'purchaseid': purId,
         'itemid': item.itemId,
         'qty': item.qty,
         'purchase_unit_cost': item.unitCost,
+        'qty_unit': qtyUnitToString(item.qtyUnit),
+        'expiry_date': item.expiryDate?.toIso8601String(),
+        'qty_remaining': qtyRemaining,
       });
       await _inventoryService.stockIn(
         itemId: item.itemId,

@@ -16,7 +16,7 @@ class SupabaseInventoryService implements InventoryService {
   static const String _itemColumns =
       'id, name, p_category, s_category, purchase_unit, package_unit, '
       'package_quantity, dispense_unit, total_purchase_stocks, '
-      'total_package_stocks';
+      'total_package_stocks, total_package_stock_ins, stock_count_mode';
 
   Future<Map<String, String>> _map(String table, String labelCol) async {
     final rows = await _client.from(table).select('id, $labelCol');
@@ -86,12 +86,8 @@ class SupabaseInventoryService implements InventoryService {
       dispenseUnitAbbr: dispenseUnitId == null ? null : units[dispenseUnitId],
       stockQty: _toDouble(r['total_purchase_stocks']) ?? 0,
       packageStockQty: _toDouble(r['total_package_stocks']),
-      // total_package_stock_ins / stock_count_mode: not yet migrated onto
-      // public.item (see updated_db.md) -- mock-only for now, per the
-      // "implement in mock first" rollout. Add these to [_itemColumns] and
-      // read them here once the Supabase migration lands.
-      totalPackageStockIns: 0,
-      stockCountMode: null,
+      totalPackageStockIns: _toDouble(r['total_package_stock_ins']) ?? 0,
+      stockCountMode: stockCountModeFromString(r['stock_count_mode'] as String?),
       hasPurchaseHistory: purchasedItemIds.contains(r['id']),
       hasDonationHistory: donatedItemIds.contains(r['id']),
       lifetimeStockOutQty: lifetimeStockOutTotals[r['id']] ?? 0,
@@ -216,10 +212,9 @@ class SupabaseInventoryService implements InventoryService {
     }
     if (sCategoryId != null) updates['s_category'] = sCategoryId;
     if (purchaseUnitId != null) updates['purchase_unit'] = purchaseUnitId;
-    // stock_count_mode: not yet migrated onto public.item -- mock-only for
-    // now (see the comment in [_mapItem]). Silently ignored here rather
-    // than failing, since the mock UI path that sets this shouldn't break
-    // against a Supabase backend that just doesn't have the column yet.
+    if (stockCountMode != null) {
+      updates['stock_count_mode'] = stockCountModeToString(stockCountMode);
+    }
 
     if (updates.isNotEmpty) {
       await _client.from('item').update(updates).eq('id', itemId);
@@ -281,13 +276,11 @@ class SupabaseInventoryService implements InventoryService {
     return updated!;
   }
 
-  /// Not yet FEFO-aware -- there's no batch table (expiry_date/qty_remaining
-  /// on purchase_item/donation_item) migrated for Supabase yet, so this
-  /// falls back to the pre-redesign aggregate-only behavior: purchase_unit
-  /// stock-in is a whole-container [adjustStock]; package_unit stock-in
-  /// bumps total_package_stocks directly (total_package_stock_ins isn't
-  /// tracked here yet either -- see [_mapItem]). Mock-first, per the
-  /// rollout plan; revisit once the batch migration lands.
+  /// Records one purchase_item/donation_item stock-in batch's stock effect.
+  /// A purchase_unit stock-in is a whole-container event handled exactly
+  /// like [adjustStock]. A package_unit stock-in (loose stock, no whole
+  /// container) only ever adds to total_package_stocks and
+  /// total_package_stock_ins -- total_purchase_stocks is never touched.
   @override
   Future<InventoryItem> stockIn({
     required String itemId,
@@ -301,17 +294,87 @@ class SupabaseInventoryService implements InventoryService {
     }
     final currentPackage =
         current.packageStockQty ?? current.stockQty * current.packageQuantity!;
-    await _client
-        .from('item')
-        .update({'total_package_stocks': currentPackage + qty}).eq('id', itemId);
+    await _client.from('item').update({
+      'total_package_stocks': currentPackage + qty,
+      'total_package_stock_ins': current.totalPackageStockIns + qty,
+    }).eq('id', itemId);
     final updated = await fetchItem(itemId);
     DataChangeBus.instance.ping();
     return updated!;
   }
 
-  /// Not yet FEFO-aware (see [stockIn]) -- deducts from the aggregate pool
-  /// directly, same as the pre-redesign [deductPackageStock]/[adjustStock]
-  /// split, with no per-batch qty_remaining bookkeeping.
+  /// Drains [canonicalQty] (package_unit terms if the item has a package
+  /// breakdown, else purchase_unit terms) from this item's purchase_item/
+  /// donation_item batches, oldest-expiry-first (FEFO); batches with no
+  /// expiry_date are drawn last. Mirrors
+  /// MockInventoryService._drainBatchesFefo (lib/services/inventory_service.dart).
+  /// Only updates batch qty_remaining -- callers apply the aggregate-pool
+  /// deduction separately.
+  Future<void> _drainBatchesFefo(String itemId, double canonicalQty) async {
+    final purchaseRows = await _client
+        .from('purchase_item')
+        .select('purchaseid, itemid, expiry_date, qty_remaining')
+        .eq('itemid', itemId)
+        .gt('qty_remaining', 0);
+    final donationRows = await _client
+        .from('donation_item')
+        .select('dntid, itemid, expiry_date, qty_remaining')
+        .eq('itemid', itemId)
+        .gt('qty_remaining', 0);
+
+    final batches = <({
+      DateTime? expiryDate,
+      double qtyRemaining,
+      Future<void> Function(double) applyUpdate,
+    })>[
+      for (final r in purchaseRows)
+        (
+          expiryDate: r['expiry_date'] == null
+              ? null
+              : DateTime.parse(r['expiry_date'] as String),
+          qtyRemaining: _toDouble(r['qty_remaining']) ?? 0,
+          applyUpdate: (v) => _client
+              .from('purchase_item')
+              .update({'qty_remaining': v})
+              .eq('purchaseid', r['purchaseid'] as String)
+              .eq('itemid', r['itemid'] as String),
+        ),
+      for (final r in donationRows)
+        (
+          expiryDate: r['expiry_date'] == null
+              ? null
+              : DateTime.parse(r['expiry_date'] as String),
+          qtyRemaining: _toDouble(r['qty_remaining']) ?? 0,
+          applyUpdate: (v) => _client
+              .from('donation_item')
+              .update({'qty_remaining': v})
+              .eq('dntid', r['dntid'] as String)
+              .eq('itemid', r['itemid'] as String),
+        ),
+    ]..sort((a, b) {
+        final aExpiry = a.expiryDate;
+        final bExpiry = b.expiryDate;
+        if (aExpiry == null && bExpiry == null) return 0;
+        if (aExpiry == null) return 1;
+        if (bExpiry == null) return -1;
+        return aExpiry.compareTo(bExpiry);
+      });
+
+    var remaining = canonicalQty;
+    for (final batch in batches) {
+      if (remaining <= 0) break;
+      final available = batch.qtyRemaining;
+      if (available <= 0) continue;
+      final draw = remaining < available ? remaining : available;
+      await batch.applyUpdate(available - draw);
+      remaining -= draw;
+    }
+  }
+
+  /// Draws [qty] (already canonical -- package_unit for items with a
+  /// package breakdown, purchase_unit otherwise) from batches in FEFO order,
+  /// then applies the matching aggregate deduction: total_package_stocks only
+  /// for items with a breakdown, total_purchase_stocks directly otherwise.
   @override
   Future<InventoryItem> deductFefo({
     required String itemId,
@@ -319,12 +382,18 @@ class SupabaseInventoryService implements InventoryService {
   }) async {
     final current = await fetchItem(itemId);
     if (current == null) throw Exception('Item not found');
+    await _drainBatchesFefo(itemId, qty);
     if (current.packageQuantity != null) {
       return deductPackageStock(itemId: itemId, delta: -qty);
     }
     return adjustStock(itemId: itemId, delta: -qty);
   }
 
+  /// Records a non-treatment stock-out (waste/expired/adjustment) and
+  /// decrements total_purchase_stocks (and total_package_stocks in lockstep
+  /// via [adjustStock]). Purchase-unit granularity -- these are whole-package
+  /// events. Also drains the equivalent canonical qty from batches in FEFO
+  /// order, so per-batch qty_remaining stays consistent for later reporting.
   @override
   Future<InventoryItem> stockOut({
     required String itemId,
@@ -338,6 +407,11 @@ class SupabaseInventoryService implements InventoryService {
       'reason': stockOutReasonToString(reason),
       'recordedby': recordedByUserId,
     });
+    final current = await fetchItem(itemId);
+    final canonicalQty = current?.packageQuantity != null
+        ? qty * current!.packageQuantity!
+        : qty;
+    await _drainBatchesFefo(itemId, canonicalQty);
     return adjustStock(itemId: itemId, delta: -qty);
   }
 

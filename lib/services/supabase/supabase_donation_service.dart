@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/donation.dart';
+import '../../models/qty_unit.dart';
 import '../../state/data_bus.dart';
 import '../donation_service.dart';
 import '../inventory_service.dart';
@@ -155,12 +156,22 @@ class SupabaseDonationService implements DonationService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
-      // qty_unit/expiry_date: not yet migrated onto public.donation_item
-      // (see updated_db.md) -- mock-only for now.
+      final invItem = await _inventoryService.fetchItem(item.itemId);
+      // Canonical remaining qty for FEFO -- mirrors
+      // lib/services/donation_service.dart's mock _createDonationAndItems.
+      final packageQuantity = invItem?.packageQuantity;
+      final qtyRemaining = packageQuantity == null
+          ? item.qty
+          : (item.qtyUnit == QtyUnit.packageUnit
+              ? item.qty
+              : item.qty * packageQuantity);
       await _client.from('donation_item').insert({
         'dntid': donationId,
         'itemid': item.itemId,
         'qty': item.qty,
+        'qty_unit': qtyUnitToString(item.qtyUnit),
+        'expiry_date': item.expiryDate?.toIso8601String(),
+        'qty_remaining': qtyRemaining,
       });
       await _inventoryService.stockIn(
         itemId: item.itemId,

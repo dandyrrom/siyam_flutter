@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../mock/mock_database.dart';
 import '../models/system_settings.dart';
 import '../state/data_bus.dart';
@@ -40,31 +42,41 @@ class MockSettingsService implements SettingsService {
   }
 }
 
-/// `system_settings` has not been migrated onto the real backend yet (see
-/// KNOWN_LIMITATIONS.md) -- this falls back to the same hardcoded defaults
-/// the mock layer seeds, and keeps edits in a session-only in-memory cache
-/// rather than pretending to persist them.
+/// Backed by the single-row `public.system_settings` table (see
+/// updated_db.md and supabase/migrations/0014_system_settings.sql).
 class SupabaseSettingsService implements SettingsService {
-  static double _lowStockThreshold = 10;
-  static int _expirationWarningDays = 30;
+  final SupabaseClient _client = Supabase.instance.client;
+
+  SystemSettings _toSettings(Map<String, dynamic> row) => SystemSettings(
+        lowStockThreshold: (row['low_stock_threshold'] as num).toDouble(),
+        expirationWarningDays: row['expiration_warning_days'] as int,
+      );
 
   @override
-  Future<SystemSettings> fetchSettings() async => SystemSettings(
-        lowStockThreshold: _lowStockThreshold,
-        expirationWarningDays: _expirationWarningDays,
-      );
+  Future<SystemSettings> fetchSettings() async {
+    final row = await _client
+        .from('system_settings')
+        .select('low_stock_threshold, expiration_warning_days')
+        .eq('id', true)
+        .single();
+    return _toSettings(row);
+  }
 
   @override
   Future<SystemSettings> updateSettings({
     required double lowStockThreshold,
     required int expirationWarningDays,
   }) async {
-    _lowStockThreshold = lowStockThreshold;
-    _expirationWarningDays = expirationWarningDays;
+    final row = await _client
+        .from('system_settings')
+        .update({
+          'low_stock_threshold': lowStockThreshold,
+          'expiration_warning_days': expirationWarningDays,
+        })
+        .eq('id', true)
+        .select('low_stock_threshold, expiration_warning_days')
+        .single();
     DataChangeBus.instance.ping();
-    return SystemSettings(
-      lowStockThreshold: _lowStockThreshold,
-      expirationWarningDays: _expirationWarningDays,
-    );
+    return _toSettings(row);
   }
 }
