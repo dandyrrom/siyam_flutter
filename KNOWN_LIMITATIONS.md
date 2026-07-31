@@ -86,6 +86,28 @@ rather than pretending to persist across reloads or devices.
 **Follow-up:** Add a `supabase/migrations/` file for `system_settings` and
 have `SupabaseSettingsService` read/write it instead of the local cache.
 
+## Staff Dashboard week/month period stats -- mock-only for now
+
+`StaffDashboardStats.week`/`.month` (purchases/treatments/donations counts,
+with the prior-period figures the dashboard's ↑/↓ badges are computed from)
+are only implemented against the mock data layer
+(`MockDashboardService._periodStats` in `lib/services/dashboard_service.dart`).
+`SupabaseDashboardService.fetchStaffStats` returns a zeroed
+`DashboardPeriodStats` for both windows instead of querying `purchase`/
+`treatment`/`donation` by date range, and its `fetchReplenishmentAlerts` only
+covers the zero/low tiers (no `needsRestock` tier) since it just re-wraps the
+existing `_fetchStockAlerts` zero/low split.
+
+**Why:** Same "implement in mock first" rollout as the FEFO/expiry work
+above -- the Week/Month toggle and the Replenishment/social-post generator
+were designed and validated against the mock layer first.
+
+**Follow-up:** Port `MockDashboardService._periodStats` to Supabase range
+queries (`.gte`/`.lt` on `receiveddate`/`recordeddate`), and extend
+`_fetchStockAlerts` (or a new query) to also select a `needsRestock` tier
+(`total_purchase_stocks` between the low-stock threshold and 30) so
+`fetchReplenishmentAlerts` matches the mock's three tiers.
+
 ## Reorder Point with Safety Stock / batch-level expiry UI -- deferred by scope decision
 
 Alerts & Notifications (increment 1) intentionally ships only: zero-stock

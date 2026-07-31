@@ -97,33 +97,105 @@ class SupabaseDashboardService implements DashboardService {
     );
   }
 
+  // not yet migrated -- see KNOWN_LIMITATIONS.md ("Staff Dashboard
+  // week/month period stats -- mock-only for now"). Priority tiers only go
+  // as far as zero/low, matching _fetchStockAlerts; there's no needsRestock
+  // tier here yet.
+  @override
+  Future<List<ReplenishmentAlert>> fetchReplenishmentAlerts() async {
+    final alerts = await _fetchStockAlerts();
+    return [
+      for (final a in alerts.zero)
+        ReplenishmentAlert(
+          itemId: a.itemId,
+          itemName: a.itemName,
+          stockQty: a.stockQty,
+          unitAbbr: a.unitAbbr,
+          priority: ReplenishmentPriority.critical,
+        ),
+      for (final a in alerts.low)
+        ReplenishmentAlert(
+          itemId: a.itemId,
+          itemName: a.itemName,
+          stockQty: a.stockQty,
+          unitAbbr: a.unitAbbr,
+          priority: ReplenishmentPriority.high,
+        ),
+    ];
+  }
+
   @override
   Future<StaffDashboardStats> fetchStaffStats() async {
-    final weekAgo =
-        DateTime.now().toUtc().subtract(const Duration(days: 7));
-    // Out of stock: no whole containers left AND no usable remainder in an
-    // opened one (or no package breakdown at all) -- mirrors
-    // InventoryItem.isOutOfStock.
-    final outOfStock = await _client
-        .from('item')
-        .select('id')
-        .lte('total_purchase_stocks', 0)
-        .or('total_package_stocks.is.null,total_package_stocks.lte.0');
+    final alerts = await fetchReplenishmentAlerts();
+    final outOfStockCount =
+        alerts.where((a) => a.priority == ReplenishmentPriority.critical).length;
+    final lowStockCount =
+        alerts.where((a) => a.priority == ReplenishmentPriority.high).length;
+
     final underTreatment = await _client
         .from('pet')
         .select('id')
         .eq('status', 'under_treatment');
-    final donationsThisWeek = await _client
-        .from('donation')
-        .select('id')
-        .gte('receiveddate', weekAgo.toIso8601String());
-    final pending =
-        await _client.from('submission').select('id').eq('status', 'pending');
+    final pendingRows = await _client
+        .from('submission')
+        .select('id, scheddate')
+        .eq('status', 'pending');
+    final now = DateTime.now();
+    var pendingScheduled = 0;
+    var pendingOverdue = 0;
+    var pendingUnscheduled = 0;
+    for (final row in pendingRows) {
+      final raw = row['scheddate'] as String?;
+      if (raw == null) {
+        pendingUnscheduled++;
+      } else if (DateTime.parse(raw).isBefore(now)) {
+        pendingOverdue++;
+      } else {
+        pendingScheduled++;
+      }
+    }
+
+    // not yet migrated -- see KNOWN_LIMITATIONS.md. Purchases/Treatments/
+    // Donations week-over-week and month-over-month breakdowns are only
+    // implemented against the mock data layer for now; the Supabase
+    // dashboard shows a zeroed period so the Week/Month toggle renders
+    // without crashing rather than lying with fabricated deltas.
+    const emptyPeriod = DashboardPeriodStats(
+      purchaseCount: 0,
+      purchaseCountPrior: 0,
+      itemsReceived: 0,
+      itemsReceivedPrior: 0,
+      distinctSuppliers: 0,
+      distinctSuppliersPrior: 0,
+      treatmentCount: 0,
+      treatmentCountPrior: 0,
+      animalsTreated: 0,
+      animalsTreatedPrior: 0,
+      itemsDispensed: 0,
+      itemsDispensedPrior: 0,
+      staffWhoRecorded: 0,
+      donationCount: 0,
+      donationCountPrior: 0,
+      itemsDonated: 0,
+      itemsDonatedPrior: 0,
+      distinctDonors: 0,
+      distinctDonorsPrior: 0,
+      largestDropoff: 0,
+    );
+
     return StaffDashboardStats(
-      outOfStockItems: outOfStock.length,
+      totalItems: await _count('item'),
+      outOfStockCount: outOfStockCount,
+      lowStockCount: lowStockCount,
+      needsRestockCount: 0,
       animalsUnderTreatment: underTreatment.length,
-      donationsThisWeek: donationsThisWeek.length,
-      pendingSubmissions: pending.length,
+      pendingSubmissions: pendingRows.length,
+      pendingScheduled: pendingScheduled,
+      pendingOverdue: pendingOverdue,
+      pendingUnscheduled: pendingUnscheduled,
+      mostRecentDeliveryDate: null,
+      week: emptyPeriod,
+      month: emptyPeriod,
     );
   }
 

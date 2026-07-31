@@ -15,6 +15,7 @@ import '../pages/donations_page.dart';
 import '../pages/submission_detail_page.dart';
 import '../pages/purchase_orders_page.dart';
 import '../pages/purchase_trans_page.dart';
+import '../pages/replenishment_page.dart';
 import '../pages/donor/donate_page.dart';
 import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
@@ -168,6 +169,11 @@ GoRouter buildRouter(AuthController authState) {
             pageBuilder: (context, state) => NoTransitionPage(
               child: PurchaseTransPage(purId: state.pathParameters['id']!),
             ),
+          ),
+          GoRoute(
+            path: '/replenishment',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ReplenishmentPage()),
           ),
           GoRoute(
             path: '/reports',

@@ -17,6 +17,14 @@ bool isItemRowLowStock(ItemRow row) {
   return row.purchaseStocks <= lowStockPurchaseUnitThreshold;
 }
 
+/// In-stock items above the low-stock line but at/below the flat 30-unit
+/// "needs restock soon" visual tier -- mirrors [StockLevel.needsRestock] on
+/// [InventoryItem.stockLevel].
+bool isItemRowNeedsRestock(ItemRow row) {
+  if (isItemRowOutOfStock(row) || isItemRowLowStock(row)) return false;
+  return row.purchaseStocks <= 30;
+}
+
 /// Same pools check as [isItemRowOutOfStock], for Supabase row maps.
 bool isOutOfStockFromPools(
   double purchaseStocks,
