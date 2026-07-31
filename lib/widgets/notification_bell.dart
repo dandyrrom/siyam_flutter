@@ -27,6 +27,14 @@ class _NotificationBellState extends State<NotificationBell>
   final DashboardService _service = DashboardService();
   List<CompactNotif> _notifs = [];
 
+  // The bell sits near the right edge of the top nav -- anchor the panel's
+  // right edge to the trigger's right edge instead of the default left
+  // alignment, so its 340px width doesn't overflow off-screen.
+  @override
+  Alignment get targetAnchor => Alignment.topRight;
+  @override
+  Alignment get followerAnchor => Alignment.topRight;
+
   bool get _tracksAlerts {
     final role = context.read<AuthController>().profile?.role;
     return role == AppRole.manager || role == AppRole.staff;

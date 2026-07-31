@@ -739,11 +739,12 @@ class _AddItemPageState extends State<AddItemPage> {
                     onAddDispenseUnit: () => _addUnit(
                         line, line.dispenseUnitCtrl, (u) => line.selectedDispenseUnit = u),
                   ),
-                TextButton.icon(
-                  onPressed: _addLine,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Item'),
-                ),
+                if (widget.itemId == null)
+                  TextButton.icon(
+                    onPressed: _addLine,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Add Item'),
+                  ),
 
                 const SizedBox(height: 20),
                 Row(

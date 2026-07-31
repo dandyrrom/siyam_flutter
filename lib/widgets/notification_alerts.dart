@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../services/dashboard_service.dart';
+import 'hoverable_row.dart';
 
 /// Which of the three alert types (see `SYSTEM_SETTINGS` in updated_db.md)
 /// a [CompactNotif] represents. The string form is the route segment used by
@@ -124,7 +125,7 @@ class CompactNotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return HoverableRow(
       onTap: onTap,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: dense ? 12 : 16, vertical: dense ? 8 : 12),

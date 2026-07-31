@@ -7,6 +7,7 @@ import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
+import '../widgets/hoverable_row.dart';
 import '../widgets/stock_out_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -648,7 +649,7 @@ class _InventoryPageState extends State<InventoryPage>
                         // WEB: Table row layout
                         // ============================================================
                         if (!isMobile) {
-                          return InkWell(
+                          return HoverableRow(
                             onTap: () =>
                                 context.push('/inventory/${item.itemId}'),
                             child: Padding(

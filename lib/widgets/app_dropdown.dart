@@ -128,6 +128,13 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
   /// single-column case.
   Widget buildFlyoutPanel(BuildContext context);
 
+  /// Where on the trigger the panel is anchored, and which corner of the
+  /// panel sits there -- override both to flip a panel leftward (e.g. for
+  /// a trigger near the right edge of the screen, so the panel doesn't
+  /// overflow off-screen) instead of the default left-aligned drop-down.
+  Alignment get targetAnchor => Alignment.topLeft;
+  Alignment get followerAnchor => Alignment.topLeft;
+
   @override
   void dispose() {
     _entry?.remove();
@@ -166,6 +173,8 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
         CompositedTransformFollower(
           link: dropdownLink,
           showWhenUnlinked: false,
+          targetAnchor: targetAnchor,
+          followerAnchor: followerAnchor,
           offset: const Offset(0, 44),
           child: buildFlyoutPanel(context),
         ),

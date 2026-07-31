@@ -82,10 +82,6 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.search, color: AppColors.mutedForeground, size: 20),
-            onPressed: () {},
-          ),
           const NotificationBell(),
           const SizedBox(width: 6),
           if (user != null)

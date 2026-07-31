@@ -59,11 +59,15 @@ class SideNav extends StatelessWidget {
                                 fontSize: 13,
                                 color: AppColors.sidebarForeground),
                             overflow: TextOverflow.ellipsis),
-                        Text('Dumaguete Sanctuary',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.sidebarAccentForeground),
-                            overflow: TextOverflow.ellipsis),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Text('Shelter Inventory and Audit Management',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.sidebarAccentForeground)),
+                        ),
                       ],
                     ),
                   ),
