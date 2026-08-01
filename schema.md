@@ -19,6 +19,7 @@
 |------|------|-------------|
 | `id` | `uuid` | Primary |
 | `type` | `text` |  |
+| `requires_expiry` | `bool` |  |
 
 ## Table `subcategory`
 
@@ -29,6 +30,7 @@
 | `id` | `uuid` | Primary |
 | `p_category` | `uuid` |  |
 | `type` | `text` |  |
+| `requires_expiry` | `bool` |  Nullable |
 
 ## Table `units`
 
@@ -56,6 +58,8 @@
 | `dispense_unit` | `uuid` |  Nullable |
 | `total_purchase_stocks` | `float8` |  |
 | `total_package_stocks` | `float8` |  Nullable |
+| `total_package_stock_ins` | `float8` |  |
+| `stock_count_mode` | `text` |  Nullable |
 
 ## Table `pet`
 
@@ -106,6 +110,9 @@
 | `itemid` | `uuid` | Primary |
 | `qty` | `float8` |  |
 | `purchase_unit_cost` | `numeric` |  |
+| `qty_unit` | `qty_unit` |  |
+| `expiry_date` | `date` |  Nullable |
+| `qty_remaining` | `float8` |  |
 
 ## Table `treatment`
 
@@ -177,6 +184,9 @@
 | `dntid` | `uuid` | Primary |
 | `itemid` | `uuid` | Primary |
 | `qty` | `float8` |  |
+| `qty_unit` | `qty_unit` |  |
+| `expiry_date` | `date` |  Nullable |
+| `qty_remaining` | `float8` |  |
 
 ## Table `stock_out`
 
@@ -190,6 +200,16 @@
 | `reason` | `stock_out_reason` |  |
 | `recordeddate` | `timestamptz` |  |
 | `recordedby` | `uuid` |  |
+
+## Table `system_settings`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `bool` | Primary |
+| `low_stock_threshold` | `float8` |  |
+| `expiration_warning_days` | `int4` |  |
 
 ## Custom Types / Enums
 
@@ -207,7 +227,7 @@
 
 ### `pet_status`
 
-`available` | `adopted` | `under_treatment`
+`deceased` | `adopted` | `under_treatment` | `healthy`
 
 ### `submission_status`
 
@@ -220,6 +240,10 @@
 ### `donation_type`
 
 `walk_in` | `drop_off`
+
+### `qty_unit`
+
+`purchase_unit` | `package_unit`
 
 ## RLS Policies
 
@@ -350,6 +374,15 @@
 | `authenticated delete` | DELETE | authenticated | PERMISSIVE | `true` | — |
 
 ### `stock_out`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `authenticated read` | SELECT | authenticated | PERMISSIVE | `true` | — |
+| `authenticated insert` | INSERT | authenticated | PERMISSIVE | — | `true` |
+| `authenticated update` | UPDATE | authenticated | PERMISSIVE | `true` | `true` |
+| `authenticated delete` | DELETE | authenticated | PERMISSIVE | `true` | — |
+
+### `system_settings`
 
 | Policy | Command | Roles | Action | USING | WITH CHECK |
 |--------|---------|-------|--------|-------|------------|
