@@ -6,6 +6,6 @@ class ManagerReportsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PlaceholderPage(title: 'Reports & Analytics', icon: Icons.bar_chart_outlined);
+    return const PlaceholderPage(title: 'Reports', icon: Icons.bar_chart_outlined);
   }
 }
