@@ -47,5 +47,3 @@ app.*.map.json
 # Local Supabase credentials -- never commit real project URL/keys.
 env/config.json
 env/supabase.json
-
-schema.md
