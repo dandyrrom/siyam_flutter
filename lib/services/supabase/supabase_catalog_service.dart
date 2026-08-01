@@ -11,13 +11,17 @@ import '../catalog_service.dart';
 class SupabaseCatalogService implements CatalogService {
   final SupabaseClient _client = Supabase.instance.client;
 
-  PrimaryCategory _mapPrimary(Map<String, dynamic> r) =>
-      PrimaryCategory(id: r['id'] as String, type: (r['type'] as String?) ?? '');
+  PrimaryCategory _mapPrimary(Map<String, dynamic> r) => PrimaryCategory(
+        id: r['id'] as String,
+        type: (r['type'] as String?) ?? '',
+        requiresExpiry: r['requires_expiry'] as bool? ?? false,
+      );
 
   Subcategory _mapSub(Map<String, dynamic> r) => Subcategory(
         id: r['id'] as String,
         pCategoryId: r['p_category'] as String,
         type: (r['type'] as String?) ?? '',
+        requiresExpiry: r['requires_expiry'] as bool?,
       );
 
   Unit _mapUnit(Map<String, dynamic> r) => Unit(
@@ -28,14 +32,17 @@ class SupabaseCatalogService implements CatalogService {
 
   @override
   Future<List<PrimaryCategory>> fetchPrimaryCategories() async {
-    final rows =
-        await _client.from('primary_category').select('id, type').order('type');
+    final rows = await _client
+        .from('primary_category')
+        .select('id, type, requires_expiry')
+        .order('type');
     return rows.map((r) => _mapPrimary(r)).toList();
   }
 
   @override
   Future<List<Subcategory>> fetchSubcategories([String? pCategoryId]) async {
-    var query = _client.from('subcategory').select('id, p_category, type');
+    var query =
+        _client.from('subcategory').select('id, p_category, type, requires_expiry');
     if (pCategoryId != null) {
       query = query.eq('p_category', pCategoryId);
     }
@@ -55,7 +62,7 @@ class SupabaseCatalogService implements CatalogService {
     final row = await _client
         .from('primary_category')
         .insert({'type': type})
-        .select('id, type')
+        .select('id, type, requires_expiry')
         .single();
     DataChangeBus.instance.ping();
     return _mapPrimary(row);
@@ -69,7 +76,7 @@ class SupabaseCatalogService implements CatalogService {
     final row = await _client
         .from('subcategory')
         .insert({'p_category': pCategoryId, 'type': type})
-        .select('id, p_category, type')
+        .select('id, p_category, type, requires_expiry')
         .single();
     DataChangeBus.instance.ping();
     return _mapSub(row);
@@ -84,5 +91,81 @@ class SupabaseCatalogService implements CatalogService {
         .single();
     DataChangeBus.instance.ping();
     return _mapUnit(row);
+  }
+
+  @override
+  Future<PrimaryCategory> setPrimaryCategoryRequiresExpiry({
+    required String id,
+    required bool requiresExpiry,
+  }) async {
+    final row = await _client
+        .from('primary_category')
+        .update({'requires_expiry': requiresExpiry})
+        .eq('id', id)
+        .select('id, type, requires_expiry')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapPrimary(row);
+  }
+
+  @override
+  Future<Subcategory> setSubcategoryRequiresExpiry({
+    required String id,
+    required bool? requiresExpiry,
+  }) async {
+    final row = await _client
+        .from('subcategory')
+        .update({'requires_expiry': requiresExpiry})
+        .eq('id', id)
+        .select('id, p_category, type, requires_expiry')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapSub(row);
+  }
+
+  @override
+  Future<PrimaryCategory> renamePrimaryCategory({
+    required String id,
+    required String type,
+  }) async {
+    final row = await _client
+        .from('primary_category')
+        .update({'type': type})
+        .eq('id', id)
+        .select('id, type, requires_expiry')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapPrimary(row);
+  }
+
+  @override
+  Future<Subcategory> renameSubcategory({required String id, required String type}) async {
+    final row = await _client
+        .from('subcategory')
+        .update({'type': type})
+        .eq('id', id)
+        .select('id, p_category, type, requires_expiry')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapSub(row);
+  }
+
+  // Relies on the database's own foreign-key constraints (ITEM.p_category /
+  // ITEM.s_category / SUBCATEGORY.p_category -- see updated_db.md) to
+  // reject the delete with a PostgrestException when rows still reference
+  // it, same as SupabaseSupplierService.deleteSupplier. updated_db.md
+  // doesn't document each FK's ON DELETE behavior, so this assumes the
+  // migrations don't set CASCADE; verify against the actual migration SQL
+  // before relying on this in production.
+  @override
+  Future<void> deletePrimaryCategory(String id) async {
+    await _client.from('primary_category').delete().eq('id', id);
+    DataChangeBus.instance.ping();
+  }
+
+  @override
+  Future<void> deleteSubcategory(String id) async {
+    await _client.from('subcategory').delete().eq('id', id);
+    DataChangeBus.instance.ping();
   }
 }

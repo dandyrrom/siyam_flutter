@@ -28,6 +28,11 @@ existing patterns in this same schema (not invented from nothing):
 ## PRIMARY_CATEGORY
 - id — uuid, PK
 - type — text (Medical / Food / General, as of `0002_recategorize_and_units.sql`)
+- requires_expiry — bool, not null, default false — whether items directly under this
+  primary category require an expiry date at Stock In. Added by
+  `0015_category_requires_expiry.sql`, which backfills Medical/Food to `true`. Drives
+  the manager-configurable Category Management UI (Settings page) and the Stock In
+  validation in `add_item_page.dart`'s `_resolveExpiryRequired`.
 
 ## SUBCATEGORY
 - id — uuid, PK
@@ -37,6 +42,10 @@ existing patterns in this same schema (not invented from nothing):
   Vetwrap, Test Kit, Vaccine, Oxygen, Medical Equipment, IV Injectables, Nebulizer —
   mirroring how the DAS Stock In/Out CSVs group items, split on "/". Food has Dry, Wet,
   Treats. General has Cleaning, Supplies.)
+- requires_expiry — bool, nullable, default null — per-subcategory override of the
+  parent PRIMARY_CATEGORY's `requires_expiry`. Null means "inherit the parent's
+  setting". Added by `0015_category_requires_expiry.sql`; left null for every existing
+  row so no subcategory overrides its parent until a manager sets one explicitly.
 
 ## UNITS
 - id — uuid, PK
@@ -189,9 +198,12 @@ independent of `qty` (which stays fixed as the original stock-in record).
   figure on a package_unit row, not a cost-per-box figure divided down — a loose
   partial-box purchase can genuinely have a different per-unit price than the box rate).
 - expiry_date — timestamptz, nullable — required (enforced in the Stock In UI) when the
-  item's primary category is Medical or Food; optional/hidden otherwise (e.g. a mop).
-  Batches with no expiry_date are drawn last in FEFO order, after every batch that has
-  one.
+  item's category resolves to `requires_expiry = true` (subcategory's setting if it has
+  an explicit override, else its parent primary category's setting — see
+  PRIMARY_CATEGORY.requires_expiry / SUBCATEGORY.requires_expiry); optional otherwise
+  (e.g. a mop). The field itself is always shown in the Stock In form regardless of
+  category, just not required unless the resolved flag is true. Batches with no
+  expiry_date are drawn last in FEFO order, after every batch that has one.
 - qty_remaining — float, not null — running balance in *canonical* terms: package_unit
   if the item has a package breakdown, else purchase_unit terms (matching whichever unit
   treatment deduction actually draws down — see TREATMENT_ITEM below). Initialized to the

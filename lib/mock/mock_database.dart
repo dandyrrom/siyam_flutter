@@ -385,10 +385,14 @@ class MockDatabase {
       unitAmpoule,
     ]);
 
-    final catMedical = PrimaryCategory(id: newMockId('pcat'), type: 'Medical');
-    final catFood = PrimaryCategory(id: newMockId('pcat'), type: 'Food');
-    final catCleaning = PrimaryCategory(id: newMockId('pcat'), type: 'Cleaning Supplies');
-    final catEquipment = PrimaryCategory(id: newMockId('pcat'), type: 'Equipment');
+    final catMedical =
+        PrimaryCategory(id: newMockId('pcat'), type: 'Medical', requiresExpiry: true);
+    final catFood =
+        PrimaryCategory(id: newMockId('pcat'), type: 'Food', requiresExpiry: true);
+    final catCleaning = PrimaryCategory(
+        id: newMockId('pcat'), type: 'Cleaning Supplies', requiresExpiry: false);
+    final catEquipment =
+        PrimaryCategory(id: newMockId('pcat'), type: 'Equipment', requiresExpiry: false);
     primaryCategories.addAll([catMedical, catFood, catCleaning, catEquipment]);
 
     final subTablets =

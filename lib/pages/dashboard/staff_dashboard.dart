@@ -241,18 +241,16 @@ class _InventoryHealthCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
             children: [
-              Expanded(
-                child: Text(
-                  loading
-                      ? ' '
-                      : '${stats!.healthyItemCount} of ${stats!.totalItems} items above the low-stock line',
-                  style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Text(
+                loading
+                    ? ' '
+                    : '${stats!.healthyItemCount} of ${stats!.totalItems} items above the low-stock line',
+                style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
               ),
-              const SizedBox(width: 8),
               Text(
                 loading
                     ? ' '

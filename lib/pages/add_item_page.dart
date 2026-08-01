@@ -64,12 +64,9 @@ class _StockInLineItem {
   bool get hasPackageBreakdown =>
       existingItem != null ? existingItem!.packageUnitId != null : selectedPackageUnit != null;
 
-  /// Primary category name for the target item, existing or new -- drives
-  /// whether an expiry date is required (Medical/Food only, see
-  /// updated_db.md).
-  String? get categoryName => existingItem?.pCategoryName ?? selectedPCategory?.type;
-
-  bool get expiryRequired => categoryName == 'Medical' || categoryName == 'Food';
+  /// Primary/sub category ids for the target item, existing or new.
+  String? get pCategoryId => existingItem?.pCategoryId ?? selectedPCategory?.id;
+  String? get sCategoryId => existingItem?.sCategoryId ?? selectedSCategory?.id;
 
   void dispose() {
     nameCtrl.dispose();
@@ -82,6 +79,25 @@ class _StockInLineItem {
     qtyCtrl.dispose();
     costCtrl.dispose();
   }
+}
+
+/// Resolves whether an expiry date is required for a line: the subcategory's
+/// own override if it has one, else its parent primary category's setting
+/// (manager-configurable, see updated_db.md's PRIMARY_CATEGORY/SUBCATEGORY
+/// `requires_expiry`). Defaults to false if the category can't be found.
+bool _resolveExpiryRequired(
+  _StockInLineItem line,
+  List<PrimaryCategory> primaryCategories,
+  List<Subcategory> subcategories,
+) {
+  if (line.sCategoryId != null) {
+    final sub = subcategories.where((s) => s.id == line.sCategoryId);
+    if (sub.isNotEmpty && sub.first.requiresExpiry != null) {
+      return sub.first.requiresExpiry!;
+    }
+  }
+  final primary = primaryCategories.where((c) => c.id == line.pCategoryId);
+  return primary.isEmpty ? false : primary.first.requiresExpiry;
 }
 
 /// Staff-only "Stock In Item" page. Records the full stock-in: the catalog
@@ -336,7 +352,6 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _addPrimaryCategory(_StockInLineItem line) async {
-    Navigator.of(context).maybePop();
     final name = await _promptForText('Add Category', 'Category name');
     if (name == null) return;
     final created = await _catalogService.createPrimaryCategory(name);
@@ -351,7 +366,6 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _addSubcategory(_StockInLineItem line) async {
-    Navigator.of(context).maybePop();
     if (line.selectedPCategory == null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Select a category first.')));
@@ -376,7 +390,6 @@ class _AddItemPageState extends State<AddItemPage> {
     TextEditingController targetCtrl,
     void Function(Unit) assign,
   ) async {
-    Navigator.of(context).maybePop();
     final name = await _promptForText('Add Unit', 'Unit name (e.g. Milliliter, Tablet, Box)');
     if (name == null) return;
     final created = await _catalogService.createUnit(name);
@@ -438,10 +451,12 @@ class _AddItemPageState extends State<AddItemPage> {
             content: Text('Enter how many package units per purchase unit.')));
         return;
       }
-      if (line.expiryRequired && line.expiryDate == null) {
+      final expiryRequired =
+          _resolveExpiryRequired(line, _primaryCategories, _subcategories);
+      if (expiryRequired && line.expiryDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                '${line.nameCtrl.text.trim().isEmpty ? 'This item' : line.nameCtrl.text.trim()} needs an expiry date (Medical/Food items).')));
+                '${line.nameCtrl.text.trim().isEmpty ? 'This item' : line.nameCtrl.text.trim()} needs an expiry date.')));
         return;
       }
     }
@@ -816,6 +831,7 @@ class _ItemDetailsBlock extends StatelessWidget {
     final subcategoryOptions = line.selectedPCategory == null
         ? const <Subcategory>[]
         : subcategories.where((s) => s.pCategoryId == line.selectedPCategory!.id).toList();
+    final expiryRequired = _resolveExpiryRequired(line, primaryCategories, subcategories);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1032,34 +1048,32 @@ class _ItemDetailsBlock extends StatelessWidget {
               },
             ),
           ],
-          if (line.categoryName == 'Medical' || line.categoryName == 'Food') ...[
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: line.expiryDate ?? DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) {
-                  line.expiryDate = picked;
-                  onChanged();
-                }
-              },
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Expiry date${line.expiryRequired ? ' *' : ' (optional)'}',
-                  errorText: line.expiryRequired && line.expiryDate == null
-                      ? 'Required for Medical/Food items'
-                      : null,
-                ),
-                child: Text(line.expiryDate == null
-                    ? 'Select a date'
-                    : _formatDate(line.expiryDate!)),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: line.expiryDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) {
+                line.expiryDate = picked;
+                onChanged();
+              }
+            },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: 'Expiry date${expiryRequired ? ' *' : ' (optional)'}',
+                errorText: expiryRequired && line.expiryDate == null
+                    ? 'Required for this category'
+                    : null,
               ),
+              child: Text(line.expiryDate == null
+                  ? 'Select a date'
+                  : _formatDate(line.expiryDate!)),
             ),
-          ],
+          ),
         ],
       ),
     );
