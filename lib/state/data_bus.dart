@@ -48,7 +48,27 @@ mixin DataBusRefreshMixin<T extends StatefulWidget> on State<T> {
     // render tree (layout/constraint assertion failures); a post-frame
     // callback runs once the current frame is safely done.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) onExternalDataChanged();
+      if (!mounted) return;
+      // ping() commonly fires right before a Navigator.pop() that brings
+      // this page back into view (e.g. saving on the add-item page). The
+      // resulting pop is an animated route transition spanning many more
+      // frames; refreshing while it's still running lands this widget's
+      // setState in the middle of the transition's own layout pass and
+      // corrupts the frame (web debug/DDC relayout-boundary assertions).
+      // Wait for the transition to finish before refreshing.
+      final animation = ModalRoute.of(context)?.animation;
+      if (animation != null && animation.status != AnimationStatus.completed) {
+        void onDone(AnimationStatus status) {
+          if (status == AnimationStatus.completed) {
+            animation.removeStatusListener(onDone);
+            if (mounted) onExternalDataChanged();
+          }
+        }
+
+        animation.addStatusListener(onDone);
+        return;
+      }
+      onExternalDataChanged();
     });
   }
 

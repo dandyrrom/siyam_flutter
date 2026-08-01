@@ -59,11 +59,15 @@ class SideNav extends StatelessWidget {
                                 fontSize: 13,
                                 color: AppColors.sidebarForeground),
                             overflow: TextOverflow.ellipsis),
-                        Text('Dumaguete Sanctuary',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.sidebarAccentForeground),
-                            overflow: TextOverflow.ellipsis),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Text('Shelter Inventory and Audit Management',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.sidebarAccentForeground)),
+                        ),
                       ],
                     ),
                   ),
@@ -139,42 +143,52 @@ class SideNav extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (!collapsed && user != null)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 14,
-                          backgroundColor: AppColors.sidebarPrimary,
-                          child: Text(user.initials,
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.sidebarPrimaryForeground)),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(user.fullName,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.sidebarForeground)),
-                              Text(user.email,
-                                  overflow: TextOverflow.ellipsis,
+                  Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => context.go('/profile'),
+                      hoverColor: AppColors.sidebarPrimary.withValues(alpha: 0.08),
+                      highlightColor: AppColors.sidebarPrimary.withValues(alpha: 0.14),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: AppColors.sidebarPrimary,
+                              child: Text(user.initials,
                                   style: const TextStyle(
                                       fontSize: 11,
-                                      color:
-                                          AppColors.sidebarAccentForeground)),
-                            ],
-                          ),
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.sidebarPrimaryForeground)),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(user.fullName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.sidebarForeground)),
+                                  Text(user.email,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors
+                                              .sidebarAccentForeground)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 collapsed

@@ -1,8 +1,8 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../core/validators.dart';
 import '../state/auth_state.dart';
 import '../widgets/public_nav_bar.dart';
 
@@ -197,9 +197,8 @@ class _SignInForm extends StatelessWidget {
           TextFormField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: _decoration(hintText: 'Enter email or Phone number'),
-            validator: (v) =>
-                (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+            decoration: _decoration(hintText: 'Enter email'),
+            validator: validateEmail,
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -287,12 +286,10 @@ class _SignInForm extends StatelessWidget {
                   ),
                   TextSpan(
                     text: 'Register here!',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.sageGreen,
+                      color: AppColors.deepBrown.withValues(alpha: 0.4),
                     ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = onRegisterTap,
                   ),
                 ],
               ),

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../models/qty_unit.dart';
 import '../../models/supplier.dart';
 import '../../state/data_bus.dart';
 import '../inventory_service.dart';
@@ -79,6 +80,29 @@ class SupabaseSupplierService implements SupplierService {
         .single();
     DataChangeBus.instance.ping();
     return _mapSupplier(row);
+  }
+
+  @override
+  Future<Supplier> updateSupplier({
+    required String suppId,
+    required String suppName,
+    String? contactNum,
+    String? address,
+  }) async {
+    final row = await _client
+        .from('supplier')
+        .update({'name': suppName, 'contactnum': contactNum, 'address': address})
+        .eq('id', suppId)
+        .select('id, name, contactnum, contacttel, address')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapSupplier(row);
+  }
+
+  @override
+  Future<void> deleteSupplier(String suppId) async {
+    await _client.from('supplier').delete().eq('id', suppId);
+    DataChangeBus.instance.ping();
   }
 
   @override
@@ -174,13 +198,31 @@ class SupabaseSupplierService implements SupplierService {
 
     for (final item in items) {
       if (item.qty <= 0) continue;
+      final invItem = await _inventoryService.fetchItem(item.itemId);
+      // Canonical remaining qty for FEFO: package_unit terms when the item
+      // has a breakdown (converting from purchase_unit if that's how this
+      // line was entered), else purchase_unit terms directly. Mirrors
+      // lib/services/supplier_service.dart's mock createPurchaseOrder.
+      final packageQuantity = invItem?.packageQuantity;
+      final qtyRemaining = packageQuantity == null
+          ? item.qty
+          : (item.qtyUnit == QtyUnit.packageUnit
+              ? item.qty
+              : item.qty * packageQuantity);
       await _client.from('purchase_item').insert({
         'purchaseid': purId,
         'itemid': item.itemId,
         'qty': item.qty,
         'purchase_unit_cost': item.unitCost,
+        'qty_unit': qtyUnitToString(item.qtyUnit),
+        'expiry_date': item.expiryDate?.toIso8601String(),
+        'qty_remaining': qtyRemaining,
       });
-      await _inventoryService.adjustStock(itemId: item.itemId, delta: item.qty);
+      await _inventoryService.stockIn(
+        itemId: item.itemId,
+        qty: item.qty,
+        qtyUnit: item.qtyUnit,
+      );
     }
 
     final created = await fetchPurchaseOrder(purId);

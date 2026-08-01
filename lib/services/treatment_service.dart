@@ -38,6 +38,8 @@ abstract interface class TreatmentService {
     required String performedByUserId,
     DateTime? dateAdministered,
   });
+  /// One date per treatment_item row — used by the manager dashboard usage chart.
+  Future<List<DateTime>> fetchUsageEventDates();
 }
 
 /// In-memory equivalent of the old public.treatment / treatment_item access
@@ -195,5 +197,10 @@ class MockTreatmentService implements TreatmentService {
 
     await applyTreatmentDeduction(_inventoryService, invItem, item.qty);
     DataChangeBus.instance.ping();
+  }
+
+  @override
+  Future<List<DateTime>> fetchUsageEventDates() async {
+    return _db.treatmentItems.map((t) => t.consumedDate).toList();
   }
 }

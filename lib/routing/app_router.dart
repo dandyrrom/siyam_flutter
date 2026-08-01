@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../pages/landing_page.dart';
-import '../pages/about_page.dart';
-import '../pages/donate_info_page.dart';
-import '../pages/faqs_page.dart';
 import '../pages/login_page.dart';
 import '../pages/register_page.dart';
 import '../pages/dashboard_page.dart';
@@ -15,6 +11,7 @@ import '../pages/donations_page.dart';
 import '../pages/submission_detail_page.dart';
 import '../pages/purchase_orders_page.dart';
 import '../pages/purchase_trans_page.dart';
+import '../pages/replenishment_page.dart';
 import '../pages/donor/donate_page.dart';
 import '../pages/donor/impacts_page.dart';
 import '../pages/donor/donation_history_page.dart';
@@ -26,7 +23,9 @@ import '../pages/suppliers_page.dart';
 import '../pages/audit_trail_page.dart';
 import '../pages/profile_page.dart';
 import '../pages/notifications_page.dart';
+import '../pages/notification_detail_page.dart';
 import '../pages/settings_page.dart';
+import '../widgets/notification_alerts.dart';
 import '../state/auth_state.dart';
 import '../widgets/app_shell.dart';
 import 'nav_config.dart';
@@ -34,9 +33,6 @@ import 'nav_config.dart';
 const _publicPaths = {
   '/login',
   '/register',
-  '/about',
-  '/donate-info',
-  '/faqs',
 };
 
 GoRouter buildRouter(AuthController authState) {
@@ -68,28 +64,12 @@ GoRouter buildRouter(AuthController authState) {
     },
     routes: [
       GoRoute(
-        path: '/',
-        pageBuilder: (context, state) => const NoTransitionPage(child: LandingPage()),
-      ),
-      GoRoute(
         path: '/login',
         pageBuilder: (context, state) => const NoTransitionPage(child: LoginPage()),
       ),
       GoRoute(
         path: '/register',
         pageBuilder: (context, state) => const NoTransitionPage(child: RegisterPage()),
-      ),
-      GoRoute(
-        path: '/about',
-        pageBuilder: (context, state) => const NoTransitionPage(child: AboutPage()),
-      ),
-      GoRoute(
-        path: '/donate-info',
-        pageBuilder: (context, state) => const NoTransitionPage(child: DonateInfoPage()),
-      ),
-      GoRoute(
-        path: '/faqs',
-        pageBuilder: (context, state) => const NoTransitionPage(child: FaqsPage()),
       ),
 
       ShellRoute(
@@ -168,6 +148,11 @@ GoRouter buildRouter(AuthController authState) {
             ),
           ),
           GoRoute(
+            path: '/replenishment',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ReplenishmentPage()),
+          ),
+          GoRoute(
             path: '/reports',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ReportsPage()),
@@ -216,6 +201,21 @@ GoRouter buildRouter(AuthController authState) {
             path: '/notifications',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: NotificationsPage()),
+          ),
+          GoRoute(
+            path: '/notifications/:kind/:id',
+            pageBuilder: (context, state) {
+              final kind = NotifKindRoute.fromRouteSegment(
+                    state.pathParameters['kind']!,
+                  ) ??
+                  NotifKind.zeroStock;
+              return NoTransitionPage(
+                child: NotificationDetailPage(
+                  kind: kind,
+                  itemId: state.pathParameters['id']!,
+                ),
+              );
+            },
           ),
           GoRoute(
             path: '/settings',

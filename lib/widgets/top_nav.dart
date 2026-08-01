@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../state/auth_state.dart';
+import 'notification_bell.dart';
 
 /// Path segment -> display label, shared with [setPageTitle] so the browser
 /// tab title and the breadcrumb always agree.
@@ -12,10 +13,12 @@ const Map<String, String> kBreadcrumbLabels = {
   'donations': 'Donations',
   'impacts': 'Impacts',
   'donation-history': 'Donations',
-  'reports': 'Reports & Analytics',
+  'reports': 'Reports',
   'medical-records': 'Medical',
   'animal-records': 'Animals',
   'suppliers': 'Suppliers',
+  'purchase-orders': 'Purchase',
+  'replenishment': 'Replenishment',
   'audit-trail': 'Audit Trail',
   'settings': 'Settings',
   'profile': 'Profile',
@@ -81,34 +84,17 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.search, color: AppColors.mutedForeground, size: 20),
-            onPressed: () {},
-          ),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined,
-                    color: AppColors.mutedForeground, size: 20),
-                onPressed: () => context.go('/notifications'),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                      color: AppColors.destructive, shape: BoxShape.circle),
-                ),
-              ),
-            ],
-          ),
+          const NotificationBell(),
           const SizedBox(width: 6),
           if (user != null)
-            InkWell(
+            Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => context.go('/profile'),
+              hoverColor: AppColors.primary.withValues(alpha: 0.08),
+              highlightColor: AppColors.primary.withValues(alpha: 0.14),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: Row(
@@ -139,6 +125,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ],
                 ),
+              ),
               ),
             ),
         ],

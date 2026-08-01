@@ -28,9 +28,9 @@ class StaffReportsPage extends StatelessWidget {
               children: [
                 Icon(Icons.bar_chart_outlined, size: 36, color: AppColors.mutedForeground),
                 SizedBox(height: 10),
-                Text('No reports available', style: TextStyle(fontWeight: FontWeight.w600)),
+                Text('Coming soon', style: TextStyle(fontWeight: FontWeight.w600)),
                 SizedBox(height: 4),
-                Text('Analytics reporting is available to managers.',
+                Text('This page is still being built.',
                     style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
               ],
             ),

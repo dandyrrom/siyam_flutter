@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../core/validators.dart';
 import '../models/app_user.dart';
 import '../state/auth_state.dart';
-import '../widgets/stat_card.dart';
 
 const Map<AppRole, Color> _roleBadgeColor = {
   AppRole.manager: AppColors.roleManager,
@@ -26,7 +27,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (_tabController.index != _visibleTab) {
         setState(() => _visibleTab = _tabController.index);
@@ -62,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage>
           // TITLE: Responsive
           // ============================================================
           Text(
-            isMobile ? 'Profile' : 'Profile & Settings',
+            isMobile ? 'Profile' : 'Profile Settings',
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
@@ -98,7 +99,6 @@ class _ProfilePageState extends State<ProfilePage>
             children: [
               _ProfileTab(user: user, isMobile: isMobile),
               _SecurityTab(isMobile: isMobile),
-              _NotificationsTab(isMobile: isMobile),
             ],
           ),
         ],
@@ -138,7 +138,9 @@ class _ProfileHeaderCard extends StatelessWidget {
               child: Text(
                 user.initials,
                 style: const TextStyle(
-                    fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white),
               ),
             ),
           ),
@@ -148,13 +150,16 @@ class _ProfileHeaderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user.fullName,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
                 Text(user.email,
-                    style: const TextStyle(color: AppColors.mutedForeground, fontSize: 13)),
+                    style: const TextStyle(
+                        color: AppColors.mutedForeground, fontSize: 13)),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: badgeColor.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(999),
@@ -162,7 +167,9 @@ class _ProfileHeaderCard extends StatelessWidget {
                   child: Text(
                     appRoleToString(user.role).toUpperCase(),
                     style: TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: badgeColor),
                   ),
                 ),
               ],
@@ -199,11 +206,11 @@ class _SegmentedTabs extends StatelessWidget {
         dividerColor: Colors.transparent,
         labelColor: AppColors.foreground,
         unselectedLabelColor: AppColors.mutedForeground,
-        labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+        labelStyle:
+            const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
         tabs: const [
           Tab(text: 'Profile'),
           Tab(text: 'Security'),
-          Tab(text: 'Notifications'),
         ],
       ),
     );
@@ -273,7 +280,8 @@ class _ProfileHeaderCardMobile extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             user.email,
-            style: const TextStyle(color: AppColors.mutedForeground, fontSize: 14),
+            style:
+                const TextStyle(color: AppColors.mutedForeground, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -325,7 +333,6 @@ class _SegmentedTabsMobile extends StatelessWidget {
         tabs: const [
           Tab(text: 'Profile'),
           Tab(text: 'Security'),
-          Tab(text: 'Notif'), // Shorter for mobile
         ],
       ),
     );
@@ -349,6 +356,7 @@ class _ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<_ProfileTab> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _firstName;
   late final TextEditingController _lastName;
   late final TextEditingController _phone;
@@ -379,7 +387,24 @@ class _ProfileTabState extends State<_ProfileTab> {
     super.dispose();
   }
 
+  void _cancel() {
+    setState(() {
+      _firstName.text = widget.user.firstName;
+      _lastName.text = widget.user.lastName;
+      _phone.text = widget.user.contactNum ?? '';
+    });
+  }
+
   Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await _confirmChanges(
+      context: context,
+      title: 'Save profile changes?',
+      message: 'This will update your personal information.',
+    );
+    if (!confirmed || !mounted) return;
+
     final auth = context.read<AuthController>();
     final success = await auth.updateProfile(
       firstName: _firstName.text.trim(),
@@ -402,128 +427,164 @@ class _ProfileTabState extends State<_ProfileTab> {
     final bool isMobile = widget.isMobile;
 
     return _CardSection(
-        title: 'Personal Information',
+      title: 'Personal Information',
+      child: Form(
+        key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ============================================================
-            // FIRST/LAST NAME: Stacked on mobile, Row on web
-            // ============================================================
-            isMobile
-                ? Column(
-                    children: [
-                      _LabeledField(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ============================================================
+          // FIRST/LAST NAME: Stacked on mobile, Row on web
+          // ============================================================
+          isMobile
+              ? Column(
+                  children: [
+                    _LabeledField(
+                      label: 'First Name',
+                      icon: Icons.person_outline,
+                      controller: _firstName,
+                    ),
+                    const SizedBox(height: 14),
+                    _LabeledField(
+                      label: 'Last Name',
+                      icon: Icons.person_outline,
+                      controller: _lastName,
+                    ),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _LabeledField(
                         label: 'First Name',
                         icon: Icons.person_outline,
                         controller: _firstName,
                       ),
-                      const SizedBox(height: 14),
-                      _LabeledField(
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _LabeledField(
                         label: 'Last Name',
                         icon: Icons.person_outline,
                         controller: _lastName,
                       ),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _LabeledField(
-                          label: 'First Name',
-                          icon: Icons.person_outline,
-                          controller: _firstName,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _LabeledField(
-                          label: 'Last Name',
-                          icon: Icons.person_outline,
-                          controller: _lastName,
-                        ),
-                      ),
-                    ],
-                  ),
-            const SizedBox(height: 14),
+                    ),
+                  ],
+                ),
+          const SizedBox(height: 14),
 
-            // ============================================================
-            // EMAIL/PHONE: Stacked on mobile, Row on web
-            // ============================================================
-            isMobile
-                ? Column(
-                    children: [
-                      _LabeledField(
+          // ============================================================
+          // EMAIL/PHONE: Stacked on mobile, Row on web
+          // ============================================================
+          isMobile
+              ? Column(
+                  children: [
+                    _LabeledField(
+                      label: 'Email Address',
+                      icon: Icons.mail_outline,
+                      controller:
+                          TextEditingController(text: widget.user.email),
+                      enabled: false,
+                      helperText: 'Contact an admin to change your email.',
+                    ),
+                    const SizedBox(height: 14),
+                    _LabeledField(
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: phoneInputFormatters,
+                      hintText: '09XXXXXXXXX',
+                      validator: validatePhoneNumber,
+                    ),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _LabeledField(
                         label: 'Email Address',
                         icon: Icons.mail_outline,
-                        controller: TextEditingController(text: widget.user.email),
+                        controller:
+                            TextEditingController(text: widget.user.email),
                         enabled: false,
                         helperText: 'Contact an admin to change your email.',
                       ),
-                      const SizedBox(height: 14),
-                      _LabeledField(
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _LabeledField(
                         label: 'Phone Number',
                         icon: Icons.phone_outlined,
                         controller: _phone,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: phoneInputFormatters,
+                        hintText: '09XXXXXXXXX',
+                        validator: validatePhoneNumber,
                       ),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _LabeledField(
-                          label: 'Email Address',
-                          icon: Icons.mail_outline,
-                          controller: TextEditingController(text: widget.user.email),
-                          enabled: false,
-                          helperText: 'Contact an admin to change your email.',
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _LabeledField(
-                          label: 'Phone Number',
-                          icon: Icons.phone_outlined,
-                          controller: _phone,
-                        ),
-                      ),
-                    ],
-                  ),
-            const SizedBox(height: 14),
+                    ),
+                  ],
+                ),
+          const SizedBox(height: 18),
 
-            // ============================================================
-            // ROLE (read-only)
-            // ============================================================
-            _LabeledField(
-              label: 'Role',
-              icon: Icons.shield_outlined,
-              controller: TextEditingController(
-                  text: '${appRoleToString(widget.user.role)} (read-only)'),
-              enabled: false,
-            ),
-            const SizedBox(height: 18),
-
-            // ============================================================
-            // SAVE BUTTON: Full width on mobile, normal on web
-            // ============================================================
-            SizedBox(
-              width: isMobile ? double.infinity : null,
-              child: ElevatedButton.icon(
-                onPressed: auth.isBusy ? null : _save,
-                icon: auth.isBusy
-                    ? const SizedBox(
-                        height: 14,
-                        width: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.save_outlined, size: 16),
-                label: const Text('Save Changes'),
-              ),
-            ),
-          ],
+          // ============================================================
+          // SAVE / CANCEL BUTTONS: Full width stacked on mobile, row on web
+          // ============================================================
+          isMobile
+              ? Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: auth.isBusy ? null : _save,
+                        icon: auth.isBusy
+                            ? const SizedBox(
+                                height: 14,
+                                width: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.save_outlined, size: 16),
+                        label: const Text('Save Changes'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: auth.isBusy ? null : _cancel,
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: auth.isBusy ? null : _save,
+                      icon: auth.isBusy
+                          ? const SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.save_outlined, size: 16),
+                      label: const Text('Save Changes'),
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton(
+                      onPressed: auth.isBusy ? null : _cancel,
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+        ],
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -554,8 +615,24 @@ class _SecurityTabState extends State<_SecurityTab> {
     super.dispose();
   }
 
+  void _cancel() {
+    setState(() {
+      _current.clear();
+      _newPassword.clear();
+      _confirm.clear();
+    });
+  }
+
   Future<void> _updatePassword() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await _confirmChanges(
+      context: context,
+      title: 'Change your password?',
+      message: 'You will need to use the new password next time you sign in.',
+    );
+    if (!confirmed || !mounted) return;
+
     final auth = context.read<AuthController>();
     final success = await auth.changePassword(
       currentPassword: _current.text,
@@ -582,170 +659,108 @@ class _SecurityTabState extends State<_SecurityTab> {
     final bool isMobile = widget.isMobile;
 
     return _CardSection(
-        title: 'Change Password',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _LabeledField(
-                      label: 'Current Password',
-                      icon: Icons.lock_outline,
-                      controller: _current,
-                      obscure: true,
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 14),
-                    _LabeledField(
-                      label: 'New Password',
-                      icon: Icons.lock_outline,
-                      controller: _newPassword,
-                      obscure: true,
-                      validator: (v) =>
-                          (v == null || v.length < 6) ? 'At least 6 characters' : null,
-                    ),
-                    const SizedBox(height: 14),
-                    _LabeledField(
-                      label: 'Confirm New Password',
-                      icon: Icons.lock_outline,
-                      controller: _confirm,
-                      obscure: true,
-                      validator: (v) =>
-                          (v != _newPassword.text) ? 'Passwords do not match' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    // ============================================================
-                    // UPDATE BUTTON: Full width on mobile, normal on web
-                    // ============================================================
-                    SizedBox(
-                      width: isMobile ? double.infinity : null,
-                      child: ElevatedButton.icon(
-                        onPressed: auth.isBusy ? null : _updatePassword,
-                        icon: auth.isBusy
-                            ? const SizedBox(
-                                height: 14,
-                                width: 14,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.lock_outline, size: 16),
-                        label: const Text('Update Password'),
-                      ),
-                    ),
-                  ],
-                ),
+      title: 'Change Password',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _LabeledField(
+                    label: 'Current Password',
+                    icon: Icons.lock_outline,
+                    controller: _current,
+                    obscure: true,
+                    hintText: 'Enter your current password',
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 14),
+                  _LabeledField(
+                    label: 'New Password',
+                    icon: Icons.lock_outline,
+                    controller: _newPassword,
+                    obscure: true,
+                    hintText: 'At least 8 characters, A-Z, a-z, 0-9, symbol',
+                    validator: validatePassword,
+                  ),
+                  const SizedBox(height: 14),
+                  _LabeledField(
+                    label: 'Confirm New Password',
+                    icon: Icons.lock_outline,
+                    controller: _confirm,
+                    obscure: true,
+                    hintText: 'Re-enter your new password',
+                    validator: (v) => (v != _newPassword.text)
+                        ? 'Passwords do not match'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  // ============================================================
+                  // UPDATE / CANCEL BUTTONS: Full width stacked on mobile, row on web
+                  // ============================================================
+                  isMobile
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    auth.isBusy ? null : _updatePassword,
+                                icon: auth.isBusy
+                                    ? const SizedBox(
+                                        height: 14,
+                                        width: 14,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white),
+                                      )
+                                    : const Icon(Icons.lock_outline, size: 16),
+                                label: const Text('Update Password'),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: auth.isBusy ? null : _cancel,
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: auth.isBusy ? null : _updatePassword,
+                              icon: auth.isBusy
+                                  ? const SizedBox(
+                                      height: 14,
+                                      width: 14,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Icon(Icons.lock_outline, size: 16),
+                              label: const Text('Update Password'),
+                            ),
+                            const SizedBox(width: 10),
+                            OutlinedButton(
+                              onPressed: auth.isBusy ? null : _cancel,
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
-            const Text('Two-Factor Authentication',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            const Text(
-              'Add an extra layer of security to your account.',
-              style: TextStyle(fontSize: 13, color: AppColors.mutedForeground),
-            ),
-            const SizedBox(height: 12),
-            const ComingSoonNotice(
-              text: 'Two-factor authentication isn\'t wired up yet -- Supabase '
-                  'supports MFA, this just needs the enrollment flow built.',
-            ),
-          ],
-        ),
-      );
-  }
-}
-
-/// ----------------------------------------------------------------------
-/// Notifications tab: UI only for now -- there's no notification
-/// preferences table in the schema yet, so toggles are local state and
-/// don't persist between sessions.
-/// ----------------------------------------------------------------------
-class _NotifPref {
-  final String label;
-  final String description;
-  bool enabled;
-  _NotifPref(this.label, this.description, this.enabled);
-}
-
-class _NotificationsTab extends StatefulWidget {
-  final bool isMobile;
-
-  const _NotificationsTab({required this.isMobile});
-
-  @override
-  State<_NotificationsTab> createState() => _NotificationsTabState();
-}
-
-class _NotificationsTabState extends State<_NotificationsTab> {
-  final List<_NotifPref> _prefs = [
-    _NotifPref('Low Stock Alerts', 'Notify when items fall below reorder point', true),
-    _NotifPref('Expiry Warnings', 'Notify when items expire within 30 days', true),
-    _NotifPref('New Donations', 'Notify when a new donation is submitted', true),
-    _NotifPref('Audit Log Digest', 'Daily summary of system activity', false),
-    _NotifPref('Weekly Reports', 'Automated weekly inventory and donation report', true),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isMobile = widget.isMobile;
-
-    return _CardSection(
-        title: 'Notification Preferences',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final pref in _prefs) ...[
-              Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.muted,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(pref.label,
-                              style: TextStyle(
-                                  fontSize: isMobile ? 13 : 13.5,
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 2),
-                          Text(pref.description,
-                              style: TextStyle(
-                                  fontSize: isMobile ? 11.5 : 12,
-                                  color: AppColors.mutedForeground)),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: pref.enabled,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: AppColors.primary,
-                      onChanged: (v) => setState(() => pref.enabled = v),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            const ComingSoonNotice(
-              text: 'These preferences aren\'t saved yet -- persisting them needs '
-                  'a notification_preferences table, which isn\'t in the schema yet.',
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -770,7 +785,9 @@ class _CardSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          Text(title,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           const SizedBox(height: 16),
           child,
         ],
@@ -779,13 +796,45 @@ class _CardSection extends StatelessWidget {
   }
 }
 
-class _LabeledField extends StatelessWidget {
+/// Confirmation prompt shown before any Profile Settings change is applied
+/// (personal info save, password change), so a user can back out of an
+/// accidental submit.
+Future<bool> _confirmChanges({
+  required BuildContext context,
+  required String title,
+  required String message,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Confirm'),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
+}
+
+class _LabeledField extends StatefulWidget {
   final String label;
   final IconData icon;
   final TextEditingController controller;
   final bool enabled;
   final bool obscure;
   final String? helperText;
+  final String? hintText;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
 
   const _LabeledField({
@@ -795,65 +844,60 @@ class _LabeledField extends StatelessWidget {
     this.enabled = true,
     this.obscure = false,
     this.helperText,
+    this.hintText,
+    this.keyboardType,
+    this.inputFormatters,
     this.validator,
   });
+
+  @override
+  State<_LabeledField> createState() => _LabeledFieldState();
+}
+
+class _LabeledFieldState extends State<_LabeledField> {
+  // Starts obscured for password fields; toggled via the trailing eye icon.
+  late bool _hidden = widget.obscure;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(widget.label,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         TextFormField(
-          controller: controller,
-          enabled: enabled,
-          obscureText: obscure,
-          validator: validator,
-          style: TextStyle(color: enabled ? AppColors.foreground : AppColors.mutedForeground),
+          controller: widget.controller,
+          enabled: widget.enabled,
+          obscureText: widget.obscure && _hidden,
+          keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
+          validator: widget.validator,
+          style: TextStyle(
+              color: widget.enabled
+                  ? AppColors.foreground
+                  : AppColors.mutedForeground),
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, size: 16, color: AppColors.mutedForeground),
-            helperText: helperText,
+            prefixIcon:
+                Icon(widget.icon, size: 16, color: AppColors.mutedForeground),
+            suffixIcon: widget.obscure
+                ? IconButton(
+                    icon: Icon(
+                      _hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 18,
+                      color: AppColors.mutedForeground,
+                    ),
+                    onPressed: () => setState(() => _hidden = !_hidden),
+                  )
+                : null,
+            hintText: widget.hintText,
+            helperText: widget.helperText,
             filled: true,
-            fillColor: enabled ? AppColors.inputBackground : AppColors.muted,
+            fillColor:
+                widget.enabled ? AppColors.inputBackground : AppColors.muted,
           ),
         ),
       ],
-    );
-  }
-}
-
-// ============================================================
-// COMING SOON NOTICE
-// ============================================================
-class ComingSoonNotice extends StatelessWidget {
-  final String text;
-  const ComingSoonNotice({super.key, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.muted,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, size: 18, color: AppColors.mutedForeground),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

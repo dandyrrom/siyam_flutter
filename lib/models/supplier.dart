@@ -1,3 +1,5 @@
+import 'qty_unit.dart';
+
 /// Mirrors a row in public.supplier.
 class Supplier {
   final String suppId;
@@ -65,13 +67,18 @@ class OrderSpendEntry {
 }
 
 /// Form-side input for one row on a new purchase order, before it's
-/// written to purchase_item.
+/// written to purchase_item. [qty]/[unitCost] are in [qtyUnit] terms --
+/// purchase_unit (whole box/bottle) by default, or package_unit (loose
+/// tablet/ml) for a restock entered by prescribed/needed amount rather than
+/// whole containers. [expiryDate] is optional -- see updated_db.md.
 class OrderItemInput {
   final String itemId;
   final String itemName;
   final String itemUom;
   double qty;
   double unitCost;
+  QtyUnit qtyUnit;
+  DateTime? expiryDate;
 
   OrderItemInput({
     required this.itemId,
@@ -79,5 +86,7 @@ class OrderItemInput {
     required this.itemUom,
     this.qty = 1,
     this.unitCost = 0,
+    this.qtyUnit = QtyUnit.purchaseUnit,
+    this.expiryDate,
   });
 }

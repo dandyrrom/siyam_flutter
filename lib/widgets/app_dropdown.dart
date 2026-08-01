@@ -128,6 +128,13 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
   /// single-column case.
   Widget buildFlyoutPanel(BuildContext context);
 
+  /// Where on the trigger the panel is anchored, and which corner of the
+  /// panel sits there -- override both to flip a panel leftward (e.g. for
+  /// a trigger near the right edge of the screen, so the panel doesn't
+  /// overflow off-screen) instead of the default left-aligned drop-down.
+  Alignment get targetAnchor => Alignment.topLeft;
+  Alignment get followerAnchor => Alignment.topLeft;
+
   @override
   void dispose() {
     _entry?.remove();
@@ -166,6 +173,8 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
         CompositedTransformFollower(
           link: dropdownLink,
           showWhenUnlinked: false,
+          targetAnchor: targetAnchor,
+          followerAnchor: followerAnchor,
           offset: const Offset(0, 44),
           child: buildFlyoutPanel(context),
         ),
@@ -187,6 +196,12 @@ class AppMenuButton<T> extends StatefulWidget {
   final double menuWidth;
   final String? tooltip;
 
+  /// Right-align the panel to the trigger's right edge instead of the
+  /// default left-aligned drop-down. Use for triggers that sit near the
+  /// right edge of the screen (e.g. a row's trailing "..." action menu),
+  /// so the panel doesn't overflow off-screen on narrow viewports.
+  final bool alignRight;
+
   const AppMenuButton({
     super.key,
     required this.triggerBuilder,
@@ -194,6 +209,7 @@ class AppMenuButton<T> extends StatefulWidget {
     required this.onSelected,
     this.menuWidth = 200,
     this.tooltip,
+    this.alignRight = false,
   });
 
   @override
@@ -206,6 +222,13 @@ class _AppMenuButtonState<T> extends State<AppMenuButton<T>>
     widget.onSelected(value);
     setState(closeDropdown);
   }
+
+  @override
+  Alignment get targetAnchor =>
+      widget.alignRight ? Alignment.topRight : Alignment.topLeft;
+  @override
+  Alignment get followerAnchor =>
+      widget.alignRight ? Alignment.topRight : Alignment.topLeft;
 
   @override
   Widget buildFlyoutPanel(BuildContext context) {

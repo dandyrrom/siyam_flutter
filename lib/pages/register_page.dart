@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../core/validators.dart';
 import '../state/auth_state.dart';
 import '../widgets/public_nav_bar.dart';
 
@@ -24,7 +25,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _obscure = true;
-  bool _agreed = false;
 
   // Track which fields have been touched
   final _touchedFields = <String>{};
@@ -40,43 +40,14 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  // Strong password validator
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required';
-    }
-    if (value.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Password must contain at least 1 uppercase letter';
-    }
-    if (!RegExp(r'[a-z]').hasMatch(value)) {
-      return 'Password must contain at least 1 lowercase letter';
-    }
-    if (!RegExp(r'[0-9]').hasMatch(value)) {
-      return 'Password must contain at least 1 number';
-    }
-    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
-      return 'Password must contain at least 1 symbol (!@#\$%^&* etc.)';
-    }
-    return null;
-  }
-
   Future<void> _handleSubmit() async {
     // Mark all fields as touched to show validation errors
     setState(() {
-      _touchedFields.addAll(['email', 'password', 'confirm']);
+      _touchedFields.addAll(['email', 'phone', 'password', 'confirm']);
     });
     
     if (!_formKey.currentState!.validate()) return;
-    if (!_agreed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to the Terms & Privacy Policy')),
-      );
-      return;
-    }
-    
+
     final auth = context.read<AuthController>();
     final success = await auth.registerDonor(
       firstName: _firstName.text.trim(),
@@ -253,21 +224,28 @@ class _RegisterPageState extends State<RegisterPage> {
                                 });
                               },
                               decoration: _decoration(
-                                hintText: 'Email address',
+                                hintText: 'Email address (xxx@xxxx.xxx)',
                                 showError: _touchedFields.contains('email'),
-                                errorText: _email.text.isEmpty || !_email.text.contains('@')
-                                    ? 'Enter a valid email'
-                                    : null,
+                                errorText: validateEmail(_email.text),
                               ),
-                              validator: (v) => (v == null || !v.contains('@'))
-                                  ? 'Enter a valid email'
-                                  : null,
+                              validator: validateEmail,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _phone,
                               keyboardType: TextInputType.phone,
-                              decoration: _decoration(hintText: 'Phone number'),
+                              inputFormatters: phoneInputFormatters,
+                              onChanged: (_) {
+                                setState(() {
+                                  _touchedFields.add('phone');
+                                });
+                              },
+                              decoration: _decoration(
+                                hintText: '09XXXXXXXXX',
+                                showError: _touchedFields.contains('phone'),
+                                errorText: validatePhoneNumber(_phone.text),
+                              ),
+                              validator: validatePhoneNumber,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -281,7 +259,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               decoration: _decoration(
                                 hintText: 'Password (8+ chars, A-Z, a-z, 0-9, symbol)',
                                 showError: _touchedFields.contains('password'),
-                                errorText: _validatePassword(_password.text),
+                                errorText: validatePassword(_password.text),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                       _obscure
@@ -292,7 +270,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   onPressed: () => setState(() => _obscure = !_obscure),
                                 ),
                               ),
-                              validator: _validatePassword,
+                              validator: validatePassword,
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -323,27 +301,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                   color: AppColors.mutedForeground,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: _agreed,
-                                  activeColor: AppColors.sageGreen,
-                                  onChanged: (v) => setState(() => _agreed = v ?? false),
-                                ),
-                                const Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(top: 12),
-                                    child: Text(
-                                      'I agree to the Terms of Service and Privacy Policy',
-                                      style: TextStyle(
-                                          fontSize: 12, color: AppColors.deepBrown),
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                             if (auth.errorMessage != null) ...[
                               const SizedBox(height: 4),

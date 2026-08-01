@@ -1,5 +1,6 @@
 import '../mock/mock_database.dart';
 import '../models/inventory_item.dart';
+import '../models/qty_unit.dart';
 import '../models/stock_movement.dart';
 import '../models/stock_out.dart';
 import '../state/data_bus.dart';
@@ -31,6 +32,7 @@ abstract interface class InventoryService {
     String? pCategoryId,
     String? sCategoryId,
     String? purchaseUnitId,
+    StockCountMode? stockCountMode,
   });
   Future<InventoryItem> adjustStock({
     required String itemId,
@@ -40,6 +42,28 @@ abstract interface class InventoryService {
     required String itemId,
     required double delta,
   });
+  /// Records one purchase_item/donation_item stock-in batch and applies its
+  /// stock effect. [qtyUnit] decides which pool moves: purchase_unit stock-in
+  /// is a whole-container event (moves both pools in lockstep, via
+  /// [adjustStock]); package_unit stock-in only ever adds to
+  /// total_package_stocks (and total_package_stock_ins) -- there's no whole
+  /// container to count. See updated_db.md's whole-container invariant.
+  Future<InventoryItem> stockIn({
+    required String itemId,
+    required double qty,
+    required QtyUnit qtyUnit,
+  });
+  /// Draws down [qty] (already in canonical terms -- package_unit for items
+  /// with a package breakdown, purchase_unit otherwise) from this item's
+  /// batches in expiry order (FEFO), then applies the same deduction to the
+  /// relevant aggregate pool. Used by [applyTreatmentDeduction] for
+  /// treatment usage; batches are also drained (without touching the
+  /// aggregate pools, which [stockOut] already updates on its own) when
+  /// stock leaves via [stockOut].
+  Future<InventoryItem> deductFefo({
+    required String itemId,
+    required double qty,
+  });
   Future<InventoryItem> stockOut({
     required String itemId,
     required double qty,
@@ -48,6 +72,8 @@ abstract interface class InventoryService {
   });
   Future<void> deleteItem(String itemId);
   Future<List<StockMovement>> fetchStockHistory(String itemId);
+  /// One date per stock_out row — used by the manager dashboard usage chart.
+  Future<List<DateTime>> fetchStockOutDates();
 }
 
 /// In-memory equivalent of the old public.item access layer. Every fetch
@@ -95,6 +121,8 @@ class MockInventoryService implements InventoryService {
       dispenseUnitAbbr: dispenseUnit?.abbrName,
       stockQty: row.purchaseStocks,
       packageStockQty: row.packageStocks,
+      totalPackageStockIns: row.totalPackageStockIns,
+      stockCountMode: stockCountModeFromString(row.stockCountMode),
       hasPurchaseHistory: hasPurchaseHistory,
       hasDonationHistory: hasDonationHistory,
       lifetimeStockOutQty: lifetimeStockOutQty,
@@ -172,6 +200,7 @@ class MockInventoryService implements InventoryService {
     String? pCategoryId,
     String? sCategoryId,
     String? purchaseUnitId,
+    StockCountMode? stockCountMode,
   }) async {
     final row = _requireRow(itemId);
     if (itemName != null) row.name = itemName;
@@ -183,6 +212,7 @@ class MockInventoryService implements InventoryService {
     }
     if (sCategoryId != null) row.sCategoryId = sCategoryId;
     if (purchaseUnitId != null) row.purchaseUnitId = purchaseUnitId;
+    if (stockCountMode != null) row.stockCountMode = stockCountModeToString(stockCountMode);
     DataChangeBus.instance.ping();
     return _toInventoryItem(row);
   }
@@ -231,10 +261,86 @@ class MockInventoryService implements InventoryService {
     return _toInventoryItem(row);
   }
 
+  /// Records one purchase_item/donation_item stock-in batch's stock effect.
+  /// A purchase_unit stock-in is a whole-container event handled exactly
+  /// like before ([adjustStock]). A package_unit stock-in (loose stock, no
+  /// whole container) only ever adds to package_stocks and
+  /// total_package_stock_ins -- purchase_stocks is never touched, since
+  /// there's no whole container to count. See updated_db.md.
+  @override
+  Future<InventoryItem> stockIn({
+    required String itemId,
+    required double qty,
+    required QtyUnit qtyUnit,
+  }) async {
+    final row = _requireRow(itemId);
+    if (qtyUnit == QtyUnit.purchaseUnit || row.packageQuantity == null) {
+      return adjustStock(itemId: itemId, delta: qty);
+    }
+    final current = row.packageStocks ?? (row.purchaseStocks * row.packageQuantity!);
+    row.packageStocks = current + qty;
+    row.totalPackageStockIns += qty;
+    DataChangeBus.instance.ping();
+    return _toInventoryItem(row);
+  }
+
+  /// Drains [canonicalQty] (package_unit terms if the item has a package
+  /// breakdown, else purchase_unit terms) from this item's purchase_item/
+  /// donation_item batches, oldest-expiry-first (FEFO); batches with no
+  /// expiry_date are drawn last. Only updates batch qty_remaining -- callers
+  /// are responsible for the aggregate pool ([deductFefo]/[stockOut] each do
+  /// this differently). Silently stops at whatever's left if batches run out
+  /// before [canonicalQty] is exhausted -- the aggregate pools, not batch
+  /// bookkeeping, are the source of truth for whether stock exists.
+  void _drainBatchesFefo(String itemId, double canonicalQty) {
+    final batches = <(DateTime?, double Function(), void Function(double))>[
+      for (final p in _db.purchaseItems.where((p) => p.itemId == itemId))
+        (p.expiryDate, () => p.qtyRemaining, (v) => p.qtyRemaining = v),
+      for (final d in _db.donationItems.where((d) => d.itemId == itemId))
+        (d.expiryDate, () => d.qtyRemaining, (v) => d.qtyRemaining = v),
+    ]..sort((a, b) {
+        final aExpiry = a.$1;
+        final bExpiry = b.$1;
+        if (aExpiry == null && bExpiry == null) return 0;
+        if (aExpiry == null) return 1;
+        if (bExpiry == null) return -1;
+        return aExpiry.compareTo(bExpiry);
+      });
+
+    var remaining = canonicalQty;
+    for (final (_, getRemaining, setRemaining) in batches) {
+      if (remaining <= 0) break;
+      final available = getRemaining();
+      if (available <= 0) continue;
+      final draw = remaining < available ? remaining : available;
+      setRemaining(available - draw);
+      remaining -= draw;
+    }
+  }
+
+  /// Draws [qty] (already canonical -- package_unit for items with a
+  /// package breakdown, purchase_unit otherwise) from batches in FEFO order,
+  /// then applies the matching aggregate deduction: package_stocks only for
+  /// items with a breakdown (treatment usage never touches purchase_stocks),
+  /// purchase_stocks directly otherwise.
+  @override
+  Future<InventoryItem> deductFefo({
+    required String itemId,
+    required double qty,
+  }) async {
+    final row = _requireRow(itemId);
+    _drainBatchesFefo(itemId, qty);
+    if (row.packageQuantity != null) {
+      return deductPackageStock(itemId: itemId, delta: -qty);
+    }
+    return adjustStock(itemId: itemId, delta: -qty);
+  }
+
   /// Records a non-treatment stock-out (waste/expired/adjustment) and
   /// decrements purchase_stocks (and package_stocks in lockstep via
   /// [adjustStock]). Purchase-unit granularity -- these are whole-package
-  /// events.
+  /// events. Also drains the equivalent canonical qty from batches in FEFO
+  /// order, so per-batch qty_remaining stays consistent for later reporting.
   @override
   Future<InventoryItem> stockOut({
     required String itemId,
@@ -250,6 +356,9 @@ class MockInventoryService implements InventoryService {
       recordedDate: DateTime.now(),
       recordedByUserId: recordedByUserId,
     ));
+    final row = _requireRow(itemId);
+    final canonicalQty = row.packageQuantity != null ? qty * row.packageQuantity! : qty;
+    _drainBatchesFefo(itemId, canonicalQty);
     return adjustStock(itemId: itemId, delta: -qty);
   }
 
@@ -329,5 +438,10 @@ class MockInventoryService implements InventoryService {
 
     movements.sort((a, b) => b.date.compareTo(a.date));
     return movements;
+  }
+
+  @override
+  Future<List<DateTime>> fetchStockOutDates() async {
+    return _db.stockOuts.map((s) => s.recordedDate).toList();
   }
 }
