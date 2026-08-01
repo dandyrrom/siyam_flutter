@@ -84,20 +84,66 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     return species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
   }
 
-  Future<void> _openAddAnimalDialog() async {
-    final nameCtrl = TextEditingController();
-    final breedCtrl = TextEditingController();
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Flexible(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Flexible(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  Future<void> _openAnimalFormDialog({Pet? pet}) async {
+    final isEdit = pet != null;
+    final nameCtrl = TextEditingController(text: pet?.petName ?? '');
+    final breedCtrl = TextEditingController(text: pet?.breed ?? '');
     final formKey = GlobalKey<FormState>();
-    PetSpecies species = PetSpecies.dog;
-    PetGender gender = PetGender.male;
-    bool spayedNeutered = false;
+    PetSpecies species = pet?.species ?? PetSpecies.dog;
+    PetGender gender = pet?.gender ?? PetGender.male;
+    PetStatus status = pet?.status ?? PetStatus.available;
+    bool spayedNeutered = pet?.spayedNeutered ?? false;
+    var saving = false;
 
     await showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      barrierDismissible: !saving,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (builderContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Add Animal'),
+          title: Text(isEdit ? 'Edit Animal' : 'Add Animal'),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -107,6 +153,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 children: [
                   TextFormField(
                     controller: nameCtrl,
+                    autofocus: !isEdit,
                     decoration: const InputDecoration(labelText: 'Name'),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
@@ -135,45 +182,102 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                         .toList(),
                     onChanged: (v) => setDialogState(() => gender = v),
                   ),
+                  if (isEdit) ...[
+                    const SizedBox(height: 12),
+                    AppDropdownField<PetStatus>(
+                      label: 'Status',
+                      initialValue: status,
+                      options: PetStatus.values
+                          .map((s) => AppDropdownOption(s, _statusMeta(s).$1))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => status = v),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
                     title: const Text('Spayed / Neutered'),
                     value: spayedNeutered,
-                    onChanged: (v) => setDialogState(() => spayedNeutered = v ?? false),
+                    onChanged: saving
+                        ? null
+                        : (v) => setDialogState(() => spayedNeutered = v ?? false),
                   ),
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            TextButton(
+              onPressed: saving ? null : () => Navigator.of(builderContext).pop(),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                Navigator.of(context).pop();
-                try {
-                  await _service.createPet(
-                    petName: nameCtrl.text.trim(),
-                    species: species,
-                    gender: gender,
-                    breed: breedCtrl.text.trim().isEmpty ? null : breedCtrl.text.trim(),
-                    spayedNeutered: spayedNeutered,
-                  );
-                  _load();
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Could not add animal: $e')));
-                }
-              },
-              child: const Text('Add Animal'),
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() => saving = true);
+
+                      final successMessage = isEdit
+                          ? '${nameCtrl.text.trim()} updated successfully'
+                          : '${nameCtrl.text.trim()} added successfully';
+
+                      try {
+                        if (isEdit) {
+                          await _service.updatePet(
+                            petId: pet.petId,
+                            petName: nameCtrl.text.trim(),
+                            species: species,
+                            gender: gender,
+                            status: status,
+                            breed: breedCtrl.text.trim().isEmpty
+                                ? null
+                                : breedCtrl.text.trim(),
+                            spayedNeutered: spayedNeutered,
+                          );
+                        } else {
+                          await _service.createPet(
+                            petName: nameCtrl.text.trim(),
+                            species: species,
+                            gender: gender,
+                            breed: breedCtrl.text.trim().isEmpty
+                                ? null
+                                : breedCtrl.text.trim(),
+                            spayedNeutered: spayedNeutered,
+                          );
+                        }
+
+                        if (builderContext.mounted) {
+                          Navigator.of(builderContext).pop();
+                        }
+
+                        if (!mounted) return;
+                        _showSuccessSnackBar(successMessage);
+                        await _load();
+                      } catch (e) {
+                        if (!builderContext.mounted) return;
+                        setDialogState(() => saving = false);
+                        ScaffoldMessenger.of(builderContext).clearSnackBars();
+                        ScaffoldMessenger.of(builderContext).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not ${isEdit ? 'update' : 'add'} animal: $e',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              child: isEdit ? const Text('Save Changes') : const Text('Add Animal'),
             ),
           ],
         ),
       ),
     );
+
+    nameCtrl.dispose();
+    breedCtrl.dispose();
   }
 
   Future<void> _openDetailDialog(Pet pet) async {
@@ -215,6 +319,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _openAnimalFormDialog(pet: pet);
+            },
+            child: const Text('Edit Animal'),
+          ),
           AppMenuButton<PetStatus>(
             tooltip: 'Update status',
             options: PetStatus.values
@@ -224,11 +335,15 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
               Navigator.of(context).pop();
               try {
                 await _service.updateStatus(petId: pet.petId, status: status);
-                _load();
+                if (!mounted) return;
+                await _load();
+                if (!mounted) return;
+                _showSuccessSnackBar(
+                  '${pet.petName}\'s status updated to ${_statusMeta(status).$1}',
+                );
               } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Could not update status: $e')));
+                if (!mounted) return;
+                _showErrorSnackBar('Could not update status for ${pet.petName}: $e');
               }
             },
             triggerBuilder: (context, isOpen) => Container(
@@ -289,7 +404,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _openAddAnimalDialog,
+                      onPressed: () => _openAnimalFormDialog(),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Add Animal'),
                       style: ElevatedButton.styleFrom(
@@ -309,7 +424,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                   ),
                   ElevatedButton.icon(
-                    onPressed: _openAddAnimalDialog,
+                    onPressed: () => _openAnimalFormDialog(),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Add Animal'),
                   ),
@@ -469,61 +584,82 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             itemBuilder: (context, index) {
               final pet = _filtered[index];
               final (statusLabel, statusColor) = _statusMeta(pet.status);
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _openDetailDialog(pet),
-                child: Container(
-                  padding: EdgeInsets.all(isMobile ? 12 : 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(_speciesIcon(pet.species),
-                              size: isMobile ? 18 : 20, color: AppColors.mutedForeground),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(pet.petName,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: isMobile ? 13 : 14,
-                                )),
-                          ),
-                        ],
+              return _Hoverable(
+                builder: (context, isHovered) => InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _openDetailDialog(pet),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: EdgeInsets.all(isMobile ? 12 : 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isHovered
+                            ? AppColors.primary.withValues(alpha: 0.4)
+                            : AppColors.border,
+                        width: isHovered ? 1.5 : 1,
                       ),
-                      const SizedBox(height: 6),
-                      Text(pet.breed ?? (pet.species == PetSpecies.dog ? 'Dog' : 'Cat'),
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: isMobile ? 11 : 12.5,
-                            color: AppColors.mutedForeground,
-                          )),
-                      const Spacer(),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            statusLabel,
+                      boxShadow: isHovered
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(_speciesIcon(pet.species),
+                                size: isMobile ? 18 : 20,
+                                color: isHovered
+                                    ? AppColors.primary
+                                    : AppColors.mutedForeground),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(pet.petName,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: isMobile ? 13 : 14,
+                                    color: isHovered ? AppColors.primary : null,
+                                  )),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(pet.breed ?? (pet.species == PetSpecies.dog ? 'Dog' : 'Cat'),
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: isMobile ? 10 : 12,
-                              fontWeight: FontWeight.w600,
-                              color: statusColor,
+                              fontSize: isMobile ? 11 : 12.5,
+                              color: AppColors.mutedForeground,
+                            )),
+                        const Spacer(),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: isHovered ? 0.2 : 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: isMobile ? 10 : 12,
+                                fontWeight: FontWeight.w600,
+                                color: statusColor,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -582,6 +718,28 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _Hoverable extends StatefulWidget {
+  final Widget Function(BuildContext context, bool isHovered) builder;
+
+  const _Hoverable({required this.builder});
+
+  @override
+  State<_Hoverable> createState() => _HoverableState();
+}
+
+class _HoverableState extends State<_Hoverable> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: widget.builder(context, _isHovered),
     );
   }
 }
