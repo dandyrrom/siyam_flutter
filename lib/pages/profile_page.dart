@@ -25,7 +25,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (_tabController.index != _visibleTab) {
         setState(() => _visibleTab = _tabController.index);
@@ -97,7 +97,6 @@ class _ProfilePageState extends State<ProfilePage>
             children: [
               _ProfileTab(user: user, isMobile: isMobile),
               _SecurityTab(isMobile: isMobile),
-              _NotificationsTab(isMobile: isMobile),
             ],
           ),
         ],
@@ -210,7 +209,6 @@ class _SegmentedTabs extends StatelessWidget {
         tabs: const [
           Tab(text: 'Profile'),
           Tab(text: 'Security'),
-          Tab(text: 'Notifications'),
         ],
       ),
     );
@@ -333,7 +331,6 @@ class _SegmentedTabsMobile extends StatelessWidget {
         tabs: const [
           Tab(text: 'Profile'),
           Tab(text: 'Security'),
-          Tab(text: 'Notif'), // Shorter for mobile
         ],
       ),
     );
@@ -500,18 +497,6 @@ class _ProfileTabState extends State<_ProfileTab> {
                     ),
                   ],
                 ),
-          const SizedBox(height: 14),
-
-          // ============================================================
-          // ROLE (read-only)
-          // ============================================================
-          _LabeledField(
-            label: 'Role',
-            icon: Icons.shield_outlined,
-            controller: TextEditingController(
-                text: '${appRoleToString(widget.user.role)} (read-only)'),
-            enabled: false,
-          ),
           const SizedBox(height: 18),
 
           // ============================================================
@@ -655,112 +640,6 @@ class _SecurityTabState extends State<_SecurityTab> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 16),
-          const Text('Two-Factor Authentication',
-              style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          const Text(
-            'Add an extra layer of security to your account.',
-            style: TextStyle(fontSize: 13, color: AppColors.mutedForeground),
-          ),
-          const SizedBox(height: 12),
-          const ComingSoonNotice(
-            text: 'Two-factor authentication isn\'t wired up yet -- Supabase '
-                'supports MFA, this just needs the enrollment flow built.',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ----------------------------------------------------------------------
-/// Notifications tab: UI only for now -- there's no notification
-/// preferences table in the schema yet, so toggles are local state and
-/// don't persist between sessions.
-/// ----------------------------------------------------------------------
-class _NotifPref {
-  final String label;
-  final String description;
-  bool enabled;
-  _NotifPref(this.label, this.description, this.enabled);
-}
-
-class _NotificationsTab extends StatefulWidget {
-  final bool isMobile;
-
-  const _NotificationsTab({required this.isMobile});
-
-  @override
-  State<_NotificationsTab> createState() => _NotificationsTabState();
-}
-
-class _NotificationsTabState extends State<_NotificationsTab> {
-  final List<_NotifPref> _prefs = [
-    _NotifPref(
-        'Low Stock Alerts', 'Notify when items fall below reorder point', true),
-    _NotifPref(
-        'Expiry Warnings', 'Notify when items expire within 30 days', true),
-    _NotifPref(
-        'New Donations', 'Notify when a new donation is submitted', true),
-    _NotifPref('Audit Log Digest', 'Daily summary of system activity', false),
-    _NotifPref('Weekly Reports',
-        'Automated weekly inventory and donation report', true),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isMobile = widget.isMobile;
-
-    return _CardSection(
-      title: 'Notification Preferences',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final pref in _prefs) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.muted,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(pref.label,
-                            style: TextStyle(
-                                fontSize: isMobile ? 13 : 13.5,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text(pref.description,
-                            style: TextStyle(
-                                fontSize: isMobile ? 11.5 : 12,
-                                color: AppColors.mutedForeground)),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: pref.enabled,
-                    activeThumbColor: Colors.white,
-                    activeTrackColor: AppColors.primary,
-                    onChanged: (v) => setState(() => pref.enabled = v),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          const ComingSoonNotice(
-            text:
-                'These preferences aren\'t saved yet -- persisting them needs '
-                'a notification_preferences table, which isn\'t in the schema yet.',
-          ),
         ],
       ),
     );
@@ -842,41 +721,6 @@ class _LabeledField extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ============================================================
-// COMING SOON NOTICE
-// ============================================================
-class ComingSoonNotice extends StatelessWidget {
-  final String text;
-  const ComingSoonNotice({super.key, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.muted,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, size: 18, color: AppColors.mutedForeground),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

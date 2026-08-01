@@ -196,6 +196,12 @@ class AppMenuButton<T> extends StatefulWidget {
   final double menuWidth;
   final String? tooltip;
 
+  /// Right-align the panel to the trigger's right edge instead of the
+  /// default left-aligned drop-down. Use for triggers that sit near the
+  /// right edge of the screen (e.g. a row's trailing "..." action menu),
+  /// so the panel doesn't overflow off-screen on narrow viewports.
+  final bool alignRight;
+
   const AppMenuButton({
     super.key,
     required this.triggerBuilder,
@@ -203,6 +209,7 @@ class AppMenuButton<T> extends StatefulWidget {
     required this.onSelected,
     this.menuWidth = 200,
     this.tooltip,
+    this.alignRight = false,
   });
 
   @override
@@ -215,6 +222,13 @@ class _AppMenuButtonState<T> extends State<AppMenuButton<T>>
     widget.onSelected(value);
     setState(closeDropdown);
   }
+
+  @override
+  Alignment get targetAnchor =>
+      widget.alignRight ? Alignment.topRight : Alignment.topLeft;
+  @override
+  Alignment get followerAnchor =>
+      widget.alignRight ? Alignment.topRight : Alignment.topLeft;
 
   @override
   Widget buildFlyoutPanel(BuildContext context) {

@@ -8,6 +8,7 @@ import '../services/expiry_alerts.dart';
 import '../services/inventory_service.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
+import '../widgets/hoverable_row.dart';
 
 /// Priority tier for the Replenishment List -- a direct relabeling of the
 /// existing [StockLevel] tiers (outOfStock/low/needsRestock), not a new
@@ -481,7 +482,7 @@ class _ReplenishmentRowTile extends StatelessWidget {
         : 'At threshold';
 
     if (!isMobile) {
-      return InkWell(
+      return HoverableRow(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -529,7 +530,7 @@ class _ReplenishmentRowTile extends StatelessWidget {
       );
     }
 
-    return InkWell(
+    return HoverableRow(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

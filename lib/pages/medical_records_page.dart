@@ -169,52 +169,10 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                 SizedBox(
                   width: 420,
                   height: 130,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                  child: _MedicalRecordCard(
+                    record: record,
+                    speciesIcon: _speciesIcon(record.petSpecies),
                     onTap: () => context.push('/medical-records/${record.treatId}'),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(_speciesIcon(record.petSpecies),
-                                  size: 20, color: AppColors.mutedForeground),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(record.petName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(record.treatName,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                          const Spacer(),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(record.performedByName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 12, color: AppColors.mutedForeground)),
-                              ),
-                              Text(_formatDate(record.recDate),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: AppColors.mutedForeground)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
             ],
@@ -231,3 +189,82 @@ const _monthAbbrev = [
 
 String _formatDate(DateTime date) =>
     '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
+
+/// Card with a directly-controlled hover background -- InkWell's own
+/// hoverColor overlay doesn't render reliably in this app (see
+/// [HoverableRow]), and here it would be hidden anyway by the card's own
+/// opaque background, so the hover tint is applied to the card decoration
+/// itself instead.
+class _MedicalRecordCard extends StatefulWidget {
+  final TreatmentRecord record;
+  final IconData speciesIcon;
+  final VoidCallback onTap;
+
+  const _MedicalRecordCard({
+    required this.record,
+    required this.speciesIcon,
+    required this.onTap,
+  });
+
+  @override
+  State<_MedicalRecordCard> createState() => _MedicalRecordCardState();
+}
+
+class _MedicalRecordCardState extends State<_MedicalRecordCard> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final record = widget.record;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: widget.onTap,
+        hoverColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _hovering ? AppColors.muted : AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(widget.speciesIcon, size: 20, color: AppColors.mutedForeground),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(record.petName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(record.treatName,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(record.performedByName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                  ),
+                  Text(_formatDate(record.recDate),
+                      style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

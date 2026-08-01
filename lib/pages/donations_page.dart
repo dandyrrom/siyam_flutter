@@ -7,6 +7,7 @@ import '../services/donation_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
+import '../widgets/hoverable_row.dart';
 import '../widgets/stat_card.dart';
 
 class DonationsPage extends StatefulWidget {
@@ -302,6 +303,7 @@ class _DonationsPageState extends State<DonationsPage>
                   _SubmissionRow(
                     submission: _filtered[i],
                     statusMeta: _statusMeta(_filtered[i].status),
+                    isMobile: MediaQuery.of(context).size.width < 700,
                     onReject: () => _reject(_filtered[i]),
                     onApprove: () => _approve(_filtered[i]),
                   ),
@@ -317,12 +319,14 @@ class _DonationsPageState extends State<DonationsPage>
 class _SubmissionRow extends StatelessWidget {
   final DonationSubmission submission;
   final (String, Color) statusMeta;
+  final bool isMobile;
   final VoidCallback onReject;
   final VoidCallback onApprove;
 
   const _SubmissionRow({
     required this.submission,
     required this.statusMeta,
+    required this.isMobile,
     required this.onReject,
     required this.onApprove,
   });
@@ -331,55 +335,87 @@ class _SubmissionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final sub = submission;
     final (statusLabel, statusColor) = statusMeta;
-    return InkWell(
+
+    final statusBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(statusLabel,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+    );
+
+    final actionButtons = sub.status == SubmissionStatus.pending
+        ? [
+            OutlinedButton(onPressed: onReject, child: const Text('Reject')),
+            const SizedBox(width: 8),
+            ElevatedButton(onPressed: onApprove, child: const Text('Approve')),
+          ]
+        : const <Widget>[];
+
+    return HoverableRow(
       onTap: () => context.push('/donations/${sub.subId}'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              width: 200,
-              child: Text(sub.donorName,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-            SizedBox(
-              width: 160,
-              child: Text('Submitted ${_formatDate(sub.dateSub)}',
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-            ),
-            SizedBox(
-              width: 160,
-              child: Text(
-                  sub.schedDate == null
-                      ? 'No drop-off date'
-                      : 'Drop-off ${_formatDate(sub.schedDate!)}',
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
+        child: isMobile
+            ? Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(sub.donorName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Submitted ${_formatDate(sub.dateSub)}',
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                  Text(
+                      sub.schedDate == null
+                          ? 'No drop-off date'
+                          : 'Drop-off ${_formatDate(sub.schedDate!)}',
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                  statusBadge,
+                  if (actionButtons.isNotEmpty) Row(mainAxisSize: MainAxisSize.min, children: actionButtons),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(sub.donorName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text('Submitted ${_formatDate(sub.dateSub)}',
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                        sub.schedDate == null
+                            ? 'No drop-off date'
+                            : 'Drop-off ${_formatDate(sub.schedDate!)}',
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                  ),
+                  SizedBox(
+                    width: 110,
+                    child: Align(alignment: Alignment.centerLeft, child: statusBadge),
+                  ),
+                  SizedBox(
+                    width: 190,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(mainAxisSize: MainAxisSize.min, children: actionButtons),
+                    ),
+                  ),
+                ],
               ),
-              child: Text(statusLabel,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
-            ),
-            if (sub.status == SubmissionStatus.pending) ...[
-              OutlinedButton(
-                onPressed: onReject,
-                child: const Text('Reject'),
-              ),
-              ElevatedButton(
-                onPressed: onApprove,
-                child: const Text('Approve'),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

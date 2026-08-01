@@ -85,9 +85,14 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
           const NotificationBell(),
           const SizedBox(width: 6),
           if (user != null)
-            InkWell(
+            Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => context.go('/profile'),
+              hoverColor: AppColors.primary.withValues(alpha: 0.08),
+              highlightColor: AppColors.primary.withValues(alpha: 0.14),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: Row(
@@ -118,6 +123,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ],
                 ),
+              ),
               ),
             ),
         ],

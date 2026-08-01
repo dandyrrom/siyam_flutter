@@ -124,9 +124,14 @@ class _NotificationBellState extends State<NotificationBell>
     final hasAlerts = _notifs.isNotEmpty;
     return CompositedTransformTarget(
       link: dropdownLink,
-      child: InkWell(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () => setState(toggleDropdown),
+        hoverColor: AppColors.primary.withValues(alpha: 0.08),
+        highlightColor: AppColors.primary.withValues(alpha: 0.14),
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Stack(
@@ -147,6 +152,7 @@ class _NotificationBellState extends State<NotificationBell>
                 ),
             ],
           ),
+        ),
         ),
       ),
     );

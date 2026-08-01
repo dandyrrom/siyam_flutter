@@ -775,6 +775,7 @@ class _InventoryPageState extends State<InventoryPage>
                                     child: Align(
                                       alignment: Alignment.centerRight,
                                       child: AppMenuButton<String>(
+                                        alignRight: true,
                                         options: const [
                                           AppDropdownOption(
                                               'view', 'View details'),
