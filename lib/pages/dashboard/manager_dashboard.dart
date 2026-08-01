@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../models/inventory_item.dart';
 import '../../services/dashboard_service.dart';
-import '../../services/inventory_service.dart';
-import '../../services/treatment_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
@@ -24,18 +22,12 @@ class _ManagerDashboardState extends State<ManagerDashboard>
     with DataBusRefreshMixin<ManagerDashboard> {
   // Service that fetches dashboard data from Supabase
   final DashboardService _service = DashboardService();
-  // Chart data — loaded here only; full breakdown lives on Reports & Analytics.
-  final TreatmentService _treatmentService = TreatmentService();
-  final InventoryService _inventoryService = InventoryService();
 
   // GlobalKey used to scroll to the replenishment section when the button is pressed
   final GlobalKey _replenishmentKey = GlobalKey();
 
   // Dashboard statistics fetched from the database
   ManagerDashboardStats? _stats;
-
-  // Consumption event dates for the dashboard-only usage overview chart.
-  List<DateTime> _usageEventDates = [];
 
   // Loading state indicator
   bool _loading = true;
@@ -83,22 +75,12 @@ class _ManagerDashboardState extends State<ManagerDashboard>
     }
 
     try {
-      // Stats for cards/alerts; chart dates fetched separately (dashboard overview only).
-      final results = await Future.wait([
-        _service.fetchManagerStats(),
-        _treatmentService.fetchUsageEventDates(),
-        _inventoryService.fetchStockOutDates(),
-      ]);
+      final stats = await _service.fetchManagerStats();
 
       if (!mounted) return;
 
-      final stats = results[0] as ManagerDashboardStats;
-      final treatmentDates = results[1] as List<DateTime>;
-      final stockOutDates = results[2] as List<DateTime>;
-
       setState(() {
         _stats = stats;
-        _usageEventDates = [...treatmentDates, ...stockOutDates];
         _loading = false;
       });
     } catch (e) {
@@ -134,25 +116,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   /// Refresh dashboard data with visible loading
   Future<void> _refreshData() async {
     await _load(silent: false);
-  }
-
-  /// Last 6 calendar months (oldest first).
-  List<(String, String)> get _last6Months {
-    final now = DateTime.now();
-    return List.generate(6, (i) {
-      final d = DateTime(now.year, now.month - (5 - i));
-      return (_monthAbbrev[d.month - 1], '${d.year}-${d.month}');
-    });
-  }
-
-  String _bucketKey(DateTime d) => '${d.year}-${d.month}';
-
-  List<double> _monthlyUsageCounts(List<DateTime> dates) {
-    final months = _last6Months;
-    return [
-      for (final (_, key) in months)
-        dates.where((d) => _bucketKey(d) == key).length.toDouble(),
-    ];
   }
 
   /// Helper method to get the current user's display name from AuthController
@@ -376,50 +339,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                         lowStockItems: _stats!.lowStockItems,
                       ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Dashboard-only usage overview — Reports page has the full analytics.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Monthly Stock Usage',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Quick snapshot of consumption (last 6 months). '
-                          'See Reports & Analytics for donations, treatments, and spend.',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.mutedForeground,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.go('/reports'),
-                    child: const Text('View reports'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _loading
-                  ? const SizedBox(
-                      height: 160,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : _UsageChartCard(
-                      usageDates: _usageEventDates,
-                      monthLabels: _last6Months.map((m) => m.$1).toList(),
-                      values: _monthlyUsageCounts(_usageEventDates),
-                    ),
             ],
           ],
         ),
@@ -427,127 +346,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
     );
   }
 }
-
-/// Card wrapper + empty state for the dashboard usage overview chart.
-class _UsageChartCard extends StatelessWidget {
-  final List<DateTime> usageDates;
-  final List<String> monthLabels;
-  final List<double> values;
-
-  const _UsageChartCard({
-    required this.usageDates,
-    required this.monthLabels,
-    required this.values,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: usageDates.isEmpty || values.every((v) => v == 0)
-          ? const Text(
-              'No stock usage recorded in the last 6 months.',
-              style:
-                  TextStyle(fontSize: 12.5, color: AppColors.mutedForeground),
-            )
-          : _MonthlyBarChart(labels: monthLabels, values: values),
-    );
-  }
-}
-
-/// Simple monthly column chart — dashboard overview only.
-class _MonthlyBarChart extends StatelessWidget {
-  final List<String> labels;
-  final List<double> values;
-
-  const _MonthlyBarChart({required this.labels, required this.values});
-
-  @override
-  Widget build(BuildContext context) {
-    final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
-    const chartHeight = 140.0;
-
-    return SizedBox(
-      height: chartHeight + 50, // Increased slightly for safety
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Text above bar (value) - only show if not zero
-                    if (values[i] > 0)
-                      Text(
-                        values[i] % 1 == 0
-                            ? values[i].toInt().toString()
-                            : values[i].toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.mutedForeground,
-                        ),
-                      )
-                    else
-                      const SizedBox(height: 14), // Placeholder for empty value
-                    
-                    const SizedBox(height: 4),
-                    
-                    // The bar itself
-                    Container(
-                      height: maxValue == 0
-                          ? 2
-                          : ((values[i] / maxValue) * chartHeight).clamp(2.0, chartHeight),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(6)),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    
-                    // Label below bar
-                    Text(
-                      labels[i],
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.mutedForeground,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-const _monthAbbrev = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 /// Widget that displays zero and low stock alerts in a responsive layout
 /// Shows items that need to be reordered based on current stock levels

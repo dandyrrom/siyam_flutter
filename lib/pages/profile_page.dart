@@ -387,6 +387,14 @@ class _ProfileTabState extends State<_ProfileTab> {
     super.dispose();
   }
 
+  void _cancel() {
+    setState(() {
+      _firstName.text = widget.user.firstName;
+      _lastName.text = widget.user.lastName;
+      _phone.text = widget.user.contactNum ?? '';
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -522,23 +530,57 @@ class _ProfileTabState extends State<_ProfileTab> {
           const SizedBox(height: 18),
 
           // ============================================================
-          // SAVE BUTTON: Full width on mobile, normal on web
+          // SAVE / CANCEL BUTTONS: Full width stacked on mobile, row on web
           // ============================================================
-          SizedBox(
-            width: isMobile ? double.infinity : null,
-            child: ElevatedButton.icon(
-              onPressed: auth.isBusy ? null : _save,
-              icon: auth.isBusy
-                  ? const SizedBox(
-                      height: 14,
-                      width: 14,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save_outlined, size: 16),
-              label: const Text('Save Changes'),
-            ),
-          ),
+          isMobile
+              ? Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: auth.isBusy ? null : _save,
+                        icon: auth.isBusy
+                            ? const SizedBox(
+                                height: 14,
+                                width: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.save_outlined, size: 16),
+                        label: const Text('Save Changes'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: auth.isBusy ? null : _cancel,
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: auth.isBusy ? null : _save,
+                      icon: auth.isBusy
+                          ? const SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.save_outlined, size: 16),
+                      label: const Text('Save Changes'),
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton(
+                      onPressed: auth.isBusy ? null : _cancel,
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
         ],
         ),
       ),
@@ -571,6 +613,14 @@ class _SecurityTabState extends State<_SecurityTab> {
     _newPassword.dispose();
     _confirm.dispose();
     super.dispose();
+  }
+
+  void _cancel() {
+    setState(() {
+      _current.clear();
+      _newPassword.clear();
+      _confirm.clear();
+    });
   }
 
   Future<void> _updatePassword() async {
@@ -651,23 +701,59 @@ class _SecurityTabState extends State<_SecurityTab> {
                   ),
                   const SizedBox(height: 16),
                   // ============================================================
-                  // UPDATE BUTTON: Full width on mobile, normal on web
+                  // UPDATE / CANCEL BUTTONS: Full width stacked on mobile, row on web
                   // ============================================================
-                  SizedBox(
-                    width: isMobile ? double.infinity : null,
-                    child: ElevatedButton.icon(
-                      onPressed: auth.isBusy ? null : _updatePassword,
-                      icon: auth.isBusy
-                          ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.lock_outline, size: 16),
-                      label: const Text('Update Password'),
-                    ),
-                  ),
+                  isMobile
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    auth.isBusy ? null : _updatePassword,
+                                icon: auth.isBusy
+                                    ? const SizedBox(
+                                        height: 14,
+                                        width: 14,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white),
+                                      )
+                                    : const Icon(Icons.lock_outline, size: 16),
+                                label: const Text('Update Password'),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: auth.isBusy ? null : _cancel,
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: auth.isBusy ? null : _updatePassword,
+                              icon: auth.isBusy
+                                  ? const SizedBox(
+                                      height: 14,
+                                      width: 14,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Icon(Icons.lock_outline, size: 16),
+                              label: const Text('Update Password'),
+                            ),
+                            const SizedBox(width: 10),
+                            OutlinedButton(
+                              onPressed: auth.isBusy ? null : _cancel,
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        ),
                 ],
               ),
             ),
