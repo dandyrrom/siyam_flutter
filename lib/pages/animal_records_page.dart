@@ -71,12 +71,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
   (String, Color) _statusMeta(PetStatus status) {
     switch (status) {
-      case PetStatus.available:
-        return ('Available', AppColors.primary);
+      case PetStatus.healthy:
+        return ('Healthy', AppColors.primary);
       case PetStatus.underTreatment:
         return ('Under Treatment', AppColors.warning);
       case PetStatus.adopted:
         return ('Adopted', AppColors.accent);
+      case PetStatus.deceased:
+        return ('Deceased', AppColors.mutedForeground);
     }
   }
 
@@ -133,7 +135,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     final formKey = GlobalKey<FormState>();
     PetSpecies species = pet?.species ?? PetSpecies.dog;
     PetGender gender = pet?.gender ?? PetGender.male;
-    PetStatus status = pet?.status ?? PetStatus.available;
+    PetStatus status = pet?.status ?? PetStatus.healthy;
     bool spayedNeutered = pet?.spayedNeutered ?? false;
     var saving = false;
 
@@ -384,7 +386,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     }
 
     final totalCount = _pets.length;
-    final availableCount = _pets.where((p) => p.status == PetStatus.available).length;
+    final availableCount = _pets.where((p) => p.status == PetStatus.healthy).length;
     final treatmentCount = _pets.where((p) => p.status == PetStatus.underTreatment).length;
     final adoptedCount = _pets.where((p) => p.status == PetStatus.adopted).length;
 
@@ -449,7 +451,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   ),
                   const SizedBox(height: 10),
                   _buildMobileStatCard(
-                    label: 'Available',
+                    label: 'Healthy',
                     value: '$availableCount',
                     icon: Icons.check_circle_outline,
                     accent: AppColors.primary,
@@ -478,7 +480,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   accent: AppColors.roleManager,
                 ),
                 StatCard(
-                  label: 'Available',
+                  label: 'Healthy',
                   value: '$availableCount',
                   icon: Icons.check_circle_outline,
                   accent: AppColors.primary,
