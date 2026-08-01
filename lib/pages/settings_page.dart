@@ -3,6 +3,7 @@ import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/primary_category.dart';
 import '../models/subcategory.dart';
+import '../models/unit.dart';
 import '../services/catalog_service.dart';
 import '../services/settings_service.dart';
 
@@ -94,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 640),
+      constraints: const BoxConstraints(maxWidth: 900),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -108,66 +109,73 @@ class _SettingsPageState extends State<SettingsPage> {
             style: TextStyle(color: AppColors.mutedForeground),
           ),
           const SizedBox(height: 20),
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else if (_error != null)
-            Text(_error!, style: const TextStyle(color: AppColors.destructive))
-          else
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Inventory Alerts',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _lowStockCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Low stock threshold',
-                        helperText: 'Whole containers at or below which an item is '
-                            'flagged as Low Stock.',
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Text(_error!, style: const TextStyle(color: AppColors.destructive))
+                    : Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Inventory Alerts',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _lowStockCtrl,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(decimal: true),
+                                decoration: const InputDecoration(
+                                  labelText: 'Low stock threshold',
+                                  helperText:
+                                      'Whole containers at or below which an item is '
+                                      'flagged as Low Stock.',
+                                ),
+                                validator: _positiveNumberValidator,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _expiryDaysCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Expiration warning window (days)',
+                                  helperText:
+                                      'Items with a stock batch expiring within this '
+                                      'many days are flagged as Expiring Soon.',
+                                ),
+                                validator: (v) =>
+                                    _positiveNumberValidator(v, allowDecimal: false),
+                              ),
+                              const SizedBox(height: 20),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: ElevatedButton(
+                                  onPressed: _saving ? null : _save,
+                                  child: _saving
+                                      ? const SizedBox(
+                                          height: 16,
+                                          width: 16,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      : const Text('Save Settings'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      validator: _positiveNumberValidator,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _expiryDaysCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Expiration warning window (days)',
-                        helperText: 'Items with a stock batch expiring within this '
-                            'many days are flagged as Expiring Soon.',
-                      ),
-                      validator: (v) => _positiveNumberValidator(v, allowDecimal: false),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: _saving ? null : _save,
-                        child: _saving
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Save Settings'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          ),
           const SizedBox(height: 28),
           const Text(
             'Category Management',
@@ -175,12 +183,25 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Add, rename, or delete primary categories and subcategories, and '
-            'choose which ones require an expiry date at Stock In.',
+            'Expand a category to rename it, set its expiry requirement, and '
+            'manage its subcategories.',
             style: TextStyle(color: AppColors.mutedForeground),
           ),
           const SizedBox(height: 20),
-          const _CategoryExpirySection(),
+          const _CategoryManagementSection(),
+          const SizedBox(height: 40),
+          const Text(
+            'Unit Management',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Add, rename, or delete the purchase/package/dispense units used '
+            'when stocking in items.',
+            style: TextStyle(color: AppColors.mutedForeground),
+          ),
+          const SizedBox(height: 20),
+          const _UnitManagementSection(),
           const SizedBox(height: 40),
         ],
       ),
@@ -192,14 +213,18 @@ class _SettingsPageState extends State<SettingsPage> {
 /// optionally, per subcategory (overriding the parent). See
 /// updated_db.md's PRIMARY_CATEGORY/SUBCATEGORY `requires_expiry` and
 /// AddItemPage's `_resolveExpiryRequired`, which reads these values.
-class _CategoryExpirySection extends StatefulWidget {
-  const _CategoryExpirySection();
+///
+/// Accordion layout: one collapsible card per primary category. Collapsed
+/// by default so a category with many subcategories doesn't force the whole
+/// Settings page into one long scroll.
+class _CategoryManagementSection extends StatefulWidget {
+  const _CategoryManagementSection();
 
   @override
-  State<_CategoryExpirySection> createState() => _CategoryExpirySectionState();
+  State<_CategoryManagementSection> createState() => _CategoryManagementSectionState();
 }
 
-class _CategoryExpirySectionState extends State<_CategoryExpirySection> {
+class _CategoryManagementSectionState extends State<_CategoryManagementSection> {
   final CatalogService _catalogService = CatalogService();
 
   bool _loading = true;
@@ -358,6 +383,17 @@ class _CategoryExpirySectionState extends State<_CategoryExpirySection> {
   bool? _effectiveSub(Subcategory s) =>
       _pendingSub.containsKey(s.id) ? _pendingSub[s.id] : s.requiresExpiry;
 
+  /// The value shown/used for [s], falling back to its parent primary
+  /// category's setting when [s] has no explicit override.
+  bool _resolvedSub(Subcategory s) {
+    final raw = _effectiveSub(s);
+    if (raw != null) return raw;
+    final parent = _primaryCategories.firstWhere((c) => c.id == s.pCategoryId);
+    return _effectivePrimary(parent);
+  }
+
+  bool _isSubOverridden(Subcategory s) => _effectiveSub(s) != null;
+
   /// Stages a primary category's toggle. Setting it back to its saved
   /// value clears the pending entry rather than staging a no-op change.
   void _stagePrimary(PrimaryCategory category, bool value) {
@@ -490,17 +526,10 @@ class _CategoryExpirySectionState extends State<_CategoryExpirySection> {
     if (_error != null) {
       return Text(_error!, style: const TextStyle(color: AppColors.destructive));
     }
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: OutlinedButton.icon(
-            onPressed: _savingChanges ? null : _addPrimaryCategory,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Category'),
-          ),
-        ),
-        const SizedBox(height: 12),
         if (_hasPendingChanges) ...[
           Container(
             width: double.infinity,
@@ -540,6 +569,15 @@ class _CategoryExpirySectionState extends State<_CategoryExpirySection> {
           ),
           const SizedBox(height: 16),
         ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: OutlinedButton.icon(
+            onPressed: _savingChanges ? null : _addPrimaryCategory,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add Category'),
+          ),
+        ),
+        const SizedBox(height: 12),
         for (final category in _primaryCategories)
           Padding(
             key: ValueKey(category.id),
@@ -550,10 +588,12 @@ class _CategoryExpirySectionState extends State<_CategoryExpirySection> {
               isDirty: _pendingPrimary.containsKey(category.id),
               subcategories:
                   _subcategories.where((s) => s.pCategoryId == category.id).toList(),
-              effectiveSubValue: _effectiveSub,
+              effectiveSubValue: _resolvedSub,
               isSubDirty: (s) => _pendingSub.containsKey(s.id),
+              isSubOverridden: _isSubOverridden,
               onPrimaryChanged: (v) => _stagePrimary(category, v),
               onSubChanged: _stageSub,
+              onResetSub: (s) => _stageSub(s, null),
               onRenamePrimary: (name) => _renamePrimaryCategory(category, name),
               onDeletePrimary: () => _deletePrimaryCategory(category),
               onAddSubcategory: () => _addSubcategory(category),
@@ -561,6 +601,440 @@ class _CategoryExpirySectionState extends State<_CategoryExpirySection> {
               onDeleteSub: _deleteSubcategory,
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Above this many subcategories, an inline filter field is worth the extra
+/// row -- below it, scanning a short list is faster than typing.
+const int _kSubcategoryFilterThreshold = 6;
+
+/// Collapsible per-primary-category card. Collapsed by default so a
+/// category with many subcategories doesn't force the whole Settings page
+/// into one long scroll; expanding reveals its subcategories, with an
+/// inline filter once there are enough to be worth searching rather than
+/// scanning.
+class _PrimaryCategoryCard extends StatefulWidget {
+  final PrimaryCategory category;
+  final bool effectiveRequiresExpiry;
+  final bool isDirty;
+  final List<Subcategory> subcategories;
+  final bool Function(Subcategory sub) effectiveSubValue;
+  final bool Function(Subcategory sub) isSubDirty;
+  final bool Function(Subcategory sub) isSubOverridden;
+  final ValueChanged<bool> onPrimaryChanged;
+  final void Function(Subcategory sub, bool? value) onSubChanged;
+  final void Function(Subcategory sub) onResetSub;
+  final Future<void> Function(String newName) onRenamePrimary;
+  final VoidCallback onDeletePrimary;
+  final VoidCallback onAddSubcategory;
+  final Future<void> Function(Subcategory sub, String newName) onRenameSub;
+  final void Function(Subcategory sub) onDeleteSub;
+
+  const _PrimaryCategoryCard({
+    required this.category,
+    required this.effectiveRequiresExpiry,
+    required this.isDirty,
+    required this.subcategories,
+    required this.effectiveSubValue,
+    required this.isSubDirty,
+    required this.isSubOverridden,
+    required this.onPrimaryChanged,
+    required this.onSubChanged,
+    required this.onResetSub,
+    required this.onRenamePrimary,
+    required this.onDeletePrimary,
+    required this.onAddSubcategory,
+    required this.onRenameSub,
+    required this.onDeleteSub,
+  });
+
+  @override
+  State<_PrimaryCategoryCard> createState() => _PrimaryCategoryCardState();
+}
+
+class _PrimaryCategoryCardState extends State<_PrimaryCategoryCard> {
+  final _filterCtrl = TextEditingController();
+  String _filter = '';
+
+  @override
+  void dispose() {
+    _filterCtrl.dispose();
+    super.dispose();
+  }
+
+  static Widget _dirtyDot() => Container(
+        width: 8,
+        height: 8,
+        margin: const EdgeInsets.only(right: 8),
+        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleSubs = _filter.isEmpty
+        ? widget.subcategories
+        : widget.subcategories
+            .where((s) => s.type.toLowerCase().contains(_filter.toLowerCase()))
+            .toList();
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: widget.isDirty ? AppColors.primary : AppColors.border,
+          width: widget.isDirty ? 1.5 : 1,
+        ),
+      ),
+      child: Theme(
+        // ExpansionTile's default Divider above/below the expanded body
+        // reads as visual noise on a card that already has its own border.
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.only(left: 16, right: 8),
+          title: Row(
+            children: [
+              if (widget.isDirty) _dirtyDot(),
+              Expanded(
+                child: _EditableLabel(
+                  value: widget.category.type,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  onSave: widget.onRenamePrimary,
+                ),
+              ),
+              if (widget.subcategories.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text('${widget.subcategories.length} sub'
+                      '${widget.subcategories.length == 1 ? '' : 's'}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                tooltip: 'Delete category',
+                onPressed: widget.onDeletePrimary,
+              ),
+            ],
+          ),
+          children: [
+            SwitchListTile(
+              title: const Text('Requires expiry date', style: TextStyle(fontSize: 13.5)),
+              subtitle: const Text('Applies to items filed directly under this category.',
+                  style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+              value: widget.effectiveRequiresExpiry,
+              onChanged: widget.onPrimaryChanged,
+              dense: true,
+            ),
+            if (widget.subcategories.length > _kSubcategoryFilterThreshold)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: TextField(
+                  controller: _filterCtrl,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    prefixIcon: Icon(Icons.search, size: 18),
+                    hintText: 'Filter subcategories',
+                  ),
+                  onChanged: (v) => setState(() => _filter = v),
+                ),
+              ),
+            for (final sub in visibleSubs)
+              ListTile(
+                key: ValueKey(sub.id),
+                contentPadding: const EdgeInsets.only(left: 32, right: 8),
+                title: Row(
+                  children: [
+                    if (widget.isSubDirty(sub)) _dirtyDot(),
+                    Flexible(
+                      child: _EditableLabel(
+                        value: sub.type,
+                        style: const TextStyle(fontSize: 13.5),
+                        onSave: (name) => widget.onRenameSub(sub, name),
+                      ),
+                    ),
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.isSubOverridden(sub))
+                      IconButton(
+                        icon: const Icon(Icons.settings_backup_restore, size: 18),
+                        tooltip: 'Reset to category default',
+                        onPressed: () => widget.onResetSub(sub),
+                      ),
+                    SegmentedButton<bool>(
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      segments: const [
+                        ButtonSegment(value: true, label: Text('Required')),
+                        ButtonSegment(value: false, label: Text('Not required')),
+                      ],
+                      selected: {widget.effectiveSubValue(sub)},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (selection) =>
+                          widget.onSubChanged(sub, selection.first),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: 'Delete subcategory',
+                      onPressed: () => widget.onDeleteSub(sub),
+                    ),
+                  ],
+                ),
+              ),
+            if (visibleSubs.isEmpty && widget.subcategories.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(32, 0, 16, 12),
+                child: Text('No subcategories match "$_filter".',
+                    style: const TextStyle(color: AppColors.mutedForeground, fontSize: 13)),
+              ),
+            if (widget.subcategories.isEmpty)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(32, 0, 16, 12),
+                child: Text('No subcategories yet.',
+                    style: TextStyle(color: AppColors.mutedForeground, fontSize: 13)),
+              ),
+            ListTile(
+              contentPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              dense: true,
+              leading: const Icon(Icons.add, size: 18, color: AppColors.primary),
+              title: const Text('Add Subcategory',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+              onTap: widget.onAddSubcategory,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Flat, filterable, fixed-height unit list -- a single scrollable card of
+/// rows rather than one card per unit, so it stays compact whether there
+/// are 5 units or 100.
+class _UnitManagementSection extends StatefulWidget {
+  const _UnitManagementSection();
+
+  @override
+  State<_UnitManagementSection> createState() => _UnitManagementSectionState();
+}
+
+class _UnitManagementSectionState extends State<_UnitManagementSection> {
+  final CatalogService _catalogService = CatalogService();
+  final _filterCtrl = TextEditingController();
+
+  bool _loading = true;
+  String? _error;
+  List<Unit> _units = [];
+  String _filter = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _filterCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final units = await _catalogService.fetchUnits();
+      if (!mounted) return;
+      setState(() {
+        _units = units;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not load units: $e';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _addUnit() async {
+    await _promptForUnit(
+      context: context,
+      title: 'Add Unit',
+      onSubmit: (name, abbr) => _catalogService.createUnit(name: name, abbrName: abbr),
+    );
+    await _load();
+  }
+
+  Future<void> _editUnit(Unit unit) async {
+    await _promptForUnit(
+      context: context,
+      title: 'Edit Unit',
+      initialName: unit.name,
+      initialAbbr: unit.abbrName,
+      onSubmit: (name, abbr) =>
+          _catalogService.renameUnit(id: unit.id, name: name, abbrName: abbr),
+    );
+    await _load();
+  }
+
+  Future<void> _deleteUnit(Unit unit) async {
+    final confirmed = await _confirmDelete(
+      context: context,
+      title: 'Delete unit?',
+      message: 'This will permanently delete "${unit.name}".',
+    );
+    if (!confirmed) return;
+    try {
+      await _catalogService.deleteUnit(unit.id);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('"${unit.name}" deleted.')));
+    } catch (e) {
+      if (!mounted) return;
+      await _showErrorDialog(context, title: 'Could not delete "${unit.name}"', error: e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) {
+      return Text(_error!, style: const TextStyle(color: AppColors.destructive));
+    }
+
+    final query = _filter.trim().toLowerCase();
+    final visible = query.isEmpty
+        ? _units
+        : _units
+            .where((u) =>
+                u.name.toLowerCase().contains(query) ||
+                u.abbrName.toLowerCase().contains(query))
+            .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SearchBar(
+                controller: _filterCtrl,
+                hintText: 'Filter units',
+                leading: const Icon(Icons.search, size: 20),
+                constraints: const BoxConstraints(minHeight: 44, maxHeight: 44),
+                onChanged: (v) => setState(() => _filter = v),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: _addUnit,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add Unit'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          child: Column(
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 420),
+                child: visible.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          query.isEmpty ? 'No units yet.' : 'No units match "$_filter".',
+                          style: const TextStyle(
+                              color: AppColors.mutedForeground, fontSize: 13),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: visible.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1, indent: 16),
+                        itemBuilder: (context, index) {
+                          final unit = visible[index];
+                          return ListTile(
+                            key: ValueKey(unit.id),
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.secondary,
+                              foregroundColor: AppColors.primary,
+                              child: Text(
+                                unit.abbrName.isNotEmpty
+                                    ? unit.abbrName[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            title: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(unit.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                                const SizedBox(width: 8),
+                                Chip(
+                                  label: Text(unit.abbrName),
+                                  labelStyle: const TextStyle(fontSize: 11.5),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 19),
+                                  tooltip: 'Rename',
+                                  onPressed: () => _editUnit(unit),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 20),
+                                  tooltip: 'Delete unit',
+                                  onPressed: () => _deleteUnit(unit),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                dense: true,
+                title: Text(
+                  query.isEmpty
+                      ? '${_units.length} unit${_units.length == 1 ? '' : 's'}'
+                      : '${visible.length} of ${_units.length} units',
+                  style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -585,6 +1059,35 @@ Future<void> _promptForName({
     } catch (e) {
       if (context.mounted) {
         await _showErrorDialog(context, title: 'Could not create "$name"', error: e);
+      }
+    }
+  }
+}
+
+/// Prompts for a unit's name + abbreviation via [_UnitDialog], then calls
+/// [onSubmit]. Used for both create and edit -- pass [initialName]/
+/// [initialAbbr] to pre-fill for edit.
+Future<void> _promptForUnit({
+  required BuildContext context,
+  required String title,
+  String? initialName,
+  String? initialAbbr,
+  required Future<void> Function(String name, String abbr) onSubmit,
+}) async {
+  final result = await showDialog<(String, String)>(
+    context: context,
+    builder: (dialogContext) => _UnitDialog(
+      title: title,
+      initialName: initialName,
+      initialAbbr: initialAbbr,
+    ),
+  );
+  if (result != null) {
+    try {
+      await onSubmit(result.$1, result.$2);
+    } catch (e) {
+      if (context.mounted) {
+        await _showErrorDialog(context, title: 'Could not save "${result.$1}"', error: e);
       }
     }
   }
@@ -647,6 +1150,77 @@ class _NameDialogState extends State<_NameDialog> {
         ElevatedButton(
           onPressed: _submit,
           child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog content for [_promptForUnit] -- name + abbreviation, matching
+/// [_NameDialog]'s controller-ownership pattern.
+class _UnitDialog extends StatefulWidget {
+  final String title;
+  final String? initialName;
+  final String? initialAbbr;
+
+  const _UnitDialog({required this.title, this.initialName, this.initialAbbr});
+
+  @override
+  State<_UnitDialog> createState() => _UnitDialogState();
+}
+
+class _UnitDialogState extends State<_UnitDialog> {
+  late final _nameCtrl = TextEditingController(text: widget.initialName ?? '');
+  late final _abbrCtrl = TextEditingController(text: widget.initialAbbr ?? '');
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _abbrCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop((_nameCtrl.text.trim(), _abbrCtrl.text.trim()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(widget.title),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _nameCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Unit name'),
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _abbrCtrl,
+              decoration: const InputDecoration(labelText: 'Abbreviation'),
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              onFieldSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: Text(widget.initialName == null ? 'Create' : 'Save'),
         ),
       ],
     );
@@ -744,232 +1318,6 @@ Future<void> _showErrorDialog(
       ],
     ),
   );
-}
-
-/// Collapsible per-primary-category card. Collapsed by default so a
-/// category with many subcategories (Medical has ~17 in the DAS Stock In/
-/// Out CSVs -- see updated_db.md's SUBCATEGORY note) doesn't force the whole
-/// Settings page into one long scroll; expanding reveals its subcategories,
-/// with an inline filter once there are enough to be worth searching rather
-/// than scanning.
-class _PrimaryCategoryCard extends StatefulWidget {
-  final PrimaryCategory category;
-  final bool effectiveRequiresExpiry;
-  final bool isDirty;
-  final List<Subcategory> subcategories;
-  final bool? Function(Subcategory sub) effectiveSubValue;
-  final bool Function(Subcategory sub) isSubDirty;
-  final ValueChanged<bool> onPrimaryChanged;
-  final void Function(Subcategory sub, bool? value) onSubChanged;
-  final Future<void> Function(String newName) onRenamePrimary;
-  final VoidCallback onDeletePrimary;
-  final VoidCallback onAddSubcategory;
-  final Future<void> Function(Subcategory sub, String newName) onRenameSub;
-  final void Function(Subcategory sub) onDeleteSub;
-
-  const _PrimaryCategoryCard({
-    required this.category,
-    required this.effectiveRequiresExpiry,
-    required this.isDirty,
-    required this.subcategories,
-    required this.effectiveSubValue,
-    required this.isSubDirty,
-    required this.onPrimaryChanged,
-    required this.onSubChanged,
-    required this.onRenamePrimary,
-    required this.onDeletePrimary,
-    required this.onAddSubcategory,
-    required this.onRenameSub,
-    required this.onDeleteSub,
-  });
-
-  @override
-  State<_PrimaryCategoryCard> createState() => _PrimaryCategoryCardState();
-}
-
-/// Above this many subcategories, an inline filter field is worth the extra
-/// row -- below it, scanning a short list is faster than typing.
-const int _kSubcategoryFilterThreshold = 6;
-
-class _PrimaryCategoryCardState extends State<_PrimaryCategoryCard> {
-  bool _expanded = false;
-  final _filterCtrl = TextEditingController();
-  String _filter = '';
-
-  @override
-  void dispose() {
-    _filterCtrl.dispose();
-    super.dispose();
-  }
-
-  static Widget _dirtyDot() => Container(
-        width: 8,
-        height: 8,
-        margin: const EdgeInsets.only(right: 8),
-        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    final visibleSubs = _filter.isEmpty
-        ? widget.subcategories
-        : widget.subcategories
-            .where((s) => s.type.toLowerCase().contains(_filter.toLowerCase()))
-            .toList();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: widget.isDirty ? AppColors.primary : AppColors.border,
-          width: widget.isDirty ? 1.5 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
-                tooltip: _expanded ? 'Collapse' : 'Expand',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() => _expanded = !_expanded),
-              ),
-              if (widget.isDirty) _dirtyDot(),
-              Expanded(
-                child: _EditableLabel(
-                  value: widget.category.type,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                  onSave: widget.onRenamePrimary,
-                ),
-              ),
-              if (widget.subcategories.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text('${widget.subcategories.length} sub'
-                      '${widget.subcategories.length == 1 ? '' : 's'}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
-                ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20),
-                tooltip: 'Delete category',
-                visualDensity: VisualDensity.compact,
-                onPressed: widget.onDeletePrimary,
-              ),
-            ],
-          ),
-          if (_expanded) ...[
-            const Divider(height: 24),
-            // Expiry requirement lives inside the expanded body, not the
-            // collapsed header -- it's a setting you go looking for, not
-            // identity info you need at a glance, so it doesn't need to
-            // compete with the name/count/delete row for space. Label
-            // indented to line up with the category name above it; switch
-            // pushed to the far right to line up with the delete icon.
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(left: 40),
-                    child: Text('Requires expiry date',
-                        style: TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
-                  ),
-                  const Spacer(),
-                  Switch(
-                      value: widget.effectiveRequiresExpiry, onChanged: widget.onPrimaryChanged),
-                ],
-              ),
-            ),
-            if (widget.subcategories.length > _kSubcategoryFilterThreshold) ...[
-              TextField(
-                controller: _filterCtrl,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  prefixIcon: Icon(Icons.search, size: 18),
-                  hintText: 'Filter subcategories',
-                ),
-                onChanged: (v) => setState(() => _filter = v),
-              ),
-              const SizedBox(height: 12),
-            ],
-            for (final sub in visibleSubs)
-              Padding(
-                key: ValueKey(sub.id),
-                padding: const EdgeInsets.only(left: 40, bottom: 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (widget.isSubDirty(sub)) _dirtyDot(),
-                        Expanded(
-                          child: _EditableLabel(
-                            value: sub.type,
-                            style: const TextStyle(fontSize: 13.5),
-                            onSave: (name) => widget.onRenameSub(sub, name),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          tooltip: 'Delete subcategory',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => widget.onDeleteSub(sub),
-                        ),
-                      ],
-                    ),
-                    // Own line, and horizontally scrollable as a last
-                    // resort -- three segments ("Inherit"/"Required"/"Not
-                    // required") don't shrink below their text width, so on
-                    // a narrow window this is the fallback that guarantees
-                    // no RenderFlex overflow instead of clipping content.
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SegmentedButton<bool?>(
-                          style: SegmentedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                          ),
-                          segments: const [
-                            ButtonSegment(value: null, label: Text('Inherit')),
-                            ButtonSegment(value: true, label: Text('Required')),
-                            ButtonSegment(value: false, label: Text('Not required')),
-                          ],
-                          selected: {widget.effectiveSubValue(sub)},
-                          showSelectedIcon: false,
-                          onSelectionChanged: (selection) =>
-                              widget.onSubChanged(sub, selection.first),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (visibleSubs.isEmpty && widget.subcategories.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('No subcategories match "$_filter".',
-                    style: const TextStyle(color: AppColors.mutedForeground, fontSize: 13)),
-              ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: widget.onAddSubcategory,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Subcategory'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
 /// Inline rename affordance: a label with a pencil icon that swaps to a

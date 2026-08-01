@@ -83,14 +83,40 @@ class SupabaseCatalogService implements CatalogService {
   }
 
   @override
-  Future<Unit> createUnit(String name) async {
+  Future<Unit> createUnit({required String name, required String abbrName}) async {
     final row = await _client
         .from('units')
-        .insert({'name': name, 'abbr_name': name})
+        .insert({'name': name, 'abbr_name': abbrName})
         .select('id, name, abbr_name')
         .single();
     DataChangeBus.instance.ping();
     return _mapUnit(row);
+  }
+
+  @override
+  Future<Unit> renameUnit({
+    required String id,
+    required String name,
+    required String abbrName,
+  }) async {
+    final row = await _client
+        .from('units')
+        .update({'name': name, 'abbr_name': abbrName})
+        .eq('id', id)
+        .select('id, name, abbr_name')
+        .single();
+    DataChangeBus.instance.ping();
+    return _mapUnit(row);
+  }
+
+  // Relies on the database's own foreign-key constraints (ITEM.purchase_unit
+  // / package_unit / dispense_unit -- see updated_db.md) to reject the
+  // delete with a PostgrestException when rows still reference it, same as
+  // deletePrimaryCategory/deleteSubcategory below.
+  @override
+  Future<void> deleteUnit(String id) async {
+    await _client.from('units').delete().eq('id', id);
+    DataChangeBus.instance.ping();
   }
 
   @override

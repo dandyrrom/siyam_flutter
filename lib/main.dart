@@ -42,12 +42,16 @@ Future<void> main() async {
   await auth.restoreSession();
 
   // Load the low-stock threshold before any page can read it via
-  // lowStockPurchaseUnitThreshold.
-  try {
-    final settings = await SettingsService().fetchSettings();
-    lowStockPurchaseUnitThreshold = settings.lowStockThreshold;
-  } catch (_) {
-    // Keep the default seeded above if settings can't be loaded.
+  // lowStockPurchaseUnitThreshold. Only attempt this when a session was
+  // restored: system_settings' RLS policies require the authenticated role,
+  // so an anon-role request here would just fail with a 406.
+  if (auth.isAuthenticated) {
+    try {
+      final settings = await SettingsService().fetchSettings();
+      lowStockPurchaseUnitThreshold = settings.lowStockThreshold;
+    } catch (_) {
+      // Keep the default seeded above if settings can't be loaded.
+    }
   }
 
   runApp(

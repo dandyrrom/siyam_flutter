@@ -21,7 +21,12 @@ abstract interface class CatalogService {
     required String pCategoryId,
     required String type,
   });
-  Future<Unit> createUnit(String name);
+  Future<Unit> createUnit({required String name, required String abbrName});
+  Future<Unit> renameUnit({required String id, required String name, required String abbrName});
+
+  /// Throws if any item still references this unit as its purchase, package,
+  /// or dispense unit -- reassign/remove those first.
+  Future<void> deleteUnit(String id);
 
   /// Sets whether items directly under this primary category require an
   /// expiry date at Stock In.
@@ -158,11 +163,44 @@ class MockCatalogService implements CatalogService {
   }
 
   @override
-  Future<Unit> createUnit(String name) async {
-    final unit = Unit(id: newMockId('unit'), name: name, abbrName: name);
+  Future<Unit> createUnit({required String name, required String abbrName}) async {
+    final unit = Unit(id: newMockId('unit'), name: name, abbrName: abbrName);
     _db.units.add(unit);
     DataChangeBus.instance.ping();
     return unit;
+  }
+
+  @override
+  Future<Unit> renameUnit({
+    required String id,
+    required String name,
+    required String abbrName,
+  }) async {
+    final index = _db.units.indexWhere((u) => u.id == id);
+    if (index == -1) throw Exception('Unit not found');
+    final updated = Unit(id: id, name: name, abbrName: abbrName);
+    _db.units[index] = updated;
+    DataChangeBus.instance.ping();
+    return updated;
+  }
+
+  @override
+  Future<void> deleteUnit(String id) async {
+    final index = _db.units.indexWhere((u) => u.id == id);
+    if (index == -1) throw Exception('Unit not found');
+    final blockingItems = _db.items
+        .where((i) =>
+            i.purchaseUnitId == id || i.packageUnitId == id || i.dispenseUnitId == id)
+        .map((i) => i.name)
+        .toList();
+    if (blockingItems.isNotEmpty) {
+      throw CategoryInUseException(
+        'This unit is still in use and cannot be deleted.',
+        blockingItemNames: blockingItems,
+      );
+    }
+    _db.units.removeAt(index);
+    DataChangeBus.instance.ping();
   }
 
   @override
