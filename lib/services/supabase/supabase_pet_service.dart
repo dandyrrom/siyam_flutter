@@ -18,7 +18,7 @@ class SupabasePetService implements PetService {
         breed: r['breed'] as String?,
         gender: petGenderFromString((r['gender'] as String?) ?? 'male'),
         spayedNeutered: (r['spayed_neutered'] as bool?) ?? false,
-        status: petStatusFromString((r['status'] as String?) ?? 'healthy'),
+        status: petStatusFromString((r['status'] as String?) ?? 'available'),
       );
 
   @override
@@ -34,7 +34,7 @@ class SupabasePetService implements PetService {
     required PetGender gender,
     String? breed,
     bool spayedNeutered = false,
-    PetStatus status = PetStatus.healthy,
+    PetStatus status = PetStatus.available,
   }) async {
     final row = await _client
         .from('pet')

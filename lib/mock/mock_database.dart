@@ -315,7 +315,7 @@ class MockDatabase {
         breed: 'Aspin',
         gender: PetGender.female,
         spayedNeutered: true,
-        status: PetStatus.healthy,
+        status: PetStatus.available,
       ),
       const Pet(
         petId: 'pet-whiskers',
@@ -333,7 +333,7 @@ class MockDatabase {
         breed: 'Aspin',
         gender: PetGender.male,
         spayedNeutered: true,
-        status: PetStatus.healthy,
+        status: PetStatus.available,
       ),
       const Pet(
         petId: 'pet-luna',

@@ -50,7 +50,7 @@ class MockPetService implements PetService {
     required PetGender gender,
     String? breed,
     bool spayedNeutered = false,
-    PetStatus status = PetStatus.healthy,
+    PetStatus status = PetStatus.available,
   }) async {
     final pet = Pet(
       petId: newMockId('pet'),

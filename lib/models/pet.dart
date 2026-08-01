@@ -28,34 +28,30 @@ PetGender petGenderFromString(String value) {
 
 String petGenderToString(PetGender gender) => gender.name;
 
-/// Mirrors the Postgres `pet_status` enum: 'under_treatment', 'healthy',
-/// 'adopted', 'deceased'.
-enum PetStatus { healthy, underTreatment, adopted, deceased }
+/// Mirrors the Postgres `pet_status` enum: 'available', 'adopted',
+/// 'under_treatment'.
+enum PetStatus { available, adopted, underTreatment }
 
 PetStatus petStatusFromString(String value) {
   switch (value) {
-    case 'under_treatment':
-      return PetStatus.underTreatment;
     case 'adopted':
       return PetStatus.adopted;
-    case 'deceased':
-      return PetStatus.deceased;
-    case 'healthy':
+    case 'under_treatment':
+      return PetStatus.underTreatment;
+    case 'available':
     default:
-      return PetStatus.healthy;
+      return PetStatus.available;
   }
 }
 
 String petStatusToString(PetStatus status) {
   switch (status) {
-    case PetStatus.healthy:
-      return 'healthy';
-    case PetStatus.underTreatment:
-      return 'under_treatment';
+    case PetStatus.available:
+      return 'available';
     case PetStatus.adopted:
       return 'adopted';
-    case PetStatus.deceased:
-      return 'deceased';
+    case PetStatus.underTreatment:
+      return 'under_treatment';
   }
 }
 
@@ -87,7 +83,7 @@ class Pet {
       breed: map['breed'] as String?,
       gender: petGenderFromString(map['gender'] as String? ?? 'male'),
       spayedNeutered: map['spayed_neutered'] as bool? ?? false,
-      status: petStatusFromString(map['status'] as String? ?? 'healthy'),
+      status: petStatusFromString(map['status'] as String? ?? 'available'),
     );
   }
 }
