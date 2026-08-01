@@ -474,7 +474,7 @@ class _AddItemPageState extends State<AddItemPage> {
                                   placeholder: 'Select donation type',
                                   options: const [
                                     AppDropdownOption(DonationType.walkIn, 'Walk-in'),
-                                    AppDropdownOption(DonationType.dropOff, 'Drop-off'),
+                                    AppDropdownOption(DonationType.dropOff, 'Dropped-off'),
                                   ],
                                   validator: (v) => v == null ? 'Required' : null,
                                   onChanged: (v) => setState(() => _donationType = v),
@@ -483,26 +483,26 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                   ],
                 ),
-                if (isDonated) ...[
+                if (isDonated && _donationType == DonationType.dropOff) ...[
                   const SizedBox(height: 12),
                   _selectedSubmission == null
                       ? SearchSelectField<DonationSubmission>(
-                          labelText: 'Submission ID (optional)',
+                          labelText: 'Submission ID *',
                           options: _linkableSubmissions,
                           displayStringForOption: (s) =>
                               '${s.subId} — ${s.donorName} — '
                               '${_formatDate(s.dateReceived!)}',
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? 'Required' : null,
                           onSelected: (s) => setState(() {
                             _selectedSubmission = s;
                             _donorNameCtrl.text = s.donorName;
-                            _donationType ??= DonationType.dropOff;
                           }),
                         )
                       : InputDecorator(
-                          decoration:
-                              const InputDecoration(labelText: 'Submission ID (optional)'),
+                          decoration: const InputDecoration(labelText: 'Submission ID *'),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: Text(_selectedSubmission!.subId,
@@ -514,23 +514,27 @@ class _AddItemPageState extends State<AddItemPage> {
                                   _selectedSubmission = null;
                                   _donorNameCtrl.clear();
                                 }),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                splashRadius: 14,
                               ),
                             ],
                           ),
                         ),
-                  if (_selectedSubmission == null) ...[
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Leave the submission link blank for a donor who isn\'t registered in '
-                      'SIYAM -- type their name below for your records only.',
-                      style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+                  const SizedBox(height: 12),
+                  InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Donor'),
+                    child: Text(
+                      _selectedSubmission?.donorName ?? '—',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                  ],
+                  ),
+                ],
+                if (isDonated && _donationType == DonationType.walkIn) ...[
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _donorNameCtrl,
-                    readOnly: _selectedSubmission != null,
-                    decoration: const InputDecoration(labelText: 'Donor Name (optional)'),
+                    decoration: const InputDecoration(labelText: 'Donated by (optional)'),
                   ),
                 ],
                 const SizedBox(height: 12),
