@@ -2,24 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/app_colors.dart';
 
-class _PublicTab {
-  final String label;
-  final String path;
-  const _PublicTab(this.label, this.path);
-}
-
-const _kPublicTabs = [
-  _PublicTab('Home', '/'),
-  _PublicTab('About DAS', '/about'),
-  _PublicTab('Donate', '/donate-info'),
-  _PublicTab('FAQs', '/faqs'),
-];
-
-/// Shared top navigation for every public page (landing, about, donate-info,
-/// FAQs, login, register) -- including the sign-in page itself, so it's the
-/// exact same full-width bar everywhere rather than a page-specific one.
-/// Collapses the tab strip into a menu below [_kNarrowBreakpoint] so it
-/// never overflows on small windows.
+/// Shared top navigation for the public login/register pages.
+/// Registration is disabled for now, so the Register action is shown
+/// greyed-out and non-interactive.
+/// Collapses to a menu below [_kNarrowBreakpoint] so it never overflows on
+/// small windows.
 class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String currentPath;
   const PublicNavBar({super.key, required this.currentPath});
@@ -48,22 +35,14 @@ class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
                     if (narrow) {
                       return Row(
                         children: [
-                          _Brand(onTap: () => context.go('/')),
+                          _Brand(onTap: () => context.go('/login')),
                           const Spacer(),
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.menu,
-                                color: AppColors.deepBrown),
-                            onSelected: (path) => context.go(path),
-                            itemBuilder: (context) => [
-                              for (final tab in _kPublicTabs)
-                                PopupMenuItem(
-                                    value: tab.path, child: Text(tab.label)),
-                              const PopupMenuDivider(),
-                              const PopupMenuItem(
-                                  value: '/register', child: Text('Register')),
-                              const PopupMenuItem(
-                                  value: '/login', child: Text('Sign In')),
-                            ],
+                          const _DisabledRegisterButton(),
+                          const SizedBox(width: 12),
+                          _NavTabButton(
+                            label: 'Sign In',
+                            active: _isActive('/login'),
+                            onTap: () => context.go('/login'),
                           ),
                         ],
                       );
@@ -73,53 +52,20 @@ class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
                         Expanded(
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: _Brand(onTap: () => context.go('/')),
+                            child: _Brand(onTap: () => context.go('/login')),
                           ),
                         ),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            for (final tab in _kPublicTabs)
-                              _NavTabButton(
-                                label: tab.label,
-                                active: _isActive(tab.path),
-                                onTap: () => context.go(tab.path),
-                              ),
-                          ],
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () => context.go('/register'),
-                                  style: TextButton.styleFrom(
-                                    backgroundColor: AppColors.cream,
-                                    foregroundColor: AppColors.deepBrown,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                      side: BorderSide(
-                                          color: AppColors.catGray
-                                              .withValues(alpha: 0.8)),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 22, vertical: 12),
-                                  ),
-                                  child: const Text('Register',
-                                      style: TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w600)),
-                                ),
-                                const SizedBox(width: 16),
-                                _NavTabButton(
-                                  label: 'Sign In',
-                                  active: _isActive('/login'),
-                                  onTap: () => context.go('/login'),
-                                ),
-                              ],
+                            const _DisabledRegisterButton(),
+                            const SizedBox(width: 16),
+                            _NavTabButton(
+                              label: 'Sign In',
+                              active: _isActive('/login'),
+                              onTap: () => context.go('/login'),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     );
@@ -167,6 +113,32 @@ class _Brand extends StatelessWidget {
                     color: AppColors.deepBrown)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Registration is disabled system-wide for now; shown greyed-out and
+/// non-interactive rather than removed outright.
+class _DisabledRegisterButton extends StatelessWidget {
+  const _DisabledRegisterButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.cream.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+              color: AppColors.catGray.withValues(alpha: 0.4)),
+        ),
+        child: Text('Register',
+            style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.deepBrown.withValues(alpha: 0.4))),
       ),
     );
   }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../models/app_user.dart';
 import '../models/inventory_item.dart';
 import '../services/dashboard_service.dart';
 import '../services/expiry_alerts.dart';
 import '../services/inventory_service.dart';
+import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/notification_alerts.dart';
 
@@ -111,6 +114,7 @@ class _NotificationDetailPageState extends State<NotificationDetailPage>
     }
 
     final item = _item!;
+    final isManager = context.watch<AuthController>().profile?.role == AppRole.manager;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 640),
@@ -143,15 +147,17 @@ class _NotificationDetailPageState extends State<NotificationDetailPage>
               children: _detailRows(item),
             ),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => context.push('/inventory/${item.itemId}'),
-              icon: const Icon(Icons.inventory_2_outlined, size: 16),
-              label: const Text('View Full Item Details'),
+          if (!isManager) ...[
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/inventory/${item.itemId}'),
+                icon: const Icon(Icons.inventory_2_outlined, size: 16),
+                label: const Text('View Full Item Details'),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

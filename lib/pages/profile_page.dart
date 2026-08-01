@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../core/validators.dart';
 import '../models/app_user.dart';
 import '../state/auth_state.dart';
 
@@ -61,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage>
           // TITLE: Responsive
           // ============================================================
           Text(
-            isMobile ? 'Profile' : 'Profile & Settings',
+            isMobile ? 'Profile' : 'Profile Settings',
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
@@ -354,6 +356,7 @@ class _ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<_ProfileTab> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _firstName;
   late final TextEditingController _lastName;
   late final TextEditingController _phone;
@@ -385,6 +388,15 @@ class _ProfileTabState extends State<_ProfileTab> {
   }
 
   Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await _confirmChanges(
+      context: context,
+      title: 'Save profile changes?',
+      message: 'This will update your personal information.',
+    );
+    if (!confirmed || !mounted) return;
+
     final auth = context.read<AuthController>();
     final success = await auth.updateProfile(
       firstName: _firstName.text.trim(),
@@ -408,7 +420,9 @@ class _ProfileTabState extends State<_ProfileTab> {
 
     return _CardSection(
       title: 'Personal Information',
-      child: Column(
+      child: Form(
+        key: _formKey,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ============================================================
@@ -471,6 +485,10 @@ class _ProfileTabState extends State<_ProfileTab> {
                       label: 'Phone Number',
                       icon: Icons.phone_outlined,
                       controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: phoneInputFormatters,
+                      hintText: '09XXXXXXXXX',
+                      validator: validatePhoneNumber,
                     ),
                   ],
                 )
@@ -493,6 +511,10 @@ class _ProfileTabState extends State<_ProfileTab> {
                         label: 'Phone Number',
                         icon: Icons.phone_outlined,
                         controller: _phone,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: phoneInputFormatters,
+                        hintText: '09XXXXXXXXX',
+                        validator: validatePhoneNumber,
                       ),
                     ),
                   ],
@@ -518,6 +540,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -552,6 +575,14 @@ class _SecurityTabState extends State<_SecurityTab> {
 
   Future<void> _updatePassword() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await _confirmChanges(
+      context: context,
+      title: 'Change your password?',
+      message: 'You will need to use the new password next time you sign in.',
+    );
+    if (!confirmed || !mounted) return;
+
     final auth = context.read<AuthController>();
     final success = await auth.changePassword(
       currentPassword: _current.text,
@@ -594,6 +625,7 @@ class _SecurityTabState extends State<_SecurityTab> {
                     icon: Icons.lock_outline,
                     controller: _current,
                     obscure: true,
+                    hintText: 'Enter your current password',
                     validator: (v) =>
                         (v == null || v.isEmpty) ? 'Required' : null,
                   ),
@@ -603,9 +635,8 @@ class _SecurityTabState extends State<_SecurityTab> {
                     icon: Icons.lock_outline,
                     controller: _newPassword,
                     obscure: true,
-                    validator: (v) => (v == null || v.length < 6)
-                        ? 'At least 6 characters'
-                        : null,
+                    hintText: 'At least 8 characters, A-Z, a-z, 0-9, symbol',
+                    validator: validatePassword,
                   ),
                   const SizedBox(height: 14),
                   _LabeledField(
@@ -613,6 +644,7 @@ class _SecurityTabState extends State<_SecurityTab> {
                     icon: Icons.lock_outline,
                     controller: _confirm,
                     obscure: true,
+                    hintText: 'Re-enter your new password',
                     validator: (v) => (v != _newPassword.text)
                         ? 'Passwords do not match'
                         : null,
@@ -678,13 +710,45 @@ class _CardSection extends StatelessWidget {
   }
 }
 
-class _LabeledField extends StatelessWidget {
+/// Confirmation prompt shown before any Profile Settings change is applied
+/// (personal info save, password change), so a user can back out of an
+/// accidental submit.
+Future<bool> _confirmChanges({
+  required BuildContext context,
+  required String title,
+  required String message,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Confirm'),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
+}
+
+class _LabeledField extends StatefulWidget {
   final String label;
   final IconData icon;
   final TextEditingController controller;
   final bool enabled;
   final bool obscure;
   final String? helperText;
+  final String? hintText;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
 
   const _LabeledField({
@@ -694,30 +758,57 @@ class _LabeledField extends StatelessWidget {
     this.enabled = true,
     this.obscure = false,
     this.helperText,
+    this.hintText,
+    this.keyboardType,
+    this.inputFormatters,
     this.validator,
   });
+
+  @override
+  State<_LabeledField> createState() => _LabeledFieldState();
+}
+
+class _LabeledFieldState extends State<_LabeledField> {
+  // Starts obscured for password fields; toggled via the trailing eye icon.
+  late bool _hidden = widget.obscure;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        Text(widget.label,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         TextFormField(
-          controller: controller,
-          enabled: enabled,
-          obscureText: obscure,
-          validator: validator,
+          controller: widget.controller,
+          enabled: widget.enabled,
+          obscureText: widget.obscure && _hidden,
+          keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
+          validator: widget.validator,
           style: TextStyle(
-              color:
-                  enabled ? AppColors.foreground : AppColors.mutedForeground),
+              color: widget.enabled
+                  ? AppColors.foreground
+                  : AppColors.mutedForeground),
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, size: 16, color: AppColors.mutedForeground),
-            helperText: helperText,
+            prefixIcon:
+                Icon(widget.icon, size: 16, color: AppColors.mutedForeground),
+            suffixIcon: widget.obscure
+                ? IconButton(
+                    icon: Icon(
+                      _hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 18,
+                      color: AppColors.mutedForeground,
+                    ),
+                    onPressed: () => setState(() => _hidden = !_hidden),
+                  )
+                : null,
+            hintText: widget.hintText,
+            helperText: widget.helperText,
             filled: true,
-            fillColor: enabled ? AppColors.inputBackground : AppColors.muted,
+            fillColor:
+                widget.enabled ? AppColors.inputBackground : AppColors.muted,
           ),
         ),
       ],

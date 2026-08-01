@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
+import '../core/validators.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
@@ -70,19 +70,6 @@ class _SuppliersPageState extends State<SuppliersPage>
   List<PurchaseOrder> _ordersFor(String suppId) =>
       _allOrders.where((o) => o.suppId == suppId).toList();
 
-  String? _validatePhoneNumber(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return null; // Optional field
-    }
-    if (!RegExp(r'^\d+$').hasMatch(value.trim())) {
-      return 'Only numbers are allowed';
-    }
-    if (value.trim().length != 11) {
-      return 'Phone number must be exactly 11 digits';
-    }
-    return null;
-  }
-
   void _showSuccessSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -135,18 +122,15 @@ class _SuppliersPageState extends State<SuppliersPage>
                   TextFormField(
                     controller: contactCtrl,
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(11),
-                    ],
+                    inputFormatters: phoneInputFormatters,
                     maxLength: 11,
                     decoration: const InputDecoration(
                       labelText: 'Contact number (optional)',
                       hintText: '09XXXXXXXXX',
-                      helperText: 'Enter exactly 11 digits',
+                      helperText: 'Enter exactly 11 digits, starting with 09',
                       counterText: '',
                     ),
-                    validator: _validatePhoneNumber,
+                    validator: validatePhoneNumber,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(

@@ -249,158 +249,6 @@ class _AddItemPageState extends State<AddItemPage> {
     setState(() => _lines.remove(line));
   }
 
-  Future<void> _openAddSupplierDialog() async {
-    final nameCtrl = TextEditingController();
-    final contactCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    final created = await showDialog<Supplier>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add Supplier'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Supplier name'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: contactCtrl,
-                  decoration: const InputDecoration(labelText: 'Contact number (optional)'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: addressCtrl,
-                  decoration: const InputDecoration(labelText: 'Address (optional)'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              try {
-                final supplier = await _supplierService.createSupplier(
-                  suppName: nameCtrl.text.trim(),
-                  contactNum: contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
-                  address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
-                );
-                if (!context.mounted) return;
-                Navigator.of(context).pop(supplier);
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Could not add supplier: $e')));
-              }
-            },
-            child: const Text('Add Supplier'),
-          ),
-        ],
-      ),
-    );
-
-    if (created != null) {
-      setState(() {
-        _suppliers = [..._suppliers, created];
-        _selectedSupplier = created;
-      });
-    }
-  }
-
-  /// Generic "type a name, add it" dialog used for creating a new category
-  /// or unit inline, mirroring [_openAddSupplierDialog].
-  Future<String?> _promptForText(String title, String label) async {
-    final ctrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: ctrl,
-            autofocus: true,
-            decoration: InputDecoration(labelText: label),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.of(context).pop(ctrl.text.trim());
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _addPrimaryCategory(_StockInLineItem line) async {
-    final name = await _promptForText('Add Category', 'Category name');
-    if (name == null) return;
-    final created = await _catalogService.createPrimaryCategory(name);
-    if (!mounted) return;
-    setState(() {
-      _primaryCategories = [..._primaryCategories, created];
-      line.selectedPCategory = created;
-      line.pCategoryCtrl.text = created.type;
-      line.selectedSCategory = null;
-      line.sCategoryCtrl.clear();
-    });
-  }
-
-  Future<void> _addSubcategory(_StockInLineItem line) async {
-    if (line.selectedPCategory == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select a category first.')));
-      return;
-    }
-    final name = await _promptForText('Add Subcategory', 'Subcategory name');
-    if (name == null) return;
-    final created = await _catalogService.createSubcategory(
-      pCategoryId: line.selectedPCategory!.id,
-      type: name,
-    );
-    if (!mounted) return;
-    setState(() {
-      _subcategories = [..._subcategories, created];
-      line.selectedSCategory = created;
-      line.sCategoryCtrl.text = created.type;
-    });
-  }
-
-  Future<void> _addUnit(
-    _StockInLineItem line,
-    TextEditingController targetCtrl,
-    void Function(Unit) assign,
-  ) async {
-    final name = await _promptForText('Add Unit', 'Unit name (e.g. Milliliter, Tablet, Box)');
-    if (name == null) return;
-    final created = await _catalogService.createUnit(name);
-    if (!mounted) return;
-    setState(() {
-      _units = [..._units, created];
-      assign(created);
-      targetCtrl.text = created.name;
-    });
-  }
-
   /// Fills "Received by" with the logged-in user's first name -- for staff
   /// recording a stock-in they physically received themselves, rather than
   /// on someone else's behalf.
@@ -617,10 +465,6 @@ class _AddItemPageState extends State<AddItemPage> {
                               options: _suppliers,
                               displayStringForOption: (s) => s.suppName,
                               initialText: _selectedSupplier?.suppName,
-                              onAddNew: () {
-                                Navigator.of(context).maybePop();
-                                _openAddSupplierDialog();
-                              },
                               onSelected: (s) => setState(() => _selectedSupplier = s),
                             )
                           : isDonated
@@ -745,14 +589,6 @@ class _AddItemPageState extends State<AddItemPage> {
                     showRemove: _lines.length > 1,
                     onRemove: () => _removeLine(line),
                     onChanged: () => setState(() {}),
-                    onAddPrimaryCategory: () => _addPrimaryCategory(line),
-                    onAddSubcategory: () => _addSubcategory(line),
-                    onAddPurchaseUnit: () => _addUnit(
-                        line, line.purchaseUnitCtrl, (u) => line.selectedPurchaseUnit = u),
-                    onAddPackageUnit: () => _addUnit(
-                        line, line.packageUnitCtrl, (u) => line.selectedPackageUnit = u),
-                    onAddDispenseUnit: () => _addUnit(
-                        line, line.dispenseUnitCtrl, (u) => line.selectedDispenseUnit = u),
                   ),
                 if (widget.itemId == null)
                   TextButton.icon(
@@ -801,11 +637,6 @@ class _ItemDetailsBlock extends StatelessWidget {
   final bool showRemove;
   final VoidCallback onRemove;
   final VoidCallback onChanged;
-  final VoidCallback onAddPrimaryCategory;
-  final VoidCallback onAddSubcategory;
-  final VoidCallback onAddPurchaseUnit;
-  final VoidCallback onAddPackageUnit;
-  final VoidCallback onAddDispenseUnit;
 
   const _ItemDetailsBlock({
     super.key,
@@ -818,18 +649,13 @@ class _ItemDetailsBlock extends StatelessWidget {
     required this.showRemove,
     required this.onRemove,
     required this.onChanged,
-    required this.onAddPrimaryCategory,
-    required this.onAddSubcategory,
-    required this.onAddPurchaseUnit,
-    required this.onAddPackageUnit,
-    required this.onAddDispenseUnit,
   });
 
   @override
   Widget build(BuildContext context) {
     final existing = line.existingItem;
     final subcategoryOptions = line.selectedPCategory == null
-        ? const <Subcategory>[]
+        ? subcategories
         : subcategories.where((s) => s.pCategoryId == line.selectedPCategory!.id).toList();
     final expiryRequired = _resolveExpiryRequired(line, primaryCategories, subcategories);
 
@@ -910,7 +736,6 @@ class _ItemDetailsBlock extends StatelessWidget {
                     options: primaryCategories,
                     displayStringForOption: (c) => c.type,
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    onAddNew: onAddPrimaryCategory,
                     onSelected: (c) {
                       line.selectedPCategory = c;
                       line.selectedSCategory = null;
@@ -926,9 +751,16 @@ class _ItemDetailsBlock extends StatelessWidget {
                     controller: line.sCategoryCtrl,
                     options: subcategoryOptions,
                     displayStringForOption: (s) => s.type,
-                    onAddNew: onAddSubcategory,
                     onSelected: (s) {
                       line.selectedSCategory = s;
+                      if (line.selectedPCategory == null) {
+                        final parent = primaryCategories
+                            .where((c) => c.id == s.pCategoryId);
+                        if (parent.isNotEmpty) {
+                          line.selectedPCategory = parent.first;
+                          line.pCategoryCtrl.text = parent.first.type;
+                        }
+                      }
                       onChanged();
                     },
                   ),
@@ -942,7 +774,6 @@ class _ItemDetailsBlock extends StatelessWidget {
               options: units,
               displayStringForOption: (u) => u.name,
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              onAddNew: onAddPurchaseUnit,
               onSelected: (u) {
                 line.selectedPurchaseUnit = u;
                 onChanged();
@@ -964,7 +795,6 @@ class _ItemDetailsBlock extends StatelessWidget {
                     controller: line.packageUnitCtrl,
                     options: units,
                     displayStringForOption: (u) => u.name,
-                    onAddNew: onAddPackageUnit,
                     onSelected: (u) {
                       line.selectedPackageUnit = u;
                       onChanged();
@@ -988,7 +818,6 @@ class _ItemDetailsBlock extends StatelessWidget {
               controller: line.dispenseUnitCtrl,
               options: units,
               displayStringForOption: (u) => u.name,
-              onAddNew: onAddDispenseUnit,
               onSelected: (u) {
                 line.selectedDispenseUnit = u;
                 onChanged();

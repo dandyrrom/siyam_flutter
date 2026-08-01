@@ -69,7 +69,7 @@ class _NotificationBellState extends State<NotificationBell>
 
   void _viewAll() {
     closeDropdown();
-    context.push('/notifications');
+    context.go('/notifications');
   }
 
   @override
