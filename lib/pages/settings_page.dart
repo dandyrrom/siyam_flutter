@@ -65,6 +65,30 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Save settings?'),
+        content: const Text(
+          'This updates the app-wide low stock threshold and expiration '
+          'warning window.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
     setState(() => _saving = true);
     try {
       final settings = await _service.updateSettings(
@@ -168,7 +192,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                           width: 16,
                                           child: CircularProgressIndicator(strokeWidth: 2),
                                         )
-                                      : const Text('Save Settings'),
+                                      : const Text('Save'),
                                 ),
                               ),
                             ],
