@@ -440,6 +440,7 @@ class SupabaseInventoryService implements InventoryService {
   Future<List<StockMovement>> fetchStockHistory(String itemId) async {
     final item = await fetchItem(itemId);
     final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
+    final packageUnitAbbr = item?.packageUnitAbbr ?? purchaseUnitAbbr;
     final users = await _userNameMap();
     final units = await _map('units', 'abbr_name');
     final movements = <StockMovement>[];
@@ -464,7 +465,7 @@ class SupabaseInventoryService implements InventoryService {
 
     final donationRows = await _client
         .from('donation_item')
-        .select('qty, dntid, donation(id, receiveddate, recordedby)')
+        .select('qty, qty_unit, dntid, donation(id, receiveddate, recordedby)')
         .eq('itemid', itemId);
     for (final r in donationRows) {
       final donation = r['donation'] as Map<String, dynamic>?;
@@ -474,7 +475,7 @@ class SupabaseInventoryService implements InventoryService {
         date: DateTime.parse(donation['receiveddate'] as String),
         direction: StockDirection.stockIn,
         qty: _toDouble(r['qty']) ?? 0,
-        unitAbbr: purchaseUnitAbbr,
+        unitAbbr: r['qty_unit'] == 'package_unit' ? packageUnitAbbr : purchaseUnitAbbr,
         typeLabel: 'Donated',
         recordedByName: users[donation['recordedby']] ?? 'Unknown user',
       ));

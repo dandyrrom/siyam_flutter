@@ -498,8 +498,9 @@ class _AddItemPageState extends State<AddItemPage> {
                           displayStringForOption: (s) =>
                               '${s.subId} — ${s.donorName} — '
                               '${_formatDate(s.dateReceived!)}',
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          validator: (v) => _selectedSubmission == null
+                              ? 'Select a submission from the list'
+                              : null,
                           onSelected: (s) => setState(() {
                             _selectedSubmission = s;
                             _donorNameCtrl.text = s.donorName;

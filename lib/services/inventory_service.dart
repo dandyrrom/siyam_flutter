@@ -379,6 +379,7 @@ class MockInventoryService implements InventoryService {
   Future<List<StockMovement>> fetchStockHistory(String itemId) async {
     final item = await fetchItem(itemId);
     final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
+    final packageUnitAbbr = item?.packageUnitAbbr ?? purchaseUnitAbbr;
     final movements = <StockMovement>[];
 
     for (final row in _db.purchaseItems.where((p) => p.itemId == itemId)) {
@@ -404,7 +405,7 @@ class MockInventoryService implements InventoryService {
         date: donation.receivedDate,
         direction: StockDirection.stockIn,
         qty: row.qty,
-        unitAbbr: purchaseUnitAbbr,
+        unitAbbr: row.qtyUnit == QtyUnit.packageUnit ? packageUnitAbbr : purchaseUnitAbbr,
         typeLabel: 'Donated',
         recordedByName: _userName(donation.recordedByUserId),
       ));
