@@ -33,6 +33,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
   final formKey = GlobalKey<FormState>();
   String reason = 'Waste';
   InventoryItem? selectedItem = item;
+  bool isSubmitting = false;
 
   return showDialog<(InventoryItem, double)?>(
     context: context,
@@ -113,37 +114,50 @@ Future<(InventoryItem, double)?> showStockOutDialog(
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final target = selectedItem;
-              if (target == null) return;
+            onPressed: isSubmitting
+                ? null
+                : () async {
+                    if (!formKey.currentState!.validate()) return;
+                    final target = selectedItem;
+                    if (target == null) return;
 
-              if (reason == 'Treatment') {
-                Navigator.of(context).pop((target, 1.0));
-                return;
-              }
+                    if (reason == 'Treatment') {
+                      Navigator.of(context).pop((target, 1.0));
+                      return;
+                    }
 
-              final qty = double.parse(qtyCtrl.text);
+                    final qty = double.parse(qtyCtrl.text);
 
-              try {
-                await service.stockOut(
-                  itemId: target.itemId,
-                  qty: qty,
-                  reason: stockOutReasonFromString(reason.toLowerCase()),
-                  recordedByUserId: recordedByUserId,
-                );
-                if (!context.mounted) return;
-                Navigator.of(context).pop();
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(e.toString())));
-              }
-            },
-            child: Text(reason == 'Treatment' ? 'Proceed' : 'Save'),
+                    setDialogState(() => isSubmitting = true);
+                    try {
+                      await service.stockOut(
+                        itemId: target.itemId,
+                        qty: qty,
+                        reason: stockOutReasonFromString(reason.toLowerCase()),
+                        recordedByUserId: recordedByUserId,
+                      );
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop();
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      setDialogState(() => isSubmitting = false);
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(e.toString())));
+                    }
+                  },
+            child: isSubmitting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : Text(reason == 'Treatment' ? 'Proceed' : 'Save'),
           ),
         ],
       ),
