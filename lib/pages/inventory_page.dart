@@ -229,85 +229,123 @@ class _InventoryPageState extends State<InventoryPage>
   }
 
   // ============================================================
-  // MOBILE: Show action bottom sheet when card is tapped
+  // MOBILE: Show action dialog in the middle of the screen
   // ============================================================
-  void _showActionSheet(BuildContext context, InventoryItem item) {
-    showModalBottomSheet(
+  void _showActionDialog(BuildContext context, InventoryItem item) {
+    showDialog(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.mutedForeground,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      barrierDismissible: true,
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
             ),
-            const SizedBox(height: 16),
-            // Item name
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                item.itemName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.mutedForeground,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Stock info
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                '${formatQty(item.displayStockQty)} ${item.displayStockUnit} • ${item.pCategoryName}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.mutedForeground,
+                const SizedBox(height: 16),
+                // Item name
+                Text(
+                  item.itemName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-              ),
+                const SizedBox(height: 8),
+                // Stock info
+                Text(
+                  '${formatQty(item.displayStockQty)} ${item.displayStockUnit} • ${item.pCategoryName}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mutedForeground,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                // Action buttons - compact
+                _buildActionTile(
+                  icon: Icons.arrow_upward,
+                  iconColor: AppColors.primary,
+                  label: 'Stock In',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/inventory/add?itemId=${item.itemId}');
+                  },
+                ),
+                _buildActionTile(
+                  icon: Icons.arrow_downward,
+                  iconColor: AppColors.warning,
+                  label: 'Stock Out',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openStockOutDialog(item: item);
+                  },
+                ),
+                _buildActionTile(
+                  icon: Icons.visibility,
+                  iconColor: AppColors.mutedForeground,
+                  label: 'View Details',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/inventory/${item.itemId}');
+                  },
+                ),
+                const SizedBox(height: 4),
+                // Close button
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 36),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const Divider(height: 1),
-            // Action buttons
-            ListTile(
-              leading: const Icon(Icons.arrow_upward, color: AppColors.primary),
-              title: const Text('Stock In'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/inventory/add?itemId=${item.itemId}');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.arrow_downward, color: AppColors.warning),
-              title: const Text('Stock Out'),
-              onTap: () {
-                Navigator.pop(context);
-                _openStockOutDialog(item: item);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.visibility, color: AppColors.mutedForeground),
-              title: const Text('View Details'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/inventory/${item.itemId}');
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: Icon(icon, color: iconColor, size: 20),
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 15),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
     );
   }
 
@@ -811,10 +849,10 @@ class _InventoryPageState extends State<InventoryPage>
                         }
 
                         // ============================================================
-                        // MOBILE: Card layout - Clickable card opens action sheet
+                        // MOBILE: Card layout - Clickable card opens action dialog
                         // ============================================================
                         return InkWell(
-                          onTap: () => _showActionSheet(context, item),
+                          onTap: () => _showActionDialog(context, item),
                           borderRadius: BorderRadius.circular(12),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
