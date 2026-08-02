@@ -143,6 +143,8 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                         recordedByUserId: recordedByUserId,
                       );
                       if (!context.mounted) return;
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(const SnackBar(content: Text('Stock out recorded successfully.')));
                       Navigator.of(context).pop();
                     } catch (e) {
                       if (!context.mounted) return;

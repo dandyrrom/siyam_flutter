@@ -457,6 +457,8 @@ class _AddItemPageState extends State<AddItemPage> {
       }
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Stock in recorded successfully.')));
       context.pop();
     } catch (e) {
       if (!mounted) return;
