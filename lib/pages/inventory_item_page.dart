@@ -11,7 +11,6 @@ import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
-import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 import '../widgets/stock_out_dialog.dart';
 
@@ -189,38 +188,6 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     _load();
   }
 
-  Future<void> _confirmDelete() async {
-    final item = _item;
-    if (item == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete item?'),
-        content: Text('This will permanently remove "${item.itemName}" from inventory.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-  try {
-    await _service.deleteItem(item.itemId);
-    if (!mounted) return;
-    context.go('/inventory');
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Could not delete item: $e')));
-  }
-}
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -256,45 +223,27 @@ class _InventoryItemPageState extends State<InventoryItemPage>
             style: TextButton.styleFrom(foregroundColor: AppColors.mutedForeground),
           ),
           const SizedBox(height: 8),
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: (outOfStock ? AppColors.destructive : AppColors.roleManager)
-                            .withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        outOfStock ? 'Out of Stock' : 'In Stock',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: outOfStock ? AppColors.destructive : AppColors.roleManager,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(item.itemName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                  ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (outOfStock ? AppColors.destructive : AppColors.roleManager)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  outOfStock ? 'Out of Stock' : 'In Stock',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: outOfStock ? AppColors.destructive : AppColors.roleManager,
+                  ),
                 ),
               ),
-              AppMenuButton<String>(
-                options: const [AppDropdownOption('delete', 'Delete item')],
-                onSelected: (v) {
-                  if (v == 'delete') _confirmDelete();
-                },
-                triggerBuilder: (context, isOpen) => const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(Icons.more_vert, size: 20),
-                ),
-              ),
+              const SizedBox(height: 8),
+              Text(item.itemName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             ],
           ),
           const SizedBox(height: 20),
