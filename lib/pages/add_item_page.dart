@@ -44,6 +44,11 @@ class _StockInLineItem {
   /// re-specified here.
   InventoryItem? matchedExistingItem;
 
+  /// Bumped when a matched selection is undone, forcing the Name field to
+  /// remount with a fresh RawAutocomplete/focus state -- otherwise the
+  /// dropdown stays closed until the user types or erases a character.
+  int nameFieldEpoch = 0;
+
   bool get isExistingItem => lockedItem != null || matchedExistingItem != null;
   InventoryItem? get existingItem => lockedItem ?? matchedExistingItem;
 
@@ -715,15 +720,32 @@ class _ItemDetailsBlock extends StatelessWidget {
                   ),
                   Text('Current: ${formatQty(existing.stockQty)} ${existing.itemUom}',
                       style: const TextStyle(fontSize: 12.5)),
+                  // Only offer to undo a name-typed match (line.lockedItem) --
+                  // an item reached via the Inventory row's "Stock In" action
+                  // was explicitly chosen, so it stays locked.
+                  if (line.lockedItem == null)
+                    IconButton(
+                      onPressed: () {
+                        line.matchedExistingItem = null;
+                        line.nameCtrl.clear();
+                        line.nameFieldEpoch++;
+                        onChanged();
+                      },
+                      icon: const Icon(Icons.close, size: 18),
+                      tooltip: 'Undo selection',
+                      splashRadius: 16,
+                    ),
                 ],
               ),
             )
           else ...[
             SearchSelectField<InventoryItem>(
+              key: ValueKey('name_${line.nameFieldEpoch}'),
               labelText: 'Name',
               controller: line.nameCtrl,
               options: allItems,
               displayStringForOption: (i) => i.itemName,
+              autofocus: line.nameFieldEpoch > 0,
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               onTextChanged: (text) {
                 final match = allItems

@@ -21,6 +21,7 @@ class SearchSelectField<T extends Object> extends StatefulWidget {
   final VoidCallback? onAddNew;
   final String addNewLabel;
   final String? Function(String?)? validator;
+  final bool autofocus;
 
   const SearchSelectField({
     super.key,
@@ -34,6 +35,7 @@ class SearchSelectField<T extends Object> extends StatefulWidget {
     this.onAddNew,
     this.addNewLabel = '+ Add new',
     this.validator,
+    this.autofocus = false,
   });
 
   @override
@@ -69,6 +71,7 @@ class _SearchSelectFieldState<T extends Object> extends State<SearchSelectField<
         return TextFormField(
           controller: controller,
           focusNode: focusNode,
+          autofocus: widget.autofocus,
           decoration: InputDecoration(labelText: widget.labelText),
           validator: widget.validator,
           onChanged: widget.onTextChanged,
