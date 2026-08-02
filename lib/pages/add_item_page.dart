@@ -53,6 +53,11 @@ class _StockInLineItem {
   Unit? selectedPackageUnit;
   Unit? selectedDispenseUnit;
 
+  /// Staff-chosen display mode for the new item's stock figure -- only
+  /// meaningful when [selectedPackageUnit] is set. Null lets
+  /// [InventoryItem.effectiveCountMode] fall back to its default.
+  StockCountMode? selectedStockCountMode;
+
   /// Which unit [qtyCtrl]/[costCtrl] are entered in for this stock-in line.
   /// Only ever [QtyUnit.packageUnit] when the target item actually has a
   /// package breakdown -- see [hasPackageBreakdown].
@@ -328,6 +333,7 @@ class _AddItemPageState extends State<AddItemPage> {
               ? null
               : double.parse(line.packageQuantityCtrl.text.trim()),
           dispenseUnitId: (line.selectedDispenseUnit ?? line.selectedPackageUnit)?.id,
+          stockCountMode: line.selectedStockCountMode,
         );
         resolvedItemIds.add(newItem.itemId);
       }
@@ -827,6 +833,24 @@ class _ItemDetailsBlock extends StatelessWidget {
                 onChanged();
               },
             ),
+            if (line.selectedPackageUnit != null) ...[
+              const SizedBox(height: 12),
+              AppDropdownField<StockCountMode>(
+                label: 'Stock Count Mode',
+                initialValue: line.selectedStockCountMode,
+                placeholder: 'Default',
+                options: [
+                  AppDropdownOption(StockCountMode.packageUnit,
+                      'By package unit (${line.packageUnitCtrl.text})'),
+                  AppDropdownOption(StockCountMode.purchaseUnit,
+                      'By purchase unit (${line.purchaseUnitCtrl.text})'),
+                ],
+                onChanged: (m) {
+                  line.selectedStockCountMode = m;
+                  onChanged();
+                },
+              ),
+            ],
           ],
           if (line.hasPackageBreakdown) ...[
             const SizedBox(height: 12),

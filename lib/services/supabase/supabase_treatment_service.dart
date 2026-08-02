@@ -60,7 +60,7 @@ class SupabaseTreatmentService implements TreatmentService {
       final treatId = r['id'] as String;
       final first = firstItem[treatId];
       final recordedBy = r['recordedby'] as String;
-      final loggedDate = DateTime.parse(r['recordeddate'] as String);
+      final loggedDate = DateTime.parse(r['recordeddate'] as String).toLocal();
       return TreatmentRecord(
         treatId: treatId,
         petId: r['petid'] as String,
@@ -74,7 +74,7 @@ class SupabaseTreatmentService implements TreatmentService {
         notes: r['notes'] as String?,
         recDate: first?['consumeddate'] == null
             ? loggedDate
-            : DateTime.parse(first!['consumeddate'] as String),
+            : DateTime.parse(first!['consumeddate'] as String).toLocal(),
         loggedDate: loggedDate,
       );
     }).toList();
@@ -102,10 +102,10 @@ class SupabaseTreatmentService implements TreatmentService {
         dispensedQty: _d(r['dispensed_qty']),
         dispenseUnitAbbr:
             dispenseUnit == null ? '' : (units[dispenseUnit] ?? ''),
-        consumedDate: DateTime.parse(r['consumeddate'] as String),
+        consumedDate: DateTime.parse(r['consumeddate'] as String).toLocal(),
         givenBy: (r['givenby'] as String?) ?? '',
         recordedByName: users[r['recordedby']] ?? 'Unknown user',
-        recordedDate: DateTime.parse(r['recordeddate'] as String),
+        recordedDate: DateTime.parse(r['recordeddate'] as String).toLocal(),
       );
     }).toList();
   }

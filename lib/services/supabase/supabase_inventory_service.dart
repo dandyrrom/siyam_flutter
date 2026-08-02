@@ -168,6 +168,7 @@ class SupabaseInventoryService implements InventoryService {
     String? packageUnitId,
     double? packageQuantity,
     String? dispenseUnitId,
+    StockCountMode? stockCountMode,
     double initialQty = 0,
   }) async {
     final row = await _client
@@ -183,6 +184,9 @@ class SupabaseInventoryService implements InventoryService {
           'total_purchase_stocks': initialQty,
           'total_package_stocks':
               packageQuantity == null ? null : initialQty * packageQuantity,
+          'stock_count_mode': stockCountMode == null
+              ? null
+              : stockCountModeToString(stockCountMode),
         })
         .select('id')
         .single();

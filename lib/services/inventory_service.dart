@@ -24,6 +24,7 @@ abstract interface class InventoryService {
     String? packageUnitId,
     double? packageQuantity,
     String? dispenseUnitId,
+    StockCountMode? stockCountMode,
     double initialQty,
   });
   Future<InventoryItem> updateDetails({
@@ -174,6 +175,7 @@ class MockInventoryService implements InventoryService {
     String? packageUnitId,
     double? packageQuantity,
     String? dispenseUnitId,
+    StockCountMode? stockCountMode,
     double initialQty = 0,
   }) async {
     final row = ItemRow(
@@ -187,6 +189,8 @@ class MockInventoryService implements InventoryService {
       dispenseUnitId: dispenseUnitId,
       purchaseStocks: initialQty,
       packageStocks: packageQuantity == null ? null : initialQty * packageQuantity,
+      stockCountMode:
+          stockCountMode == null ? null : stockCountModeToString(stockCountMode),
     );
     _db.items.add(row);
     DataChangeBus.instance.ping();
