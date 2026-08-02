@@ -46,6 +46,12 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
     try {
       final user = await _authService.signIn(email: email, password: password);
+      if (!kIsWeb && user.role == AppRole.manager) {
+        await _authService.signOut();
+        throw Exception(
+          'Manager accounts can only sign in on the web app.',
+        );
+      }
       profile = user;
       status = AuthStatus.authenticated;
       return true;
