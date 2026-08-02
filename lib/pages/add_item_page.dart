@@ -147,7 +147,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
   List<InventoryItem> _items = [];
   List<Supplier> _suppliers = [];
-  List<AppUser> _receivers = []; // staff + manager
+  List<AppUser> _receivers = []; // staff only
   List<DonationSubmission> _linkableSubmissions = [];
   List<PrimaryCategory> _primaryCategories = [];
   List<Subcategory> _subcategories = [];
@@ -196,7 +196,7 @@ class _AddItemPageState extends State<AddItemPage> {
       final results = await Future.wait([
         _inventoryService.fetchItems(),
         _supplierService.fetchSuppliers(),
-        _authService.fetchUsersByRole([AppRole.staff, AppRole.manager]),
+        _authService.fetchUsersByRole([AppRole.staff]),
         _donationService.fetchLinkableSubmissions(),
         _catalogService.fetchPrimaryCategories(),
         _catalogService.fetchSubcategories(),
@@ -318,14 +318,14 @@ class _AddItemPageState extends State<AddItemPage> {
     });
   }
 
-  /// Fills "Received by" with the logged-in user's first name -- for staff
+  /// Fills "Received by" with the logged-in user's full name -- for staff
   /// recording a stock-in they physically received themselves, rather than
   /// on someone else's behalf.
   void _useMyNameAsReceiver() {
     final profile = context.read<AuthController>().profile;
     if (profile == null) return;
     setState(() {
-      _receivedByCtrl.text = profile.firstName;
+      _receivedByCtrl.text = profile.fullName;
       _selectedReceiver = profile;
     });
   }
