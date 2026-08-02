@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
       // ============================================================
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Account successfully registered!'),
+          content: Text('Account successfully Logged In!'),
           backgroundColor: AppColors.sageGreen,
           duration: Duration(seconds: 2),
         ),
