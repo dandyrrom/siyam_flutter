@@ -118,7 +118,11 @@ class AppDropdownButton extends StatelessWidget {
 /// inside a [Wrap] (https://github.com/flutter/flutter/issues/131843).
 mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
   final LayerLink dropdownLink = LayerLink();
+  final GlobalKey _panelSizeKey = GlobalKey();
   OverlayEntry? _entry;
+  Alignment _resolvedTargetAnchor = Alignment.topLeft;
+  Alignment _resolvedFollowerAnchor = Alignment.topLeft;
+  Offset _resolvedOffset = const Offset(0, 44);
 
   bool get isDropdownOpen => _entry != null;
 
@@ -145,6 +149,9 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
   void toggleDropdown() => isDropdownOpen ? closeDropdown() : openDropdown();
 
   void openDropdown() {
+    _resolvedTargetAnchor = targetAnchor;
+    _resolvedFollowerAnchor = followerAnchor;
+    _resolvedOffset = const Offset(0, 44);
     _entry = OverlayEntry(builder: (context) => _buildOverlay());
     // rootOverlay: true -- pages that use this live inside go_router's
     // ShellRoute, which owns a nested Navigator/Overlay scoped to the
@@ -152,6 +159,12 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
     // instead of the full screen; the app's outermost Overlay doesn't have
     // that constraint.
     Overlay.of(context, rootOverlay: true).insert(_entry!);
+    // The panel's real size isn't known until it's laid out once, so flip
+    // it to stay on-screen on the frame after that -- one frame of the
+    // default (unflipped) position is imperceptible, but avoids clipping
+    // against the viewport edge (see e.g. the "Per Page" control at the
+    // bottom of a page, or filter dropdowns near the right edge).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _flipIfOffscreen());
   }
 
   void closeDropdown() {
@@ -160,6 +173,54 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
   }
 
   void rebuildDropdown() => _entry?.markNeedsBuild();
+
+  void _flipIfOffscreen() {
+    if (_entry == null) return;
+    final triggerBox = context.findRenderObject();
+    final panelBox = _panelSizeKey.currentContext?.findRenderObject();
+    if (triggerBox is! RenderBox || !triggerBox.attached) return;
+    if (panelBox is! RenderBox || !panelBox.attached) return;
+
+    final triggerTopLeft = triggerBox.localToGlobal(Offset.zero);
+    final triggerSize = triggerBox.size;
+    final panelSize = panelBox.size;
+    final screenSize = MediaQuery.sizeOf(context);
+    const margin = 8.0;
+    bool changed = false;
+
+    // Vertical: flip the panel above the trigger if there isn't enough
+    // room below but there is more room above.
+    if (_resolvedTargetAnchor.y < 0) {
+      final spaceBelow = screenSize.height - (triggerTopLeft.dy + triggerSize.height);
+      final spaceAbove = triggerTopLeft.dy;
+      if (panelSize.height + margin > spaceBelow && spaceAbove > spaceBelow) {
+        _resolvedTargetAnchor = Alignment(_resolvedTargetAnchor.x, -1);
+        _resolvedFollowerAnchor = Alignment(_resolvedFollowerAnchor.x, 1);
+        _resolvedOffset = Offset(_resolvedOffset.dx, -8);
+        changed = true;
+      }
+    }
+
+    // Horizontal: flip to whichever side actually has room for the panel's
+    // width instead of running off the edge of a narrow viewport.
+    if (_resolvedTargetAnchor.x < 0) {
+      final spaceRight = screenSize.width - triggerTopLeft.dx;
+      if (panelSize.width + margin > spaceRight) {
+        _resolvedTargetAnchor = Alignment(1, _resolvedTargetAnchor.y);
+        _resolvedFollowerAnchor = Alignment(1, _resolvedFollowerAnchor.y);
+        changed = true;
+      }
+    } else {
+      final spaceLeft = triggerTopLeft.dx + triggerSize.width;
+      if (panelSize.width + margin > spaceLeft) {
+        _resolvedTargetAnchor = Alignment(-1, _resolvedTargetAnchor.y);
+        _resolvedFollowerAnchor = Alignment(-1, _resolvedFollowerAnchor.y);
+        changed = true;
+      }
+    }
+
+    if (changed) rebuildDropdown();
+  }
 
   Widget _buildOverlay() {
     return Stack(
@@ -173,10 +234,10 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
         CompositedTransformFollower(
           link: dropdownLink,
           showWhenUnlinked: false,
-          targetAnchor: targetAnchor,
-          followerAnchor: followerAnchor,
-          offset: const Offset(0, 44),
-          child: buildFlyoutPanel(context),
+          targetAnchor: _resolvedTargetAnchor,
+          followerAnchor: _resolvedFollowerAnchor,
+          offset: _resolvedOffset,
+          child: KeyedSubtree(key: _panelSizeKey, child: buildFlyoutPanel(context)),
         ),
       ],
     );
