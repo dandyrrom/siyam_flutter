@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- ============================================================
+         ADD THIS: Internet permission (required for Supabase API calls)
+         ============================================================ -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <application
-        android:label="siyam_flutter"
+        android:label="SIYAM"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
