@@ -71,11 +71,17 @@ class SupabaseSupplierService implements SupplierService {
   Future<Supplier> createSupplier({
     required String suppName,
     String? contactNum,
+    String? contactTel,
     String? address,
   }) async {
     final row = await _client
         .from('supplier')
-        .insert({'name': suppName, 'contactnum': contactNum, 'address': address})
+        .insert({
+          'name': suppName,
+          'contactnum': contactNum,
+          'contacttel': contactTel,
+          'address': address,
+        })
         .select('id, name, contactnum, contacttel, address')
         .single();
     DataChangeBus.instance.ping();
@@ -87,11 +93,17 @@ class SupabaseSupplierService implements SupplierService {
     required String suppId,
     required String suppName,
     String? contactNum,
+    String? contactTel,
     String? address,
   }) async {
     final row = await _client
         .from('supplier')
-        .update({'name': suppName, 'contactnum': contactNum, 'address': address})
+        .update({
+          'name': suppName,
+          'contactnum': contactNum,
+          'contacttel': contactTel,
+          'address': address,
+        })
         .eq('id', suppId)
         .select('id, name, contactnum, contacttel, address')
         .single();

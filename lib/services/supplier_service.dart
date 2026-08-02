@@ -17,12 +17,14 @@ abstract interface class SupplierService {
   Future<Supplier> createSupplier({
     required String suppName,
     String? contactNum,
+    String? contactTel,
     String? address,
   });
   Future<Supplier> updateSupplier({
     required String suppId,
     required String suppName,
     String? contactNum,
+    String? contactTel,
     String? address,
   });
   Future<void> deleteSupplier(String suppId);
@@ -79,12 +81,14 @@ class MockSupplierService implements SupplierService {
   Future<Supplier> createSupplier({
     required String suppName,
     String? contactNum,
+    String? contactTel,
     String? address,
   }) async {
     final supplier = Supplier(
       suppId: newMockId('supplier'),
       suppName: suppName,
       contactNum: contactNum,
+      contactTel: contactTel,
       address: address,
     );
     _db.suppliers.add(supplier);
@@ -97,6 +101,7 @@ class MockSupplierService implements SupplierService {
     required String suppId,
     required String suppName,
     String? contactNum,
+    String? contactTel,
     String? address,
   }) async {
     final index = _db.suppliers.indexWhere((s) => s.suppId == suppId);
@@ -106,7 +111,7 @@ class MockSupplierService implements SupplierService {
       suppId: current.suppId,
       suppName: suppName,
       contactNum: contactNum,
-      contactTel: current.contactTel,
+      contactTel: contactTel,
       address: address,
     );
     _db.suppliers[index] = updated;

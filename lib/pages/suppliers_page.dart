@@ -95,6 +95,7 @@ class _SuppliersPageState extends State<SuppliersPage>
     final isEdit = supplier != null;
     final nameCtrl = TextEditingController(text: supplier?.suppName ?? '');
     final contactCtrl = TextEditingController(text: supplier?.contactNum ?? '');
+    final contactTelCtrl = TextEditingController(text: supplier?.contactTel ?? '');
     final addressCtrl = TextEditingController(text: supplier?.address ?? '');
     final formKey = GlobalKey<FormState>();
     var saving = false;
@@ -134,6 +135,15 @@ class _SuppliersPageState extends State<SuppliersPage>
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
+                    controller: contactTelCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Contact tel (optional)',
+                      hintText: 'Landline number',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
                     controller: addressCtrl,
                     maxLines: 2,
                     decoration: const InputDecoration(labelText: 'Address (optional)'),
@@ -157,12 +167,16 @@ class _SuppliersPageState extends State<SuppliersPage>
                         final cleanPhone = contactCtrl.text.trim().isEmpty
                             ? null
                             : contactCtrl.text.trim();
+                        final cleanTel = contactTelCtrl.text.trim().isEmpty
+                            ? null
+                            : contactTelCtrl.text.trim();
 
                         if (isEdit) {
                           await _service.updateSupplier(
                             suppId: supplier.suppId,
                             suppName: nameCtrl.text.trim(),
                             contactNum: cleanPhone,
+                            contactTel: cleanTel,
                             address: addressCtrl.text.trim().isEmpty
                                 ? null
                                 : addressCtrl.text.trim(),
@@ -171,6 +185,7 @@ class _SuppliersPageState extends State<SuppliersPage>
                           await _service.createSupplier(
                             suppName: nameCtrl.text.trim(),
                             contactNum: cleanPhone,
+                            contactTel: cleanTel,
                             address: addressCtrl.text.trim().isEmpty
                                 ? null
                                 : addressCtrl.text.trim(),
@@ -211,6 +226,7 @@ class _SuppliersPageState extends State<SuppliersPage>
 
     nameCtrl.dispose();
     contactCtrl.dispose();
+    contactTelCtrl.dispose();
     addressCtrl.dispose();
   }
 
@@ -229,7 +245,8 @@ class _SuppliersPageState extends State<SuppliersPage>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _DetailRow(label: 'Contact', value: supplier.contactNum ?? '—'),
+                _DetailRow(label: 'Contact number', value: supplier.contactNum ?? '—'),
+                _DetailRow(label: 'Contact tel', value: supplier.contactTel ?? '—'),
                 _DetailRow(label: 'Address', value: supplier.address ?? '—'),
                 _DetailRow(label: 'Total Orders', value: '${orders.length}'),
                 _DetailRow(
@@ -481,6 +498,12 @@ class _SuppliersPageState extends State<SuppliersPage>
                         const SizedBox(height: 6),
                         if (supplier.contactNum != null)
                           Text(supplier.contactNum!,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: isMobile ? 11 : 12.5,
+                                  color: AppColors.mutedForeground)),
+                        if (supplier.contactTel != null)
+                          Text(supplier.contactTel!,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   fontSize: isMobile ? 11 : 12.5,

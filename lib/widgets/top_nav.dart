@@ -117,7 +117,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                             style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600)),
                         Text(
-                          user.role.name,
+                          '${user.role.name[0].toUpperCase()}${user.role.name.substring(1)}',
                           style: const TextStyle(
                               fontSize: 11, color: AppColors.mutedForeground),
                         ),
