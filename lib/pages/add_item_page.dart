@@ -162,6 +162,13 @@ class _AddItemPageState extends State<AddItemPage> {
   AppUser? _selectedReceiver;
   DateTime _dateReceived = DateTime.now();
 
+  /// Bumped on "Clear All" to remount the procurement-details fields (Type,
+  /// Supplier, Donation Type, Submission ID) -- their underlying
+  /// AppDropdownField/SearchSelectField own their initial value/text
+  /// internally, so resetting the state vars alone wouldn't refresh what's
+  /// displayed.
+  int _procurementEpoch = 0;
+
   @override
   void initState() {
     super.initState();
@@ -257,6 +264,58 @@ class _AddItemPageState extends State<AddItemPage> {
   void _removeLine(_StockInLineItem line) {
     line.dispose();
     setState(() => _lines.remove(line));
+  }
+
+  /// Whether the form currently holds entered data worth confirming before
+  /// discarding -- avoids an empty confirmation dialog on a blank form.
+  bool get _hasFormData =>
+      _lines.length > 1 ||
+      _lines.any((l) =>
+          l.nameCtrl.text.trim().isNotEmpty ||
+          l.qtyCtrl.text.trim().isNotEmpty ||
+          l.costCtrl.text.trim().isNotEmpty ||
+          l.isExistingItem) ||
+      _procurementType != null ||
+      _selectedSupplier != null ||
+      _donationType != null ||
+      _selectedSubmission != null ||
+      _donorNameCtrl.text.trim().isNotEmpty ||
+      _receivedByCtrl.text.trim().isNotEmpty;
+
+  Future<void> _clearAllLines() async {
+    if (_hasFormData) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Clear all?'),
+          content:
+              const Text('This removes the procurement details and every item row you\'ve entered so far.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Clear All')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    setState(() {
+      for (final line in _lines) {
+        line.dispose();
+      }
+      _lines
+        ..clear()
+        ..add(_StockInLineItem());
+
+      _procurementType = null;
+      _selectedSupplier = null;
+      _donationType = null;
+      _selectedSubmission = null;
+      _selectedReceiver = null;
+      _dateReceived = DateTime.now();
+      _donorNameCtrl.clear();
+      _receivedByCtrl.clear();
+      _procurementEpoch++;
+    });
   }
 
   /// Fills "Received by" with the logged-in user's first name -- for staff
@@ -448,6 +507,11 @@ class _AddItemPageState extends State<AddItemPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                KeyedSubtree(
+                  key: ValueKey(_procurementEpoch),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 _SectionLabel(isPurchased
                     ? 'Purchase details'
                     : isDonated
@@ -591,6 +655,9 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                   ],
                 ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 24),
 
                 for (final line in _lines)
@@ -607,10 +674,20 @@ class _AddItemPageState extends State<AddItemPage> {
                     onChanged: () => setState(() {}),
                   ),
                 if (widget.itemId == null)
-                  TextButton.icon(
-                    onPressed: _addLine,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add Item'),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: _addLine,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Item'),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: _clearAllLines,
+                        icon: const Icon(Icons.clear_all, size: 16),
+                        label: const Text('Clear All'),
+                      ),
+                    ],
                   ),
 
                 const SizedBox(height: 20),

@@ -896,7 +896,7 @@ class _InventoryPageState extends State<InventoryPage>
                                     // ============================================================
                                     // MOBILE: Chevron indicator
                                     // ============================================================
-                                    Icon(
+                                    const Icon(
                                       Icons.chevron_right,
                                       size: 18,
                                       color: AppColors.mutedForeground,

@@ -292,8 +292,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ? 'Passwords do not match'
                                   : null,
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6, left: 20),
+                            const Padding(
+                              padding: EdgeInsets.only(top: 6, left: 20),
                               child: Text(
                                 'Password must be at least 8 characters and include: uppercase, lowercase, number, and symbol',
                                 style: TextStyle(

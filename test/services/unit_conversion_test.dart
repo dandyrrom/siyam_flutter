@@ -21,7 +21,7 @@ class _RecordingInventoryService implements InventoryService {
   Never noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-final _dummyItem = InventoryItem(
+const _dummyItem = InventoryItem(
   itemId: 'itm-1',
   itemName: 'Test Item',
   pCategoryId: 'pcat-1',
