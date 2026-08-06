@@ -1,9 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../services/dashboard_service.dart';
+import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/social_post_dialog.dart';
 import '../../widgets/stat_card.dart';
+
+const _weekdayNames = [
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+];
+const _monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December',
+];
+
+String _greetingForHour(int hour) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+String _formatToday(DateTime now) =>
+    '${_weekdayNames[now.weekday - 1]}, ${_monthNames[now.month - 1]} ${now.day}, ${now.year}';
 
 enum _Period { week, month }
 
@@ -73,12 +92,18 @@ class _StaffDashboardState extends State<StaffDashboard>
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<AuthController>().profile;
+    final firstName = profile?.firstName.trim();
+    final now = DateTime.now();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const DashboardHeader(
-          title: 'Staff Dashboard',
-          subtitle: 'Your day-to-day: inventory, treatments, and donations.',
+        DashboardHeader(
+          title: firstName != null && firstName.isNotEmpty
+              ? '${_greetingForHour(now.hour)}, $firstName'
+              : _greetingForHour(now.hour),
+          subtitle: 'Today is ${_formatToday(now)}',
         ),
         if (_error != null)
           Column(
@@ -90,8 +115,6 @@ class _StaffDashboardState extends State<StaffDashboard>
             ],
           )
         else ...[
-          _TopRow(loading: _loading, stats: _stats),
-          const SizedBox(height: 26),
           _PeriodToggle(
             period: _period,
             comparisonLabel: _periodComparisonLabel,
@@ -114,153 +137,6 @@ class _StaffDashboardState extends State<StaffDashboard>
           ),
         ],
       ],
-    );
-  }
-}
-
-class _TopRow extends StatelessWidget {
-  final bool loading;
-  final StaffDashboardStats? stats;
-
-  const _TopRow({required this.loading, required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final isNarrow = constraints.maxWidth < 760;
-      final healthCard = _InventoryHealthCard(loading: loading, stats: stats);
-      final mini1 = StatCard(
-        label: 'Animals under treatment',
-        value: loading ? '—' : '${stats!.animalsUnderTreatment}',
-        icon: Icons.medical_services_outlined,
-        accent: AppColors.roleStaff,
-      );
-      final mini2 = StatCard(
-        label: 'Pending submissions',
-        value: loading ? '—' : '${stats!.pendingSubmissions}',
-        icon: Icons.schedule_outlined,
-        accent: AppColors.warning,
-      );
-
-      if (isNarrow) {
-        return Column(
-          children: [
-            healthCard,
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: mini1),
-              const SizedBox(width: 16),
-              Expanded(child: mini2),
-            ]),
-          ],
-        );
-      }
-
-      // IntrinsicHeight lets the Row's stretch-aligned children (the health
-      // card and the two StatCards, which have different natural heights)
-      // equalize without needing a bounded-height ancestor -- without it,
-      // CrossAxisAlignment.stretch on a Row inside a scrolling Column throws
-      // "BoxConstraints forces an infinite height".
-      return IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(flex: 16, child: healthCard),
-            const SizedBox(width: 16),
-            Expanded(flex: 10, child: mini1),
-            const SizedBox(width: 16),
-            Expanded(flex: 10, child: mini2),
-          ],
-        ),
-      );
-    });
-  }
-}
-
-class _InventoryHealthCard extends StatelessWidget {
-  final bool loading;
-  final StaffDashboardStats? stats;
-
-  const _InventoryHealthCard({required this.loading, required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    final pct = loading ? 0.0 : stats!.inventoryHealthPct;
-    final pctLabel = loading ? '—' : '${pct.round()}';
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.inventory_2_outlined, size: 18, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              const Text('Inventory Health',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.foreground),
-                  children: [
-                    TextSpan(text: pctLabel),
-                    const TextSpan(
-                        text: '%',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.mutedForeground)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: loading ? 0 : (pct / 100).clamp(0.0, 1.0),
-              minHeight: 10,
-              backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation(AppColors.stockNeedsRestock),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
-            children: [
-              Text(
-                loading
-                    ? ' '
-                    : '${stats!.healthyItemCount} of ${stats!.totalItems} items above the low-stock line',
-                style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
-              ),
-              Text(
-                loading
-                    ? ' '
-                    : '${stats!.lowStockCount} low · ${stats!.outOfStockCount} out of stock',
-                style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
