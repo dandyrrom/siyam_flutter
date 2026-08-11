@@ -70,6 +70,7 @@ class SupabaseInventoryService implements InventoryService {
     final sCategoryId = r['s_category'] as String?;
     final packageUnitId = r['package_unit'] as String?;
     final dispenseUnitId = r['dispense_unit'] as String?;
+
     return InventoryItem(
       itemId: r['id'] as String,
       itemName: (r['name'] as String?) ?? '',
@@ -106,15 +107,18 @@ class SupabaseInventoryService implements InventoryService {
     final lifetimeTreatmentTotals =
         await _qtySumByItem('treatment_item', 'dispensed_qty');
     final rows = await _client.from('item').select(_itemColumns).order('name');
+
     return rows
-        .map((r) => _mapItem(r,
-            pcats: pcats,
-            scats: scats,
-            units: units,
-            purchasedItemIds: purchasedItemIds,
-            donatedItemIds: donatedItemIds,
-            lifetimeStockOutTotals: lifetimeStockOutTotals,
-            lifetimeTreatmentTotals: lifetimeTreatmentTotals))
+        .map((r) => _mapItem(
+              r,
+              pcats: pcats,
+              scats: scats,
+              units: units,
+              purchasedItemIds: purchasedItemIds,
+              donatedItemIds: donatedItemIds,
+              lifetimeStockOutTotals: lifetimeStockOutTotals,
+              lifetimeTreatmentTotals: lifetimeTreatmentTotals,
+            ))
         .toList();
   }
 
@@ -125,38 +129,49 @@ class SupabaseInventoryService implements InventoryService {
         .select(_itemColumns)
         .eq('id', itemId)
         .maybeSingle();
+
     if (row == null) return null;
+
     final pcats = await _map('primary_category', 'type');
     final scats = await _map('subcategory', 'type');
     final units = await _map('units', 'abbr_name');
+
     final hasPurchaseHistory = (await _client
             .from('purchase_item')
             .select('itemid')
             .eq('itemid', itemId))
         .isNotEmpty;
+
     final hasDonationHistory = (await _client
             .from('donation_item')
             .select('itemid')
             .eq('itemid', itemId))
         .isNotEmpty;
+
     final stockOutRows =
         await _client.from('stock_out').select('qty').eq('itemid', itemId);
+
     final lifetimeStockOutQty =
         stockOutRows.fold(0.0, (sum, r) => sum + (_toDouble(r['qty']) ?? 0));
+
     final treatmentRows = await _client
         .from('treatment_item')
         .select('dispensed_qty')
         .eq('itemid', itemId);
+
     final lifetimeTreatmentQty = treatmentRows.fold(
         0.0, (sum, r) => sum + (_toDouble(r['dispensed_qty']) ?? 0));
-    return _mapItem(row,
-        pcats: pcats,
-        scats: scats,
-        units: units,
-        purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
-        donatedItemIds: hasDonationHistory ? {itemId} : {},
-        lifetimeStockOutTotals: {itemId: lifetimeStockOutQty},
-        lifetimeTreatmentTotals: {itemId: lifetimeTreatmentQty});
+
+    return _mapItem(
+      row,
+      pcats: pcats,
+      scats: scats,
+      units: units,
+      purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
+      donatedItemIds: hasDonationHistory ? {itemId} : {},
+      lifetimeStockOutTotals: {itemId: lifetimeStockOutQty},
+      lifetimeTreatmentTotals: {itemId: lifetimeTreatmentQty},
+    );
   }
 
   @override
@@ -190,6 +205,7 @@ class SupabaseInventoryService implements InventoryService {
         })
         .select('id')
         .single();
+
     final created = await fetchItem(row['id'] as String);
     DataChangeBus.instance.ping();
     return created!;
@@ -208,14 +224,19 @@ class SupabaseInventoryService implements InventoryService {
     if (current == null) throw Exception('Item not found');
 
     final updates = <String, dynamic>{};
+
     if (itemName != null) updates['name'] = itemName;
+
     if (pCategoryId != null && pCategoryId != current.pCategoryId) {
       updates['p_category'] = pCategoryId;
+
       // Subcategory belonged to the old primary category -- clear the stale FK.
       updates['s_category'] = null;
     }
+
     if (sCategoryId != null) updates['s_category'] = sCategoryId;
     if (purchaseUnitId != null) updates['purchase_unit'] = purchaseUnitId;
+
     if (stockCountMode != null) {
       updates['stock_count_mode'] = stockCountModeToString(stockCountMode);
     }
@@ -223,6 +244,7 @@ class SupabaseInventoryService implements InventoryService {
     if (updates.isNotEmpty) {
       await _client.from('item').update(updates).eq('id', itemId);
     }
+
     final updated = await fetchItem(itemId);
     DataChangeBus.instance.ping();
     return updated!;
@@ -238,19 +260,34 @@ class SupabaseInventoryService implements InventoryService {
   }) async {
     final current = await fetchItem(itemId);
     if (current == null) throw Exception('Item not found');
+
     final next = current.stockQty + delta;
+
     if (next < 0) {
-      throw Exception('Not enough stock: only ${formatQty(current.stockQty)} left');
+      throw Exception(
+          'Not enough stock: only ${formatQty(current.stockQty)} left');
     }
-    final updates = <String, dynamic>{'total_purchase_stocks': next};
+
+    final updates = <String, dynamic>{
+      'total_purchase_stocks': next,
+    };
+
     final packageQuantity = current.packageQuantity;
+
     if (packageQuantity != null) {
-      final currentPackage = current.packageStockQty ?? current.stockQty * packageQuantity;
-      updates['total_package_stocks'] = currentPackage + delta * packageQuantity;
+      final currentPackage =
+          current.packageStockQty ?? current.stockQty * packageQuantity;
+
+      updates['total_package_stocks'] =
+          currentPackage + delta * packageQuantity;
     }
+
     await _client.from('item').update(updates).eq('id', itemId);
+
     final updated = await fetchItem(itemId);
+
     DataChangeBus.instance.ping();
+
     return updated!;
   }
 
@@ -265,18 +302,27 @@ class SupabaseInventoryService implements InventoryService {
   }) async {
     final current = await fetchItem(itemId);
     if (current == null) throw Exception('Item not found');
+
     final packageQuantity = current.packageQuantity;
+
     final currentPackage = current.packageStockQty ??
         (packageQuantity == null ? 0 : current.stockQty * packageQuantity);
+
     final next = currentPackage + delta;
+
     if (next < 0) {
       throw Exception('Not enough stock: only ${formatQty(currentPackage)} left');
     }
+
     await _client
         .from('item')
-        .update({'total_package_stocks': next}).eq('id', itemId);
+        .update({'total_package_stocks': next})
+        .eq('id', itemId);
+
     final updated = await fetchItem(itemId);
+
     DataChangeBus.instance.ping();
+
     return updated!;
   }
 
@@ -293,111 +339,316 @@ class SupabaseInventoryService implements InventoryService {
   }) async {
     final current = await fetchItem(itemId);
     if (current == null) throw Exception('Item not found');
+
     if (qtyUnit == QtyUnit.purchaseUnit || current.packageQuantity == null) {
-      return adjustStock(itemId: itemId, delta: qty);
+      return adjustStock(
+        itemId: itemId,
+        delta: qty,
+      );
     }
+
     final currentPackage =
         current.packageStockQty ?? current.stockQty * current.packageQuantity!;
+
     await _client.from('item').update({
       'total_package_stocks': currentPackage + qty,
       'total_package_stock_ins': current.totalPackageStockIns + qty,
     }).eq('id', itemId);
+
     final updated = await fetchItem(itemId);
+
     DataChangeBus.instance.ping();
+
     return updated!;
   }
 
-  /// Drains [canonicalQty] (package_unit terms if the item has a package
-  /// breakdown, else purchase_unit terms) from this item's purchase_item/
-  /// donation_item batches, oldest-expiry-first (FEFO); batches with no
-  /// expiry_date are drawn last. Mirrors
-  /// MockInventoryService._drainBatchesFefo (lib/services/inventory_service.dart).
-  /// Only updates batch qty_remaining -- callers apply the aggregate-pool
-  /// deduction separately.
-  Future<void> _drainBatchesFefo(String itemId, double canonicalQty) async {
-    final purchaseRows = await _client
-        .from('purchase_item')
-        .select('purchaseid, itemid, expiry_date, qty_remaining')
-        .eq('itemid', itemId)
-        .gt('qty_remaining', 0);
-    final donationRows = await _client
-        .from('donation_item')
-        .select('dntid, itemid, expiry_date, qty_remaining')
-        .eq('itemid', itemId)
-        .gt('qty_remaining', 0);
+  /// Returns the batch transaction type used for a non-treatment stock-out.
+  ///
+  /// Waste removes unusable stock through DISPOSAL, expired stock through
+  /// EXPIRE, and manual inventory corrections through ADJUSTMENT.
+  String _stockOutTransactionType(StockOutReason reason) {
+    switch (reason) {
+      case StockOutReason.waste:
+        return 'DISPOSAL';
+      case StockOutReason.expired:
+        return 'EXPIRE';
+      case StockOutReason.adjustment:
+        return 'ADJUSTMENT';
+    }
+  }
 
-    final batches = <({
-      DateTime? expiryDate,
-      double qtyRemaining,
-      Future<void> Function(double) applyUpdate,
-    })>[
-      for (final r in purchaseRows)
-        (
-          expiryDate: r['expiry_date'] == null
-              ? null
-              : DateTime.parse(r['expiry_date'] as String),
-          qtyRemaining: _toDouble(r['qty_remaining']) ?? 0,
-          applyUpdate: (v) => _client
-              .from('purchase_item')
-              .update({'qty_remaining': v})
-              .eq('purchaseid', r['purchaseid'] as String)
-              .eq('itemid', r['itemid'] as String),
-        ),
-      for (final r in donationRows)
-        (
-          expiryDate: r['expiry_date'] == null
-              ? null
-              : DateTime.parse(r['expiry_date'] as String),
-          qtyRemaining: _toDouble(r['qty_remaining']) ?? 0,
-          applyUpdate: (v) => _client
-              .from('donation_item')
-              .update({'qty_remaining': v})
-              .eq('dntid', r['dntid'] as String)
-              .eq('itemid', r['itemid'] as String),
-        ),
-    ]..sort((a, b) {
-        final aExpiry = a.expiryDate;
-        final bExpiry = b.expiryDate;
-        if (aExpiry == null && bExpiry == null) return 0;
-        if (aExpiry == null) return 1;
-        if (bExpiry == null) return -1;
-        return aExpiry.compareTo(bExpiry);
-      });
+  /// Drains [canonicalQty] from inventory_batch in FEFO order.
+  ///
+  /// inventory_batch is now the physical source of stock. Batches with the
+  /// nearest expiry are consumed first, while batches without expiry dates
+  /// are consumed last. receiveddate is used as the tie-breaker.
+  ///
+  /// Every batch deduction also creates its own batch_transaction_log row,
+  /// linked to the parent stock_out through [stockOutId].
+  Future<void> _drainBatchesFefoForStockOut({
+    required String itemId,
+    required double canonicalQty,
+    required StockOutReason reason,
+    required String stockOutId,
+    required String recordedByUserId,
+  }) async {
+    final rows = await _client
+        .from('inventory_batch')
+        .select(
+          'inventorybatchid, expirydate, receiveddate, qtyavailable, qtyunit, status',
+        )
+        .eq('itemid', itemId)
+        .gt('qtyavailable', 0);
+
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+
+    final batches = rows.where((r) {
+      final status = (r['status'] as String?) ?? 'ACTIVE';
+
+      // Quarantined stock should never be automatically issued.
+      if (status == 'QUARANTINED') return false;
+
+      final expiryRaw = r['expirydate'] as String?;
+      final expiryDate =
+          expiryRaw == null ? null : DateTime.parse(expiryRaw);
+
+      // An "expired" stock-out specifically removes expired batches.
+      if (reason == StockOutReason.expired) {
+        return expiryDate != null && expiryDate.isBefore(todayOnly);
+      }
+
+      // Normal waste/adjustment should not silently consume an expired batch.
+      if (expiryDate != null && expiryDate.isBefore(todayOnly)) {
+        return false;
+      }
+
+      return true;
+    }).toList();
+
+    // FEFO: nearest expiry first. Non-expiring batches are drawn last.
+    // receiveddate breaks ties between batches with the same expiry.
+    batches.sort((a, b) {
+      final aExpiry = a['expirydate'] == null
+          ? null
+          : DateTime.parse(a['expirydate'] as String);
+
+      final bExpiry = b['expirydate'] == null
+          ? null
+          : DateTime.parse(b['expirydate'] as String);
+
+      if (aExpiry == null && bExpiry != null) return 1;
+      if (aExpiry != null && bExpiry == null) return -1;
+
+      if (aExpiry != null && bExpiry != null) {
+        final expiryCompare = aExpiry.compareTo(bExpiry);
+        if (expiryCompare != 0) return expiryCompare;
+      }
+
+      final aReceived = DateTime.parse(a['receiveddate'] as String);
+      final bReceived = DateTime.parse(b['receiveddate'] as String);
+
+      return aReceived.compareTo(bReceived);
+    });
+
+    final totalAvailable = batches.fold<double>(
+      0,
+      (sum, batch) =>
+          sum + (_toDouble(batch['qtyavailable']) ?? 0),
+    );
+
+    // Do not partially perform a stock-out if the eligible batches cannot
+    // satisfy the full requested quantity.
+    if (totalAvailable < canonicalQty) {
+      throw Exception(
+        'Not enough eligible batch stock: only ${formatQty(totalAvailable)} available',
+      );
+    }
 
     var remaining = canonicalQty;
+
     for (final batch in batches) {
       if (remaining <= 0) break;
-      final available = batch.qtyRemaining;
+
+      final inventoryBatchId =
+          batch['inventorybatchid'] as String;
+
+      final available =
+          _toDouble(batch['qtyavailable']) ?? 0;
+
       if (available <= 0) continue;
-      final draw = remaining < available ? remaining : available;
-      await batch.applyUpdate(available - draw);
+
+      final draw =
+          remaining < available ? remaining : available;
+
+      final nextAvailable =
+          available - draw;
+
+      // Update the exact physical batch that supplied this portion of the
+      // stock-out.
+      await _client
+          .from('inventory_batch')
+          .update({
+            'qtyavailable': nextAvailable,
+            'status': nextAvailable <= 0 ? 'DEPLETED' : 'ACTIVE',
+            'updatedat': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('inventorybatchid', inventoryBatchId);
+
+      // One stock_out can consume several batches, so each affected batch
+      // receives a separate transaction log linked by the same stockoutid.
+      await _client.from('batch_transaction_log').insert({
+        'inventorybatchid': inventoryBatchId,
+        'treatmentitemid': null,
+        'stockoutid': stockOutId,
+        'txntype': _stockOutTransactionType(reason),
+        'qtychange': -draw,
+        'qtyunit': batch['qtyunit'],
+        'txndate': DateTime.now().toUtc().toIso8601String(),
+        'performedby': recordedByUserId,
+        'notes': 'Stock out: ${stockOutReasonToString(reason)}',
+      });
+
       remaining -= draw;
     }
   }
 
   /// Draws [qty] (already canonical -- package_unit for items with a
-  /// package breakdown, purchase_unit otherwise) from batches in FEFO order,
-  /// then applies the matching aggregate deduction: total_package_stocks only
-  /// for items with a breakdown, total_purchase_stocks directly otherwise.
+  /// package breakdown, purchase_unit otherwise) from inventory_batch in
+  /// FEFO order, then applies the matching aggregate deduction.
+  ///
+  /// This method is currently retained for treatment usage. Treatment's own
+  /// batch_transaction_log linkage will be added when treatment_item is
+  /// migrated to the new batch flow.
   @override
   Future<InventoryItem> deductFefo({
     required String itemId,
     required double qty,
   }) async {
     final current = await fetchItem(itemId);
-    if (current == null) throw Exception('Item not found');
-    await _drainBatchesFefo(itemId, qty);
-    if (current.packageQuantity != null) {
-      return deductPackageStock(itemId: itemId, delta: -qty);
+
+    if (current == null) {
+      throw Exception('Item not found');
     }
-    return adjustStock(itemId: itemId, delta: -qty);
+
+    final rows = await _client
+        .from('inventory_batch')
+        .select(
+          'inventorybatchid, expirydate, receiveddate, qtyavailable, status',
+        )
+        .eq('itemid', itemId)
+        .gt('qtyavailable', 0);
+
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+
+    final batches = rows.where((r) {
+      final status = (r['status'] as String?) ?? 'ACTIVE';
+
+      if (status == 'QUARANTINED') return false;
+
+      final expiryRaw = r['expirydate'] as String?;
+
+      if (expiryRaw == null) return true;
+
+      final expiryDate = DateTime.parse(expiryRaw);
+
+      return !expiryDate.isBefore(todayOnly);
+    }).toList();
+
+    batches.sort((a, b) {
+      final aExpiry = a['expirydate'] == null
+          ? null
+          : DateTime.parse(a['expirydate'] as String);
+
+      final bExpiry = b['expirydate'] == null
+          ? null
+          : DateTime.parse(b['expirydate'] as String);
+
+      if (aExpiry == null && bExpiry != null) return 1;
+      if (aExpiry != null && bExpiry == null) return -1;
+
+      if (aExpiry != null && bExpiry != null) {
+        final expiryCompare = aExpiry.compareTo(bExpiry);
+
+        if (expiryCompare != 0) {
+          return expiryCompare;
+        }
+      }
+
+      final aReceived =
+          DateTime.parse(a['receiveddate'] as String);
+
+      final bReceived =
+          DateTime.parse(b['receiveddate'] as String);
+
+      return aReceived.compareTo(bReceived);
+    });
+
+    final totalAvailable = batches.fold<double>(
+      0,
+      (sum, batch) =>
+          sum + (_toDouble(batch['qtyavailable']) ?? 0),
+    );
+
+    if (totalAvailable < qty) {
+      throw Exception(
+        'Not enough eligible batch stock: only ${formatQty(totalAvailable)} available',
+      );
+    }
+
+    var remaining = qty;
+
+    for (final batch in batches) {
+      if (remaining <= 0) break;
+
+      final inventoryBatchId =
+          batch['inventorybatchid'] as String;
+
+      final available =
+          _toDouble(batch['qtyavailable']) ?? 0;
+
+      if (available <= 0) continue;
+
+      final draw =
+          remaining < available ? remaining : available;
+
+      final nextAvailable =
+          available - draw;
+
+      await _client
+          .from('inventory_batch')
+          .update({
+            'qtyavailable': nextAvailable,
+            'status': nextAvailable <= 0 ? 'DEPLETED' : 'ACTIVE',
+            'updatedat': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('inventorybatchid', inventoryBatchId);
+
+      remaining -= draw;
+    }
+
+    if (current.packageQuantity != null) {
+      return deductPackageStock(
+        itemId: itemId,
+        delta: -qty,
+      );
+    }
+
+    return adjustStock(
+      itemId: itemId,
+      delta: -qty,
+    );
   }
 
-  /// Records a non-treatment stock-out (waste/expired/adjustment) and
-  /// decrements total_purchase_stocks (and total_package_stocks in lockstep
-  /// via [adjustStock]). Purchase-unit granularity -- these are whole-package
-  /// events. Also drains the equivalent canonical qty from batches in FEFO
-  /// order, so per-batch qty_remaining stays consistent for later reporting.
+  /// Records a non-treatment stock-out (waste/expired/adjustment), creates
+  /// one parent stock_out row, then deducts the corresponding canonical
+  /// quantity from inventory_batch using FEFO.
+  ///
+  /// Each physical batch consumed receives its own batch_transaction_log row
+  /// linked back to the same stock_out through stockoutid. The old item-level
+  /// aggregate stock is still updated temporarily while the UI is migrated
+  /// to inventory_batch as its authoritative stock source.
   @override
   Future<InventoryItem> stockOut({
     required String itemId,
@@ -405,18 +656,51 @@ class SupabaseInventoryService implements InventoryService {
     required StockOutReason reason,
     required String recordedByUserId,
   }) async {
-    await _client.from('stock_out').insert({
-      'itemid': itemId,
-      'qty': qty,
-      'reason': stockOutReasonToString(reason),
-      'recordedby': recordedByUserId,
-    });
+    if (qty <= 0) {
+      throw Exception('Stock-out quantity must be greater than 0');
+    }
+
     final current = await fetchItem(itemId);
-    final canonicalQty = current?.packageQuantity != null
-        ? qty * current!.packageQuantity!
+
+    if (current == null) {
+      throw Exception('Item not found');
+    }
+
+    final canonicalQty = current.packageQuantity != null
+        ? qty * current.packageQuantity!
         : qty;
-    await _drainBatchesFefo(itemId, canonicalQty);
-    return adjustStock(itemId: itemId, delta: -qty);
+
+    // Create the parent stock_out first and retain its UUID so every affected
+    // batch transaction can point back to the same stock-out event.
+    final stockOutRow = await _client
+        .from('stock_out')
+        .insert({
+          'itemid': itemId,
+          'qty': qty,
+          'reason': stockOutReasonToString(reason),
+          'recordedby': recordedByUserId,
+        })
+        .select('id')
+        .single();
+
+    final stockOutId =
+        stockOutRow['id'] as String;
+
+    await _drainBatchesFefoForStockOut(
+      itemId: itemId,
+      canonicalQty: canonicalQty,
+      reason: reason,
+      stockOutId: stockOutId,
+      recordedByUserId: recordedByUserId,
+    );
+
+    // TEMPORARY:
+    // Keep the existing item-level aggregate stock synchronized until all
+    // inventory displays are migrated to SUM(inventory_batch.qtyavailable).
+    return adjustStock(
+      itemId: itemId,
+      delta: -qty,
+    );
   }
 
   @override
@@ -449,84 +733,111 @@ class SupabaseInventoryService implements InventoryService {
         .from('purchase_item')
         .select('qty, purchaseid, purchase(id, receiveddate, recordedby)')
         .eq('itemid', itemId);
+
     for (final r in purchaseRows) {
       final purchase = r['purchase'] as Map<String, dynamic>?;
+
       if (purchase == null) continue;
-      movements.add(StockMovement(
-        id: '${purchase['id']}-$itemId',
-        date: DateTime.parse(purchase['receiveddate'] as String),
-        direction: StockDirection.stockIn,
-        qty: _toDouble(r['qty']) ?? 0,
-        unitAbbr: purchaseUnitAbbr,
-        typeLabel: 'Purchased',
-        recordedByName: users[purchase['recordedby']] ?? 'Unknown user',
-      ));
+
+      movements.add(
+        StockMovement(
+          id: '${purchase['id']}-$itemId',
+          date: DateTime.parse(purchase['receiveddate'] as String),
+          direction: StockDirection.stockIn,
+          qty: _toDouble(r['qty']) ?? 0,
+          unitAbbr: purchaseUnitAbbr,
+          typeLabel: 'Purchased',
+          recordedByName: users[purchase['recordedby']] ?? 'Unknown user',
+        ),
+      );
     }
 
     final donationRows = await _client
         .from('donation_item')
         .select('qty, qty_unit, dntid, donation(id, receiveddate, recordedby)')
         .eq('itemid', itemId);
+
     for (final r in donationRows) {
       final donation = r['donation'] as Map<String, dynamic>?;
+
       if (donation == null) continue;
-      movements.add(StockMovement(
-        id: '${donation['id']}-$itemId',
-        date: DateTime.parse(donation['receiveddate'] as String),
-        direction: StockDirection.stockIn,
-        qty: _toDouble(r['qty']) ?? 0,
-        unitAbbr: r['qty_unit'] == 'package_unit' ? packageUnitAbbr : purchaseUnitAbbr,
-        typeLabel: 'Donated',
-        recordedByName: users[donation['recordedby']] ?? 'Unknown user',
-      ));
+
+      movements.add(
+        StockMovement(
+          id: '${donation['id']}-$itemId',
+          date: DateTime.parse(donation['receiveddate'] as String),
+          direction: StockDirection.stockIn,
+          qty: _toDouble(r['qty']) ?? 0,
+          unitAbbr: r['qty_unit'] == 'package_unit'
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
+          typeLabel: 'Donated',
+          recordedByName: users[donation['recordedby']] ?? 'Unknown user',
+        ),
+      );
     }
 
     final treatmentRows = await _client
         .from('treatment_item')
-        .select('treatid, dispensed_qty, dispense_unit, consumeddate, '
-            'recordedby, treatment(id, name)')
+        .select(
+          'treatid, dispensed_qty, dispense_unit, consumeddate, '
+          'recordedby, treatment(id, name)',
+        )
         .eq('itemid', itemId);
+
     for (final r in treatmentRows) {
       final treatment = r['treatment'] as Map<String, dynamic>?;
       final dispenseUnit = r['dispense_unit'] as String?;
-      movements.add(StockMovement(
-        id: '${r['treatid']}-$itemId',
-        date: DateTime.parse(r['consumeddate'] as String),
-        direction: StockDirection.stockOut,
-        qty: _toDouble(r['dispensed_qty']) ?? 0,
-        unitAbbr: (dispenseUnit == null ? null : units[dispenseUnit]) ??
-            purchaseUnitAbbr,
-        typeLabel: 'Treatment',
-        treatmentId: r['treatid'] as String?,
-        treatmentName: treatment?['name'] as String? ?? 'Unknown treatment',
-        recordedByName: users[r['recordedby']] ?? 'Unknown user',
-      ));
+
+      movements.add(
+        StockMovement(
+          id: '${r['treatid']}-$itemId',
+          date: DateTime.parse(r['consumeddate'] as String),
+          direction: StockDirection.stockOut,
+          qty: _toDouble(r['dispensed_qty']) ?? 0,
+          unitAbbr:
+              (dispenseUnit == null ? null : units[dispenseUnit]) ??
+                  purchaseUnitAbbr,
+          typeLabel: 'Treatment',
+          treatmentId: r['treatid'] as String?,
+          treatmentName:
+              treatment?['name'] as String? ?? 'Unknown treatment',
+          recordedByName: users[r['recordedby']] ?? 'Unknown user',
+        ),
+      );
     }
 
     final stockOutRows = await _client
         .from('stock_out')
         .select('id, qty, reason, recordeddate, recordedby')
         .eq('itemid', itemId);
+
     for (final r in stockOutRows) {
-      movements.add(StockMovement(
-        id: r['id'] as String,
-        date: DateTime.parse(r['recordeddate'] as String),
-        direction: StockDirection.stockOut,
-        qty: _toDouble(r['qty']) ?? 0,
-        unitAbbr: purchaseUnitAbbr,
-        typeLabel: _stockOutReasonLabel(
-            stockOutReasonFromString(r['reason'] as String)),
-        recordedByName: users[r['recordedby']] ?? 'Unknown user',
-      ));
+      movements.add(
+        StockMovement(
+          id: r['id'] as String,
+          date: DateTime.parse(r['recordeddate'] as String),
+          direction: StockDirection.stockOut,
+          qty: _toDouble(r['qty']) ?? 0,
+          unitAbbr: purchaseUnitAbbr,
+          typeLabel: _stockOutReasonLabel(
+            stockOutReasonFromString(r['reason'] as String),
+          ),
+          recordedByName: users[r['recordedby']] ?? 'Unknown user',
+        ),
+      );
     }
 
     movements.sort((a, b) => b.date.compareTo(a.date));
+
     return movements;
   }
 
   @override
   Future<List<DateTime>> fetchStockOutDates() async {
-    final rows = await _client.from('stock_out').select('recordeddate');
+    final rows =
+        await _client.from('stock_out').select('recordeddate');
+
     return [
       for (final row in rows)
         DateTime.parse(row['recordeddate'] as String).toLocal(),

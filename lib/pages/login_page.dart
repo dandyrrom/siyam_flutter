@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../core/validators.dart';
+import '../models/app_user.dart';
 import '../state/auth_state.dart';
 import '../widgets/public_nav_bar.dart';
 
@@ -36,6 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       _emailController.text.trim(),
       _passwordController.text,
     );
+
     if (success && mounted) {
       // ============================================================
       // Show success snackbar before navigating
@@ -47,11 +49,21 @@ class _LoginPageState extends State<LoginPage> {
           duration: Duration(seconds: 2),
         ),
       );
-      
+
       // Navigate after a short delay to let the snackbar show
       await Future.delayed(const Duration(milliseconds: 500));
+
       if (mounted) {
-        context.go('/dashboard');
+        // ============================================================
+        // Redirect user based on account role
+        // ============================================================
+        final role = auth.profile?.role;
+
+        if (role == AppRole.donor) {
+          context.go('/donor');
+        } else {
+          context.go('/dashboard');
+        }
       }
     }
   }
@@ -208,8 +220,12 @@ class _SignInForm extends StatelessWidget {
               hintText: 'Password',
               suffixIcon: IconButton(
                 icon: Icon(
-                    obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: AppColors.deepBrown, size: 20),
+                  obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: AppColors.deepBrown,
+                  size: 20,
+                ),
                 onPressed: onToggleObscure,
               ),
             ),
@@ -228,13 +244,21 @@ class _SignInForm extends StatelessWidget {
                 minimumSize: const Size(0, 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Forgot password?', style: TextStyle(fontSize: 12.5)),
+              child: const Text(
+                'Forgot password?',
+                style: TextStyle(fontSize: 12.5),
+              ),
             ),
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: 8),
-            Text(errorMessage!,
-                style: const TextStyle(color: AppColors.coralRed, fontSize: 13)),
+            Text(
+              errorMessage!,
+              style: const TextStyle(
+                color: AppColors.coralRed,
+                fontSize: 13,
+              ),
+            ),
           ],
           const SizedBox(height: 12),
           Container(
@@ -242,10 +266,11 @@ class _SignInForm extends StatelessWidget {
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                    color: AppColors.sageGreen.withValues(alpha: 0.35),
-                    blurRadius: 22,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 10)),
+                  color: AppColors.sageGreen.withValues(alpha: 0.35),
+                  blurRadius: 22,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 10),
+                ),
               ],
             ),
             child: ElevatedButton(
@@ -256,17 +281,22 @@ class _SignInForm extends StatelessWidget {
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28)),
+                  borderRadius: BorderRadius.circular(28),
+                ),
               ),
               child: isBusy
                   ? const SizedBox(
                       height: 18,
                       width: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : const Text('Sign In',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  : const Text(
+                      'Sign In',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
             ),
           ),
           const SizedBox(height: 16),
