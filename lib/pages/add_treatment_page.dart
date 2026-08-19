@@ -141,6 +141,10 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     if (picked != null) setState(() => _dateAdministered = picked);
   }
 
+  void _goBackToMedicalRecords() {
+    context.go('/medical-records');
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedPet == null) {
@@ -171,7 +175,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
         items: _itemRows,
       );
       if (!mounted) return;
-      context.go('/medical-records');
+      _goBackToMedicalRecords();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -204,7 +208,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () => context.go('/medical-records'),
+            onPressed: _goBackToMedicalRecords,
             icon: const Icon(Icons.arrow_back, size: 16),
             label: const Text('Back to Medical Records'),
             style: TextButton.styleFrom(foregroundColor: AppColors.mutedForeground),
@@ -320,7 +324,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: _saving ? null : () => context.go('/medical-records'),
+                      onPressed: _saving ? null : _goBackToMedicalRecords,
                       child: const Text('Cancel'),
                     ),
                     const SizedBox(width: 8),

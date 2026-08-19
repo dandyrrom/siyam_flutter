@@ -6,16 +6,94 @@ import '../../state/data_bus.dart';
 import '../inventory_service.dart';
 import '../supplier_service.dart';
 
-/// Supabase-backed access for public.supplier / purchase / purchase_item.
-///
-/// Creating a purchase order now also creates an inventory_batch for each
-/// received purchase_item and records the initial RECEIVE movement in
-/// batch_transaction_log.
+// ============================================================================
+// SUPABASE SUPPLIER SERVICE
+// ============================================================================
+//
+// REAL DATABASE FLOW:
+//
+// SUPPLIER
+//
+// PURCHASE
+//   ↓
+// PURCHASE_ITEM
+//   ↓
+// INVENTORY_BATCH
+//   ↓
+// BATCH_TRANSACTION_LOG (RECEIVE)
+//
+// The purchase/batch logic below preserves the working batch-based inventory
+// implementation already added to SIYAM.
+// ============================================================================
+
 class SupabaseSupplierService implements SupplierService {
   final SupabaseClient _client = Supabase.instance.client;
   final InventoryService _inventoryService = InventoryService();
 
   double _d(dynamic v) => v == null ? 0 : (v as num).toDouble();
+
+  // ==========================================================================
+  // SUPPLIER NAME NORMALIZATION
+  // ==========================================================================
+  //
+  // These names are considered duplicates:
+  //
+  // Mercury Drug
+  // mercury drug
+  // MERCURY DRUG
+  // Mercury     Drug
+  //
+  // Extra spaces are also removed before saving.
+  // ==========================================================================
+
+  String _cleanSupplierName(String value) {
+    return value.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  String _supplierNameKey(String value) {
+    return _cleanSupplierName(value).toLowerCase();
+  }
+
+  // ==========================================================================
+  // DUPLICATE SUPPLIER CHECK
+  // ==========================================================================
+  //
+  // Performed in the actual Supabase service, not only in the UI.
+  //
+  // [excludeSuppId] allows an existing supplier to retain its own name when
+  // it is being edited.
+  // ==========================================================================
+
+  Future<void> _ensureUniqueSupplierName(
+    String suppName, {
+    String? excludeSuppId,
+  }) async {
+    final rows = await _client
+        .from('supplier')
+        .select('id, name');
+
+    final targetKey = _supplierNameKey(suppName);
+
+    for (final row in rows) {
+      final supplierId = row['id'] as String;
+
+      if (supplierId == excludeSuppId) {
+        continue;
+      }
+
+      final existingName = (row['name'] as String?) ?? '';
+
+      if (_supplierNameKey(existingName) == targetKey) {
+        throw Exception(
+          'A supplier with this name already exists.',
+        );
+      }
+    }
+  }
+
+  // ==========================================================================
+  // MAPPERS
+  // ==========================================================================
 
   Supplier _mapSupplier(Map<String, dynamic> r) => Supplier(
         suppId: r['id'] as String,
@@ -26,16 +104,23 @@ class SupabaseSupplierService implements SupplierService {
       );
 
   Future<Map<String, String>> _userNameMap() async {
-    final rows = await _client.from('users').select('id, fname, lname');
+    final rows = await _client
+        .from('users')
+        .select('id, fname, lname');
+
     return {
       for (final r in rows)
         r['id'] as String:
-            '${(r['fname'] as String?) ?? ''} ${(r['lname'] as String?) ?? ''}'.trim(),
+            '${(r['fname'] as String?) ?? ''} ${(r['lname'] as String?) ?? ''}'
+                .trim(),
     };
   }
 
   Future<Map<String, String>> _unitAbbrMap() async {
-    final rows = await _client.from('units').select('id, abbr_name');
+    final rows = await _client
+        .from('units')
+        .select('id, abbr_name');
+
     return {
       for (final r in rows)
         r['id'] as String: (r['abbr_name'] as String?) ?? '',
@@ -43,7 +128,9 @@ class SupabaseSupplierService implements SupplierService {
   }
 
   PurchaseOrder _mapOrder(
-      Map<String, dynamic> r, Map<String, String> users) {
+    Map<String, dynamic> r,
+    Map<String, String> users,
+  ) {
     final supplier = r['supplier'] as Map<String, dynamic>?;
     final recordedBy = r['recordedby'] as String;
 
@@ -61,6 +148,10 @@ class SupabaseSupplierService implements SupplierService {
   static const String _orderColumns =
       'id, suppid, recordedby, receivedby, receiveddate, supplier(name)';
 
+  // ==========================================================================
+  // FETCH SUPPLIERS
+  // ==========================================================================
+
   @override
   Future<List<Supplier>> fetchSuppliers() async {
     final rows = await _client
@@ -71,6 +162,10 @@ class SupabaseSupplierService implements SupplierService {
     return rows.map((r) => _mapSupplier(r)).toList();
   }
 
+  // ==========================================================================
+  // CREATE SUPPLIER
+  // ==========================================================================
+
   @override
   Future<Supplier> createSupplier({
     required String suppName,
@@ -78,10 +173,14 @@ class SupabaseSupplierService implements SupplierService {
     String? contactTel,
     String? address,
   }) async {
+    final cleanName = _cleanSupplierName(suppName);
+
+    await _ensureUniqueSupplierName(cleanName);
+
     final row = await _client
         .from('supplier')
         .insert({
-          'name': suppName,
+          'name': cleanName,
           'contactnum': contactNum,
           'contacttel': contactTel,
           'address': address,
@@ -90,8 +189,13 @@ class SupabaseSupplierService implements SupplierService {
         .single();
 
     DataChangeBus.instance.ping();
+
     return _mapSupplier(row);
   }
+
+  // ==========================================================================
+  // UPDATE SUPPLIER
+  // ==========================================================================
 
   @override
   Future<Supplier> updateSupplier({
@@ -101,10 +205,17 @@ class SupabaseSupplierService implements SupplierService {
     String? contactTel,
     String? address,
   }) async {
+    final cleanName = _cleanSupplierName(suppName);
+
+    await _ensureUniqueSupplierName(
+      cleanName,
+      excludeSuppId: suppId,
+    );
+
     final row = await _client
         .from('supplier')
         .update({
-          'name': suppName,
+          'name': cleanName,
           'contactnum': contactNum,
           'contacttel': contactTel,
           'address': address,
@@ -114,14 +225,27 @@ class SupabaseSupplierService implements SupplierService {
         .single();
 
     DataChangeBus.instance.ping();
+
     return _mapSupplier(row);
   }
 
+  // ==========================================================================
+  // DELETE SUPPLIER
+  // ==========================================================================
+
   @override
   Future<void> deleteSupplier(String suppId) async {
-    await _client.from('supplier').delete().eq('id', suppId);
+    await _client
+        .from('supplier')
+        .delete()
+        .eq('id', suppId);
+
     DataChangeBus.instance.ping();
   }
+
+  // ==========================================================================
+  // FETCH ALL PURCHASE ORDERS
+  // ==========================================================================
 
   @override
   Future<List<PurchaseOrder>> fetchAllPurchaseOrders() async {
@@ -135,9 +259,14 @@ class SupabaseSupplierService implements SupplierService {
     return rows.map((r) => _mapOrder(r, users)).toList();
   }
 
+  // ==========================================================================
+  // FETCH SUPPLIER PURCHASE ORDERS
+  // ==========================================================================
+
   @override
   Future<List<PurchaseOrder>> fetchPurchaseOrdersForSupplier(
-      String suppId) async {
+    String suppId,
+  ) async {
     final users = await _userNameMap();
 
     final rows = await _client
@@ -148,6 +277,10 @@ class SupabaseSupplierService implements SupplierService {
 
     return rows.map((r) => _mapOrder(r, users)).toList();
   }
+
+  // ==========================================================================
+  // FETCH PURCHASE ORDER
+  // ==========================================================================
 
   @override
   Future<PurchaseOrder?> fetchPurchaseOrder(String purId) async {
@@ -160,8 +293,13 @@ class SupabaseSupplierService implements SupplierService {
     if (row == null) return null;
 
     final users = await _userNameMap();
+
     return _mapOrder(row, users);
   }
+
+  // ==========================================================================
+  // FETCH PURCHASE ORDER ITEMS
+  // ==========================================================================
 
   @override
   Future<List<OrderLineItem>> fetchOrderItems(String purId) async {
@@ -170,7 +308,8 @@ class SupabaseSupplierService implements SupplierService {
     final rows = await _client
         .from('purchase_item')
         .select(
-            'itemid, qty, purchase_unit_cost, item(name, purchase_unit)')
+          'itemid, qty, purchase_unit_cost, item(name, purchase_unit)',
+        )
         .eq('purchaseid', purId);
 
     return rows.map((r) {
@@ -187,21 +326,30 @@ class SupabaseSupplierService implements SupplierService {
     }).toList();
   }
 
+  // ==========================================================================
+  // PURCHASE SPEND
+  // ==========================================================================
+
   @override
   Future<List<OrderSpendEntry>> fetchOrderSpendEntries() async {
     final rows = await _client
         .from('purchase_item')
-        .select('qty, purchase_unit_cost, purchase(receiveddate)');
+        .select(
+          'qty, purchase_unit_cost, purchase(receiveddate)',
+        );
 
     final result = <OrderSpendEntry>[];
 
     for (final r in rows) {
       final purchase = r['purchase'] as Map<String, dynamic>?;
+
       if (purchase == null) continue;
 
       result.add(
         OrderSpendEntry(
-          purDate: DateTime.parse(purchase['receiveddate'] as String),
+          purDate: DateTime.parse(
+            purchase['receiveddate'] as String,
+          ),
           amount: _d(r['qty']) * _d(r['purchase_unit_cost']),
         ),
       );
@@ -210,12 +358,25 @@ class SupabaseSupplierService implements SupplierService {
     return result;
   }
 
-  /// Creates the purchase, logs each item into purchase_item, creates the
-  /// corresponding physical inventory_batch, and records a RECEIVE movement
-  /// for that batch in batch_transaction_log.
-  ///
-  /// Expiry and remaining stock are no longer stored in purchase_item.
-  /// They now belong to inventory_batch.
+  // ==========================================================================
+  // CREATE PURCHASE ORDER
+  // ==========================================================================
+  //
+  // IMPORTANT:
+  //
+  // This is the existing batch-based stock-in flow.
+  //
+  // PURCHASE
+  //    ↓
+  // PURCHASE_ITEM
+  //    ↓
+  // INVENTORY_BATCH
+  //    ↓
+  // BATCH_TRANSACTION_LOG / RECEIVE
+  //
+  // Do not move expiry or remaining stock back into purchase_item.
+  // ==========================================================================
+
   @override
   Future<PurchaseOrder> createPurchaseOrder({
     required String suppId,
@@ -233,8 +394,11 @@ class SupabaseSupplierService implements SupplierService {
       'receiveddate': actualReceivedDate.toUtc().toIso8601String(),
     };
 
-    final purchase =
-        await _client.from('purchase').insert(insert).select('id').single();
+    final purchase = await _client
+        .from('purchase')
+        .insert(insert)
+        .select('id')
+        .single();
 
     final purId = purchase['id'] as String;
 
@@ -243,19 +407,28 @@ class SupabaseSupplierService implements SupplierService {
 
       final invItem = await _inventoryService.fetchItem(item.itemId);
 
-      // Canonical batch qty for FEFO: package_unit terms when the item
-      // has a breakdown (converting from purchase_unit if that's how this
-      // line was entered), else purchase_unit terms directly.
       final packageQuantity = invItem?.packageQuantity;
+
+      // ======================================================================
+      // CANONICAL BATCH QUANTITY
+      // ======================================================================
+      //
+      // Items with package breakdowns are stored in package-unit terms.
+      //
+      // Example:
+      // 2 bag × 10 kg = 20 kg in inventory_batch.
+      // ======================================================================
 
       final batchQty = packageQuantity == null
           ? item.qty
-          : (item.qtyUnit == QtyUnit.packageUnit
+          : item.qtyUnit == QtyUnit.packageUnit
               ? item.qty
-              : item.qty * packageQuantity);
+              : item.qty * packageQuantity;
 
-      // purchase_item now records only the procurement line. Expiry and
-      // remaining stock are stored in inventory_batch instead.
+      // ======================================================================
+      // PURCHASE ITEM
+      // ======================================================================
+
       final purchaseItem = await _client
           .from('purchase_item')
           .insert({
@@ -270,20 +443,22 @@ class SupabaseSupplierService implements SupplierService {
 
       final purchaseItemId = purchaseItem['purchaseitemid'] as String;
 
-      // Every purchase_item received creates its own physical batch.
-      //
-      // qtyreceived and qtyavailable use the canonical stock quantity:
-      // package units when the item has a package breakdown, otherwise
-      // purchase units.
+      // ======================================================================
+      // INVENTORY BATCH
+      // ======================================================================
+
       final batch = await _client
           .from('inventory_batch')
           .insert({
             'itemid': item.itemId,
             'purchaseitemid': purchaseItemId,
             'donationitemid': null,
-            'batchcode': 'PUR-${purchaseItemId.substring(0, 8).toUpperCase()}',
-            'receiveddate': actualReceivedDate.toUtc().toIso8601String(),
-            'expirydate': item.expiryDate?.toIso8601String().split('T').first,
+            'batchcode':
+                'PUR-${purchaseItemId.substring(0, 8).toUpperCase()}',
+            'receiveddate':
+                actualReceivedDate.toUtc().toIso8601String(),
+            'expirydate':
+                item.expiryDate?.toIso8601String().split('T').first,
             'qtyreceived': batchQty,
             'qtyavailable': batchQty,
             'qtyunit': qtyUnitToString(
@@ -300,9 +475,13 @@ class SupabaseSupplierService implements SupplierService {
 
       final inventoryBatchId = batch['inventorybatchid'] as String;
 
-      // RECEIVE is the first transaction for a newly created batch and
-      // records the exact quantity that entered inventory.
-      await _client.from('batch_transaction_log').insert({
+      // ======================================================================
+      // RECEIVE TRANSACTION
+      // ======================================================================
+
+      await _client
+          .from('batch_transaction_log')
+          .insert({
         'inventorybatchid': inventoryBatchId,
         'treatmentitemid': null,
         'txntype': 'RECEIVE',
@@ -312,16 +491,20 @@ class SupabaseSupplierService implements SupplierService {
               ? QtyUnit.purchaseUnit
               : QtyUnit.packageUnit,
         ),
-        'txndate': actualReceivedDate.toUtc().toIso8601String(),
+        'txndate':
+            actualReceivedDate.toUtc().toIso8601String(),
         'performedby': recordedByUserId,
         'notes': 'Stock received from purchase $purId',
       });
 
-      // TEMPORARY:
-      // The existing inventory pages may still read the old item-level stock
-      // value. Keep that value synchronized while the UI is being migrated to
-      // SUM(inventory_batch.qtyavailable). Remove this call once batch stock
-      // becomes the only source used throughout the application.
+      // ======================================================================
+      // TEMPORARY ITEM-LEVEL AGGREGATE SYNC
+      // ======================================================================
+      //
+      // Keep existing aggregate values synchronized while the remaining pages
+      // transition completely to batch-derived stock.
+      // ======================================================================
+
       await _inventoryService.stockIn(
         itemId: item.itemId,
         qty: item.qty,

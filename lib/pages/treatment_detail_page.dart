@@ -150,8 +150,9 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             const Text('Treatment not found', style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             TextButton(
-                onPressed: () => context.go('/medical-records'),
-                child: const Text('Back to Medical Records')),
+              onPressed: () => context.go('/medical-records'),
+              child: const Text('Back to Medical Records'),
+            ),
           ],
         ),
       );

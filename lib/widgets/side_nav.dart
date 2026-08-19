@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../core/app_colors.dart';
 import '../routing/nav_config.dart';
 import '../state/auth_state.dart';
@@ -9,32 +10,134 @@ class SideNav extends StatelessWidget {
   final bool collapsed;
   final String currentPath;
 
-  const SideNav(
-      {super.key, required this.collapsed, required this.currentPath});
+  const SideNav({
+    super.key,
+    required this.collapsed,
+    required this.currentPath,
+  });
+
+  // =========================================================================
+  // LOGOUT CONFIRMATION
+  // =========================================================================
+  //
+  // Panel requirement:
+  // Ask for confirmation before logging the user out.
+  //
+  // IMPORTANT:
+  // This does NOT navigate manually to /login.
+  // AuthController.logout() changes authentication state and GoRouter handles
+  // the redirect.
+  // =========================================================================
+
+  Future<void> _confirmAndLogout(
+    BuildContext context,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.logout,
+                size: 21,
+                color: AppColors.destructive,
+              ),
+              SizedBox(width: 10),
+              Text('Log out?'),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.destructive,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(
+                Icons.logout,
+                size: 16,
+              ),
+              label: const Text('Log Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    // =======================================================================
+    // LOGOUT
+    // =======================================================================
+    //
+    // Do NOT add:
+    // context.go('/login');
+    //
+    // GoRouter redirects automatically after AuthController updates the
+    // authentication state.
+    // =======================================================================
+
+    await context.read<AuthController>().logout();
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final user = auth.profile;
+
     final items = kNavItems
-        .where((i) => user != null && i.roles.contains(user.role))
+        .where(
+          (i) =>
+              user != null &&
+              i.roles.contains(user.role),
+        )
         .toList();
 
     return Container(
       width: collapsed ? 72 : 248,
       decoration: const BoxDecoration(
         color: AppColors.sidebar,
-        border: Border(right: BorderSide(color: AppColors.sidebarBorder)),
+        border: Border(
+          right: BorderSide(
+            color: AppColors.sidebarBorder,
+          ),
+        ),
       ),
       child: Column(
         children: [
-          // Logo
+          // =================================================================
+          // LOGO
+          // =================================================================
+
           Container(
             height: 64,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+            ),
             decoration: const BoxDecoration(
-              border:
-                  Border(bottom: BorderSide(color: AppColors.sidebarBorder)),
+              border: Border(
+                bottom: BorderSide(
+                  color: AppColors.sidebarBorder,
+                ),
+              ),
             ),
             child: Row(
               mainAxisAlignment: collapsed
@@ -46,27 +149,42 @@ class SideNav extends StatelessWidget {
                   width: 32,
                   height: 32,
                 ),
+
                 if (!collapsed) ...[
                   const SizedBox(width: 10),
+
                   const Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('SIYAM',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: AppColors.sidebarForeground),
-                            overflow: TextOverflow.ellipsis),
+                        Text(
+                          'SIYAM',
+                          overflow:
+                              TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight:
+                                FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors
+                                .sidebarForeground,
+                          ),
+                        ),
+
                         SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Text('Shelter Inventory and Audit Management',
-                              maxLines: 1,
-                              softWrap: false,
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.sidebarAccentForeground)),
+                          scrollDirection:
+                              Axis.horizontal,
+                          child: Text(
+                            'Shelter Inventory and Audit Management',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors
+                                  .sidebarAccentForeground,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -76,49 +194,101 @@ class SideNav extends StatelessWidget {
             ),
           ),
 
-          // Nav items
+          // =================================================================
+          // NAVIGATION ITEMS
+          // =================================================================
+
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 8,
+              ),
               children: items.map((item) {
-                final active = currentPath.startsWith(item.path);
+                final active =
+                    currentPath.startsWith(
+                  item.path,
+                );
+
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
+                  padding:
+                      const EdgeInsets.only(
+                    bottom: 2,
+                  ),
                   child: Material(
-                    color:
-                        active ? AppColors.sidebarAccent : Colors.transparent,
-                    elevation: active ? 1 : 0,
-                    shadowColor:
-                        AppColors.sidebarForeground.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(16),
+                    color: active
+                        ? AppColors
+                            .sidebarAccent
+                        : Colors.transparent,
+                    elevation:
+                        active ? 1 : 0,
+                    shadowColor: AppColors
+                        .sidebarForeground
+                        .withValues(
+                      alpha: 0.25,
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(
+                      16,
+                    ),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => context.go(item.path),
+                      borderRadius:
+                          BorderRadius.circular(
+                        16,
+                      ),
+                      onTap: () {
+                        context.go(
+                          item.path,
+                        );
+                      },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 11),
+                        padding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 11,
+                        ),
                         child: Row(
-                          mainAxisAlignment: collapsed
-                              ? MainAxisAlignment.center
-                              : MainAxisAlignment.start,
+                          mainAxisAlignment:
+                              collapsed
+                                  ? MainAxisAlignment
+                                      .center
+                                  : MainAxisAlignment
+                                      .start,
                           children: [
-                            Icon(item.icon,
-                                size: 18,
-                                color: active
-                                    ? AppColors.sidebarPrimary
-                                    : AppColors.sidebarAccentForeground),
+                            Icon(
+                              item.icon,
+                              size: 18,
+                              color: active
+                                  ? AppColors
+                                      .sidebarPrimary
+                                  : AppColors
+                                      .sidebarAccentForeground,
+                            ),
+
                             if (!collapsed) ...[
-                              const SizedBox(width: 12),
+                              const SizedBox(
+                                width: 12,
+                              ),
+
                               Expanded(
                                 child: Text(
                                   item.label,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: active
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    color: AppColors.sidebarForeground,
+                                  overflow:
+                                      TextOverflow
+                                          .ellipsis,
+                                  style:
+                                      TextStyle(
+                                    fontSize:
+                                        13.5,
+                                    fontWeight:
+                                        active
+                                            ? FontWeight
+                                                .w600
+                                            : FontWeight
+                                                .w400,
+                                    color: AppColors
+                                        .sidebarForeground,
                                   ),
                                 ),
                               ),
@@ -133,56 +303,128 @@ class SideNav extends StatelessWidget {
             ),
           ),
 
-          // User + logout
+          // =================================================================
+          // USER + LOGOUT
+          // =================================================================
+
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.sidebarBorder)),
+            padding:
+                const EdgeInsets.all(8),
+            decoration:
+                const BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: AppColors
+                      .sidebarBorder,
+                ),
+              ),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch,
               children: [
-                if (!collapsed && user != null)
+                // =============================================================
+                // USER PROFILE
+                // =============================================================
+
+                if (!collapsed &&
+                    user != null)
                   Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    color:
+                        Colors.transparent,
+                    borderRadius:
+                        BorderRadius.circular(
+                      12,
+                    ),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => context.go('/profile'),
-                      hoverColor: AppColors.sidebarPrimary.withValues(alpha: 0.08),
-                      highlightColor: AppColors.sidebarPrimary.withValues(alpha: 0.14),
+                      borderRadius:
+                          BorderRadius.circular(
+                        12,
+                      ),
+                      onTap: () {
+                        context.go(
+                          '/profile',
+                        );
+                      },
+                      hoverColor: AppColors
+                          .sidebarPrimary
+                          .withValues(
+                        alpha: 0.08,
+                      ),
+                      highlightColor: AppColors
+                          .sidebarPrimary
+                          .withValues(
+                        alpha: 0.14,
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
+                        padding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: 14,
-                              backgroundColor: AppColors.sidebarPrimary,
-                              child: Text(user.initials,
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.sidebarPrimaryForeground)),
+                              backgroundColor:
+                                  AppColors
+                                      .sidebarPrimary,
+                              child: Text(
+                                user.initials,
+                                style:
+                                    const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight:
+                                      FontWeight
+                                          .w700,
+                                  color: AppColors
+                                      .sidebarPrimaryForeground,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 8),
+
+                            const SizedBox(
+                              width: 8,
+                            ),
+
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment
+                                        .start,
+                                mainAxisSize:
+                                    MainAxisSize
+                                        .min,
                                 children: [
-                                  Text(user.fullName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.sidebarForeground)),
-                                  Text(user.email,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors
-                                              .sidebarAccentForeground)),
+                                  Text(
+                                    user.fullName,
+                                    overflow:
+                                        TextOverflow
+                                            .ellipsis,
+                                    style:
+                                        const TextStyle(
+                                      fontSize:
+                                          12.5,
+                                      fontWeight:
+                                          FontWeight
+                                              .w600,
+                                      color: AppColors
+                                          .sidebarForeground,
+                                    ),
+                                  ),
+                                  Text(
+                                    user.email,
+                                    overflow:
+                                        TextOverflow
+                                            .ellipsis,
+                                    style:
+                                        const TextStyle(
+                                      fontSize:
+                                          11,
+                                      color: AppColors
+                                          .sidebarAccentForeground,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -191,31 +433,68 @@ class SideNav extends StatelessWidget {
                       ),
                     ),
                   ),
-                collapsed
-                    ? IconButton(
-                        onPressed: () async {
-                          await context.read<AuthController>().logout();
-                          if (context.mounted) context.go('/login');
-                        },
-                        icon: const Icon(Icons.logout,
-                            size: 16, color: AppColors.sidebarAccentForeground),
-                      )
-                    : TextButton.icon(
-                        onPressed: () async {
-                          await context.read<AuthController>().logout();
-                          if (context.mounted) context.go('/login');
-                        },
-                        icon: const Icon(Icons.logout,
-                            size: 16, color: AppColors.sidebarAccentForeground),
-                        label: const Text('Logout',
-                            style:
-                                TextStyle(color: AppColors.sidebarForeground)),
-                        style: TextButton.styleFrom(
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                        ),
+
+                // =============================================================
+                // LOGOUT
+                // =============================================================
+                //
+                // Logout now requires confirmation.
+                //
+                // The actual redirect continues to be handled by:
+                // AuthController + GoRouter.
+                // =============================================================
+
+                if (collapsed)
+                  IconButton(
+                    onPressed: auth.isBusy
+                        ? null
+                        : () async {
+                            await _confirmAndLogout(
+                              context,
+                            );
+                          },
+                    icon: const Icon(
+                      Icons.logout,
+                      size: 16,
+                      color: AppColors
+                          .sidebarAccentForeground,
+                    ),
+                    tooltip: 'Logout',
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: auth.isBusy
+                        ? null
+                        : () async {
+                            await _confirmAndLogout(
+                              context,
+                            );
+                          },
+                    icon: const Icon(
+                      Icons.logout,
+                      size: 16,
+                      color: AppColors
+                          .sidebarAccentForeground,
+                    ),
+                    label: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        color: AppColors
+                            .sidebarForeground,
                       ),
+                    ),
+                    style:
+                        TextButton.styleFrom(
+                      alignment:
+                          Alignment.centerLeft,
+                      padding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

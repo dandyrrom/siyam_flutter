@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/primary_category.dart';
@@ -16,7 +17,11 @@ import '../widgets/stock_out_dialog.dart';
 
 class InventoryItemPage extends StatefulWidget {
   final String itemId;
-  const InventoryItemPage({super.key, required this.itemId});
+
+  const InventoryItemPage({
+    super.key,
+    required this.itemId,
+  });
 
   @override
   State<InventoryItemPage> createState() => _InventoryItemPageState();
@@ -31,8 +36,63 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   List<StockMovement> _history = [];
   List<PrimaryCategory> _primaryCategories = [];
   List<Unit> _units = [];
+
   bool _loading = true;
   bool _notFound = false;
+
+  // ===========================================================================
+  // CURRENT STOCK DISPLAY — OPTION A
+  // ===========================================================================
+  //
+  // For divisible inventory, the package/smaller unit is the authoritative
+  // usable stock shown to staff.
+  //
+  // Example:
+  // 5 bag × 10 kg = 50 kg
+  // Stock Out 20 kg
+  //
+  // Display:
+  // Current Stock = 30 kg
+  // Equivalent    = 3 bag
+  //
+  // We no longer present the old raw "5 bag" value as current stock.
+  // ===========================================================================
+
+  bool _hasPackageBreakdown(InventoryItem item) {
+    return item.packageQuantity != null &&
+        item.packageQuantity! > 0 &&
+        item.packageUnitAbbr != null &&
+        item.packageUnitAbbr!.trim().isNotEmpty;
+  }
+
+  double _currentStockQty(InventoryItem item) {
+    if (_hasPackageBreakdown(item)) {
+      return item.packageStockQty ?? (item.stockQty * item.packageQuantity!);
+    }
+
+    return item.stockQty;
+  }
+
+  String _currentStockUnit(InventoryItem item) {
+    if (_hasPackageBreakdown(item)) {
+      return item.packageUnitAbbr!;
+    }
+
+    return item.purchaseUnitAbbr;
+  }
+
+  double? _purchaseUnitEquivalent(InventoryItem item) {
+    if (!_hasPackageBreakdown(item)) return null;
+
+    return _currentStockQty(item) / item.packageQuantity!;
+  }
+
+  String? _packageConversionLabel(InventoryItem item) {
+    if (!_hasPackageBreakdown(item)) return null;
+
+    return '1 ${item.purchaseUnitAbbr} = '
+        '${formatQty(item.packageQuantity!)} ${item.packageUnitAbbr}';
+  }
 
   @override
   void initState() {
@@ -50,6 +110,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
         _notFound = false;
       });
     }
+
     try {
       final results = await Future.wait([
         _service.fetchItem(widget.itemId),
@@ -57,8 +118,11 @@ class _InventoryItemPageState extends State<InventoryItemPage>
         _catalogService.fetchPrimaryCategories(),
         _catalogService.fetchUnits(),
       ]);
+
       if (!mounted) return;
+
       final item = results[0] as InventoryItem?;
+
       setState(() {
         _item = item;
         _history = results[1] as List<StockMovement>;
@@ -69,6 +133,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
       });
     } catch (_) {
       if (!mounted) return;
+
       if (!silent) {
         setState(() {
           _notFound = true;
@@ -89,7 +154,9 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Text('Edit $label'),
         content: Form(
           key: formKey,
@@ -97,23 +164,33 @@ class _InventoryItemPageState extends State<InventoryItemPage>
             controller: controller,
             autofocus: true,
             decoration: InputDecoration(labelText: label),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Required';
+              return null;
+            },
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
+
               Navigator.of(context).pop();
+
               try {
                 await onSave(controller.text.trim());
                 _load();
               } catch (e) {
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text('Could not update: $e')));
-}
+                if (!context.mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Could not update: $e')),
+                );
+              }
             },
             child: const Text('Save'),
           ),
@@ -122,8 +199,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     );
   }
 
-  /// Category/unit are catalog lookups now, not free text -- this picks
-  /// from [options] instead of typing an arbitrary string.
+  /// Category/unit are catalog lookups, not free-text values.
   Future<void> _editPickerField<T extends Object>({
     required String label,
     required List<T> options,
@@ -136,7 +212,9 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Text('Edit $label'),
         content: Form(
           key: formKey,
@@ -149,18 +227,25 @@ class _InventoryItemPageState extends State<InventoryItemPage>
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
+
               Navigator.of(context).pop();
+
               try {
                 await onSave(selected as T);
                 _load();
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Could not update: $e')));
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Could not update: $e')),
+                );
               }
             },
             child: const Text('Save'),
@@ -173,36 +258,94 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   Future<void> _openStockOutDialog() async {
     final item = _item;
     if (item == null) return;
+
     final result = await showStockOutDialog(
       context,
       service: _service,
       recordedByUserId: context.read<AuthController>().profile!.userId,
       item: item,
     );
+
     if (!mounted) return;
+
     if (result != null) {
       final (usedItem, qty) = result;
-      context.push('/medical-records/add?itemId=${usedItem.itemId}&qty=$qty');
+
+      context.push(
+        '/medical-records/add?itemId=${usedItem.itemId}&qty=$qty',
+      );
+
       return;
     }
+
     _load();
   }
+
+  // ===========================================================================
+  // CONTEXT-AWARE BACK NAVIGATION
+  // ===========================================================================
+  //
+  // InventoryItemPage can be opened from different modules.
+  //
+  // Examples:
+  // - Inventory -> Item Details
+  // - Purchases & Replenishment -> Replenishment Item -> Item Details
+  //
+  // Using context.go('/inventory') hard-codes Inventory as the destination and
+  // replaces the current route stack. Instead, pop the route that opened this
+  // page so the user returns to the correct originating module.
+  //
+  // The fallback is only used if this page was opened directly (for example,
+  // by typing its URL into the browser) and there is no route to pop.
+  // ===========================================================================
+
+  bool get _openedFromPurchases {
+    final from = GoRouterState.of(context)
+        .uri
+        .queryParameters['from'];
+
+    return from == 'purchase-orders';
+  }
+
+  void _goBack() {
+    if (_openedFromPurchases) {
+      context.go('/purchase-orders');
+      return;
+    }
+
+    context.go('/inventory');
+  }
+
+  String get _backLabel => _openedFromPurchases
+      ? 'Back to Purchases & Replenishment'
+      : 'Back to Inventory';
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
+
     if (_notFound || _item == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.inventory_2_outlined, size: 40, color: AppColors.mutedForeground),
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 40,
+              color: AppColors.mutedForeground,
+            ),
             const SizedBox(height: 12),
-            const Text('Item not found', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text(
+              'Item not found',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 12),
-            TextButton(onPressed: () => context.go('/inventory'), child: const Text('Back to Inventory')),
+            TextButton(
+              onPressed: _goBack,
+              child: Text(_backLabel),
+            ),
           ],
         ),
       );
@@ -211,25 +354,42 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     final item = _item!;
     final outOfStock = item.isOutOfStock;
 
+    // =========================================================================
+    // CURRENT STOCK VALUES
+    // =========================================================================
+
+    final currentStockQty = _currentStockQty(item);
+    final currentStockUnit = _currentStockUnit(item);
+    final equivalent = _purchaseUnitEquivalent(item);
+    final conversionLabel = _packageConversionLabel(item);
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 720),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () => context.go('/inventory'),
+            onPressed: _goBack,
             icon: const Icon(Icons.arrow_back, size: 16),
-            label: const Text('Back to Inventory'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.mutedForeground),
+            label: Text(_backLabel),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.mutedForeground,
+            ),
           ),
           const SizedBox(height: 8),
+
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
-                  color: (outOfStock ? AppColors.destructive : AppColors.roleManager)
+                  color: (outOfStock
+                          ? AppColors.destructive
+                          : AppColors.roleManager)
                       .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -238,29 +398,52 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: outOfStock ? AppColors.destructive : AppColors.roleManager,
+                    color: outOfStock
+                        ? AppColors.destructive
+                        : AppColors.roleManager,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              Text(item.itemName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+              Text(
+                item.itemName,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
+
           const SizedBox(height: 20),
+
+          // =========================================================================
+          // STOCK ACTIONS
+          // =========================================================================
 
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => context.push('/inventory/add?itemId=${item.itemId}'),
-                  icon: const Icon(Icons.arrow_upward, size: 16, color: AppColors.roleManager),
+                  onPressed: () {
+                    context.push(
+                      '/inventory/add?itemId=${item.itemId}',
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.arrow_upward,
+                    size: 16,
+                    color: AppColors.roleManager,
+                  ),
                   label: const Text('Stock In'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.destructive),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.destructive,
+                  ),
                   onPressed: _openStockOutDialog,
                   icon: const Icon(Icons.arrow_downward, size: 16),
                   label: const Text('Stock Out'),
@@ -268,23 +451,35 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               ),
             ],
           ),
+
           const SizedBox(height: 24),
+
+          // =========================================================================
+          // ITEM DETAILS
+          // =========================================================================
 
           _FieldRow(
             label: 'Item ID',
             value: item.displayId,
           ),
+
           const SizedBox(height: 16),
+
           _FieldRow(
             label: 'Name',
             value: item.itemName,
             onEdit: () => _editField(
               label: 'Name',
               currentValue: item.itemName,
-              onSave: (v) => _service.updateDetails(itemId: item.itemId, itemName: v),
+              onSave: (v) => _service.updateDetails(
+                itemId: item.itemId,
+                itemName: v,
+              ),
             ),
           ),
+
           const SizedBox(height: 16),
+
           Row(
             children: [
               Expanded(
@@ -295,8 +490,10 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                     label: 'Category',
                     options: _primaryCategories,
                     displayStringForOption: (c) => c.type,
-                    onSave: (c) =>
-                        _service.updateDetails(itemId: item.itemId, pCategoryId: c.id),
+                    onSave: (c) => _service.updateDetails(
+                      itemId: item.itemId,
+                      pCategoryId: c.id,
+                    ),
                   ),
                 ),
               ),
@@ -309,14 +506,18 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                     label: 'Purchase Unit',
                     options: _units,
                     displayStringForOption: (u) => u.name,
-                    onSave: (u) =>
-                        _service.updateDetails(itemId: item.itemId, purchaseUnitId: u.id),
+                    onSave: (u) => _service.updateDetails(
+                      itemId: item.itemId,
+                      purchaseUnitId: u.id,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
+
           const SizedBox(height: 16),
+
           Row(
             children: [
               Expanded(
@@ -336,12 +537,24 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               ),
             ],
           ),
+
           const SizedBox(height: 16),
+
           _FieldRow(
             label: 'Dispense Unit',
             value: item.dispenseUnitAbbr ?? '—',
           ),
+
           const SizedBox(height: 16),
+
+          // =========================================================================
+          // STOCK COUNT MODE
+          // =========================================================================
+          //
+          // Kept because this is still part of the inventory configuration.
+          // It no longer controls which quantity is presented as current usable
+          // stock on this page.
+          // =========================================================================
 
           if (item.packageUnitAbbr != null) ...[
             _FieldRow(
@@ -352,53 +565,114 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               onEdit: () => _editPickerField<StockCountMode>(
                 label: 'Stock Count Mode',
                 options: StockCountMode.values,
-                displayStringForOption: (m) => m == StockCountMode.packageUnit
-                    ? 'By package unit (${item.packageUnitAbbr})'
-                    : 'By purchase unit (${item.purchaseUnitAbbr})',
-                onSave: (m) => _service.updateDetails(itemId: item.itemId, stockCountMode: m),
+                displayStringForOption: (m) {
+                  return m == StockCountMode.packageUnit
+                      ? 'By package unit (${item.packageUnitAbbr})'
+                      : 'By purchase unit (${item.purchaseUnitAbbr})';
+                },
+                onSave: (m) => _service.updateDetails(
+                  itemId: item.itemId,
+                  stockCountMode: m,
+                ),
               ),
             ),
             const SizedBox(height: 16),
           ],
 
-          if (item.effectiveCountMode == StockCountMode.packageUnit)
-            _StockStatCard(
-              label: 'Stock on Hand',
-              qty: item.displayStockQty,
-              unit: item.displayStockUnit,
-            )
-          else
+          // =========================================================================
+          // CURRENT STOCK SUMMARY — OPTION A
+          // =========================================================================
+          //
+          // OLD:
+          // Containers on Hand             5 bag
+          // Loose Stock Added (lifetime)   0 kg
+          //
+          // NEW:
+          // Current Stock                  30 kg
+          // Equivalent                     3 bag
+          //
+          // This ensures package-unit stock-outs immediately make sense to staff.
+          // =========================================================================
+
+          if (_hasPackageBreakdown(item))
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: _StockStatCard(
-                    label: 'Containers on Hand',
-                    qty: item.stockQty,
+                    label: 'Current Stock',
+                    qty: currentStockQty,
+                    unit: currentStockUnit,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _StockStatCard(
+                    label: 'Equivalent',
+                    qty: equivalent ?? 0,
                     unit: item.purchaseUnitAbbr,
                   ),
                 ),
-                if (item.packageUnitAbbr != null) ...[
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _StockStatCard(
-                      label: 'Loose Stock Added (lifetime)',
-                      qty: item.totalPackageStockIns,
-                      unit: item.packageUnitAbbr!,
-                    ),
+              ],
+            )
+          else
+            _StockStatCard(
+              label: 'Current Stock',
+              qty: currentStockQty,
+              unit: currentStockUnit,
+            ),
+
+          // =========================================================================
+          // PACKAGE CONVERSION
+          // =========================================================================
+
+          if (conversionLabel != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: AppColors.mutedForeground,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  conversionLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.mutedForeground,
                   ),
-                ],
+                ),
               ],
             ),
+          ],
+
           const SizedBox(height: 24),
 
-          const Text('Stock History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          // =========================================================================
+          // STOCK HISTORY
+          // =========================================================================
+
+          const Text(
+            'Stock History',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+
           const SizedBox(height: 12),
+
           if (_history.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('No stock movements yet.',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+              child: Text(
+                'No stock movements yet.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
             )
           else
             Container(
@@ -424,7 +698,10 @@ class _InventoryItemPageState extends State<InventoryItemPage>
 
 class _StockHistoryRow extends StatelessWidget {
   final StockMovement movement;
-  const _StockHistoryRow({required this.movement});
+
+  const _StockHistoryRow({
+    required this.movement,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -432,30 +709,56 @@ class _StockHistoryRow extends StatelessWidget {
     final color = isIn ? AppColors.roleManager : AppColors.destructive;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 12,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(isIn ? Icons.arrow_upward : Icons.arrow_downward, size: 16, color: color),
+          Icon(
+            isIn ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 16,
+            color: color,
+          ),
           const SizedBox(width: 10),
+
           Expanded(
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(movement.typeLabel,
-                    style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+                Text(
+                  movement.typeLabel,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(_formatDate(movement.date),
-                    style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                Text(
+                  _formatDate(movement.date),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
               ],
             ),
           ),
+
           Expanded(
             flex: 2,
-            child: Text('${isIn ? '+' : '-'}${formatQty(movement.qty)} ${movement.unitAbbr}',
-                style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+            child: Text(
+              '${isIn ? '+' : '-'}${formatQty(movement.qty)} '
+              '${movement.unitAbbr}',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
           ),
+
           Expanded(
             flex: 3,
             child: Column(
@@ -463,18 +766,30 @@ class _StockHistoryRow extends StatelessWidget {
               children: [
                 if (movement.treatmentId != null)
                   InkWell(
-                    onTap: () => context.push('/medical-records/${movement.treatmentId}'),
-                    child: Text(movement.treatmentName ?? '',
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                            fontSize: 12.5,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline)),
+                    onTap: () {
+                      context.push(
+                        '/medical-records/${movement.treatmentId}',
+                      );
+                    },
+                    child: Text(
+                      movement.treatmentName ?? '',
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
-                Text('by ${movement.recordedByName}',
-                    textAlign: TextAlign.end,
-                    style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                Text(
+                  'by ${movement.recordedByName}',
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
               ],
             ),
           ),
@@ -485,15 +800,27 @@ class _StockHistoryRow extends StatelessWidget {
 }
 
 const _monthAbbrev = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
-String _formatDate(DateTime date) =>
-    '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
+String _formatDate(DateTime date) {
+  return '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
+}
 
 class _FieldLabel extends StatelessWidget {
   final String text;
+
   const _FieldLabel(this.text);
 
   @override
@@ -518,7 +845,11 @@ class _FieldRow extends StatelessWidget {
   final String value;
   final VoidCallback? onEdit;
 
-  const _FieldRow({required this.label, required this.value, this.onEdit});
+  const _FieldRow({
+    required this.label,
+    required this.value,
+    this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -527,18 +858,33 @@ class _FieldRow extends StatelessWidget {
       children: [
         _FieldLabel(label),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border, width: 1.5),
+            border: Border.all(
+              color: AppColors.border,
+              width: 1.5,
+            ),
           ),
           child: Row(
             children: [
-              Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
               if (onEdit != null)
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 15, color: AppColors.mutedForeground),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 15,
+                    color: AppColors.mutedForeground,
+                  ),
                   onPressed: onEdit,
                   splashRadius: 18,
                 ),
@@ -555,7 +901,11 @@ class _StockStatCard extends StatelessWidget {
   final double qty;
   final String unit;
 
-  const _StockStatCard({required this.label, required this.qty, required this.unit});
+  const _StockStatCard({
+    required this.label,
+    required this.qty,
+    required this.unit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -564,18 +914,35 @@ class _StockStatCard extends StatelessWidget {
       children: [
         _FieldLabel(label),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border, width: 1.5),
+            border: Border.all(
+              color: AppColors.border,
+              width: 1.5,
+            ),
           ),
           child: Row(
             children: [
-              Text(formatQty(qty),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text(
+                formatQty(qty),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(width: 6),
-              Text(unit, style: const TextStyle(color: AppColors.mutedForeground)),
+              Text(
+                unit,
+                style: const TextStyle(
+                  color: AppColors.mutedForeground,
+                ),
+              ),
             ],
           ),
         ),

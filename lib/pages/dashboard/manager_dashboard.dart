@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/app_colors.dart';
 import '../../models/inventory_item.dart';
 import '../../services/dashboard_service.dart';
@@ -8,9 +9,14 @@ import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/stat_card.dart';
 
-/// Manager Dashboard - Provides a comprehensive overview of the sanctuary's
-/// inventory health, stock alerts, usage trends, and key metrics.
-/// This dashboard is specifically designed for managers with role-based access.
+/// Manager Dashboard
+///
+/// PANEL REQUIREMENTS ADDRESSED HERE:
+///
+/// 1. Dashboard metric cards are clickable.
+/// 2. Cards lead to their relevant full module/detail view.
+/// 3. Replenishment item description and quantity are kept visually together.
+/// 4. Replenishment rows are traceable directly to Inventory Item Details.
 class ManagerDashboard extends StatefulWidget {
   const ManagerDashboard({super.key});
 
@@ -20,44 +26,40 @@ class ManagerDashboard extends StatefulWidget {
 
 class _ManagerDashboardState extends State<ManagerDashboard>
     with DataBusRefreshMixin<ManagerDashboard> {
-  // Service that fetches dashboard data from Supabase
   final DashboardService _service = DashboardService();
 
-  // GlobalKey used to scroll to the replenishment section when the button is pressed
+  // ===========================================================================
+  // REPLENISHMENT SECTION KEY
+  // ===========================================================================
+
   final GlobalKey _replenishmentKey = GlobalKey();
 
-  // Dashboard statistics fetched from the database
   ManagerDashboardStats? _stats;
-
-  // Loading state indicator
   bool _loading = true;
-
-  // Error message if data fetching fails
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Load data after a short delay to ensure auth is restored
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _load();
-    });
+
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _load(),
+    );
   }
 
-  /// Called when external data changes (via DataBus refresh events)
-  /// Silently refreshes data without showing loading indicators
   @override
   void onExternalDataChanged() => _load(silent: true);
 
-  /// Loads dashboard data from the Supabase database
-  /// [silent] - If true, doesn't show loading indicators or error messages
-  Future<void> _load({bool silent = false}) async {
-    // Check if user is authenticated before loading
-    final authController = Provider.of<AuthController>(context, listen: false);
+  // ===========================================================================
+  // LOAD DASHBOARD
+  // ===========================================================================
 
-    // If not authenticated, don't try to load data
+  Future<void> _load({bool silent = false}) async {
+    final authController =
+        Provider.of<AuthController>(context, listen: false);
+
     if (!authController.isAuthenticated) {
-      if (!silent) {
+      if (!silent && mounted) {
         setState(() {
           _loading = false;
           _error = 'Please log in to view the dashboard.';
@@ -66,7 +68,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
       return;
     }
 
-    // Show loading state only if not silent refresh
     if (!silent) {
       setState(() {
         _loading = true;
@@ -84,82 +85,100 @@ class _ManagerDashboardState extends State<ManagerDashboard>
         _loading = false;
       });
     } catch (e) {
-      // Handle errors gracefully
       if (!mounted) return;
 
-      // Check if error is authentication-related
       final errorStr = e.toString().toLowerCase();
-      if (errorStr.contains('jwt') ||
-          errorStr.contains('token') ||
-          errorStr.contains('auth') ||
-          errorStr.contains('permission denied') ||
-          errorStr.contains('unauthorized')) {
-        // Token expired or invalid, but don't redirect - let auth_state handle it
-        if (!silent) {
-          setState(() {
-            _error = 'Your session may have expired. Please refresh the page.';
-            _loading = false;
-          });
-        }
-      } else {
-        // Other errors
-        if (!silent) {
-          setState(() {
+
+      if (!silent) {
+        setState(() {
+          if (errorStr.contains('jwt') ||
+              errorStr.contains('token') ||
+              errorStr.contains('auth') ||
+              errorStr.contains('permission denied') ||
+              errorStr.contains('unauthorized')) {
+            _error =
+                'Your session may have expired. Please refresh the page.';
+          } else {
             _error = 'Could not load dashboard: $e';
-            _loading = false;
-          });
-        }
+          }
+
+          _loading = false;
+        });
       }
     }
   }
 
-  /// Refresh dashboard data with visible loading
   Future<void> _refreshData() async {
     await _load(silent: false);
   }
 
-  /// Helper method to get the current user's display name from AuthController
+  // ===========================================================================
+  // MANAGER NAME
+  // ===========================================================================
+
   String _getUserDisplayName(AuthController authController) {
     final profile = authController.profile;
 
-    if (profile == null) {
-      return 'User';
-    }
+    if (profile == null) return 'User';
 
-    // Try to get the full name from firstName and lastName
     final firstName = profile.firstName.trim();
     final lastName = profile.lastName.trim();
 
     if (firstName.isNotEmpty && lastName.isNotEmpty) {
       return '$firstName $lastName';
-    } else if (firstName.isNotEmpty) {
-      return firstName;
-    } else if (lastName.isNotEmpty) {
-      return lastName;
     }
 
-    // Fallback to email if no name is available
+    if (firstName.isNotEmpty) return firstName;
+    if (lastName.isNotEmpty) return lastName;
+
     if (profile.email.isNotEmpty) {
-      // Show only the part before @
       return profile.email.split('@')[0];
     }
 
     return 'User';
   }
 
+  // ===========================================================================
+  // CARD NAVIGATION
+  // ===========================================================================
+
+  void _goTo(String route) {
+    context.go(route);
+  }
+
+  Future<void> _scrollToReplenishment() async {
+    final targetContext = _replenishmentKey.currentContext;
+
+    if (targetContext == null) return;
+
+    await Scrollable.ensureVisible(
+      targetContext,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+      alignment: 0.08,
+    );
+  }
+
+  void _openInventoryItem(DashboardStockAlert item) {
+    context.push('/inventory/${item.itemId}');
+  }
+
+  // ===========================================================================
+  // BUILD
+  // ===========================================================================
+
   @override
   Widget build(BuildContext context) {
-    // Listen to auth state changes
-    final authController = Provider.of<AuthController>(context);
+    final authController =
+        Provider.of<AuthController>(context);
 
-    // If not authenticated, show message and redirect to login
     if (!authController.isAuthenticated) {
-      // Redirect to login after a short delay
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && context.mounted) {
           context.go('/login');
         }
       });
+
       return const Scaffold(
         body: Center(
           child: Column(
@@ -167,18 +186,16 @@ class _ManagerDashboardState extends State<ManagerDashboard>
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Redirecting to login...'),
+              Text('Redirecting to login'),
             ],
           ),
         ),
       );
     }
 
-    // Get the user's display name from the profile
-    final displayName = _getUserDisplayName(authController);
-    final greeting = 'Welcome, $displayName!';
+    final displayName =
+        _getUserDisplayName(authController);
 
-    // Wrap with RefreshIndicator for pull-to-refresh functionality
     return RefreshIndicator(
       onRefresh: _refreshData,
       child: SingleChildScrollView(
@@ -187,158 +204,276 @@ class _ManagerDashboardState extends State<ManagerDashboard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== SECTION 1: PERSONALIZED DASHBOARD HEADER =====
-            // Displays a personalized welcome message with the user's name
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.foreground,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Inventory health, stock alerts, usage trends, and sanctuary-wide overview.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.mutedForeground,
-                      ),
-                ),
-              ],
+            // =================================================================
+            // HEADER
+            // =================================================================
+
+            Text(
+              'Welcome, $displayName!',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium
+                  ?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.foreground,
+                  ),
             ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              'Monitor sanctuary operations, inventory alerts, and records requiring attention.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
+            ),
+
             const SizedBox(height: 24),
 
-            // ===== SECTION 2: ERROR STATE =====
-            // Shows error message and retry button if data loading fails
+            // =================================================================
+            // ERROR STATE
+            // =================================================================
+
             if (_error != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_error!,
-                      style: const TextStyle(color: AppColors.destructive)),
+                  Text(
+                    _error!,
+                    style: const TextStyle(
+                      color: AppColors.destructive,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   OutlinedButton(
-                      onPressed: _refreshData, child: const Text('Retry')),
+                    onPressed: _refreshData,
+                    child: const Text('Retry'),
+                  ),
                 ],
               )
             else ...[
-              // ===== SECTION 3: STAT CARDS ROW 1 =====
-              // Displays key metrics: Animals, Suppliers, Submissions, Staff
-              // Data comes from: pet table, supplier table, submission table (pending), users table (staff role)
-              StatCardRow(cards: [
-                StatCard(
-                  label: 'Total Animals',
-                  value: _loading ? '—' : '${_stats!.totalAnimals}',
-                  icon: Icons.pets_outlined,
-                  accent: AppColors.roleManager,
-                ),
-                StatCard(
-                  label: 'Suppliers',
-                  value: _loading ? '—' : '${_stats!.totalSuppliers}',
-                  icon: Icons.local_shipping_outlined,
-                  accent: AppColors.roleManager,
-                ),
-                StatCard(
-                  label: 'Pending Submissions',
-                  value: _loading ? '—' : '${_stats!.pendingSubmissions}',
-                  icon: Icons.fact_check_outlined,
-                  accent: AppColors.roleManager,
-                ),
-                StatCard(
-                  label: 'Staff Accounts',
-                  value: _loading ? '—' : '${_stats!.staffAccounts}',
-                  icon: Icons.badge_outlined,
-                  accent: AppColors.roleManager,
-                ),
-              ]),
+              // ===============================================================
+              // ORGANIZATION CARDS
+              // ===============================================================
+              //
+              // Each card now opens the relevant full module.
+              // ===============================================================
+
+              StatCardRow(
+                cards: [
+                  StatCard(
+                    label: 'Total Animals',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.totalAnimals}',
+                    icon: Icons.pets_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open animal records',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/animal-records'),
+                  ),
+                  StatCard(
+                    label: 'Suppliers',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.totalSuppliers}',
+                    icon: Icons.local_shipping_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open suppliers',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/suppliers'),
+                  ),
+                  StatCard(
+                    label: 'Pending Submissions',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.pendingSubmissions}',
+                    icon: Icons.fact_check_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open donation submissions',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/donations'),
+                  ),
+                  StatCard(
+                    label: 'Staff Accounts',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.staffAccounts}',
+                    icon: Icons.badge_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open account settings',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/settings'),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 16),
 
-              // ===== SECTION 4: STAT CARDS ROW 2 =====
-              // Displays inventory metrics: Total Items, Zero Stock, Low Stock, Expiring Soon
-              // Data comes from: item table with stock calculations
-              StatCardRow(cards: [
-                StatCard(
-                  label: 'Total Inventory Items',
-                  value: _loading ? '—' : '${_stats!.totalItems}',
-                  icon: Icons.inventory_2_outlined,
-                  accent: AppColors.roleManager,
-                ),
-                StatCard(
-                  label: 'Zero Stock',
-                  value: _loading ? '—' : '${_stats!.zeroStockCount}',
-                  icon: Icons.remove_shopping_cart_outlined,
-                  accent: AppColors.destructive,
-                ),
-                StatCard(
-                  label: 'Low Stock',
-                  value: _loading ? '—' : '${_stats!.lowStockCount}',
-                  icon: Icons.warning_amber_outlined,
-                  accent: AppColors.warning,
-                ),
-                StatCard(
-                  label: 'Expiring Soon',
-                  value: _loading
-                      ? '—'
-                      : (_stats!.expiryTrackingAvailable
-                          ? '${_stats!.expiringSoonCount}'
-                          : 'N/A'),
-                  icon: Icons.event_busy_outlined,
-                  accent: AppColors.warning,
-                ),
-              ]),
+              // ===============================================================
+              // INVENTORY CARDS
+              // ===============================================================
 
-              // ===== SECTION 5: EXPIRY TRACKING NOTICE =====
-              // Shown only on the Supabase backend, where purchase_item/
-              // donation_item.expiry_date hasn't been migrated yet (mock
-              // already tracks it -- see KNOWN_LIMITATIONS.md).
-              if (!_loading && !_stats!.expiryTrackingAvailable) ...[
-                const SizedBox(height: 12),
-                const ComingSoonNotice(
-                  text:
-                      'Expiry warnings need batch expiry dates, which aren\'t '
-                      'migrated onto the live backend yet — this alert stays '
-                      'empty until then.',
-                ),
-              ],
+              StatCardRow(
+                cards: [
+                  StatCard(
+                    label: 'Total Inventory Items',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.totalItems}',
+                    icon: Icons.inventory_2_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open inventory',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/inventory'),
+                  ),
+                  StatCard(
+                    label: 'Zero Stock',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.zeroStockCount}',
+                    icon: Icons.remove_shopping_cart_outlined,
+                    accent: AppColors.destructive,
+                    tooltip: 'View zero-stock items',
+                    onTap: _loading
+                        ? null
+                        : _scrollToReplenishment,
+                  ),
+                  StatCard(
+                    label: 'Low Stock',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.lowStockCount}',
+                    icon: Icons.warning_amber_outlined,
+                    accent: AppColors.warning,
+                    tooltip: 'View low-stock items',
+                    onTap: _loading
+                        ? null
+                        : _scrollToReplenishment,
+                  ),
 
-              // ===== SECTION 6: PENDING SUBMISSIONS BANNER =====
-              // Shows info banner when there are pending submissions but no stock alerts
-              // Helps staff know about pending donor submissions that need review
+                  // ===========================================================
+                  // EXPIRY ALERT CARD
+                  // ===========================================================
+                  //
+                  // The notification system now includes both:
+                  // - expired physical stock
+                  // - upcoming expiry warnings
+                  //
+                  // "Expiry Alerts" is therefore more accurate than the old
+                  // "Expiring Soon" label.
+                  // ===========================================================
+
+                  StatCard(
+                    label: 'Expiry Alerts',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.expiringSoonCount}',
+                    icon: Icons.event_busy_outlined,
+                    accent: AppColors.warning,
+                    tooltip: 'Open expiry notifications',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/notifications'),
+                  ),
+                ],
+              ),
+
+              // ===============================================================
+              // PENDING SUBMISSION NOTICE
+              // ===============================================================
+
               if (!_loading &&
                   _stats!.pendingSubmissions > 0 &&
-                  _stats!.zeroStockCount + _stats!.lowStockCount == 0) ...[
+                  _stats!.zeroStockCount +
+                          _stats!.lowStockCount ==
+                      0) ...[
                 const SizedBox(height: 12),
                 _InfoBanner(
                   icon: Icons.inbox_outlined,
                   text:
-                      '${_stats!.pendingSubmissions} donor submission(s) awaiting staff review on the Donations page.',
+                      '${_stats!.pendingSubmissions} donor submission(s) are awaiting review on the Donations page.',
                 ),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // ===== SECTION 7: REPLENISHMENT LIST =====
-              // Shows items that need restocking (zero stock and low stock)
-              // Uses a GlobalKey to enable scrolling to this section
-              Text(
-                'Replenishment List',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
+              // ===============================================================
+              // REPLENISHMENT SECTION HEADER
+              // ===============================================================
+
               KeyedSubtree(
-                key: _replenishmentKey, // Allows scrolling to this section
-                child: _loading
-                    ? const SizedBox(
-                        height: 120,
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    : _ReplenishmentAlerts(
-                        zeroStockItems: _stats!.zeroStockItems,
-                        lowStockItems: _stats!.lowStockItems,
+                key: _replenishmentKey,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Replenishment List',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 3),
+                          const Text(
+                            'Items requiring stock attention. Select an item to view its full inventory details.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color:
+                                  AppColors.mutedForeground,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton.icon(
+                      onPressed: () => _goTo('/inventory'),
+                      icon: const Icon(
+                        Icons.inventory_2_outlined,
+                        size: 16,
+                      ),
+                      label: const Text('Open Inventory'),
+                    ),
+                  ],
+                ),
               ),
+
+              const SizedBox(height: 12),
+
+              // ===============================================================
+              // REPLENISHMENT LIST
+              // ===============================================================
+
+              if (_loading)
+                const SizedBox(
+                  height: 120,
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else
+                _ReplenishmentAlerts(
+                  zeroStockItems:
+                      _stats!.zeroStockItems,
+                  lowStockItems:
+                      _stats!.lowStockItems,
+                  onOpenItem: _openInventoryItem,
+                ),
             ],
           ],
         ),
@@ -347,73 +482,92 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   }
 }
 
-/// Widget that displays zero and low stock alerts in a responsive layout
-/// Shows items that need to be reordered based on current stock levels
-/// Data comes from Supabase: item table with total_purchase_stocks and total_package_stocks
+// =============================================================================
+// REPLENISHMENT ALERTS
+// =============================================================================
+
 class _ReplenishmentAlerts extends StatelessWidget {
-  final List<DashboardStockAlert>
-      zeroStockItems; // Items with no stock available
-  final List<DashboardStockAlert> lowStockItems; // Items below threshold
+  final List<DashboardStockAlert> zeroStockItems;
+  final List<DashboardStockAlert> lowStockItems;
+  final void Function(DashboardStockAlert item)
+      onOpenItem;
 
   const _ReplenishmentAlerts({
     required this.zeroStockItems,
     required this.lowStockItems,
+    required this.onOpenItem,
   });
 
   @override
   Widget build(BuildContext context) {
-    // ===== EMPTY STATE =====
-    // Show a friendly message when there are no stock alerts
-    if (zeroStockItems.isEmpty && lowStockItems.isEmpty) {
+    if (zeroStockItems.isEmpty &&
+        lowStockItems.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(
+            color: AppColors.border,
+          ),
         ),
-        child: const Text(
-          'No zero- or low-stock items right now.',
-          style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 18,
+              color: AppColors.roleManager,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'No zero-stock or low-stock items right now.',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    // ===== CREATE ALERT PANELS =====
-    // Build separate panels for zero stock and low stock items
-    final zeroPanel = zeroStockItems.isNotEmpty
-        ? _StockAlertPanel(
-            title: 'Zero Stock', // Items with no stock available
-            accent: AppColors.destructive, // Red color for urgency
-            items: zeroStockItems,
-            emptyLabel: 'No zero-stock items.',
-          )
-        : null;
-
-    final lowPanel = lowStockItems.isNotEmpty
-        ? _StockAlertPanel(
-            title: 'Low Stock', // Items below reorder threshold
+    final zeroPanel = zeroStockItems.isEmpty
+        ? null
+        : _StockAlertPanel(
+            title: 'Zero Stock',
             subtitle:
-                'At or below ${formatQty(lowStockPurchaseUnitThreshold)} whole '
-                'containers (set on the Settings page).',
-            accent: AppColors.warning, // Yellow/amber color for caution
-            items: lowStockItems,
-            emptyLabel: 'No low-stock items.',
-          )
-        : null;
+                'Items with no usable inventory remaining.',
+            accent: AppColors.destructive,
+            icon:
+                Icons.remove_shopping_cart_outlined,
+            items: zeroStockItems,
+            onOpenItem: onOpenItem,
+          );
 
-    // ===== RESPONSIVE LAYOUT =====
-    // Show panels side by side on wide screens, stacked on narrow screens
+    final lowPanel = lowStockItems.isEmpty
+        ? null
+        : _StockAlertPanel(
+            title: 'Low Stock',
+            subtitle:
+                'At or below ${formatQty(lowStockPurchaseUnitThreshold)} purchase-unit equivalent.',
+            accent: AppColors.warning,
+            icon: Icons.warning_amber_outlined,
+            items: lowStockItems,
+            onOpenItem: onOpenItem,
+          );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final sideBySide =
-            constraints.maxWidth > 720; // Breakpoint for responsive layout
+            constraints.maxWidth > 720;
 
-        // Side by side layout for wide screens
-        if (sideBySide && zeroPanel != null && lowPanel != null) {
+        if (sideBySide &&
+            zeroPanel != null &&
+            lowPanel != null) {
           return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Expanded(child: zeroPanel),
               const SizedBox(width: 16),
@@ -422,12 +576,13 @@ class _ReplenishmentAlerts extends StatelessWidget {
           );
         }
 
-        // Stacked layout for narrow screens
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
           children: [
             if (zeroPanel != null) zeroPanel,
-            if (zeroPanel != null && lowPanel != null)
+            if (zeroPanel != null &&
+                lowPanel != null)
               const SizedBox(height: 16),
             if (lowPanel != null) lowPanel,
           ],
@@ -437,115 +592,298 @@ class _ReplenishmentAlerts extends StatelessWidget {
   }
 }
 
-/// Individual stock alert panel displaying a list of items that need attention
-/// Shows items with their current stock quantity and unit abbreviation
+// =============================================================================
+// STOCK ALERT PANEL
+// =============================================================================
+
 class _StockAlertPanel extends StatelessWidget {
-  final String title; // Panel title (e.g., "Zero Stock" or "Low Stock")
-  final String? subtitle; // Optional explanatory text
-  final Color accent; // Color theme for the panel
-  final List<DashboardStockAlert> items; // List of stock alerts to display
-  final String emptyLabel; // Message when no items are in this category
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final IconData icon;
+  final List<DashboardStockAlert> items;
+  final void Function(DashboardStockAlert item)
+      onOpenItem;
 
   const _StockAlertPanel({
     required this.title,
+    required this.subtitle,
     required this.accent,
+    required this.icon,
     required this.items,
-    required this.emptyLabel,
-    this.subtitle,
+    required this.onOpenItem,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: AppColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===== PANEL HEADER =====
-          // Shows title with color indicator and count badge
-          Row(
-            children: [
-              // Color indicator dot
-              Icon(Icons.circle, size: 10, color: accent),
-              const SizedBox(width: 8),
-              // Panel title
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15)),
-              const Spacer(),
-              // Count badge showing number of items
-              Text(
-                '${items.length}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: accent,
-                ),
-              ),
-            ],
-          ),
+          // ===================================================================
+          // PANEL HEADER
+          // ===================================================================
 
-          // ===== SUBTITLE =====
-          // Display optional explanation if provided
-          if (subtitle != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              subtitle!,
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.mutedForeground),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              18,
+              16,
+              18,
+              12,
             ),
-          ],
-
-          const SizedBox(height: 12),
-
-          // ===== ITEMS LIST =====
-          // Show each item with its name and current stock quantity
-          if (items.isEmpty)
-            // Empty state within panel
-            Text(emptyLabel,
-                style: const TextStyle(color: AppColors.mutedForeground))
-          else
-            // List of items requiring attention
-            for (final item in items)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // Item name (expanded to take available space)
-                    Expanded(
-                      child: Text(
-                        item.itemName,
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600),
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(
+                          alpha: 0.10,
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 16,
+                        color: accent,
                       ),
                     ),
-                    // Current stock quantity with unit abbreviation
+                    const SizedBox(width: 9),
                     Text(
-                      '${formatQty(item.stockQty)} ${item.unitAbbr}'.trim(),
+                      title,
                       style: const TextStyle(
-                          fontSize: 12.5, color: AppColors.mutedForeground),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
+                    const Spacer(),
+                  Container(
+  constraints: const BoxConstraints(
+    minWidth: 26,
+    minHeight: 24,
+  ),
+  padding: const EdgeInsets.symmetric(
+    horizontal: 7,
+  ),
+  alignment: Alignment.center,
+  decoration: BoxDecoration(
+    color: accent.withValues(alpha: 0.10),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: Text(
+    '${items.length}',
+    style: TextStyle(
+      fontSize: 11.5,
+      fontWeight: FontWeight.w700,
+      color: accent,
+    ),
+  ),
+),
                   ],
                 ),
+                const SizedBox(height: 7),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    color:
+                        AppColors.mutedForeground,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(
+            height: 1,
+            color: AppColors.border,
+          ),
+
+          // ===================================================================
+          // TRACEABLE ITEM ROWS
+          // ===================================================================
+          //
+          // PANEL FEEDBACK:
+          //
+          // Description + quantity should not be visually far apart.
+          //
+          // The quantity is therefore placed directly beside the item name,
+          // rather than pushed to the far-right edge of the card.
+          //
+          // The whole row opens /inventory/:itemId for traceability.
+          // ===================================================================
+
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0)
+              const Divider(
+                height: 1,
+                indent: 18,
+                endIndent: 18,
+                color: AppColors.border,
               ),
+            _ReplenishmentItemRow(
+              item: items[i],
+              accent: accent,
+              isZeroStock:
+                  title == 'Zero Stock',
+              onTap: () =>
+                  onOpenItem(items[i]),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// Simple information banner widget for displaying non-critical notifications
-/// Used for pending submissions notice when no stock alerts exist
-class _InfoBanner extends StatelessWidget {
-  final IconData icon; // Icon to display
-  final String text; // Message text
+// =============================================================================
+// REPLENISHMENT ITEM ROW
+// =============================================================================
 
-  const _InfoBanner({required this.icon, required this.text});
+class _ReplenishmentItemRow
+    extends StatelessWidget {
+  final DashboardStockAlert item;
+  final Color accent;
+  final bool isZeroStock;
+  final VoidCallback onTap;
+
+  const _ReplenishmentItemRow({
+    required this.item,
+    required this.accent,
+    required this.isZeroStock,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final qty =
+        '${formatQty(item.stockQty)} ${item.unitAbbr}'
+            .trim();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        mouseCursor:
+            SystemMouseCursors.click,
+        hoverColor:
+            accent.withValues(alpha: 0.04),
+        highlightColor:
+            accent.withValues(alpha: 0.08),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 12,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    // =========================================================
+                    // ITEM + QUANTITY KEPT TOGETHER
+                    // =========================================================
+
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 5,
+                      crossAxisAlignment:
+                          WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          item.itemName,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(
+                              alpha: 0.10,
+                            ),
+                            borderRadius:
+                                BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            qty,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight:
+                                  FontWeight.w700,
+                              color: accent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      isZeroStock
+                          ? 'Requires replenishment'
+                          : 'Stock is at or below the low-stock threshold',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors
+                            .mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color:
+                    AppColors.mutedForeground,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// INFO BANNER
+// =============================================================================
+
+class _InfoBanner extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _InfoBanner({
+    required this.icon,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -553,23 +891,31 @@ class _InfoBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.accent
-            .withValues(alpha: 0.12), // Semi-transparent accent color
+        color: AppColors.accent.withValues(
+          alpha: 0.12,
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: AppColors.border,
+        ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
-          // Icon with accent color
-          Icon(icon, size: 18, color: AppColors.primary),
+          Icon(
+            icon,
+            size: 18,
+            color: AppColors.primary,
+          ),
           const SizedBox(width: 10),
-          // Message text
           Expanded(
             child: Text(
               text,
-              style:
-                  const TextStyle(fontSize: 12.5, color: AppColors.foreground),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.foreground,
+              ),
             ),
           ),
         ],

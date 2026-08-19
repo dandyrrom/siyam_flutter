@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../core/app_colors.dart';
 import '../../services/dashboard_service.dart';
 import '../../state/data_bus.dart';
@@ -20,6 +24,7 @@ class _StaffDashboardState extends State<StaffDashboard>
 
   StaffDashboardStats? _stats;
   List<ReplenishmentAlert> _replenishment = [];
+
   bool _loading = true;
   String? _error;
   _Period _period = _Period.week;
@@ -40,17 +45,24 @@ class _StaffDashboardState extends State<StaffDashboard>
         _error = null;
       });
     }
+
     try {
-      final stats = await _service.fetchStaffStats();
-      final replenishment = await _service.fetchReplenishmentAlerts();
+      final results = await Future.wait<Object?>([
+        _service.fetchStaffStats(),
+        _service.fetchReplenishmentAlerts(),
+      ]);
+
       if (!mounted) return;
+
       setState(() {
-        _stats = stats;
-        _replenishment = replenishment;
+        _stats = results[0] as StaffDashboardStats;
+        _replenishment = results[1] as List<ReplenishmentAlert>;
         _loading = false;
+        _error = null;
       });
     } catch (e) {
       if (!mounted) return;
+
       if (!silent) {
         setState(() {
           _error = 'Could not load dashboard: $e';
@@ -66,51 +78,280 @@ class _StaffDashboardState extends State<StaffDashboard>
     return _period == _Period.week ? stats.week : stats.month;
   }
 
-  String get _periodComparisonLabel =>
-      _period == _Period.week ? 'vs. the previous 7 days' : 'vs. the previous 30 days';
-
   String get _periodWord => _period == _Period.week ? 'week' : 'month';
+
+  String get _comparisonLabel => _period == _Period.week
+      ? 'vs. previous 7 days'
+      : 'vs. previous 30 days';
+
+  int get _criticalCount => _replenishment
+      .where((item) => item.priority == ReplenishmentPriority.critical)
+      .length;
+
+  int get _highCount => _replenishment
+      .where((item) => item.priority == ReplenishmentPriority.high)
+      .length;
+
+  int get _mediumCount => _replenishment
+      .where((item) => item.priority == ReplenishmentPriority.medium)
+      .length;
+
+  List<ReplenishmentAlert> get _attentionPreview =>
+      _replenishment.take(5).toList();
+
+  void _go(String path) => context.go(path);
 
   @override
   Widget build(BuildContext context) {
+    final stats = _stats;
+    final period = _periodStats;
+
+    if (_loading && stats == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null && stats == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.mutedForeground),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh, size: 17),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (stats == null || period == null) {
+      return const SizedBox.shrink();
+    }
+
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 760;
+    final medium = width < 1180;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const DashboardHeader(
           title: 'Staff Dashboard',
-          subtitle: 'Your day-to-day: inventory, treatments, and donations.',
+          subtitle:
+              'Quick view of inventory, treatments, donations, and replenishment needs.',
         ),
-        if (_error != null)
+        if (_error != null) ...[
+          const SizedBox(height: 10),
+          _InlineNotice(
+            icon: Icons.warning_amber_outlined,
+            text:
+                'Some dashboard data could not refresh. Showing the last loaded values.',
+            actionLabel: 'Retry',
+            onAction: _load,
+          ),
+        ],
+        const SizedBox(height: 18),
+        _DashboardKpiGrid(
+          compact: compact,
+          cards: [
+            _DashboardKpiCard(
+              icon: Icons.autorenew_outlined,
+              value: '${_replenishment.length}',
+              label: 'Stock Attention',
+              helper: 'Items currently needing closer attention',
+              accent: AppColors.primary,
+              onTap: () => _go('/purchase-orders'),
+            ),
+            _DashboardKpiCard(
+              icon: Icons.pets_outlined,
+              value: '${stats.animalsUnderTreatment}',
+              label: 'Animals Under Treatment',
+              helper: 'Animals currently with active medical records',
+              accent: AppColors.roleStaff,
+              onTap: () => _go('/medical-records'),
+            ),
+            _DashboardKpiCard(
+              icon: Icons.volunteer_activism_outlined,
+              value: '${stats.pendingSubmissions}',
+              label: 'Pending Donations',
+              helper: 'Donation submissions waiting for action',
+              accent: AppColors.warning,
+              onTap: () => _go('/donations'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            const Expanded(
+              child: _SectionHeading(
+                title: 'Operational Overview',
+                subtitle:
+                    'Activity recorded from purchases, treatments, and donations.',
+              ),
+            ),
+            if (!compact)
+              _PeriodToggle(
+                period: _period,
+                onChanged: (value) => setState(() => _period = value),
+              ),
+          ],
+        ),
+        if (compact) ...[
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _PeriodToggle(
+              period: _period,
+              onChanged: (value) => setState(() => _period = value),
+            ),
+          ),
+        ],
+        const SizedBox(height: 14),
+        if (medium)
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_error!, style: const TextStyle(color: AppColors.destructive)),
-              const SizedBox(height: 8),
-              OutlinedButton(onPressed: _load, child: const Text('Retry')),
+              _OperationalActivityCard(
+                periodStats: period,
+                periodWord: _periodWord,
+                comparisonLabel: _comparisonLabel,
+                onPurchases: () => _go('/purchase-orders'),
+                onTreatments: () => _go('/medical-records'),
+                onDonations: () => _go('/donations'),
+              ),
+              const SizedBox(height: 14),
+              _PriorityOverviewCard(
+                critical: _criticalCount,
+                high: _highCount,
+                medium: _mediumCount,
+                onViewAll: () => _go('/purchase-orders'),
+              ),
             ],
           )
-        else ...[
-          _TopRow(loading: _loading, stats: _stats),
-          const SizedBox(height: 26),
-          _PeriodToggle(
-            period: _period,
-            comparisonLabel: _periodComparisonLabel,
-            onChanged: (p) => setState(() => _period = p),
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: _OperationalActivityCard(
+                  periodStats: period,
+                  periodWord: _periodWord,
+                  comparisonLabel: _comparisonLabel,
+                  onPurchases: () => _go('/purchase-orders'),
+                  onTreatments: () => _go('/medical-records'),
+                  onDonations: () => _go('/donations'),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                flex: 4,
+                child: _PriorityOverviewCard(
+                  critical: _criticalCount,
+                  high: _highCount,
+                  medium: _mediumCount,
+                  onViewAll: () => _go('/purchase-orders'),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          _MetricGrid(
-            loading: _loading,
-            stats: _stats,
-            periodStats: _periodStats,
-            periodWord: _periodWord,
-            replenishment: _replenishment,
+        const SizedBox(height: 20),
+        if (medium)
+          Column(
+            children: [
+              _AttentionListCard(
+                alerts: _attentionPreview,
+                totalCount: _replenishment.length,
+                onViewAll: () => _go('/purchase-orders'),
+                onOpenItem: (item) => _go(
+                  '/inventory/${item.itemId}?from=purchase-orders',
+                ),
+              ),
+              const SizedBox(height: 14),
+              _SocialTemplateCard(alerts: _replenishment),
+            ],
+          )
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: _AttentionListCard(
+                  alerts: _attentionPreview,
+                  totalCount: _replenishment.length,
+                  onViewAll: () => _go('/purchase-orders'),
+                  onOpenItem: (item) => _go(
+                    '/inventory/${item.itemId}?from=purchase-orders',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                flex: 4,
+                child: _SocialTemplateCard(alerts: _replenishment),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          const Text(
-            'Cards with a ↑/↓ badge compare the selected period to the one before it, computed '
-            'from dated records (purchases, treatments, donations). Cards without a badge are '
-            'live counts of current state, not period totals.',
-            style: TextStyle(fontSize: 11.5, color: AppColors.mutedForeground, height: 1.5),
+        const SizedBox(height: 18),
+        const Text(
+          'Period comparisons use recorded purchases, treatments, and donations. '
+          'Current stock-attention counts are live values, not period totals.',
+          style: TextStyle(
+            fontSize: 11.5,
+            height: 1.45,
+            color: AppColors.mutedForeground,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashboardKpiGrid extends StatelessWidget {
+  final bool compact;
+  final List<Widget> cards;
+
+  const _DashboardKpiGrid({
+    required this.compact,
+    required this.cards,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Mobile / APK: stack vertically for comfortable tap targets.
+    if (compact) {
+      return Column(
+        children: [
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 118,
+              child: cards[i],
+            ),
+          ],
+        ],
+      );
+    }
+
+    // Tablet / desktop: exactly three equal-width cards.
+    return Row(
+      children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 118,
+              child: cards[i],
+            ),
           ),
         ],
       ],
@@ -118,83 +359,931 @@ class _StaffDashboardState extends State<StaffDashboard>
   }
 }
 
-class _TopRow extends StatelessWidget {
-  final bool loading;
-  final StaffDashboardStats? stats;
+class _DashboardKpiCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final String helper;
+  final Color accent;
+  final VoidCallback onTap;
 
-  const _TopRow({required this.loading, required this.stats});
+  const _DashboardKpiCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.helper,
+    required this.accent,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final isNarrow = constraints.maxWidth < 760;
-      final healthCard = _InventoryHealthCard(loading: loading, stats: stats);
-      final mini1 = StatCard(
-        label: 'Animals under treatment',
-        value: loading ? '—' : '${stats!.animalsUnderTreatment}',
-        icon: Icons.medical_services_outlined,
-        accent: AppColors.roleStaff,
-      );
-      final mini2 = StatCard(
-        label: 'Pending submissions',
-        value: loading ? '—' : '${stats!.pendingSubmissions}',
-        icon: Icons.schedule_outlined,
-        accent: AppColors.warning,
-      );
-
-      if (isNarrow) {
-        return Column(
-          children: [
-            healthCard,
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: mini1),
-              const SizedBox(width: 16),
-              Expanded(child: mini2),
-            ]),
-          ],
-        );
-      }
-
-      // IntrinsicHeight lets the Row's stretch-aligned children (the health
-      // card and the two StatCards, which have different natural heights)
-      // equalize without needing a bounded-height ancestor -- without it,
-      // CrossAxisAlignment.stretch on a Row inside a scrolling Column throws
-      // "BoxConstraints forces an infinite height".
-      return IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(flex: 16, child: healthCard),
-            const SizedBox(width: 16),
-            Expanded(flex: 10, child: mini1),
-            const SizedBox(width: 16),
-            Expanded(flex: 10, child: mini2),
-          ],
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        hoverColor: accent.withValues(alpha: 0.035),
+        child: Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 19, color: accent),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Expanded(
+                      child: Text(
+                        helper,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.2,
+                          height: 1.25,
+                          color: AppColors.mutedForeground,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View details',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: accent,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 13,
+                          color: accent,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      );
-    });
+      ),
+    );
   }
 }
 
-class _InventoryHealthCard extends StatelessWidget {
-  final bool loading;
-  final StaffDashboardStats? stats;
+class _SectionHeading extends StatelessWidget {
+  final String title;
+  final String subtitle;
 
-  const _InventoryHealthCard({required this.loading, required this.stats});
+  const _SectionHeading({
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final pct = loading ? 0.0 : stats!.inventoryHealthPct;
-    final pctLabel = loading ? '—' : '${pct.round()}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 11.8,
+            color: AppColors.mutedForeground,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PeriodToggle extends StatelessWidget {
+  final _Period period;
+  final ValueChanged<_Period> onChanged;
+
+  const _PeriodToggle({
+    required this.period,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget option(String label, _Period value) {
+      final selected = period == value;
+
+      return InkWell(
+        onTap: () => onChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.roleStaff : Colors.transparent,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : AppColors.foreground,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          option('Week', _Period.week),
+          option('Month', _Period.month),
+        ],
+      ),
+    );
+  }
+}
+
+class _OperationalActivityCard extends StatelessWidget {
+  final DashboardPeriodStats periodStats;
+  final String periodWord;
+  final String comparisonLabel;
+  final VoidCallback onPurchases;
+  final VoidCallback onTreatments;
+  final VoidCallback onDonations;
+
+  const _OperationalActivityCard({
+    required this.periodStats,
+    required this.periodWord,
+    required this.comparisonLabel,
+    required this.onPurchases,
+    required this.onTreatments,
+    required this.onDonations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = periodStats;
+
+    return _PanelCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: _SectionHeading(
+                  title: 'Operational Activity',
+                  subtitle: 'What was recorded during the selected period.',
+                ),
+              ),
+              Text(
+                comparisonLabel,
+                style: const TextStyle(
+                  fontSize: 10.8,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _ActivityRow(
+            icon: Icons.receipt_long_outlined,
+            title: 'Purchases',
+            value: '${p.purchaseCount}',
+            valueLabel: 'received this $periodWord',
+            change: percentChange(
+              p.purchaseCount,
+              p.purchaseCountPrior,
+            ),
+            detail1: '${p.itemsReceived} items received',
+            detail2: '${p.distinctSuppliers} suppliers',
+            accent: AppColors.roleStaff,
+            onTap: onPurchases,
+          ),
+          const Divider(height: 1),
+          _ActivityRow(
+            icon: Icons.medical_services_outlined,
+            title: 'Treatments',
+            value: '${p.treatmentCount}',
+            valueLabel: 'logged this $periodWord',
+            change: percentChange(
+              p.treatmentCount,
+              p.treatmentCountPrior,
+            ),
+            detail1: '${p.animalsTreated} animals treated',
+            detail2: '${p.itemsDispensed} items dispensed',
+            accent: AppColors.primary,
+            onTap: onTreatments,
+          ),
+          const Divider(height: 1),
+          _ActivityRow(
+            icon: Icons.volunteer_activism_outlined,
+            title: 'Donations',
+            value: '${p.donationCount}',
+            valueLabel: 'received this $periodWord',
+            change: percentChange(
+              p.donationCount,
+              p.donationCountPrior,
+            ),
+            detail1: '${p.itemsDonated} items donated',
+            detail2: '${p.distinctDonors} donors',
+            accent: AppColors.sageGreen,
+            onTap: onDonations,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String valueLabel;
+  final ({
+    String label,
+    bool isUp,
+    bool isFlat,
+  })? change;
+  final String detail1;
+  final String detail2;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _ActivityRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.valueLabel,
+    required this.change,
+    required this.detail1,
+    required this.detail2,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: accent.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.09),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$detail1 · $detail2',
+                      style: const TextStyle(
+                        fontSize: 11.2,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        value,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (change != null) ...[
+                        const SizedBox(width: 7),
+                        _ChangeBadge(change: change!),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    valueLabel,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 5),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.mutedForeground,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChangeBadge extends StatelessWidget {
+  final ({
+    String label,
+    bool isUp,
+    bool isFlat,
+  }) change;
+
+  const _ChangeBadge({
+    required this.change,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = change.isFlat
+        ? AppColors.mutedForeground
+        : change.isUp
+            ? AppColors.primary
+            : AppColors.stockOut;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 7,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        change.label,
+        style: TextStyle(
+          fontSize: 10.2,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _PriorityOverviewCard extends StatelessWidget {
+  final int critical;
+  final int high;
+  final int medium;
+  final VoidCallback onViewAll;
+
+  const _PriorityOverviewCard({
+    required this.critical,
+    required this.high,
+    required this.medium,
+    required this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = critical + high + medium;
+
+    return _PanelCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: _SectionHeading(
+                  title: 'Stock Priority',
+                  subtitle: 'Current items needing attention.',
+                ),
+              ),
+              TextButton(
+                onPressed: onViewAll,
+                child: const Text('View All'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(
+                width: 148,
+                height: 148,
+                child: CustomPaint(
+                  painter: _PriorityDonutPainter(
+                    critical: critical,
+                    high: high,
+                    medium: medium,
+                    criticalColor: AppColors.stockOut,
+                    highColor: AppColors.stockLow,
+                    mediumColor: AppColors.stockNeedsRestock,
+                    trackColor: AppColors.border,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$total',
+                          style: const TextStyle(
+                            fontSize: 25,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Text(
+                          'items',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: AppColors.mutedForeground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  children: [
+                    _PriorityLegendRow(
+                      label: 'Critical',
+                      value: critical,
+                      helper: 'No usable stock',
+                      color: AppColors.stockOut,
+                    ),
+                    const SizedBox(height: 12),
+                    _PriorityLegendRow(
+                      label: 'High',
+                      value: high,
+                      helper: 'Low stock',
+                      color: AppColors.stockLow,
+                    ),
+                    const SizedBox(height: 12),
+                    _PriorityLegendRow(
+                      label: 'Medium',
+                      value: medium,
+                      helper: 'Needs restock soon',
+                      color: AppColors.stockNeedsRestock,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriorityLegendRow extends StatelessWidget {
+  final String label;
+  final int value;
+  final String helper;
+  final Color color;
+
+  const _PriorityLegendRow({
+    required this.label,
+    required this.value,
+    required this.helper,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                helper,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PriorityDonutPainter extends CustomPainter {
+  final int critical;
+  final int high;
+  final int medium;
+  final Color criticalColor;
+  final Color highColor;
+  final Color mediumColor;
+  final Color trackColor;
+
+  const _PriorityDonutPainter({
+    required this.critical,
+    required this.high,
+    required this.medium,
+    required this.criticalColor,
+    required this.highColor,
+    required this.mediumColor,
+    required this.trackColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(
+      size.width / 2,
+      size.height / 2,
+    );
+
+    final radius = math.min(
+          size.width,
+          size.height,
+        ) /
+        2 -
+        10;
+
+    final rect = Rect.fromCircle(
+      center: center,
+      radius: radius,
+    );
+
+    const strokeWidth = 15.0;
+
+    final trackPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt
+      ..color = trackColor;
+
+    canvas.drawArc(
+      rect,
+      0,
+      math.pi * 2,
+      false,
+      trackPaint,
+    );
+
+    final total = critical + high + medium;
+    if (total <= 0) return;
+
+    var start = -math.pi / 2;
+
+    void drawSegment(int value, Color color) {
+      if (value <= 0) return;
+
+      final sweep = math.pi * 2 * (value / total);
+
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt
+        ..color = color;
+
+      canvas.drawArc(
+        rect,
+        start,
+        sweep,
+        false,
+        paint,
+      );
+
+      start += sweep;
+    }
+
+    drawSegment(critical, criticalColor);
+    drawSegment(high, highColor);
+    drawSegment(medium, mediumColor);
+  }
+
+  @override
+  bool shouldRepaint(
+    covariant _PriorityDonutPainter oldDelegate,
+  ) {
+    return critical != oldDelegate.critical ||
+        high != oldDelegate.high ||
+        medium != oldDelegate.medium ||
+        criticalColor != oldDelegate.criticalColor ||
+        highColor != oldDelegate.highColor ||
+        mediumColor != oldDelegate.mediumColor ||
+        trackColor != oldDelegate.trackColor;
+  }
+}
+
+class _AttentionListCard extends StatelessWidget {
+  final List<ReplenishmentAlert> alerts;
+  final int totalCount;
+  final VoidCallback onViewAll;
+  final ValueChanged<ReplenishmentAlert> onOpenItem;
+
+  const _AttentionListCard({
+    required this.alerts,
+    required this.totalCount,
+    required this.onViewAll,
+    required this.onOpenItem,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _PanelCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              18,
+              16,
+              12,
+              14,
+            ),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: _SectionHeading(
+                    title: 'Items Needing Attention',
+                    subtitle: 'Highest-priority stock items right now.',
+                  ),
+                ),
+                TextButton(
+                  onPressed: onViewAll,
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (alerts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 38,
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'No stock items need attention',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Current stock alerts are clear.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            for (var i = 0; i < alerts.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              _AttentionRow(
+                item: alerts[i],
+                onTap: () => onOpenItem(alerts[i]),
+              ),
+            ],
+            if (totalCount > alerts.length) ...[
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                child: Text(
+                  'Showing ${alerts.length} of $totalCount items. '
+                  'Open Purchases & Replenishment for the complete list.',
+                  style: const TextStyle(
+                    fontSize: 11.2,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AttentionRow extends StatelessWidget {
+  final ReplenishmentAlert item;
+  final VoidCallback onTap;
+
+  const _AttentionRow({
+    required this.item,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = _priorityMeta(item.priority);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: color.withValues(alpha: 0.025),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item.itemName,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.8,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${_formatQty(item.stockQty)} ${item.unitAbbr}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 72,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10.4,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.mutedForeground,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialTemplateCard extends StatelessWidget {
+  final List<ReplenishmentAlert> alerts;
+
+  const _SocialTemplateCard({
+    required this.alerts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = alerts.take(3).toList();
+
+    return _PanelCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -204,450 +1293,223 @@ class _InventoryHealthCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.roleStaff.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(Icons.inventory_2_outlined, size: 18, color: AppColors.primary),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.campaign_outlined,
+                  size: 19,
+                  color: AppColors.roleStaff,
+                ),
               ),
-              const SizedBox(width: 12),
-              const Text('Inventory Health',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.foreground),
-                  children: [
-                    TextSpan(text: pctLabel),
-                    const TextSpan(
-                        text: '%',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.mutedForeground)),
-                  ],
+              const SizedBox(width: 10),
+              const Expanded(
+                child: _SectionHeading(
+                  title: 'Social Media Template',
+                  subtitle: 'Prepare a post from current stock needs.',
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: loading ? 0 : (pct / 100).clamp(0.0, 1.0),
-              minHeight: 10,
-              backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation(AppColors.stockNeedsRestock),
+          const SizedBox(height: 16),
+          if (alerts.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Text(
+                'There are no current stock needs to include in a social-media post.',
+                style: TextStyle(
+                  fontSize: 11.7,
+                  height: 1.4,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            )
+          else ...[
+            const Text(
+              'Current priority items',
+              style: TextStyle(
+                fontSize: 11.8,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final item in preview)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _priorityMeta(item.priority).$2,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        item.itemName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.8,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (alerts.length > preview.length)
+              Text(
+                '+ ${alerts.length - preview.length} more item'
+                '${alerts.length - preview.length == 1 ? '' : 's'}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.roleStaff,
+              ),
+              onPressed: alerts.isEmpty
+                  ? null
+                  : () => showSocialPostDialog(
+                        context,
+                        alerts: alerts,
+                      ),
+              icon: const Icon(
+                Icons.auto_awesome_outlined,
+                size: 16,
+              ),
+              label: const Text(
+                'Generate Social Media Post',
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
-            children: [
-              Text(
-                loading
-                    ? ' '
-                    : '${stats!.healthyItemCount} of ${stats!.totalItems} items above the low-stock line',
-                style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
-              ),
-              Text(
-                loading
-                    ? ' '
-                    : '${stats!.lowStockCount} low · ${stats!.outOfStockCount} out of stock',
-                style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PeriodToggle extends StatelessWidget {
-  final _Period period;
-  final String comparisonLabel;
-  final ValueChanged<_Period> onChanged;
-
-  const _PeriodToggle({
-    required this.period,
-    required this.comparisonLabel,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    Widget segment(String label, _Period value) {
-      final active = period == value;
-      return InkWell(
-        onTap: () => onChanged(value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? AppColors.roleStaff : Colors.transparent,
-          ),
-          child: Text(
-            label,
+          const Text(
+            'The generated caption should follow DAS’s real posting tone and format.',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: active ? Colors.white : AppColors.foreground,
+              fontSize: 10.8,
+              height: 1.35,
+              color: AppColors.mutedForeground,
             ),
           ),
-        ),
-      );
-    }
-
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            segment('This week', _Period.week),
-            segment('This month', _Period.month),
-          ]),
-        ),
-        Text(comparisonLabel,
-            style: const TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _MetricGrid extends StatelessWidget {
-  final bool loading;
-  final StaffDashboardStats? stats;
-  final DashboardPeriodStats? periodStats;
-  final String periodWord;
-  final List<ReplenishmentAlert> replenishment;
+class _PanelCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
 
-  const _MetricGrid({
-    required this.loading,
-    required this.stats,
-    required this.periodStats,
-    required this.periodWord,
-    required this.replenishment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading || stats == null || periodStats == null) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final s = stats!;
-    final p = periodStats!;
-    final critical =
-        replenishment.where((a) => a.priority == ReplenishmentPriority.critical).length;
-    final high = replenishment.where((a) => a.priority == ReplenishmentPriority.high).length;
-    final medium =
-        replenishment.where((a) => a.priority == ReplenishmentPriority.medium).length;
-
-    final purchasesChange = percentChange(p.purchaseCount, p.purchaseCountPrior);
-    final itemsReceivedChange = percentChange(p.itemsReceived, p.itemsReceivedPrior);
-    final suppliersChange = percentChange(p.distinctSuppliers, p.distinctSuppliersPrior);
-
-    final treatmentsChange = percentChange(p.treatmentCount, p.treatmentCountPrior);
-    final animalsTreatedChange = percentChange(p.animalsTreated, p.animalsTreatedPrior);
-    final itemsDispensedChange = percentChange(p.itemsDispensed, p.itemsDispensedPrior);
-
-    final donationsChange = percentChange(p.donationCount, p.donationCountPrior);
-    final itemsDonatedChange = percentChange(p.itemsDonated, p.itemsDonatedPrior);
-    final donorsChange = percentChange(p.distinctDonors, p.distinctDonorsPrior);
-
-    final cards = [
-      _MetricCard(
-        title: 'Stock Alerts',
-        headline: '${s.outOfStockCount}',
-        note: 'Items with zero stock right now.',
-        rows: [
-          _BreakdownRow('Out of stock', '${s.outOfStockCount} items', AppColors.stockOut),
-          _BreakdownRow('Low stock', '${s.lowStockCount} items', AppColors.stockLow),
-          _BreakdownRow(
-              'Needs restock soon', '${s.needsRestockCount} items', AppColors.stockNeedsRestock),
-        ],
-      ),
-      _MetricCard(
-        title: 'Purchases',
-        headline: '${p.purchaseCount}',
-        change: purchasesChange,
-        note: 'Deliveries received this $periodWord, $_comparisonSuffix',
-        rows: [
-          _BreakdownRow('Total items received', '${p.itemsReceived}', AppColors.roleStaff,
-              change: itemsReceivedChange),
-          _BreakdownRow('Distinct suppliers', '${p.distinctSuppliers}', AppColors.roleStaff,
-              change: suppliersChange),
-          _BreakdownRow(
-              'Most recent delivery', _relativeDate(s.mostRecentDeliveryDate), AppColors.roleStaff),
-        ],
-      ),
-      _MetricCard(
-        title: 'Treatments',
-        headline: '${p.treatmentCount}',
-        change: treatmentsChange,
-        note: 'Treatments logged this $periodWord, $_comparisonSuffix',
-        rows: [
-          _BreakdownRow('Animals treated', '${p.animalsTreated}', AppColors.primary,
-              change: animalsTreatedChange),
-          _BreakdownRow('Items dispensed', '${p.itemsDispensed}', AppColors.primary,
-              change: itemsDispensedChange),
-          _BreakdownRow('Recorded by staff', '${p.staffWhoRecorded}', AppColors.primary),
-        ],
-      ),
-      _MetricCard(
-        title: 'Donations',
-        headline: '${p.donationCount}',
-        change: donationsChange,
-        note: 'Donations received this $periodWord, $_comparisonSuffix',
-        rows: [
-          _BreakdownRow('Total items donated', '${p.itemsDonated}', AppColors.sageGreen,
-              change: itemsDonatedChange),
-          _BreakdownRow('Distinct donors', '${p.distinctDonors}', AppColors.sageGreen,
-              change: donorsChange),
-          _BreakdownRow('Largest single drop-off', '${p.largestDropoff} items', AppColors.sageGreen),
-        ],
-      ),
-      _MetricCard(
-        title: 'Pending Submissions',
-        headline: '${s.pendingSubmissions}',
-        note: 'Donor submissions waiting on staff right now.',
-        rows: [
-          _BreakdownRow('Scheduled, not yet received', '${s.pendingScheduled}', AppColors.warning),
-          _BreakdownRow('Past scheduled date', '${s.pendingOverdue}', AppColors.stockOut),
-          _BreakdownRow('Not yet scheduled', '${s.pendingUnscheduled}', AppColors.mutedForeground),
-        ],
-      ),
-      _MetricCard(
-        title: 'Replenishment',
-        headline: '${critical + high + medium}',
-        note: 'Items at or below their stock threshold right now.',
-        rows: [
-          _BreakdownRow('Critical priority', '$critical items', AppColors.stockOut),
-          _BreakdownRow('High priority', '$high items', AppColors.stockLow),
-          _BreakdownRow('Medium priority', '$medium items', AppColors.stockNeedsRestock),
-        ],
-        trailing: Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: [
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.roleStaff),
-              onPressed: replenishment.isEmpty
-                  ? null
-                  : () => showSocialPostDialog(context, alerts: replenishment),
-              icon: const Icon(Icons.campaign_outlined, size: 16),
-              label: const Text('Generate social media post'),
-            ),
-          ],
-        ),
-      ),
-    ];
-
-    return LayoutBuilder(builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      final columns = width > 900 ? 3 : (width > 600 ? 2 : 1);
-
-      // Cards vary in content length (note line count, whether a CTA is
-      // present), so a plain Wrap lets each one size to its own content --
-      // IntrinsicHeight + stretch per row forces every card in that row to
-      // match the tallest one instead.
-      final rowsOfCards = <List<Widget>>[];
-      for (var i = 0; i < cards.length; i += columns) {
-        rowsOfCards.add(cards.sublist(i, (i + columns).clamp(0, cards.length)));
-      }
-
-      return Column(
-        children: [
-          for (var i = 0; i < rowsOfCards.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var j = 0; j < rowsOfCards[i].length; j++) ...[
-                    if (j > 0) const SizedBox(width: 16),
-                    Expanded(child: rowsOfCards[i][j]),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ],
-      );
-    });
-  }
-
-  String get _comparisonSuffix =>
-      periodWord == 'week' ? 'vs. the previous 7 days' : 'vs. the previous 30 days';
-
-  String _relativeDate(DateTime? date) {
-    if (date == null) return 'No deliveries yet';
-    final days = DateTime.now().difference(date).inDays;
-    if (days <= 0) return 'Today';
-    if (days == 1) return '1 day ago';
-    return '$days days ago';
-  }
-}
-
-class _BreakdownRow {
-  final String label;
-  final String value;
-  final Color dotColor;
-  final ({String label, bool isUp, bool isFlat})? change;
-
-  const _BreakdownRow(this.label, this.value, this.dotColor, {this.change});
-}
-
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final String headline;
-  final ({String label, bool isUp, bool isFlat})? change;
-  final String note;
-  final List<_BreakdownRow> rows;
-  final Widget? trailing;
-
-  const _MetricCard({
-    required this.title,
-    required this.headline,
-    this.change,
-    required this.note,
-    required this.rows,
-    this.trailing,
+  const _PanelCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: padding,
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.border)),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(headline, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
-              if (change != null) ...[
-                const SizedBox(width: 10),
-                _ChangeChip(change: change!),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(note,
-              style: const TextStyle(fontSize: 11.5, color: AppColors.mutedForeground, height: 1.4)),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.only(top: 12),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
-            child: Column(
-              children: [
-                for (final row in rows) _BreakdownTile(row: row),
-              ],
-            ),
-          ),
-          // Pushes the optional CTA to the bottom edge so every card in the
-          // row (equal-height via IntrinsicHeight + stretch, see
-          // _MetricGrid) lines up instead of leaving ragged trailing space.
-          const Spacer(),
-          if (trailing != null) ...[
-            const SizedBox(height: 16),
-            trailing!,
-          ],
-        ],
-      ),
+      child: child,
     );
   }
 }
 
-class _ChangeChip extends StatelessWidget {
-  final ({String label, bool isUp, bool isFlat}) change;
-  const _ChangeChip({required this.change});
+class _InlineNotice extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const _InlineNotice({
+    required this.icon,
+    required this.text,
+    required this.actionLabel,
+    required this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final Color bg;
-    final Color fg;
-    if (change.isFlat) {
-      bg = AppColors.border;
-      fg = AppColors.mutedForeground;
-    } else if (change.isUp) {
-      bg = AppColors.sageGreenTint;
-      fg = AppColors.sageGreen;
-    } else {
-      bg = AppColors.destructive.withValues(alpha: 0.12);
-      fg = AppColors.destructive;
-    }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(change.label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: fg)),
-    );
-  }
-}
-
-class _BreakdownTile extends StatelessWidget {
-  final _BreakdownRow row;
-  const _BreakdownTile({required this.row});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.warning.withValues(alpha: 0.20),
+        ),
+      ),
       child: Row(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(color: row.dotColor, shape: BoxShape.circle),
+          Icon(
+            icon,
+            size: 17,
+            color: AppColors.warning,
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(row.label, style: const TextStyle(fontSize: 12.5)),
-          ),
-          Text(row.value,
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-          if (row.change != null) ...[
-            const SizedBox(width: 8),
-            Text(
-              row.change!.label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: row.change!.isFlat
-                    ? AppColors.mutedForeground
-                    : (row.change!.isUp ? AppColors.sageGreen : AppColors.destructive),
-              ),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 11.5),
             ),
-          ],
+          ),
+          TextButton(
+            onPressed: onAction,
+            child: Text(actionLabel),
+          ),
         ],
       ),
     );
   }
+}
+
+(String, Color) _priorityMeta(
+  ReplenishmentPriority priority,
+) {
+  switch (priority) {
+    case ReplenishmentPriority.critical:
+      return ('Critical', AppColors.stockOut);
+    case ReplenishmentPriority.high:
+      return ('High', AppColors.stockLow);
+    case ReplenishmentPriority.medium:
+      return ('Medium', AppColors.stockNeedsRestock);
+  }
+}
+
+String _formatQty(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toInt().toString();
+  }
+
+  return value
+      .toStringAsFixed(2)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
 }

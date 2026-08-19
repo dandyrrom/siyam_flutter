@@ -28,8 +28,7 @@ PetGender petGenderFromString(String value) {
 
 String petGenderToString(PetGender gender) => gender.name;
 
-/// Mirrors the Postgres `pet_status` enum: 'under_treatment', 'healthy',
-/// 'adopted', 'deceased'.
+/// Mirrors the Postgres pet status values.
 enum PetStatus { healthy, underTreatment, adopted, deceased }
 
 PetStatus petStatusFromString(String value) {
@@ -59,12 +58,13 @@ String petStatusToString(PetStatus status) {
   }
 }
 
-/// Mirrors a row in the public.pet table.
+/// Mirrors one row in public.pet.
 class Pet {
   final String petId;
   final String petName;
   final PetSpecies species;
   final String? breed;
+  final String? owner;
   final PetGender gender;
   final bool spayedNeutered;
   final PetStatus status;
@@ -74,6 +74,7 @@ class Pet {
     required this.petName,
     required this.species,
     this.breed,
+    this.owner,
     required this.gender,
     required this.spayedNeutered,
     required this.status,
@@ -81,13 +82,21 @@ class Pet {
 
   factory Pet.fromMap(Map<String, dynamic> map) {
     return Pet(
-      petId: map['petid'] as String,
-      petName: map['petname'] as String? ?? '',
-      species: petSpeciesFromString(map['species'] as String? ?? 'dog'),
+      petId: (map['id'] ?? map['petid']) as String,
+      petName: (map['name'] ?? map['petname']) as String? ?? '',
+      species: petSpeciesFromString(
+        map['species'] as String? ?? 'dog',
+      ),
       breed: map['breed'] as String?,
-      gender: petGenderFromString(map['gender'] as String? ?? 'male'),
-      spayedNeutered: map['spayed_neutered'] as bool? ?? false,
-      status: petStatusFromString(map['status'] as String? ?? 'healthy'),
+      owner: map['owner'] as String?,
+      gender: petGenderFromString(
+        map['gender'] as String? ?? 'male',
+      ),
+      spayedNeutered:
+          map['spayed_neutered'] as bool? ?? false,
+      status: petStatusFromString(
+        map['status'] as String? ?? 'healthy',
+      ),
     );
   }
 }
