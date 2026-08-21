@@ -2198,6 +2198,7 @@ class _AddTreatmentItemDialog
 
 class _AddTreatmentItemDialogState
     extends State<_AddTreatmentItemDialog> {
+      
   final _formKey =
       GlobalKey<FormState>();
 
@@ -2220,9 +2221,59 @@ class _AddTreatmentItemDialogState
       DateTime.now();
 
   InventoryItem? _selectedItem;
+List<InventoryItem> get _availableItems {
+  final items = widget.items
+      .where(
+        (item) => item.currentUsableStockQty > 0,
+      )
+      .toList();
 
-  @override
-  void dispose() {
+  items.sort(
+    (a, b) => a.itemName
+        .toLowerCase()
+        .compareTo(
+          b.itemName.toLowerCase(),
+        ),
+  );
+
+  return items;
+}
+
+String _itemDisplayText(
+  InventoryItem item,
+) {
+  String warning = '';
+
+  if (item.stockLevel == StockLevel.low) {
+    warning = ' · LOW STOCK';
+  } else if (
+      item.stockLevel ==
+      StockLevel.needsRestock) {
+    warning = ' · RESTOCK SOON';
+  }
+
+  return '${item.itemName} · '
+      '${formatQty(item.currentUsableStockQty)} '
+      '${item.currentUsableStockUnit} remaining'
+      '$warning';
+}
+
+// ==========================================================================
+// CLEAR ITEM SEARCH
+// ==========================================================================
+
+void _clearItemSelection() {
+  setState(() {
+    _selectedItem = null;
+    _itemCtrl.clear();
+    _qtyCtrl.text = '1';
+  });
+
+  FocusScope.of(context).unfocus();
+}
+
+@override
+void dispose() {
     _itemCtrl.dispose();
     _qtyCtrl.dispose();
     _administeredByCtrl.dispose();
@@ -2270,28 +2321,16 @@ class _AddTreatmentItemDialogState
   // MAX DOSE
   // ==========================================================================
 
-  double get _maxDoseQty {
-    final item =
-        _selectedItem;
+ double get _maxDoseQty {
+  final item = _selectedItem;
 
-    if (item == null ||
-        !item.stockOutIsDeductible) {
-      return double.infinity;
-    }
-
-    final packageQuantity =
-        item.packageQuantity;
-
-    if (packageQuantity ==
-        null) {
-      return item.stockQty;
-    }
-
-    return item.packageStockQty ??
-        item.stockQty *
-            packageQuantity;
+  if (item == null ||
+      !item.stockOutIsDeductible) {
+    return double.infinity;
   }
 
+  return item.currentUsableStockQty;
+}
   // ==========================================================================
   // DATE
   // ==========================================================================
@@ -2425,36 +2464,86 @@ class _AddTreatmentItemDialogState
                   CrossAxisAlignment
                       .start,
               children: [
-                SearchSelectField<
-                    InventoryItem>(
-                  labelText:
-                      'Item',
-                  controller:
-                      _itemCtrl,
-                  options:
-                      widget.items,
-                  displayStringForOption:
-                      (item) =>
-                          item.itemName,
-                  validator: (value) =>
-                      value == null ||
-                              value
-                                  .trim()
-                                  .isEmpty
-                          ? 'Required'
-                          : null,
-                  onSelected:
-                      (picked) {
-                    setState(() {
-                      _selectedItem =
-                          picked;
+        SearchSelectField<InventoryItem>(
+  labelText:
+      'Item',
+  controller:
+      _itemCtrl,
 
-                      _qtyCtrl.text =
-                          '1';
-                    });
-                  },
-                ),
+  // Only items with available stock are shown.
+  options:
+      _availableItems,
 
+  // Shows remaining stock and stock warning.
+  displayStringForOption:
+      _itemDisplayText,
+
+  validator: (value) =>
+      value == null ||
+              value
+                  .trim()
+                  .isEmpty
+          ? 'Required'
+          : null,
+
+  onSelected:
+      (picked) {
+    setState(() {
+      _selectedItem =
+          picked;
+
+      _qtyCtrl.text =
+          '1';
+    });
+  },
+),
+
+const SizedBox(
+  height: 5,
+),
+
+const SizedBox(
+  height: 5,
+),
+
+Row(
+  children: [
+    const Expanded(
+      child: Text(
+        'Items with available stocks are the only ones displayed.',
+        style: TextStyle(
+          fontSize: 11.5,
+          color:
+              AppColors.mutedForeground,
+        ),
+      ),
+    ),
+
+    TextButton.icon(
+      onPressed:
+          _itemCtrl.text.trim().isEmpty &&
+                  _selectedItem == null
+              ? null
+              : _clearItemSelection,
+      icon: const Icon(
+        Icons.close,
+        size: 14,
+      ),
+      label: const Text(
+        'Clear',
+      ),
+      style: TextButton.styleFrom(
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 4,
+        ),
+        visualDensity:
+            VisualDensity.compact,
+      ),
+    ),
+  ],
+),
                 if (mostRecentDose !=
                     null) ...[
                   const SizedBox(
@@ -2479,88 +2568,110 @@ class _AddTreatmentItemDialogState
                 const SizedBox(
                     height: 14),
 
-                TextFormField(
-                  controller:
-                      _qtyCtrl,
-                  keyboardType:
-                      const TextInputType
-                          .numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration:
-                      InputDecoration(
-                    labelText:
-                        doseUnitAbbr ==
-                                null
-                            ? 'Dose'
-                            : 'Dose ($doseUnitAbbr)',
-                  ),
-                  validator:
-                      (value) {
-                    final number =
-                        double.tryParse(
-                      value ?? '',
-                    );
+           TextFormField(
+  controller:
+      _qtyCtrl,
 
-                    if (number ==
-                            null ||
-                        number <= 0) {
-                      return 'Enter a valid quantity';
-                    }
+  autovalidateMode:
+      AutovalidateMode.onUserInteraction,
 
-                    if (number >
-                        _maxDoseQty) {
-                      return 'Only ${formatQty(_maxDoseQty)} left';
-                    }
+  keyboardType:
+      const TextInputType
+          .numberWithOptions(
+    decimal: true,
+  ),
 
-                    return null;
-                  },
-                ),
+  decoration:
+      InputDecoration(
+    labelText:
+        doseUnitAbbr == null
+            ? 'Dose'
+            : 'Dose ($doseUnitAbbr)',
+  ),
 
-                if (item != null) ...[
-                  const SizedBox(
-                      height: 7),
+  validator:
+      (value) {
+    final number =
+        double.tryParse(
+      value ?? '',
+    );
 
-                  Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
-                    children: [
-                      Icon(
-                        item.stockOutIsDeductible
-                            ? Icons
-                                .check_circle_outline
-                            : Icons
-                                .info_outline,
-                        size: 14,
-                        color: item
-                                .stockOutIsDeductible
-                            ? AppColors
-                                .roleManager
-                            : AppColors
-                                .mutedForeground,
-                      ),
+    if (number == null ||
+        number <= 0) {
+      return 'Enter a valid quantity';
+    }
 
-                      const SizedBox(
-                          width: 6),
+    if (_selectedItem != null &&
+        _selectedItem!
+            .stockOutIsDeductible &&
+        number > _maxDoseQty) {
+      return 'Only ${formatQty(_maxDoseQty)} '
+          '${_selectedItem!.currentUsableStockUnit} remaining';
+    }
 
-                      Expanded(
-                        child: Text(
-                          item.stockOutIsDeductible
-                              ? 'Will deduct from inventory stock.'
-                              : 'This usage will be logged without stock deduction because no unit conversion is available.',
-                          style:
-                              const TextStyle(
-                            fontSize:
-                                11.5,
-                            color: AppColors
-                                .mutedForeground,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+    return null;
+  },
+),
+
+             if (item != null) ...[
+  const SizedBox(
+    height: 7,
+  ),
+
+  Row(
+    crossAxisAlignment:
+        CrossAxisAlignment.start,
+    children: [
+      Icon(
+        item.stockLevel ==
+                    StockLevel.low ||
+                item.stockLevel ==
+                    StockLevel.needsRestock
+            ? Icons.warning_amber_rounded
+            : Icons.inventory_2_outlined,
+        size: 14,
+        color:
+            item.stockLevel ==
+                        StockLevel.low ||
+                    item.stockLevel ==
+                        StockLevel.needsRestock
+                ? AppColors.warning
+                : AppColors
+                    .mutedForeground,
+      ),
+
+      const SizedBox(
+        width: 6,
+      ),
+
+      Expanded(
+        child: Text(
+          item.stockLevel ==
+                  StockLevel.low
+              ? '${formatQty(item.currentUsableStockQty)} '
+                  '${item.currentUsableStockUnit} remaining · LOW STOCK'
+              : item.stockLevel ==
+                      StockLevel.needsRestock
+                  ? '${formatQty(item.currentUsableStockQty)} '
+                      '${item.currentUsableStockUnit} remaining · RESTOCK SOON'
+                  : '${formatQty(item.currentUsableStockQty)} '
+                      '${item.currentUsableStockUnit} remaining',
+          style: TextStyle(
+            fontSize: 11.5,
+            color:
+                item.stockLevel ==
+                            StockLevel.low ||
+                        item.stockLevel ==
+                            StockLevel.needsRestock
+                    ? AppColors.warning
+                    : AppColors
+                        .mutedForeground,
+          ),
+        ),
+      ),
+    ],
+  ),
+],
 
                 const SizedBox(
                     height: 14),

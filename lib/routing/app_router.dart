@@ -164,17 +164,28 @@ GoRouter buildRouter(
       // 7. ROLE GATE
       // ----------------------------------------------------------------------
 
-      final allowedRoles =
-          rolesAllowedFor(
-        currentPath,
-      );
+final allowedRoles =
+    rolesAllowedFor(
+  currentPath,
+);
 
-      if (allowedRoles != null &&
-          !allowedRoles.contains(
-            userRole,
-          )) {
-        return homeRoute;
-      }
+// Manager is allowed to use the inventory Add Item page
+// only when it is part of the Donation workflow.
+//
+// This keeps the normal Inventory module Staff-only.
+final managerDonationStockIn =
+    userRole == AppRole.manager &&
+    currentPath == '/inventory/add' &&
+    state.uri.queryParameters['type'] ==
+        'donated';
+
+if (!managerDonationStockIn &&
+    allowedRoles != null &&
+    !allowedRoles.contains(
+      userRole,
+    )) {
+  return homeRoute;
+}
 
       return null;
     },

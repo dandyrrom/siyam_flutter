@@ -261,7 +261,7 @@ class _DonationsPageState extends State<DonationsPage>
                         : (constraints.maxWidth - 12) / 2,
                     child: _FilterStatCard(
                       label: 'Pending Review',
-                      description: 'Needs staff decision',
+                      description: 'Needs manager decision',
                       value: '$pendingCount',
                       icon: Icons.schedule_outlined,
                       accent: AppColors.warning,

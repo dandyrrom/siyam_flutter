@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/app_user.dart';
@@ -38,6 +40,124 @@ class SupabaseAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // SINGLE-DEVICE SESSION HELPERS
+  // ==========================================================================
+  //
+  // The SQL migration already installed these RPC functions:
+  //
+  //   claim_user_session()
+  //   touch_user_session()
+  //   release_user_session()
+  //   replace_user_session(previous_session_id)
+  //
+  // The first active Supabase session claims the SIYAM account.
+  // A second fresh session for the same user is rejected.
+  // ==========================================================================
+
+  Future<bool> _claimCurrentSession() async {
+    final result = await _client.rpc(
+      'claim_user_session',
+    );
+
+    return result == true;
+  }
+
+  @override
+  Future<bool> touchSession() async {
+    if (_client.auth.currentSession == null) {
+      return false;
+    }
+
+    final result = await _client.rpc(
+      'touch_user_session',
+    );
+
+    return result == true;
+  }
+
+  Future<void> _releaseCurrentSession() async {
+    if (_client.auth.currentSession == null) {
+      return;
+    }
+
+    try {
+      await _client.rpc(
+        'release_user_session',
+      );
+    } catch (_) {
+      // Do not prevent logout if the release RPC cannot be reached.
+      // The server-side stale timeout allows the account to recover.
+    }
+  }
+
+  Future<bool> _replaceCurrentSession(
+    String previousSessionId,
+  ) async {
+    final result = await _client.rpc(
+      'replace_user_session',
+      params: {
+        'previous_session_id':
+            previousSessionId,
+      },
+    );
+
+    return result == true;
+  }
+
+  String? _sessionIdFromAccessToken(
+    String accessToken,
+  ) {
+    try {
+      final parts = accessToken.split('.');
+
+      if (parts.length != 3) {
+        return null;
+      }
+
+      final payload = utf8.decode(
+        base64Url.decode(
+          base64Url.normalize(
+            parts[1],
+          ),
+        ),
+      );
+
+      final decoded = jsonDecode(payload);
+
+      if (decoded is! Map) {
+        return null;
+      }
+
+      final value = decoded['session_id'];
+
+      if (value == null) {
+        return null;
+      }
+
+      final text = value.toString().trim();
+
+      return text.isEmpty
+          ? null
+          : text;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Never> _rejectSecondLogin() async {
+    // Explicitly sign out ONLY the newly-created local session.
+    // The already-active browser/device must remain signed in.
+    await _client.auth.signOut(
+      scope: SignOutScope.local,
+    );
+
+    throw Exception(
+      'This account is currently signed in on another device. '
+      'Please log out from that device before signing in here.',
+    );
+  }
+
+  // ==========================================================================
   // SIGN IN
   // ==========================================================================
 
@@ -61,7 +181,12 @@ class SupabaseAuthService implements AuthService {
 
     final userId = res.user?.id;
 
-    if (userId == null) {
+    if (userId == null ||
+        res.session == null) {
+      await _client.auth.signOut(
+        scope: SignOutScope.local,
+      );
+
       throw Exception(
         'Invalid email or password.',
       );
@@ -70,9 +195,20 @@ class SupabaseAuthService implements AuthService {
     final profile = await fetchProfile(userId);
 
     if (profile == null) {
+      await _client.auth.signOut(
+        scope: SignOutScope.local,
+      );
+
       throw Exception(
         'Your account has no profile. Contact an administrator.',
       );
+    }
+
+    final claimed =
+        await _claimCurrentSession();
+
+    if (!claimed) {
+      await _rejectSecondLogin();
     }
 
     return profile;
@@ -84,7 +220,14 @@ class SupabaseAuthService implements AuthService {
 
   @override
   Future<void> signOut() async {
-    await _client.auth.signOut();
+    // Release SIYAM's active-device lock first.
+    await _releaseCurrentSession();
+
+    // Explicit LOCAL scope so this device does not revoke another
+    // Supabase session unexpectedly.
+    await _client.auth.signOut(
+      scope: SignOutScope.local,
+    );
   }
 
   // ==========================================================================
@@ -120,7 +263,29 @@ class SupabaseAuthService implements AuthService {
       return null;
     }
 
-    return fetchProfile(userId);
+    final profile =
+        await fetchProfile(userId);
+
+    if (profile == null) {
+      await _client.auth.signOut(
+        scope: SignOutScope.local,
+      );
+
+      return null;
+    }
+
+    final claimed =
+        await _claimCurrentSession();
+
+    if (!claimed) {
+      await _client.auth.signOut(
+        scope: SignOutScope.local,
+      );
+
+      return null;
+    }
+
+    return profile;
   }
 
   // ==========================================================================
@@ -162,6 +327,15 @@ class SupabaseAuthService implements AuthService {
     }
 
     final profile = await fetchProfile(userId);
+
+    if (res.session != null) {
+      final claimed =
+          await _claimCurrentSession();
+
+      if (!claimed) {
+        await _rejectSecondLogin();
+      }
+    }
 
     if (profile != null) {
       return profile;
@@ -297,7 +471,11 @@ class SupabaseAuthService implements AuthService {
     final currentUser =
         _client.auth.currentUser;
 
-    if (currentUser == null) {
+    final currentSession =
+        _client.auth.currentSession;
+
+    if (currentUser == null ||
+        currentSession == null) {
       throw Exception(
         'You are not signed in.',
       );
@@ -348,6 +526,17 @@ class SupabaseAuthService implements AuthService {
       );
     }
 
+    final previousSessionId =
+        _sessionIdFromAccessToken(
+      currentSession.accessToken,
+    );
+
+    if (previousSessionId == null) {
+      throw Exception(
+        'Could not verify the current session. Please log out and sign in again.',
+      );
+    }
+
     // ------------------------------------------------------------------------
     // VERIFY CURRENT PASSWORD
     // ------------------------------------------------------------------------
@@ -366,6 +555,23 @@ class SupabaseAuthService implements AuthService {
     } on AuthException {
       throw Exception(
         'Current password is incorrect.',
+      );
+    }
+
+    // Re-authentication may create/rotate the Supabase session_id.
+    // Move SIYAM's active-device lock from the old session to this new one.
+    final replaced =
+        await _replaceCurrentSession(
+      previousSessionId,
+    );
+
+    if (!replaced) {
+      await _client.auth.signOut(
+        scope: SignOutScope.local,
+      );
+
+      throw Exception(
+        'Your session is no longer active on this device. Please sign in again.',
       );
     }
 

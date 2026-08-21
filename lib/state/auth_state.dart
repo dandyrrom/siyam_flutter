@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
@@ -25,10 +27,9 @@ enum AuthStatus {
 ///    → Provider/UI updates
 ///
 /// 2. routerRefreshListenable
-///    → GoRouter authentication redirects only
+///    → GoRouter authentication redirects
 ///
-/// This prevents normal UI changes such as isBusy/profile updates from
-/// unnecessarily forcing GoRouter to re-process the route tree.
+/// Normal UI changes should not unnecessarily rebuild the route tree.
 class AuthController extends ChangeNotifier {
   final AuthService _authService =
       AuthService();
@@ -36,11 +37,9 @@ class AuthController extends ChangeNotifier {
   // ==========================================================================
   // ROUTER REFRESH NOTIFIER
   // ==========================================================================
-  //
-  // IMPORTANT:
-  // GoRouter should listen to THIS instead of the entire AuthController.
-  //
-  final ValueNotifier<int> _routerRefresh =
+
+  final ValueNotifier<int>
+      _routerRefresh =
       ValueNotifier<int>(0);
 
   Listenable get routerRefreshListenable =>
@@ -60,6 +59,13 @@ class AuthController extends ChangeNotifier {
   bool isBusy = false;
 
   // ==========================================================================
+  // SINGLE-DEVICE SESSION HEARTBEAT
+  // ==========================================================================
+
+  Timer? _sessionHeartbeat;
+  bool _heartbeatInFlight = false;
+
+  // ==========================================================================
   // GETTERS
   // ==========================================================================
 
@@ -74,38 +80,110 @@ class AuthController extends ChangeNotifier {
   // ==========================================================================
   // AUTH STATUS CHANGE
   // ==========================================================================
-  //
-  // ROUTER LOCATOR:
-  // This is the ONLY helper that refreshes GoRouter.
-  //
+
+  /// Used for login, registration and session restoration.
+  ///
+  /// Logout intentionally does NOT use this helper because logout uses one
+  /// explicit navigation from the UI after Supabase successfully signs out.
   void _setStatus(
     AuthStatus newStatus,
   ) {
-    if (status == newStatus) {
+    if (status ==
+        newStatus) {
       return;
     }
 
-    status = newStatus;
+    status =
+        newStatus;
 
-    // ------------------------------------------------------------------------
-    // ROUTER REFRESH:
-    // Only authentication-state changes should cause route redirects.
-    // ------------------------------------------------------------------------
     _routerRefresh.value++;
+  }
+
+  // ==========================================================================
+  // SINGLE-DEVICE SESSION HEARTBEAT
+  // ==========================================================================
+  //
+  // While the account is authenticated, SIYAM refreshes the active-session
+  // timestamp every 30 seconds.
+  //
+  // If this browser/device no longer owns the active session, it is signed out
+  // and GoRouter is refreshed to the login page.
+  // ==========================================================================
+
+  void _startSessionHeartbeat() {
+    _sessionHeartbeat?.cancel();
+
+    if (!isAuthenticated) {
+      return;
+    }
+
+    _sessionHeartbeat = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) {
+        _verifyActiveSession();
+      },
+    );
+  }
+
+  void _stopSessionHeartbeat() {
+    _sessionHeartbeat?.cancel();
+    _sessionHeartbeat = null;
+  }
+
+  Future<void> _verifyActiveSession() async {
+    if (_heartbeatInFlight ||
+        !isAuthenticated) {
+      return;
+    }
+
+    _heartbeatInFlight = true;
+
+    try {
+      final valid =
+          await _authService.touchSession();
+
+      if (valid ||
+          !isAuthenticated) {
+        return;
+      }
+
+      _stopSessionHeartbeat();
+
+      try {
+        await _authService.signOut();
+      } catch (_) {
+        // Even if the local Supabase sign-out cannot complete, immediately
+        // remove access to the authenticated SIYAM interface.
+      }
+
+      profile = null;
+      errorMessage =
+          'Your account is no longer active on this device. Please sign in again.';
+
+      _setStatus(
+        AuthStatus.unauthenticated,
+      );
+
+      notifyListeners();
+    } catch (_) {
+      // Temporary connection failures do not log the user out.
+      // The next heartbeat will try again.
+    } finally {
+      _heartbeatInFlight = false;
+    }
   }
 
   // ==========================================================================
   // RESTORE SESSION
   // ==========================================================================
 
-  Future<void> restoreSession() async {
+  Future<void>
+      restoreSession() async {
     errorMessage = null;
     profile = null;
 
-    // ------------------------------------------------------------------------
-    // AUTH RESOLUTION:
-    // Session state is temporarily unresolved.
-    // ------------------------------------------------------------------------
+    _stopSessionHeartbeat();
+
     _setStatus(
       AuthStatus.unknown,
     );
@@ -123,6 +201,8 @@ class AuthController extends ChangeNotifier {
         _setStatus(
           AuthStatus.authenticated,
         );
+
+        _startSessionHeartbeat();
       } else {
         profile = null;
 
@@ -138,10 +218,6 @@ class AuthController extends ChangeNotifier {
       );
     }
 
-    // ------------------------------------------------------------------------
-    // UI UPDATE:
-    // Update Provider widgets after session resolution.
-    // ------------------------------------------------------------------------
     notifyListeners();
   }
 
@@ -153,17 +229,15 @@ class AuthController extends ChangeNotifier {
     String email,
     String password,
   ) async {
-    // ------------------------------------------------------------------------
-    // DOUBLE-SUBMISSION GUARD
-    // ------------------------------------------------------------------------
     if (isBusy) {
       return false;
     }
 
     isBusy = true;
     errorMessage = null;
-
     profile = null;
+
+    _stopSessionHeartbeat();
 
     _setStatus(
       AuthStatus.unknown,
@@ -179,22 +253,17 @@ class AuthController extends ChangeNotifier {
         password: password,
       );
 
-      // ----------------------------------------------------------------------
-      // LOGIN SUCCESS
-      // ----------------------------------------------------------------------
-
-      profile = user;
+      profile =
+          user;
 
       _setStatus(
         AuthStatus.authenticated,
       );
 
+      _startSessionHeartbeat();
+
       return true;
     } catch (e) {
-      // ----------------------------------------------------------------------
-      // LOGIN FAILED
-      // ----------------------------------------------------------------------
-
       profile = null;
 
       _setStatus(
@@ -227,18 +296,15 @@ class AuthController extends ChangeNotifier {
     required String password,
     String? contactNum,
   }) async {
-    // ------------------------------------------------------------------------
-    // DOUBLE-SUBMISSION GUARD
-    // ------------------------------------------------------------------------
-
     if (isBusy) {
       return false;
     }
 
     isBusy = true;
     errorMessage = null;
-
     profile = null;
+
+    _stopSessionHeartbeat();
 
     _setStatus(
       AuthStatus.unknown,
@@ -250,29 +316,29 @@ class AuthController extends ChangeNotifier {
       final user =
           await _authService
               .signUpDonor(
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        password: password,
-        contactNum: contactNum,
+        firstName:
+            firstName,
+        lastName:
+            lastName,
+        email:
+            email,
+        password:
+            password,
+        contactNum:
+            contactNum,
       );
 
-      // ----------------------------------------------------------------------
-      // REGISTRATION SUCCESS
-      // ----------------------------------------------------------------------
-
-      profile = user;
+      profile =
+          user;
 
       _setStatus(
         AuthStatus.authenticated,
       );
 
+      _startSessionHeartbeat();
+
       return true;
     } catch (e) {
-      // ----------------------------------------------------------------------
-      // REGISTRATION FAILED
-      // ----------------------------------------------------------------------
-
       profile = null;
 
       _setStatus(
@@ -297,66 +363,90 @@ class AuthController extends ChangeNotifier {
   // ==========================================================================
   // LOGOUT
   // ==========================================================================
+  //
+  // SIMPLE LOGOUT FLOW:
+  //
+  // 1. Sign out from Supabase.
+  // 2. Clear the local authenticated user.
+  // 3. Set auth status directly to unauthenticated.
+  // 4. Return true.
+  // 5. SideNav / MobileDrawer performs ONE context.go('/login').
+  //
+  // IMPORTANT:
+  //
+  // Logout does NOT call:
+  //
+  //   _setStatus(...)
+  //   _routerRefresh.value++
+  //   notifyListeners()
+  //
+  // on success.
+  //
+  // This avoids GoRouter destroying the authenticated widget tree while the
+  // logout button callback is still executing.
+  // ==========================================================================
 
-  /// Logs the user out.
-  ///
-  /// IMPORTANT:
-  ///
-  /// SideNav and MobileDrawer should NOT manually navigate to /login.
-  ///
-  /// _setStatus(AuthStatus.unauthenticated) tells GoRouter to evaluate its
-  /// redirect rule, and GoRouter handles the navigation.
-  Future<void> logout() async {
-    // ------------------------------------------------------------------------
-    // DOUBLE-LOGOUT GUARD
-    // ------------------------------------------------------------------------
-
+  Future<bool> logout() async {
     if (isBusy) {
-      return;
+      return false;
     }
 
     isBusy = true;
     errorMessage = null;
 
-    // ------------------------------------------------------------------------
-    // LOGOUT IMPORTANT:
-    //
-    // Do NOT call notifyListeners() here.
-    //
-    // There is no reason to rebuild the authenticated AppShell immediately
-    // before it is about to be removed.
-    // ------------------------------------------------------------------------
+    _stopSessionHeartbeat();
 
     try {
-      await _authService.signOut();
+      // ----------------------------------------------------------------------
+      // SUPABASE SIGN OUT
+      // ----------------------------------------------------------------------
+
+      await _authService
+          .signOut();
+
+      // ----------------------------------------------------------------------
+      // CLEAR LOCAL SESSION
+      // ----------------------------------------------------------------------
+
+      profile =
+          null;
+
+      status =
+          AuthStatus.unauthenticated;
+
+      isBusy =
+          false;
+
+      // ----------------------------------------------------------------------
+      // DO NOT notify or refresh GoRouter here.
+      //
+      // side_nav.dart / mobile_drawer.dart will navigate once to:
+      //
+      // context.go('/login');
+      // ----------------------------------------------------------------------
+
+      return true;
     } catch (e) {
-      // ----------------------------------------------------------------------
-      // LOGOUT ERROR
-      // ----------------------------------------------------------------------
-      //
-      // Clear local authentication anyway.
-      //
+      isBusy =
+          false;
+
       errorMessage = e
           .toString()
           .replaceFirst(
             'Exception: ',
             '',
           );
-    } finally {
-  profile = null;
-  isBusy = false;
 
-  // ============================================================
-  // LOGOUT ROUTER TRIGGER
-  // ============================================================
-  // GoRouter handles redirecting to /login.
-  // Do not notify Provider while the protected widget tree
-  // is being removed.
-  _setStatus(AuthStatus.unauthenticated);
+      // Logout failed, so the authenticated page remains mounted.
+      // It is safe to update the UI with the error.
+      if (isAuthenticated) {
+        _startSessionHeartbeat();
+      }
 
-  // IMPORTANT:
-  // No notifyListeners() here.
-}
+      notifyListeners();
+
+      return false;
+    }
   }
 
   // ==========================================================================
@@ -381,36 +471,34 @@ class AuthController extends ChangeNotifier {
 
     notifyListeners();
 
-    bool success = false;
+    bool success =
+        false;
 
     try {
       final updatedProfile =
           await _authService
               .updateProfile(
-        userId: userId,
-        firstName: firstName,
-        lastName: lastName,
-        contactNum: contactNum,
+        userId:
+            userId,
+        firstName:
+            firstName,
+        lastName:
+            lastName,
+        contactNum:
+            contactNum,
       );
-
-      // ----------------------------------------------------------------------
-      // PROFILE UPDATE:
-      // This should update Provider/UI, NOT trigger GoRouter.
-      // ----------------------------------------------------------------------
 
       profile =
           updatedProfile;
 
-      success = true;
+      success =
+          true;
     } catch (_) {
       errorMessage =
           'Could not update your profile. Please try again.';
     } finally {
-      isBusy = false;
-
-      // ----------------------------------------------------------------------
-      // ONE FINAL UI NOTIFICATION
-      // ----------------------------------------------------------------------
+      isBusy =
+          false;
 
       notifyListeners();
     }
@@ -439,19 +527,26 @@ class AuthController extends ChangeNotifier {
 
     notifyListeners();
 
-    bool success = false;
+    bool success =
+        false;
 
     try {
       await _authService
           .changePassword(
-        userId: userId,
+        userId:
+            userId,
         currentPassword:
             currentPassword,
         newPassword:
             newPassword,
       );
 
-      success = true;
+      // Password verification may rotate the Supabase session.
+      // The service transfers the SIYAM lock; touch it once immediately.
+      await _authService.touchSession();
+
+      success =
+          true;
     } catch (e) {
       errorMessage = e
           .toString()
@@ -460,7 +555,8 @@ class AuthController extends ChangeNotifier {
             '',
           );
     } finally {
-      isBusy = false;
+      isBusy =
+          false;
 
       notifyListeners();
     }
@@ -474,11 +570,10 @@ class AuthController extends ChangeNotifier {
 
   @override
   void dispose() {
-    // ------------------------------------------------------------------------
-    // ROUTER NOTIFIER CLEANUP
-    // ------------------------------------------------------------------------
+    _stopSessionHeartbeat();
 
-    _routerRefresh.dispose();
+    _routerRefresh
+        .dispose();
 
     super.dispose();
   }

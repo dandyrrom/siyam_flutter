@@ -910,9 +910,11 @@ class _AddItemPageState extends State<AddItemPage> {
               Icons.arrow_back,
               size: 16,
             ),
-            label: const Text(
-              'Back to Inventory',
-            ),
+           label: Text(
+  widget.type == 'donated'
+      ? 'Back to Donations'
+      : 'Back to Inventory',
+),
             style: TextButton.styleFrom(
               foregroundColor:
                   AppColors
@@ -921,7 +923,7 @@ class _AddItemPageState extends State<AddItemPage> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Stock In Item',
+            'Good Received',
             style: TextStyle(
               fontSize: 24,
               fontWeight:

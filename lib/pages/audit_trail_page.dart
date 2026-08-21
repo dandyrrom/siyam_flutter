@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../core/app_colors.dart';
+import '../models/app_user.dart';
 import '../models/audit_entry.dart';
 import '../services/audit_service.dart';
+import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 
 // =============================================================================
-// MANAGER AUDIT TRAIL
+// ROLE-AWARE AUDIT TRAIL
 // =============================================================================
 //
-// Documentation / DFD purpose:
-// - show important system actions
-// - identify who performed the action
-// - show what module/record was affected
-// - show when it happened
+// Manager:
+// - full permitted Audit Trail
+// - all permitted modules/users
+// - detailed before/after changes
+//
+// Staff:
+// - "My Activity"
+// - only the signed-in Staff account's Inventory + Medical activity
+// - no Manager/configuration/account activity
+// - no before/after change details
 //
 // This is intentionally NOT a developer/database log.
 // Technical batch movements remain in batch_transaction_log.
@@ -53,7 +61,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
   static const int _pageSize = 20;
 
-  static const List<String> _moduleOptions = [
+  static const List<String> _managerModuleOptions = [
     'Accounts',
     'Animals',
     'Configuration',
@@ -62,6 +70,22 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     'Medical',
     'Suppliers',
   ];
+
+  static const List<String> _staffModuleOptions = [
+    'Inventory',
+    'Medical',
+  ];
+
+  AppUser? get _currentUser =>
+      context.read<AuthController>().profile;
+
+  bool get _isStaff =>
+      _currentUser?.role == AppRole.staff;
+
+  List<String> get _visibleModuleOptions =>
+      _isStaff
+          ? _staffModuleOptions
+          : _managerModuleOptions;
 
   @override
   void initState() {
@@ -91,8 +115,23 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     }
 
     try {
+      final user =
+          context.read<AuthController>().profile;
+
+      final isStaff =
+          user?.role == AppRole.staff;
+
       final entries =
-          await _service.fetchEntries();
+          await _service.fetchEntries(
+        actorUserId:
+            isStaff ? user!.userId : null,
+        modules:
+            isStaff
+                ? _staffModuleOptions
+                : null,
+        includeChangeDetails:
+            !isStaff,
+      );
 
       if (!mounted) return;
 
@@ -359,9 +398,11 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Audit Trail',
-          style: TextStyle(
+        Text(
+          _isStaff
+              ? 'My Activity'
+              : 'Audit Trail',
+          style: const TextStyle(
             fontSize: 24,
             fontWeight:
                 FontWeight.w800,
@@ -370,9 +411,11 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
         const SizedBox(height: 3),
 
-        const Text(
-          'Review important actions and changes made in SIYAM.',
-          style: TextStyle(
+        Text(
+          _isStaff
+              ? 'Review the inventory and medical actions recorded under your account.'
+              : 'Review important actions and changes made in SIYAM.',
+          style: const TextStyle(
             fontSize: 13,
             color:
                 AppColors.mutedForeground,
@@ -415,57 +458,64 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   // ===========================================================================
 
   Widget _buildSummaryCards() {
-    return _AuditCardGrid(
-      cards: [
-        _AuditSummaryCard(
-          icon: Icons.today_outlined,
-          value: '$_todayCount',
-          label: 'Today',
-          helper:
-              'Actions recorded today',
-          selected:
-              _period ==
-              _AuditPeriod.today,
-          onTap: _selectTodayCard,
+    final cards = <Widget>[
+      _AuditSummaryCard(
+        icon: Icons.today_outlined,
+        value: '$_todayCount',
+        label: 'Today',
+        helper:
+            _isStaff
+                ? 'Your actions today'
+                : 'Actions recorded today',
+        selected:
+            _period == _AuditPeriod.today,
+        onTap: _selectTodayCard,
+      ),
+      _AuditSummaryCard(
+        icon:
+            Icons.inventory_2_outlined,
+        value:
+            '${_moduleCount('Inventory')}',
+        label: 'Inventory',
+        helper:
+            _isStaff
+                ? 'Your inventory actions'
+                : 'Stock and item actions',
+        selected:
+            _moduleFilter == 'Inventory',
+        onTap: () =>
+            _selectModuleCard(
+          'Inventory',
         ),
-        _AuditSummaryCard(
-          icon:
-              Icons.inventory_2_outlined,
-          value:
-              '${_moduleCount('Inventory')}',
-          label: 'Inventory',
-          helper:
-              'Stock and item actions',
-          selected:
-              _moduleFilter ==
-              'Inventory',
-          onTap: () =>
-              _selectModuleCard(
-            'Inventory',
-          ),
+      ),
+      _AuditSummaryCard(
+        icon:
+            Icons.medical_services_outlined,
+        value:
+            '${_moduleCount('Medical')}',
+        label: 'Medical',
+        helper:
+            _isStaff
+                ? 'Your treatment actions'
+                : 'Treatment actions',
+        selected:
+            _moduleFilter == 'Medical',
+        onTap: () =>
+            _selectModuleCard(
+          'Medical',
         ),
-        _AuditSummaryCard(
-          icon: Icons
-              .medical_services_outlined,
-          value:
-              '${_moduleCount('Medical')}',
-          label: 'Medical',
-          helper:
-              'Treatment actions',
-          selected:
-              _moduleFilter ==
-              'Medical',
-          onTap: () =>
-              _selectModuleCard(
-            'Medical',
-          ),
-        ),
+      ),
+    ];
+
+    if (!_isStaff) {
+      cards.add(
         _AuditSummaryCard(
           icon:
               Icons.settings_outlined,
           value:
               '${_moduleCount('Configuration')}',
-          label: 'Configuration',
+          label:
+              'Configuration',
           helper:
               'Settings and registry changes',
           selected:
@@ -476,7 +526,11 @@ class _AuditTrailPageState extends State<AuditTrailPage>
             'Configuration',
           ),
         ),
-      ],
+      );
+    }
+
+    return _AuditCardGrid(
+      cards: cards,
     );
   }
 
@@ -515,7 +569,9 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                     ),
                   ),
         hintText:
-            'Search user, action, item, animal, supplier...',
+            _isStaff
+                ? 'Search your activity, item, or treatment'
+                : 'Search user, action, item, animal, supplier',
       ),
       onChanged: (value) {
         setState(() {
@@ -536,7 +592,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
           value: '__all__',
           label: 'All modules',
         ),
-        for (final value in _moduleOptions)
+        for (final value in _visibleModuleOptions)
           _AuditFilterOption(
             value: value,
             label: value,
@@ -886,7 +942,8 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                           .entityLabel!,
                     ),
 
-                  if (entry.isUpdate &&
+                  if (!_isStaff &&
+                      entry.isUpdate &&
                       changes.isNotEmpty) ...[
                     const SizedBox(
                       height: 16,
@@ -926,26 +983,27 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                             AppColors.border,
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       crossAxisAlignment:
                           CrossAxisAlignment
                               .start,
                       children: [
-                        Icon(
-                          Icons
-                              .info_outline,
+                        const Icon(
+                          Icons.info_outline,
                           size: 16,
                           color:
                               AppColors.primary,
                         ),
-                        SizedBox(width: 7),
+                        const SizedBox(width: 7),
                         Expanded(
                           child: Text(
-                            'Performed by is the signed-in account that carried out or recorded the action in SIYAM. '
-                            'For stock-in records, Received by is the person who physically received the supplies on-site. '
-                            'These can be different people.',
+                            _isStaff
+                                ? 'This page shows only the Inventory and Medical actions recorded under your own Staff account.'
+                                : 'Performed by is the signed-in account that carried out or recorded the action in SIYAM. '
+                                    'For stock-in records, Received by is the person who physically received the supplies on-site. '
+                                    'These can be different people.',
                             style:
-                                TextStyle(
+                                const TextStyle(
                               fontSize:
                                   11.5,
                               height: 1.4,

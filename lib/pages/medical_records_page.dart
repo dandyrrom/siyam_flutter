@@ -744,7 +744,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                     size: 18,
                   ),
                   hintText:
-                      'Search animals...',
+                      'Search animals',
                   isDense: true,
                 ),
               ),

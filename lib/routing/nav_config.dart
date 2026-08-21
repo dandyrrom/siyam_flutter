@@ -22,18 +22,21 @@ class NavItem {
 /// Current per-role tabs:
 ///
 /// Manager:
-///   Dashboard, Animals, Suppliers, Reports, Audit, Settings, Profile,
-///   Notifications
+///   Dashboard, Animals, Suppliers, Reports, Audit, Settings, Donations,
+///   Profile, Notifications
 ///
 /// Staff:
-///   Dashboard, Inventory, Medical, Donations,
-///   Purchases & Replenishment, Reports, Profile, Notifications
+///   Dashboard, Inventory, Medical, Purchases & Replenishment, Reports,
+///   My Activity, Profile, Notifications
 ///
 /// Donor:
 ///   Dashboard, Donate, Impacts, Donations, Profile, Notifications
 ///
 /// PANEL REVISION:
 /// Purchase and Replenishment are one Staff navigation item.
+/// Donations approval/stock-in is handled by Manager.
+/// Staff receives limited read-only access to their own operational audit
+/// activity through My Activity.
 const List<NavItem> kNavItems = [
   NavItem(
     label: 'Dashboard',
@@ -76,6 +79,12 @@ const List<NavItem> kNavItems = [
     roles: [AppRole.manager],
   ),
   NavItem(
+    label: 'Donations',
+    path: '/donations',
+    icon: Icons.volunteer_activism_outlined,
+    roles: [AppRole.manager],
+  ),
+  NavItem(
     label: 'Inventory',
     path: '/inventory',
     icon: Icons.inventory_2_outlined,
@@ -88,27 +97,21 @@ const List<NavItem> kNavItems = [
     roles: [AppRole.staff],
   ),
   NavItem(
-    label: 'Donations',
-    path: '/donations',
-    icon: Icons.volunteer_activism_outlined,
-    roles: [AppRole.staff],
-  ),
-
-  // ===========================================================================
-  // MERGED PURCHASE + REPLENISHMENT MODULE
-  // ===========================================================================
-
-  NavItem(
     label: 'Purchases & Replenishment',
     path: '/purchase-orders',
     icon: Icons.shopping_cart_outlined,
     roles: [AppRole.staff],
   ),
-
   NavItem(
     label: 'Reports',
     path: '/reports',
     icon: Icons.bar_chart_outlined,
+    roles: [AppRole.staff],
+  ),
+  NavItem(
+    label: 'My Activity',
+    path: '/audit-trail',
+    icon: Icons.fact_check_outlined,
     roles: [AppRole.staff],
   ),
   NavItem(
@@ -153,6 +156,9 @@ const List<NavItem> kNavItems = [
 
 /// Returns the roles allowed to view [path], or null if [path] is not a
 /// role-gated route.
+///
+/// Because Manager "Audit" and Staff "My Activity" intentionally share
+/// /audit-trail, this function unions both role lists for that route.
 List<AppRole>? rolesAllowedFor(
   String path,
 ) {

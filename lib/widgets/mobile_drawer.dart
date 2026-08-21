@@ -7,7 +7,8 @@ import '../models/app_user.dart';
 import '../routing/nav_config.dart';
 import '../state/auth_state.dart';
 
-class MobileDrawer extends StatelessWidget {
+class MobileDrawer
+    extends StatefulWidget {
   final String currentPath;
 
   const MobileDrawer({
@@ -16,7 +17,84 @@ class MobileDrawer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  State<MobileDrawer> createState() =>
+      _MobileDrawerState();
+}
+
+class _MobileDrawerState
+    extends State<MobileDrawer> {
+  bool _confirmingLogout = false;
+  bool _loggingOut = false;
+
+  // =========================================================================
+  // MOBILE LOGOUT
+  // =========================================================================
+
+  Future<void> _performLogout() async {
+    if (_loggingOut) {
+      return;
+    }
+
+    setState(() {
+      _loggingOut = true;
+    });
+
+    final auth =
+        context.read<AuthController>();
+
+    final success =
+        await auth.logout();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      // One navigation removes the entire authenticated AppShell,
+      // including this Drawer.
+      context.go('/login');
+      return;
+    }
+
+    setState(() {
+      _loggingOut = false;
+    });
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(
+          auth.errorMessage ??
+              'Could not log out. Please try again.',
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation() {
+    if (_loggingOut) {
+      return;
+    }
+
+    setState(() {
+      _confirmingLogout = true;
+    });
+  }
+
+  void _cancelLogout() {
+    if (_loggingOut) {
+      return;
+    }
+
+    setState(() {
+      _confirmingLogout = false;
+    });
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
     final auth =
         context.watch<AuthController>();
 
@@ -25,29 +103,35 @@ class MobileDrawer extends StatelessWidget {
 
     final items = kNavItems
         .where(
-          (i) =>
+          (item) =>
               user != null &&
-              i.roles.contains(
+              item.roles.contains(
                 user.role,
               ),
         )
         .toList();
 
+    final disabled =
+        auth.isBusy ||
+        _loggingOut;
+
     return Drawer(
       child: SafeArea(
         child: Column(
           children: [
-            // =========================================================================
+            // =================================================================
             // DRAWER HEADER
-            // =========================================================================
+            // =================================================================
 
             Container(
-              width: double.infinity,
+              width:
+                  double.infinity,
               padding:
                   const EdgeInsets.all(
                 20,
               ),
-              color: AppColors.primary,
+              color:
+                  AppColors.primary,
               child: Column(
                 crossAxisAlignment:
                     CrossAxisAlignment
@@ -55,11 +139,14 @@ class MobileDrawer extends StatelessWidget {
                 children: [
                   const Text(
                     'SIYAM',
-                    style: TextStyle(
-                      color: Colors.white,
+                    style:
+                        TextStyle(
+                      color:
+                          Colors.white,
                       fontSize: 22,
                       fontWeight:
-                          FontWeight.bold,
+                          FontWeight
+                              .bold,
                     ),
                   ),
 
@@ -76,7 +163,8 @@ class MobileDrawer extends StatelessWidget {
                           Colors.white70,
                       fontSize: 14,
                       fontWeight:
-                          FontWeight.w500,
+                          FontWeight
+                              .w500,
                     ),
                   ),
 
@@ -96,9 +184,9 @@ class MobileDrawer extends StatelessWidget {
               ),
             ),
 
-            // =========================================================================
-            // DRAWER NAVIGATION
-            // =========================================================================
+            // =================================================================
+            // NAVIGATION
+            // =================================================================
 
             Expanded(
               child: ListView(
@@ -109,118 +197,124 @@ class MobileDrawer extends StatelessWidget {
                   vertical: 8,
                 ),
                 children:
-                    items.map((item) {
-                  final active =
-                      currentPath
-                          .startsWith(
-                    item.path,
-                  );
+                    items.map(
+                  (item) {
+                    final active =
+                        widget
+                            .currentPath
+                            .startsWith(
+                      item.path,
+                    );
 
-                  return Padding(
-                    padding:
-                        const EdgeInsets
-                            .only(
-                      bottom: 2,
-                    ),
-                    child: Material(
-                      color: active
-                          ? AppColors
-                              .sidebarAccent
-                          : Colors
-                              .transparent,
-                      elevation:
-                          active ? 1 : 0,
-                      shadowColor:
-                          AppColors
-                              .sidebarForeground
-                              .withValues(
-                        alpha: 0.25,
+                    return Padding(
+                      padding:
+                          const EdgeInsets
+                              .only(
+                        bottom: 2,
                       ),
-                      borderRadius:
-                          BorderRadius
-                              .circular(
-                        16,
-                      ),
-                      child: InkWell(
+                      child:
+                          Material(
+                        color: active
+                            ? AppColors
+                                .sidebarAccent
+                            : Colors
+                                .transparent,
+                        elevation:
+                            active
+                                ? 1
+                                : 0,
+                        shadowColor:
+                            AppColors
+                                .sidebarForeground
+                                .withValues(
+                          alpha:
+                              0.25,
+                        ),
                         borderRadius:
                             BorderRadius
                                 .circular(
                           16,
                         ),
-
-                        // =============================================================
-                        // MOBILE NAVIGATION
-                        // =============================================================
-                        //
-                        // Close the drawer before changing authenticated pages.
-                        //
-                        onTap: () {
-                          Navigator.of(
-                            context,
-                          ).pop();
-
-                          context.go(
-                            item.path,
-                          );
-                        },
-
-                        child: Padding(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal: 12,
-                            vertical: 11,
+                        child:
+                            InkWell(
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            16,
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                item.icon,
-                                size: 18,
-                                color: active
-                                    ? AppColors
-                                        .sidebarPrimary
-                                    : AppColors
-                                        .sidebarAccentForeground,
-                              ),
+                          onTap:
+                              () {
+                            Navigator.of(
+                              context,
+                            ).pop();
 
-                              const SizedBox(
-                                width: 12,
-                              ),
+                            context.go(
+                              item.path,
+                            );
+                          },
+                          child:
+                              Padding(
+                            padding:
+                                const EdgeInsets
+                                    .symmetric(
+                              horizontal:
+                                  12,
+                              vertical:
+                                  11,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  item.icon,
+                                  size: 18,
+                                  color: active
+                                      ? AppColors
+                                          .sidebarPrimary
+                                      : AppColors
+                                          .sidebarAccentForeground,
+                                ),
 
-                              Expanded(
-                                child: Text(
-                                  item.label,
-                                  overflow:
-                                      TextOverflow
-                                          .ellipsis,
-                                  style:
-                                      TextStyle(
-                                    fontSize:
-                                        13.5,
-                                    fontWeight:
-                                        active
-                                            ? FontWeight
-                                                .w600
-                                            : FontWeight
-                                                .w400,
-                                    color: AppColors
-                                        .sidebarForeground,
+                                const SizedBox(
+                                  width: 12,
+                                ),
+
+                                Expanded(
+                                  child:
+                                      Text(
+                                    item.label,
+                                    overflow:
+                                        TextOverflow
+                                            .ellipsis,
+                                    style:
+                                        TextStyle(
+                                      fontSize:
+                                          13.5,
+                                      fontWeight:
+                                          active
+                                              ? FontWeight
+                                                  .w600
+                                              : FontWeight
+                                                  .w400,
+                                      color:
+                                          AppColors
+                                              .sidebarForeground,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  },
+                ).toList(),
               ),
             ),
 
-            // =========================================================================
+            // =================================================================
             // USER + LOGOUT
-            // =========================================================================
+            // =================================================================
 
             Container(
               padding:
@@ -229,10 +323,13 @@ class MobileDrawer extends StatelessWidget {
               ),
               decoration:
                   const BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: AppColors
-                        .sidebarBorder,
+                border:
+                    Border(
+                  top:
+                      BorderSide(
+                    color:
+                        AppColors
+                            .sidebarBorder,
                   ),
                 ),
               ),
@@ -241,9 +338,9 @@ class MobileDrawer extends StatelessWidget {
                     CrossAxisAlignment
                         .stretch,
                 children: [
-                  // ===================================================================
+                  // ===========================================================
                   // USER
-                  // ===================================================================
+                  // ===========================================================
 
                   if (user != null)
                     Padding(
@@ -268,8 +365,9 @@ class MobileDrawer extends StatelessWidget {
                                 fontWeight:
                                     FontWeight
                                         .w700,
-                                color: AppColors
-                                    .sidebarPrimaryForeground,
+                                color:
+                                    AppColors
+                                        .sidebarPrimaryForeground,
                               ),
                             ),
                           ),
@@ -294,13 +392,13 @@ class MobileDrawer extends StatelessWidget {
                                           .ellipsis,
                                   style:
                                       const TextStyle(
-                                    fontSize:
-                                        12.5,
+                                    fontSize: 12.5,
                                     fontWeight:
                                         FontWeight
                                             .w600,
-                                    color: AppColors
-                                        .sidebarForeground,
+                                    color:
+                                        AppColors
+                                            .sidebarForeground,
                                   ),
                                 ),
 
@@ -311,10 +409,10 @@ class MobileDrawer extends StatelessWidget {
                                           .ellipsis,
                                   style:
                                       const TextStyle(
-                                    fontSize:
-                                        11,
-                                    color: AppColors
-                                        .sidebarAccentForeground,
+                                    fontSize: 11,
+                                    color:
+                                        AppColors
+                                            .sidebarAccentForeground,
                                   ),
                                 ),
                               ],
@@ -324,58 +422,168 @@ class MobileDrawer extends StatelessWidget {
                       ),
                     ),
 
-                  // ===================================================================
-                  // MOBILE LOGOUT FIX
-                  // ===================================================================
-                  //
-                  // OLD:
-                  //
-                  // Navigator.pop()
-                  // await logout()
-                  // context.go('/login')
-                  //
-                  // That can cause multiple route/widget removals at almost
-                  // the same time.
-                  //
-                  // NEW:
-                  //
-                  // logout()
-                  //
-                  // GoRouter sees the authentication state change and takes
-                  // care of redirecting to /login.
-                  //
-                  TextButton.icon(
-                    onPressed: () async {
-                      await context
-                          .read<AuthController>()
-                          .logout();
-                    },
-                    icon: const Icon(
-                      Icons.logout,
-                      size: 16,
-                      color: AppColors
-                          .sidebarAccentForeground,
-                    ),
-                    label:
-                        const Text(
-                      'Logout',
-                      style: TextStyle(
-                        color: AppColors
-                            .sidebarForeground,
+                  // ===========================================================
+                  // LOGOUT CONFIRMATION
+                  // ===========================================================
+
+                  if (!_confirmingLogout)
+                    TextButton.icon(
+                      onPressed:
+                          disabled
+                              ? null
+                              : _showLogoutConfirmation,
+                      icon:
+                          const Icon(
+                        Icons.logout,
+                        size: 16,
+                        color:
+                            AppColors
+                                .sidebarAccentForeground,
                       ),
-                    ),
-                    style:
-                        TextButton.styleFrom(
-                      alignment:
-                          Alignment.centerLeft,
+                      label:
+                          const Text(
+                        'Logout',
+                        style:
+                            TextStyle(
+                          color:
+                              AppColors
+                                  .sidebarForeground,
+                        ),
+                      ),
+                      style:
+                          TextButton
+                              .styleFrom(
+                        alignment:
+                            Alignment
+                                .centerLeft,
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          horizontal:
+                              12,
+                          vertical:
+                              10,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      margin:
+                          const EdgeInsets.only(
+                        top: 4,
+                      ),
                       padding:
-                          const EdgeInsets
-                              .symmetric(
-                        horizontal: 12,
-                        vertical: 10,
+                          const EdgeInsets.all(
+                        12,
+                      ),
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            AppColors
+                                .destructive
+                                .withValues(
+                          alpha:
+                              0.06,
+                        ),
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          12,
+                        ),
+                        border:
+                            Border.all(
+                          color:
+                              AppColors
+                                  .destructive
+                                  .withValues(
+                            alpha:
+                                0.20,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+                        children: [
+                          const Text(
+                            'Are you sure you want to log out?',
+                            style:
+                                TextStyle(
+                              fontSize: 12.5,
+                              fontWeight:
+                                  FontWeight
+                                      .w600,
+                              color:
+                                  AppColors
+                                      .sidebarForeground,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: 10,
+                          ),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child:
+                                    OutlinedButton(
+                                  onPressed:
+                                      disabled
+                                          ? null
+                                          : _cancelLogout,
+                                  child:
+                                      const Text(
+                                    'Cancel',
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(
+                                width: 8,
+                              ),
+
+                              Expanded(
+                                child:
+                                    ElevatedButton(
+                                  onPressed:
+                                      disabled
+                                          ? null
+                                          : _performLogout,
+                                  style:
+                                      ElevatedButton
+                                          .styleFrom(
+                                    backgroundColor:
+                                        AppColors
+                                            .destructive,
+                                    foregroundColor:
+                                        Colors.white,
+                                  ),
+                                  child: _loggingOut
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child:
+                                              CircularProgressIndicator(
+                                            strokeWidth:
+                                                2,
+                                            color:
+                                                Colors.white,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Confirm Logout',
+                                          textAlign:
+                                              TextAlign.center,
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

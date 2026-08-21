@@ -6,11 +6,17 @@ import '../models/audit_entry.dart';
 // AUDIT SERVICE
 // =============================================================================
 //
-// Read-only service for Manager Audit Trail.
+// Read-only Audit Trail service.
 //
-// The database trigger writes audit_log rows. Flutter only reads and presents
-// them. This keeps audit coverage centralized and avoids adding logging calls to
-// every working page/service.
+// Manager:
+// - can request the complete audit data permitted by RLS.
+//
+// Staff:
+// - the page supplies actorUserId + operational modules,
+// - only their own permitted activity is requested,
+// - change-detail JSON is not selected for the limited Staff view.
+//
+// The database trigger writes audit_log rows. Flutter only reads/presents them.
 // =============================================================================
 
 class AuditService {
@@ -19,15 +25,48 @@ class AuditService {
 
   Future<List<AuditEntry>> fetchEntries({
     int limit = 500,
+    String? actorUserId,
+    List<String>? modules,
+    bool includeChangeDetails = true,
   }) async {
-    final results = await Future.wait<Object?>([
-      _client
-          .from('audit_log')
-          .select(
-            'auditid, actor_user_id, module, action, '
-            'entity_type, entity_id, entity_label, summary, '
-            'old_values, new_values, createdat',
-          )
+    final selectedColumns =
+        includeChangeDetails
+            ? 'auditid, actor_user_id, module, action, '
+                'entity_type, entity_id, entity_label, summary, '
+                'old_values, new_values, createdat'
+            : 'auditid, actor_user_id, module, action, '
+                'entity_type, entity_id, entity_label, summary, '
+                'createdat';
+
+    var auditQuery =
+        _client
+            .from('audit_log')
+            .select(selectedColumns);
+
+    final cleanActorId =
+        actorUserId?.trim();
+
+    if (cleanActorId != null &&
+        cleanActorId.isNotEmpty) {
+      auditQuery =
+          auditQuery.eq(
+        'actor_user_id',
+        cleanActorId,
+      );
+    }
+
+    if (modules != null &&
+        modules.isNotEmpty) {
+      auditQuery =
+          auditQuery.inFilter(
+        'module',
+        modules,
+      );
+    }
+
+    final results =
+        await Future.wait<Object?>([
+      auditQuery
           .order(
             'createdat',
             ascending: false,
@@ -75,7 +114,8 @@ class AuditService {
       final row =
           Map<String, dynamic>.from(raw);
 
-      final id = row['id'] as String;
+      final id =
+          row['id'] as String;
 
       final first =
           (row['fname'] as String?) ?? '';
@@ -88,9 +128,12 @@ class AuditService {
 
       users[id] = (
         name:
-            name.isEmpty ? 'Unknown user' : name,
+            name.isEmpty
+                ? 'Unknown user'
+                : name,
         role:
-            ((row['role'] as Object?)?.toString() ??
+            ((row['role'] as Object?)
+                        ?.toString() ??
                     '')
                 .trim(),
       );
@@ -117,14 +160,16 @@ class AuditService {
                 'Unknown animal'),
     };
 
-    final entries = <AuditEntry>[];
+    final entries =
+        <AuditEntry>[];
 
     for (final raw in auditRows) {
       final row =
           Map<String, dynamic>.from(raw);
 
       final actorId =
-          row['actor_user_id'] as String?;
+          row['actor_user_id']
+              as String?;
 
       final actor =
           actorId == null
@@ -132,33 +177,46 @@ class AuditService {
               : users[actorId];
 
       final oldValues =
-          _jsonMap(row['old_values']);
+          _jsonMap(
+        row['old_values'],
+      );
 
       final newValues =
-          _jsonMap(row['new_values']);
+          _jsonMap(
+        row['new_values'],
+      );
 
       final entityType =
-          (row['entity_type'] as String?) ??
+          (row['entity_type']
+                  as String?) ??
               '';
 
       var entityLabel =
-          row['entity_label'] as String?;
+          row['entity_label']
+              as String?;
 
       entityLabel ??=
           _resolveEntityLabel(
-        entityType: entityType,
-        oldValues: oldValues,
-        newValues: newValues,
-        items: items,
-        suppliers: suppliers,
-        pets: pets,
+        entityType:
+            entityType,
+        oldValues:
+            oldValues,
+        newValues:
+            newValues,
+        items:
+            items,
+        suppliers:
+            suppliers,
+        pets:
+            pets,
       );
 
       var summary =
           (row['summary'] as String?) ??
               'System activity';
 
-      summary = _enhanceSummary(
+      summary =
+          _enhanceSummary(
         summary,
         entityType,
         entityLabel,
@@ -167,29 +225,42 @@ class AuditService {
       entries.add(
         AuditEntry(
           auditId:
-              row['auditid'] as String,
-          actorUserId: actorId,
+              row['auditid']
+                  as String,
+          actorUserId:
+              actorId,
           actorName:
-              actor?.name ?? 'System',
+              actor?.name ??
+                  'System',
           actorRole:
               _roleLabel(
             actor?.role ?? '',
           ),
           module:
-              (row['module'] as String?) ??
+              (row['module']
+                      as String?) ??
                   'System',
           action:
-              (row['action'] as String?) ??
+              (row['action']
+                      as String?) ??
                   'UPDATE',
-          entityType: entityType,
+          entityType:
+              entityType,
           entityId:
-              row['entity_id'] as String?,
-          entityLabel: entityLabel,
-          summary: summary,
-          oldValues: oldValues,
-          newValues: newValues,
-          createdAt: DateTime.parse(
-            row['createdat'] as String,
+              row['entity_id']
+                  as String?,
+          entityLabel:
+              entityLabel,
+          summary:
+              summary,
+          oldValues:
+              oldValues,
+          newValues:
+              newValues,
+          createdAt:
+              DateTime.parse(
+            row['createdat']
+                as String,
           ).toLocal(),
         ),
       );
@@ -205,7 +276,8 @@ class AuditService {
       return null;
     }
 
-    if (value is Map<String, dynamic>) {
+    if (value
+        is Map<String, dynamic>) {
       return value;
     }
 
@@ -220,8 +292,10 @@ class AuditService {
 
   String? _resolveEntityLabel({
     required String entityType,
-    required Map<String, dynamic>? oldValues,
-    required Map<String, dynamic>? newValues,
+    required Map<String, dynamic>?
+        oldValues,
+    required Map<String, dynamic>?
+        newValues,
     required Map<String, String> items,
     required Map<String, String> suppliers,
     required Map<String, String> pets,
@@ -245,7 +319,9 @@ class AuditService {
         data['suppid'] as String?;
 
     if (suppId != null &&
-        suppliers.containsKey(suppId)) {
+        suppliers.containsKey(
+          suppId,
+        )) {
       return suppliers[suppId];
     }
 
@@ -258,13 +334,17 @@ class AuditService {
     }
 
     if (entityType == 'pet') {
-      return (data['name'] as String?) ??
-          (data['petname'] as String?);
+      return (data['name']
+                  as String?) ??
+          (data['petname']
+              as String?);
     }
 
-    return (data['name'] as String?) ??
+    return (data['name']
+                as String?) ??
         (data['type'] as String?) ??
-        (data['abbr_name'] as String?);
+        (data['abbr_name']
+            as String?);
   }
 
   String _enhanceSummary(
@@ -277,10 +357,11 @@ class AuditService {
       return summary;
     }
 
-    // Summaries that already contain their label should not repeat it.
     if (summary
         .toLowerCase()
-        .contains(label.toLowerCase())) {
+        .contains(
+          label.toLowerCase(),
+        )) {
       return summary;
     }
 
@@ -300,7 +381,9 @@ class AuditService {
     return '$summary — $label';
   }
 
-  String _roleLabel(String raw) {
+  String _roleLabel(
+    String raw,
+  ) {
     final value =
         raw.trim().toLowerCase();
 

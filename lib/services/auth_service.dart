@@ -12,6 +12,12 @@ abstract interface class AuthService {
   Future<AppUser> signIn({required String email, required String password});
   Future<void> signOut();
 
+  /// Returns true while this client still owns the active SIYAM session.
+  ///
+  /// Supabase uses this as a lightweight heartbeat for the single-device
+  /// login restriction. Mock mode always returns true.
+  Future<bool> touchSession();
+
   /// Returns the signed-in profile if a persisted session exists (Supabase),
   /// or null when there is none (mock always returns null).
   Future<AppUser?> restoreSession();
@@ -60,6 +66,9 @@ class MockAuthService implements AuthService {
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<bool> touchSession() async => true;
 
   @override
   Future<AppUser?> restoreSession() async => null;

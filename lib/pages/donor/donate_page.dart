@@ -706,7 +706,7 @@ class _DonatePageState extends State<DonatePage> {
                     icon: Icons.notes_outlined,
                     title: 'Notes',
                     helper:
-                        'Optional details for shelter staff.',
+                        'Optional details for shelter Manager.',
                   ),
 
                   const SizedBox(height: 9),
@@ -719,7 +719,7 @@ class _DonatePageState extends State<DonatePage> {
                     decoration:
                         const InputDecoration(
                       hintText:
-                          'Add a short note...',
+                          'Add a short note',
                     ),
                   ),
 
@@ -768,7 +768,7 @@ class _DonatePageState extends State<DonatePage> {
 
                         Expanded(
                           child: Text(
-                            'Staff will review your request. Track its progress anytime in My Donations.',
+                            'Manager will review your request. Track its progress anytime in My Donations.',
                             style: TextStyle(
                               fontSize: 12.5,
                               height: 1.35,
