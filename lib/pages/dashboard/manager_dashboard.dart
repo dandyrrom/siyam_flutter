@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../models/app_user.dart';
 import '../../models/inventory_item.dart';
+import '../../services/auth_service.dart';
 import '../../services/dashboard_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
@@ -17,6 +19,7 @@ import '../../widgets/stat_card.dart';
 /// 2. Cards lead to their relevant full module/detail view.
 /// 3. Replenishment item description and quantity are kept visually together.
 /// 4. Replenishment rows are traceable directly to Inventory Item Details.
+/// 5. Staff Accounts opens a Manager-only modal with enable/disable controls.
 class ManagerDashboard extends StatefulWidget {
   const ManagerDashboard({super.key});
 
@@ -27,6 +30,7 @@ class ManagerDashboard extends StatefulWidget {
 class _ManagerDashboardState extends State<ManagerDashboard>
     with DataBusRefreshMixin<ManagerDashboard> {
   final DashboardService _service = DashboardService();
+  final AuthService _authService = AuthService();
 
   // ===========================================================================
   // REPLENISHMENT SECTION KEY
@@ -37,6 +41,9 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   ManagerDashboardStats? _stats;
   bool _loading = true;
   String? _error;
+
+  // Prevent repeated taps from opening duplicate Staff Account dialogs.
+  bool _staffAccountsDialogOpen = false;
 
   @override
   void initState() {
@@ -164,6 +171,34 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   }
 
   // ===========================================================================
+  // STAFF ACCOUNTS
+  // ===========================================================================
+
+  Future<void> _openStaffAccountsDialog() async {
+    if (_staffAccountsDialogOpen) {
+      return;
+    }
+
+    _staffAccountsDialogOpen = true;
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return _StaffAccountsDialog(
+            service: _authService,
+            onAccountsChanged: () {
+              _load(silent: true);
+            },
+          );
+        },
+      );
+    } finally {
+      _staffAccountsDialogOpen = false;
+    }
+  }
+
+  // ===========================================================================
   // BUILD
   // ===========================================================================
 
@@ -258,9 +293,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
               // ===============================================================
               // ORGANIZATION CARDS
               // ===============================================================
-              //
-              // Each card now opens the relevant full module.
-              // ===============================================================
 
               StatCardRow(
                 cards: [
@@ -307,10 +339,10 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                         : '${_stats!.staffAccounts}',
                     icon: Icons.badge_outlined,
                     accent: AppColors.roleManager,
-                    tooltip: 'Open account settings',
+                    tooltip: 'View Staff accounts',
                     onTap: _loading
                         ? null
-                        : () => _goTo('/settings'),
+                        : _openStaffAccountsDialog,
                   ),
                 ],
               ),
@@ -362,14 +394,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
                   // ===========================================================
                   // EXPIRY ALERT CARD
-                  // ===========================================================
-                  //
-                  // The notification system now includes both:
-                  // - expired physical stock
-                  // - upcoming expiry warnings
-                  //
-                  // "Expiry Alerts" is therefore more accurate than the old
-                  // "Expiring Soon" label.
                   // ===========================================================
 
                   StatCard(
@@ -476,6 +500,598 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                 ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// STAFF ACCOUNTS DIALOG
+// =============================================================================
+
+class _StaffAccountsDialog extends StatefulWidget {
+  final AuthService service;
+  final VoidCallback onAccountsChanged;
+
+  const _StaffAccountsDialog({
+    required this.service,
+    required this.onAccountsChanged,
+  });
+
+  @override
+  State<_StaffAccountsDialog> createState() =>
+      _StaffAccountsDialogState();
+}
+
+class _StaffAccountsDialogState
+    extends State<_StaffAccountsDialog> {
+  List<AppUser> _staff = [];
+
+  bool _loading = true;
+  String? _error;
+  String? _changingUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  String _cleanError(Object error) {
+    return error
+        .toString()
+        .replaceFirst('Exception: ', '');
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final staff =
+          await widget.service.fetchStaffAccounts();
+
+      if (!mounted) return;
+
+      setState(() {
+        _staff = staff;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = _cleanError(e);
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _changeAccountStatus(
+    AppUser staff,
+  ) async {
+    if (_changingUserId != null) {
+      return;
+    }
+
+    final willEnable = !staff.isActive;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (confirmContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            willEnable
+                ? 'Enable Staff account?'
+                : 'Disable Staff account?',
+          ),
+          content: SizedBox(
+            width: 390,
+            child: Text(
+              willEnable
+                  ? '${staff.fullName} will be able to sign in to SIYAM again.'
+                  : '${staff.fullName} will no longer be able to sign in to SIYAM. '
+                      'Their existing records and activity history will remain unchanged.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(confirmContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(confirmContext).pop(true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: willEnable
+                    ? AppColors.sageGreen
+                    : AppColors.destructive,
+              ),
+              child: Text(
+                willEnable ? 'Enable' : 'Disable',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true ||
+        !mounted) {
+      return;
+    }
+
+    setState(() {
+      _changingUserId = staff.userId;
+    });
+
+    try {
+      await widget.service.setStaffAccountActive(
+        userId: staff.userId,
+        isActive: willEnable,
+      );
+
+      if (!mounted) return;
+
+      await _load();
+
+      widget.onAccountsChanged();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              willEnable
+                  ? '${staff.fullName} has been enabled.'
+                  : '${staff.fullName} has been disabled.',
+            ),
+            backgroundColor: AppColors.sageGreen,
+          ),
+        );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not update Staff account: ${_cleanError(e)}',
+            ),
+            backgroundColor: AppColors.destructive,
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _changingUserId = null;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+
+    final dialogWidth =
+        screen.width < 640
+            ? screen.width - 72
+            : 560.0;
+
+    final dialogHeight =
+        screen.height < 720
+            ? screen.height * 0.58
+            : 470.0;
+
+    final compactRows =
+        screen.width < 520;
+
+    final activeCount =
+        _staff.where((user) => user.isActive).length;
+
+    final disabledCount =
+        _staff.length - activeCount;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: const Row(
+        children: [
+          Icon(
+            Icons.badge_outlined,
+            size: 21,
+            color: AppColors.roleManager,
+          ),
+          SizedBox(width: 9),
+          Text('Staff Accounts'),
+        ],
+      ),
+      content: SizedBox(
+        width: dialogWidth,
+        height: dialogHeight,
+        child: _loading
+            ? const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 14),
+                    Text(
+                      'Loading Staff accounts...',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color:
+                            AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 34,
+                          color:
+                              AppColors.destructive,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color:
+                                AppColors.mutedForeground,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: _load,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _AccountCountBadge(
+                            label: 'Active',
+                            value: activeCount,
+                            color:
+                                AppColors.sageGreen,
+                          ),
+                          _AccountCountBadge(
+                            label: 'Disabled',
+                            value: disabledCount,
+                            color:
+                                AppColors.destructive,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      const Text(
+                        'Disable unused Staff accounts without removing their existing records.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.35,
+                          color:
+                              AppColors.mutedForeground,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Expanded(
+                        child: _staff.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No Staff accounts found.',
+                                  style: TextStyle(
+                                    color: AppColors
+                                        .mutedForeground,
+                                  ),
+                                ),
+                              )
+                            : ListView.separated(
+                                itemCount:
+                                    _staff.length,
+                                separatorBuilder:
+                                    (_, __) =>
+                                        const SizedBox(
+                                  height: 8,
+                                ),
+                                itemBuilder:
+                                    (context, index) {
+                                  final staff =
+                                      _staff[index];
+
+                                  return _StaffAccountRow(
+                                    staff: staff,
+                                    compact:
+                                        compactRows,
+                                    busy:
+                                        _changingUserId ==
+                                            staff.userId,
+                                    disabled:
+                                        _changingUserId !=
+                                                null &&
+                                            _changingUserId !=
+                                                staff.userId,
+                                    onToggle: () =>
+                                        _changeAccountStatus(
+                                      staff,
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _changingUserId == null
+              ? () {
+                  Navigator.of(context).pop();
+                }
+              : null,
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// STAFF ACCOUNT ROW
+// =============================================================================
+
+class _StaffAccountRow extends StatelessWidget {
+  final AppUser staff;
+  final bool compact;
+  final bool busy;
+  final bool disabled;
+  final VoidCallback onToggle;
+
+  const _StaffAccountRow({
+    required this.staff,
+    required this.compact,
+    required this.busy,
+    required this.disabled,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = staff.isActive
+        ? AppColors.sageGreen
+        : AppColors.destructive;
+
+    final name = staff.fullName.trim().isEmpty
+        ? 'Unnamed Staff'
+        : staff.fullName.trim();
+
+    final details = Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                name,
+                overflow:
+                    TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight:
+                      FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 7,
+                vertical: 3,
+              ),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(
+                  alpha: 0.10,
+                ),
+                borderRadius:
+                    BorderRadius.circular(999),
+              ),
+              child: Text(
+                staff.isActive
+                    ? 'Active'
+                    : 'Disabled',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight:
+                      FontWeight.w700,
+                  color: statusColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 3),
+
+        Text(
+          staff.email,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11.5,
+            color:
+                AppColors.mutedForeground,
+          ),
+        ),
+
+        if ((staff.contactNum ?? '')
+            .trim()
+            .isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            staff.contactNum!,
+            style: const TextStyle(
+              fontSize: 11.5,
+              color:
+                  AppColors.mutedForeground,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final action = OutlinedButton.icon(
+      onPressed:
+          disabled || busy
+              ? null
+              : onToggle,
+      icon: busy
+          ? SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: statusColor,
+              ),
+            )
+          : Icon(
+              staff.isActive
+                  ? Icons.block_outlined
+                  : Icons.check_circle_outline,
+              size: 15,
+            ),
+      label: Text(
+        busy
+            ? 'Saving...'
+            : staff.isActive
+                ? 'Disable'
+                : 'Enable',
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: staff.isActive
+            ? AppColors.destructive
+            : AppColors.sageGreen,
+      ),
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: compact
+          ? Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch,
+              children: [
+                details,
+                const SizedBox(height: 10),
+                action,
+              ],
+            )
+          : Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor:
+                      AppColors.secondary,
+                  foregroundColor:
+                      AppColors.foreground,
+                  child: Text(
+                    staff.initials.isEmpty
+                        ? 'S'
+                        : staff.initials,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          FontWeight.w700,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 11),
+
+                Expanded(child: details),
+
+                const SizedBox(width: 12),
+
+                action,
+              ],
+            ),
+    );
+  }
+}
+
+// =============================================================================
+// ACCOUNT COUNT BADGE
+// =============================================================================
+
+class _AccountCountBadge extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color color;
+
+  const _AccountCountBadge({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          color: color,
         ),
       ),
     );
@@ -628,10 +1244,6 @@ class _StockAlertPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===================================================================
-          // PANEL HEADER
-          // ===================================================================
-
           Padding(
             padding: const EdgeInsets.fromLTRB(
               18,
@@ -670,28 +1282,34 @@ class _StockAlertPanel extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                  Container(
-  constraints: const BoxConstraints(
-    minWidth: 26,
-    minHeight: 24,
-  ),
-  padding: const EdgeInsets.symmetric(
-    horizontal: 7,
-  ),
-  alignment: Alignment.center,
-  decoration: BoxDecoration(
-    color: accent.withValues(alpha: 0.10),
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: Text(
-    '${items.length}',
-    style: TextStyle(
-      fontSize: 11.5,
-      fontWeight: FontWeight.w700,
-      color: accent,
-    ),
-  ),
-),
+                    Container(
+                      constraints:
+                          const BoxConstraints(
+                        minWidth: 26,
+                        minHeight: 24,
+                      ),
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal: 7,
+                      ),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(
+                          alpha: 0.10,
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${items.length}',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight:
+                              FontWeight.w700,
+                          color: accent,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 7),
@@ -712,20 +1330,6 @@ class _StockAlertPanel extends StatelessWidget {
             height: 1,
             color: AppColors.border,
           ),
-
-          // ===================================================================
-          // TRACEABLE ITEM ROWS
-          // ===================================================================
-          //
-          // PANEL FEEDBACK:
-          //
-          // Description + quantity should not be visually far apart.
-          //
-          // The quantity is therefore placed directly beside the item name,
-          // rather than pushed to the far-right edge of the card.
-          //
-          // The whole row opens /inventory/:itemId for traceability.
-          // ===================================================================
 
           for (var i = 0; i < items.length; i++) ...[
             if (i > 0)
@@ -796,10 +1400,6 @@ class _ReplenishmentItemRow
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
-                    // =========================================================
-                    // ITEM + QUANTITY KEPT TOGETHER
-                    // =========================================================
-
                     Wrap(
                       spacing: 8,
                       runSpacing: 5,

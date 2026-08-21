@@ -3,13 +3,14 @@ import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/app_user.dart';
+import '../../state/data_bus.dart';
 import '../auth_service.dart';
 
 /// Supabase-backed auth.
 ///
 /// Credentials are stored securely in Supabase Auth (`auth.users`).
-/// Profile data such as name, role, email, and contact number is stored in
-/// `public.users`.
+/// Profile data such as name, role, email, contact number, and account status
+/// is stored in `public.users`.
 ///
 /// [AppUser.password] is always empty in the real Supabase implementation.
 /// The application never reads or stores the user's actual password.
@@ -19,7 +20,7 @@ class SupabaseAuthService implements AuthService {
   static const String _table = 'users';
 
   static const String _columns =
-      'id, fname, lname, role, email, contactnum';
+      'id, fname, lname, role, email, contactnum, is_active';
 
   // ==========================================================================
   // MAP USER
@@ -35,7 +36,8 @@ class SupabaseAuthService implements AuthService {
       ),
       email: (row['email'] as String?) ?? '',
       password: '',
-      contactNum: row['contactnum'] as String?,
+      contactNum: row['contactnum']?.toString(),
+      isActive: (row['is_active'] as bool?) ?? true,
     );
   }
 
@@ -43,15 +45,14 @@ class SupabaseAuthService implements AuthService {
   // SINGLE-DEVICE SESSION HELPERS
   // ==========================================================================
   //
-  // The SQL migration already installed these RPC functions:
+  // The SQL migration installed these RPC functions:
   //
   //   claim_user_session()
   //   touch_user_session()
   //   release_user_session()
   //   replace_user_session(previous_session_id)
   //
-  // The first active Supabase session claims the SIYAM account.
-  // A second fresh session for the same user is rejected.
+  // claim/touch/replace now also require public.users.is_active = true.
   // ==========================================================================
 
   Future<bool> _claimCurrentSession() async {
@@ -157,6 +158,16 @@ class SupabaseAuthService implements AuthService {
     );
   }
 
+  Future<Never> _rejectDisabledLogin() async {
+    await _client.auth.signOut(
+      scope: SignOutScope.local,
+    );
+
+    throw Exception(
+      'This account has been disabled. Please contact a manager.',
+    );
+  }
+
   // ==========================================================================
   // SIGN IN
   // ==========================================================================
@@ -202,6 +213,12 @@ class SupabaseAuthService implements AuthService {
       throw Exception(
         'Your account has no profile. Contact an administrator.',
       );
+    }
+
+    // Do this before the single-device claim so a disabled account receives
+    // the correct message instead of looking like a second-device conflict.
+    if (!profile.isActive) {
+      await _rejectDisabledLogin();
     }
 
     final claimed =
@@ -266,7 +283,8 @@ class SupabaseAuthService implements AuthService {
     final profile =
         await fetchProfile(userId);
 
-    if (profile == null) {
+    if (profile == null ||
+        !profile.isActive) {
       await _client.auth.signOut(
         scope: SignOutScope.local,
       );
@@ -357,6 +375,7 @@ class SupabaseAuthService implements AuthService {
       email: email.trim(),
       password: '',
       contactNum: contactNum,
+      isActive: true,
     );
   }
 
@@ -376,7 +395,9 @@ class SupabaseAuthService implements AuthService {
 
     return row == null
         ? null
-        : _mapUser(row);
+        : _mapUser(
+            Map<String, dynamic>.from(row),
+          );
   }
 
   // ==========================================================================
@@ -405,9 +426,88 @@ class SupabaseAuthService implements AuthService {
 
     return rows
         .map(
-          (row) => _mapUser(row),
+          (row) => _mapUser(
+            Map<String, dynamic>.from(row),
+          ),
         )
         .toList();
+  }
+
+  // ==========================================================================
+  // MANAGER: FETCH STAFF ACCOUNTS
+  // ==========================================================================
+
+  @override
+  Future<List<AppUser>> fetchStaffAccounts() async {
+    final result = await _client.rpc(
+      'get_staff_accounts',
+    );
+
+    if (result is! List) {
+      throw Exception(
+        'Could not load Staff accounts.',
+      );
+    }
+
+    final staff = result
+        .map(
+          (row) => _mapUser(
+            Map<String, dynamic>.from(
+              row as Map,
+            ),
+          ),
+        )
+        .toList();
+
+    staff.sort((a, b) {
+      if (a.isActive != b.isActive) {
+        return a.isActive ? -1 : 1;
+      }
+
+      final byFirst = a.firstName
+          .toLowerCase()
+          .compareTo(
+            b.firstName.toLowerCase(),
+          );
+
+      if (byFirst != 0) {
+        return byFirst;
+      }
+
+      return a.lastName
+          .toLowerCase()
+          .compareTo(
+            b.lastName.toLowerCase(),
+          );
+    });
+
+    return staff;
+  }
+
+  // ==========================================================================
+  // MANAGER: ENABLE / DISABLE STAFF ACCOUNT
+  // ==========================================================================
+
+  @override
+  Future<void> setStaffAccountActive({
+    required String userId,
+    required bool isActive,
+  }) async {
+    final result = await _client.rpc(
+      'set_staff_account_active',
+      params: {
+        'target_user_id': userId,
+        'new_is_active': isActive,
+      },
+    );
+
+    if (result != true) {
+      throw Exception(
+        'Could not update the Staff account.',
+      );
+    }
+
+    DataChangeBus.instance.ping();
   }
 
   // ==========================================================================
@@ -432,7 +532,9 @@ class SupabaseAuthService implements AuthService {
         .select(_columns)
         .single();
 
-    return _mapUser(row);
+    return _mapUser(
+      Map<String, dynamic>.from(row),
+    );
   }
 
   // ==========================================================================

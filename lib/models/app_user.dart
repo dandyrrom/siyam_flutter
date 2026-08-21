@@ -21,6 +21,10 @@ String appRoleToString(AppRole role) => role.name;
 /// (services/auth_service.dart) checks it directly against the in-memory user
 /// list -- there's no real backend/session concept behind it. Never treat
 /// this as how a real auth system should work.
+///
+/// [isActive] mirrors public.users.is_active. In production this is used to
+/// disable Staff access without deleting the Staff account or breaking
+/// historical/audit references to that user.
 class AppUser {
   final String userId;
   final String firstName;
@@ -29,6 +33,7 @@ class AppUser {
   final String email;
   final String password;
   final String? contactNum;
+  final bool isActive;
 
   const AppUser({
     required this.userId,
@@ -38,6 +43,7 @@ class AppUser {
     required this.email,
     required this.password,
     this.contactNum,
+    this.isActive = true,
   });
 
   String get fullName => '$firstName $lastName';
@@ -53,6 +59,7 @@ class AppUser {
     String? lastName,
     String? password,
     String? contactNum,
+    bool? isActive,
   }) {
     return AppUser(
       userId: userId,
@@ -62,6 +69,7 @@ class AppUser {
       email: email,
       password: password ?? this.password,
       contactNum: contactNum ?? this.contactNum,
+      isActive: isActive ?? this.isActive,
     );
   }
 }

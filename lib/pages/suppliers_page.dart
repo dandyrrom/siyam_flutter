@@ -25,6 +25,10 @@ class _SuppliersPageState extends State<SuppliersPage>
   String? _error;
   String _search = '';
 
+  // Prevents repeated taps from opening duplicate Supplier detail dialogs
+  // while purchase-item data is still loading from Supabase.
+  bool _supplierDetailDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -160,7 +164,7 @@ class _SuppliersPageState extends State<SuppliersPage>
             Flexible(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.sageGreen,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -464,10 +468,89 @@ class _SuppliersPageState extends State<SuppliersPage>
   // SUPPLIER FULL DETAILS
   // ===========================================================================
 
+  Future<_SupplierPurchaseDetails> _loadSupplierPurchaseDetails(
+    List<PurchaseOrder> orders,
+  ) async {
+    final itemsByOrder = <String, List<OrderLineItem>>{};
+
+    if (orders.isEmpty) {
+      return const _SupplierPurchaseDetails(
+        itemsByOrder: <String, List<OrderLineItem>>{},
+        purchasedItems: <_PurchasedItemSummary>[],
+      );
+    }
+
+    final itemLists = await Future.wait(
+      orders.map(
+        (order) => _service.fetchOrderItems(order.purId),
+      ),
+    );
+
+    for (var i = 0; i < orders.length; i++) {
+      itemsByOrder[orders[i].purId] = itemLists[i];
+    }
+
+    final purchasedItemMap =
+        <String, _PurchasedItemSummary>{};
+
+    for (final order in orders) {
+      final items =
+          itemsByOrder[order.purId] ?? const <OrderLineItem>[];
+
+      for (final item in items) {
+        final key = '${item.itemId}|${item.itemUom}';
+        final existing = purchasedItemMap[key];
+
+        if (existing == null) {
+          purchasedItemMap[key] = _PurchasedItemSummary(
+            itemName: item.itemName,
+            itemUom: item.itemUom,
+            totalQty: item.qty,
+            orderCount: 1,
+          );
+        } else {
+          purchasedItemMap[key] = _PurchasedItemSummary(
+            itemName: existing.itemName,
+            itemUom: existing.itemUom,
+            totalQty: existing.totalQty + item.qty,
+            orderCount: existing.orderCount + 1,
+          );
+        }
+      }
+    }
+
+    final purchasedItems =
+        purchasedItemMap.values.toList()
+          ..sort(
+            (a, b) => a.itemName
+                .toLowerCase()
+                .compareTo(
+                  b.itemName.toLowerCase(),
+                ),
+          );
+
+    return _SupplierPurchaseDetails(
+      itemsByOrder: itemsByOrder,
+      purchasedItems: purchasedItems,
+    );
+  }
+
   Future<void> _openDetailDialog(
     Supplier supplier,
   ) async {
+    // Ignore repeated taps while this modal is already opening/open.
+    if (_supplierDetailDialogOpen) {
+      return;
+    }
+
+    _supplierDetailDialogOpen = true;
+
     final orders = _ordersFor(supplier.suppId);
+
+    // Start the Supabase work immediately, but do NOT wait for it before
+    // opening the dialog. The FutureBuilder below shows a loading animation.
+    final purchaseDetailsFuture =
+        _loadSupplierPurchaseDetails(orders);
 
     // =========================================================================
     // STAFF
@@ -492,156 +575,349 @@ class _SuppliersPageState extends State<SuppliersPage>
         .toList()
       ..sort();
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final screen = MediaQuery.sizeOf(dialogContext);
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          final screen = MediaQuery.sizeOf(dialogContext);
 
-        final contentWidth =
-            screen.width < 520
-                ? screen.width - 96
-                : 460.0;
+          final contentWidth =
+              screen.width < 520
+                  ? screen.width - 96
+                  : 500.0;
 
-        final maxContentHeight =
-            screen.height < 700
-                ? screen.height * 0.55
-                : 470.0;
+          final maxContentHeight =
+              screen.height < 700
+                  ? screen.height * 0.62
+                  : 560.0;
 
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(supplier.suppName),
-          content: SizedBox(
-            width: contentWidth,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: maxContentHeight,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(supplier.suppName),
+            content: SizedBox(
+              width: contentWidth,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: maxContentHeight,
+                ),
+                child: FutureBuilder<_SupplierPurchaseDetails>(
+                  future: purchaseDetailsFuture,
+                  builder: (context, snapshot) {
                     // =========================================================
-                    // SUPPLIER INFORMATION
+                    // LOADING STATE
                     // =========================================================
 
-                    _DetailRow(
-                      label: 'Contact number',
-                      value:
-                          supplier.contactNum ?? '—',
-                    ),
-
-                    _DetailRow(
-                      label: 'Contact tel',
-                      value:
-                          supplier.contactTel ?? '—',
-                    ),
-
-                    _DetailRow(
-                      label: 'Address',
-                      value:
-                          supplier.address ?? '—',
-                    ),
-
-                    _DetailRow(
-                      label: 'Total Orders',
-                      value: '${orders.length}',
-                    ),
-
-                    _DetailRow(
-                      label: 'Last Order',
-                      value: orders.isEmpty
-                          ? '—'
-                          : _formatDate(
-                              orders.first.receivedDate,
-                            ),
-                    ),
-
-                    // =========================================================
-                    // PANEL REQUIREMENT: STAFF
-                    // =========================================================
-
-                    _DetailRow(
-                      label: 'Staff',
-                      value: staffNames.isEmpty
-                          ? '—'
-                          : staffNames.join(', '),
-                    ),
-
-                    const SizedBox(height: 6),
-                    const Divider(),
-                    const SizedBox(height: 10),
-
-                    // =========================================================
-                    // PURCHASE HISTORY
-                    // =========================================================
-
-                    const Text(
-                      'Purchase History',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    if (orders.isEmpty)
-                      const Text(
-                        'No purchase orders yet.',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color:
-                              AppColors.mutedForeground,
-                        ),
-                      )
-                    else
-                      for (var i = 0;
-                          i < orders.length;
-                          i++) ...[
-                        if (i > 0)
-                          const Divider(
-                            height: 18,
-                            color: AppColors.border,
+                    if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const SizedBox(
+                        height: 220,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text(
+                                'Loading supplier details...',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color:
+                                      AppColors.mutedForeground,
+                                ),
+                              ),
+                            ],
                           ),
-                        _PurchaseHistoryRow(
-                          order: orders[i],
                         ),
-                      ],
-                  ],
+                      );
+                    }
+
+                    // =========================================================
+                    // ERROR STATE
+                    // =========================================================
+
+                    if (snapshot.hasError) {
+                      return SizedBox(
+                        height: 220,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 34,
+                                color: AppColors.destructive,
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Could not load purchased items.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _cleanError(snapshot.error!),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      AppColors.mutedForeground,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    final purchaseDetails =
+                        snapshot.data ??
+                            const _SupplierPurchaseDetails(
+                              itemsByOrder:
+                                  <String, List<OrderLineItem>>{},
+                              purchasedItems:
+                                  <_PurchasedItemSummary>[],
+                            );
+
+                    final itemsByOrder =
+                        purchaseDetails.itemsByOrder;
+
+                    final purchasedItems =
+                        purchaseDetails.purchasedItems;
+
+                    // =========================================================
+                    // LOADED DETAILS
+                    // =========================================================
+
+                    return SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          // ===================================================
+                          // SUPPLIER INFORMATION
+                          // ===================================================
+
+                          _DetailRow(
+                            label: 'Contact number',
+                            value:
+                                supplier.contactNum ?? '—',
+                          ),
+
+                          _DetailRow(
+                            label: 'Contact tel',
+                            value:
+                                supplier.contactTel ?? '—',
+                          ),
+
+                          _DetailRow(
+                            label: 'Address',
+                            value:
+                                supplier.address ?? '—',
+                          ),
+
+                          _DetailRow(
+                            label: 'Total Orders',
+                            value: '${orders.length}',
+                          ),
+
+                          _DetailRow(
+                            label: 'Last Order',
+                            value: orders.isEmpty
+                                ? '—'
+                                : _formatDate(
+                                    orders.first.receivedDate,
+                                  ),
+                          ),
+
+                          _DetailRow(
+                            label: 'Staff',
+                            value: staffNames.isEmpty
+                                ? '—'
+                                : staffNames.join(', '),
+                          ),
+
+                          const SizedBox(height: 6),
+                          const Divider(),
+                          const SizedBox(height: 10),
+
+                          // ===================================================
+                          // ACTUAL ITEMS PURCHASED FROM THIS SUPPLIER
+                          // ===================================================
+
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.inventory_2_outlined,
+                                size: 17,
+                                color: AppColors.roleManager,
+                              ),
+                              SizedBox(width: 7),
+                              Text(
+                                'Items Purchased',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          const Text(
+                            'Actual items recorded in purchase orders from this supplier.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          if (purchasedItems.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.muted,
+                                borderRadius:
+                                    BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'No purchased items recorded yet.',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color:
+                                      AppColors.mutedForeground,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius:
+                                    BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.border,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  for (var i = 0;
+                                      i < purchasedItems.length;
+                                      i++) ...[
+                                    if (i > 0)
+                                      const Divider(
+                                        height: 1,
+                                        color: AppColors.border,
+                                      ),
+                                    _PurchasedItemRow(
+                                      item: purchasedItems[i],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+
+                          const SizedBox(height: 16),
+                          const Divider(),
+                          const SizedBox(height: 10),
+
+                          // ===================================================
+                          // PURCHASE HISTORY
+                          // ===================================================
+
+                          const Text(
+                            'Purchase History',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          const Text(
+                            'Items are shown under the purchase order where they were recorded.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          if (orders.isEmpty)
+                            const Text(
+                              'No purchase orders yet.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color:
+                                    AppColors.mutedForeground,
+                              ),
+                            )
+                          else
+                            for (var i = 0;
+                                i < orders.length;
+                                i++) ...[
+                              if (i > 0)
+                                const Divider(
+                                  height: 18,
+                                  color: AppColors.border,
+                                ),
+                              _PurchaseHistoryRow(
+                                order: orders[i],
+                                items:
+                                    itemsByOrder[
+                                            orders[i].purId] ??
+                                        const <OrderLineItem>[],
+                              ),
+                            ],
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Close'),
-            ),
-
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-
-                _openSupplierFormDialog(
-                  supplier: supplier,
-                );
-              },
-              icon: const Icon(
-                Icons.edit_outlined,
-                size: 16,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text('Close'),
               ),
-              label: const Text('Edit Supplier'),
-            ),
-          ],
-        );
-      },
-    );
+
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+
+                  _openSupplierFormDialog(
+                    supplier: supplier,
+                  );
+                },
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 16,
+                ),
+                label: const Text('Edit Supplier'),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      // Always release the guard after the dialog is dismissed, even if an
+      // unexpected error occurs while building/showing it.
+      _supplierDetailDialogOpen = false;
+    }
   }
 
   // ===========================================================================
@@ -1159,14 +1435,128 @@ class _SuppliersPageState extends State<SuppliersPage>
 }
 
 // =============================================================================
+// SUPPLIER PURCHASE DETAILS
+// =============================================================================
+
+class _SupplierPurchaseDetails {
+  final Map<String, List<OrderLineItem>> itemsByOrder;
+  final List<_PurchasedItemSummary> purchasedItems;
+
+  const _SupplierPurchaseDetails({
+    required this.itemsByOrder,
+    required this.purchasedItems,
+  });
+}
+
+// =============================================================================
+// PURCHASED ITEM SUMMARY
+// =============================================================================
+
+class _PurchasedItemSummary {
+  final String itemName;
+  final String itemUom;
+  final double totalQty;
+  final int orderCount;
+
+  const _PurchasedItemSummary({
+    required this.itemName,
+    required this.itemUom,
+    required this.totalQty,
+    required this.orderCount,
+  });
+}
+
+// =============================================================================
+// PURCHASED ITEM ROW
+// =============================================================================
+
+class _PurchasedItemRow extends StatelessWidget {
+  final _PurchasedItemSummary item;
+
+  const _PurchasedItemRow({
+    required this.item,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = item.itemUom.trim();
+
+    final qtyText = unit.isEmpty
+        ? _formatQuantity(item.totalQty)
+        : '${_formatQuantity(item.totalQty)} $unit';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.check_circle_outline,
+            size: 16,
+            color: AppColors.roleManager,
+          ),
+
+          const SizedBox(width: 8),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.itemName,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                Text(
+                  item.orderCount == 1
+                      ? 'Purchased in 1 order'
+                      : 'Purchased across ${item.orderCount} orders',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          Text(
+            qtyText,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.foreground,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
 // PURCHASE HISTORY ROW
 // =============================================================================
 
 class _PurchaseHistoryRow extends StatelessWidget {
   final PurchaseOrder order;
+  final List<OrderLineItem> items;
 
   const _PurchaseHistoryRow({
     required this.order,
+    required this.items,
   });
 
   @override
@@ -1217,6 +1607,98 @@ class _PurchaseHistoryRow extends StatelessWidget {
                     color:
                         AppColors.mutedForeground,
                   ),
+                ),
+
+              const SizedBox(height: 7),
+
+              if (items.isEmpty)
+                const Text(
+                  'No items recorded for this order.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.mutedForeground,
+                  ),
+                )
+              else
+                Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Items:',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    for (final item in items)
+                      Padding(
+                        padding:
+                            const EdgeInsets.only(
+                          bottom: 3,
+                        ),
+                        child: Row(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding:
+                                  EdgeInsets.only(
+                                top: 6,
+                              ),
+                              child: SizedBox(
+                                width: 4,
+                                height: 4,
+                                child:
+                                    DecoratedBox(
+                                  decoration:
+                                      BoxDecoration(
+                                    color: AppColors
+                                        .mutedForeground,
+                                    shape:
+                                        BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 7),
+
+                            Expanded(
+                              child: Text(
+                                item.itemName,
+                                style:
+                                    const TextStyle(
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            Text(
+                              item.itemUom.trim().isEmpty
+                                  ? _formatQuantity(
+                                      item.qty,
+                                    )
+                                  : '${_formatQuantity(item.qty)} ${item.itemUom}',
+                              textAlign:
+                                  TextAlign.end,
+                              style:
+                                  const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight:
+                                    FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
             ],
           ),
@@ -1315,6 +1797,21 @@ class _DetailRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// =============================================================================
+// QUANTITY
+// =============================================================================
+
+String _formatQuantity(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
+
+  return value
+      .toStringAsFixed(2)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
 }
 
 // =============================================================================

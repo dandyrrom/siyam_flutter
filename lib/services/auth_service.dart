@@ -29,14 +29,31 @@ abstract interface class AuthService {
     required String password,
     String? contactNum,
   });
+
   Future<AppUser?> fetchProfile(String userId);
+
   Future<List<AppUser>> fetchUsersByRole(List<AppRole> roles);
+
+  /// Manager-only Staff account list in production.
+  ///
+  /// Supabase is backed by public.get_staff_accounts().
+  Future<List<AppUser>> fetchStaffAccounts();
+
+  /// Manager-only Staff account enable/disable action in production.
+  ///
+  /// Supabase is backed by public.set_staff_account_active(...).
+  Future<void> setStaffAccountActive({
+    required String userId,
+    required bool isActive,
+  });
+
   Future<AppUser> updateProfile({
     required String userId,
     required String firstName,
     required String lastName,
     String? contactNum,
   });
+
   Future<void> changePassword({
     required String userId,
     required String currentPassword,
@@ -57,10 +74,20 @@ class MockAuthService implements AuthService {
     required String password,
   }) async {
     final user = firstWhereOrNull(
-        _db.users, (u) => u.email.toLowerCase() == email.toLowerCase());
+      _db.users,
+      (u) => u.email.toLowerCase() == email.toLowerCase(),
+    );
+
     if (user == null || user.password != password) {
       throw Exception('Invalid email or password.');
     }
+
+    if (!user.isActive) {
+      throw Exception(
+        'This account has been disabled. Please contact a manager.',
+      );
+    }
+
     return user;
   }
 
@@ -83,10 +110,14 @@ class MockAuthService implements AuthService {
     String? contactNum,
   }) async {
     final exists = firstWhereOrNull(
-        _db.users, (u) => u.email.toLowerCase() == email.toLowerCase());
+      _db.users,
+      (u) => u.email.toLowerCase() == email.toLowerCase(),
+    );
+
     if (exists != null) {
       throw Exception('An account with this email already exists.');
     }
+
     final user = AppUser(
       userId: newMockId('user'),
       firstName: firstName,
@@ -95,23 +126,80 @@ class MockAuthService implements AuthService {
       email: email,
       password: password,
       contactNum: contactNum,
+      isActive: true,
     );
+
     _db.users.add(user);
     return user;
   }
 
   @override
   Future<AppUser?> fetchProfile(String userId) async {
-    return firstWhereOrNull(_db.users, (u) => u.userId == userId);
+    return firstWhereOrNull(
+      _db.users,
+      (u) => u.userId == userId,
+    );
   }
 
   /// Every user whose role is in [roles], e.g. donors for a donor picker, or
   /// staff/manager for an "administered by"/"received by" picker.
   @override
   Future<List<AppUser>> fetchUsersByRole(List<AppRole> roles) async {
-    final list = _db.users.where((u) => roles.contains(u.role)).toList();
-    list.sort((a, b) => a.firstName.compareTo(b.firstName));
+    final list = _db.users
+        .where((u) => roles.contains(u.role))
+        .toList();
+
+    list.sort(
+      (a, b) => a.firstName.compareTo(b.firstName),
+    );
+
     return list;
+  }
+
+  @override
+  Future<List<AppUser>> fetchStaffAccounts() async {
+    final list = _db.users
+        .where((u) => u.role == AppRole.staff)
+        .toList();
+
+    list.sort((a, b) {
+      if (a.isActive != b.isActive) {
+        return a.isActive ? -1 : 1;
+      }
+
+      final byFirst = a.firstName
+          .toLowerCase()
+          .compareTo(b.firstName.toLowerCase());
+
+      if (byFirst != 0) return byFirst;
+
+      return a.lastName
+          .toLowerCase()
+          .compareTo(b.lastName.toLowerCase());
+    });
+
+    return list;
+  }
+
+  @override
+  Future<void> setStaffAccountActive({
+    required String userId,
+    required bool isActive,
+  }) async {
+    final index = _db.users.indexWhere(
+      (u) =>
+          u.userId == userId &&
+          u.role == AppRole.staff,
+    );
+
+    if (index == -1) {
+      throw Exception('Staff account not found.');
+    }
+
+    _db.users[index] =
+        _db.users[index].copyWith(
+      isActive: isActive,
+    );
   }
 
   @override
@@ -121,10 +209,20 @@ class MockAuthService implements AuthService {
     required String lastName,
     String? contactNum,
   }) async {
-    final index = _db.users.indexWhere((u) => u.userId == userId);
-    if (index == -1) throw Exception('User not found');
-    final updated = _db.users[index]
-        .copyWith(firstName: firstName, lastName: lastName, contactNum: contactNum);
+    final index = _db.users.indexWhere(
+      (u) => u.userId == userId,
+    );
+
+    if (index == -1) {
+      throw Exception('User not found');
+    }
+
+    final updated = _db.users[index].copyWith(
+      firstName: firstName,
+      lastName: lastName,
+      contactNum: contactNum,
+    );
+
     _db.users[index] = updated;
     return updated;
   }
@@ -135,11 +233,20 @@ class MockAuthService implements AuthService {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final index = _db.users.indexWhere((u) => u.userId == userId);
-    if (index == -1) throw Exception('User not found');
+    final index = _db.users.indexWhere(
+      (u) => u.userId == userId,
+    );
+
+    if (index == -1) {
+      throw Exception('User not found');
+    }
+
     if (_db.users[index].password != currentPassword) {
       throw Exception('Current password is incorrect.');
     }
-    _db.users[index] = _db.users[index].copyWith(password: newPassword);
+
+    _db.users[index] = _db.users[index].copyWith(
+      password: newPassword,
+    );
   }
 }

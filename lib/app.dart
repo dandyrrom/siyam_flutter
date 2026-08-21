@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import 'core/app_theme.dart';
 import 'routing/app_router.dart';
 import 'state/auth_state.dart';
+import 'widgets/connectivity_fallback.dart';
 
 class SiyamApp extends StatefulWidget {
   const SiyamApp({super.key});
@@ -30,6 +32,11 @@ class _SiyamAppState extends State<SiyamApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: _router,
+      builder: (context, child) {
+        return ConnectivityFallback(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

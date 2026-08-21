@@ -113,6 +113,23 @@ class _NotificationBellState
   // ==========================================================================
   // POPOVER
   // ==========================================================================
+  //
+  // RESPONSIVE BEHAVIOR:
+  //
+  // Desktop/tablet:
+  //   - keeps the existing 360px notification panel.
+  //
+  // Mobile:
+  //   - panel width is limited to the available viewport width with a safe
+  //     margin, so it cannot extend off the left/right side of the screen.
+  //   - panel height is also capped relative to the viewport.
+  //   - notification rows become scrollable when the available height is
+  //     small, while the header and "View all notifications" action remain
+  //     visible.
+  //
+  // This changes only the bell preview layout. Notification routes and data
+  // loading remain unchanged.
+  // ==========================================================================
 
   @override
   Widget buildFlyoutPanel(
@@ -123,118 +140,180 @@ class _NotificationBellState
             .take(_kBellPreviewCount)
             .toList();
 
+    final screen =
+        MediaQuery.sizeOf(context);
+
+    // Keep a visible margin on narrow/mobile screens.
+    final availableWidth =
+        screen.width - 24.0;
+
+    final panelWidth =
+        availableWidth < 360.0
+            ? availableWidth
+            : 360.0;
+
+    // Prevent the flyout from extending beyond a short mobile viewport.
+    final availableHeight =
+        screen.height - 96.0;
+
+    final panelMaxHeight =
+        availableHeight < 520.0
+            ? availableHeight
+            : 520.0;
+
     return Material(
       elevation: 6,
       borderRadius:
           BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       color: AppColors.card,
-      child: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
-                16,
-                14,
-                16,
-                10,
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    'Notifications',
-                    style: TextStyle(
-                      fontWeight:
-                          FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight:
+              panelMaxHeight > 0
+                  ? panelMaxHeight
+                  : screen.height,
+        ),
+        child: SizedBox(
+          width:
+              panelWidth > 0
+                  ? panelWidth
+                  : screen.width,
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min,
+            children: [
+              // ==============================================================
+              // HEADER
+              // ==============================================================
 
-                  const Spacer(),
-
-                  if (_notifs.isNotEmpty)
-                    Text(
-                      '${_notifs.length} active',
-                      style:
-                          const TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors
-                            .mutedForeground,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            if (preview.isEmpty)
-              const Padding(
+              Padding(
                 padding:
-                    EdgeInsets.fromLTRB(
+                    const EdgeInsets.fromLTRB(
                   16,
-                  2,
+                  14,
                   16,
-                  16,
+                  10,
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons
-                          .check_circle_outline,
-                      size: 17,
-                      color: AppColors
-                          .roleManager,
+                    const Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontWeight:
+                            FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
 
-                    SizedBox(width: 8),
+                    const Spacer(),
 
-                    Expanded(
-                      child: Text(
-                        'No active inventory alerts right now.',
-                        style: TextStyle(
-                          fontSize: 12.5,
+                    if (_notifs.isNotEmpty)
+                      Text(
+                        '${_notifs.length} active',
+                        style:
+                            const TextStyle(
+                          fontSize: 11.5,
                           color: AppColors
                               .mutedForeground,
                         ),
                       ),
-                    ),
                   ],
                 ),
-              )
-            else
-              for (var i = 0;
-                  i < preview.length;
-                  i++) ...[
-                if (i > 0)
-                  const Divider(
-                    height: 1,
-                    color: AppColors.border,
-                  ),
+              ),
 
-                CompactNotificationTile(
-                  notif: preview[i],
-                  dense: true,
-                  onTap: () =>
-                      _openDetail(
-                    preview[i],
+              // ==============================================================
+              // PREVIEW CONTENT
+              // ==============================================================
+
+              if (preview.isEmpty)
+                const Padding(
+                  padding:
+                      EdgeInsets.fromLTRB(
+                    16,
+                    2,
+                    16,
+                    16,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons
+                            .check_circle_outline,
+                        size: 17,
+                        color: AppColors
+                            .roleManager,
+                      ),
+
+                      SizedBox(width: 8),
+
+                      Expanded(
+                        child: Text(
+                          'No active inventory alerts right now.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors
+                                .mutedForeground,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    padding:
+                        EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount:
+                        preview.length,
+                    separatorBuilder:
+                        (_, __) =>
+                            const Divider(
+                      height: 1,
+                      color:
+                          AppColors.border,
+                    ),
+                    itemBuilder:
+                        (context, index) {
+                      final notif =
+                          preview[index];
+
+                      return CompactNotificationTile(
+                        notif: notif,
+                        dense: true,
+                        onTap: () =>
+                            _openDetail(
+                          notif,
+                        ),
+                      );
+                    },
                   ),
                 ),
-              ],
 
-            const Divider(
-              height: 1,
-              color: AppColors.border,
-            ),
-
-            TextButton(
-              onPressed: _viewAll,
-              child: const Text(
-                'View all notifications',
+              const Divider(
+                height: 1,
+                color: AppColors.border,
               ),
-            ),
-          ],
+
+              // ==============================================================
+              // FOOTER
+              // ==============================================================
+
+              SafeArea(
+                top: false,
+                minimum:
+                    EdgeInsets.zero,
+                child: TextButton(
+                  onPressed: _viewAll,
+                  child: const Text(
+                    'View all notifications',
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
