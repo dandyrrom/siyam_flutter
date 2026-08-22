@@ -18,8 +18,10 @@ import '../../widgets/stat_card.dart';
 /// 1. Dashboard metric cards are clickable.
 /// 2. Cards lead to their relevant full module/detail view.
 /// 3. Replenishment item description and quantity are kept visually together.
-/// 4. Replenishment rows are traceable directly to Inventory Item Details.
+/// 4. Manager Replenishment is read-only and does not route into Inventory.
 /// 5. Staff Accounts opens a Manager-only modal with enable/disable controls.
+/// 6. Total Inventory Items opens a read-only Manager overview modal instead
+///    of routing the Manager into the Staff Inventory module.
 class ManagerDashboard extends StatefulWidget {
   const ManagerDashboard({super.key});
 
@@ -44,6 +46,9 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
   // Prevent repeated taps from opening duplicate Staff Account dialogs.
   bool _staffAccountsDialogOpen = false;
+
+  // Prevent repeated taps from opening duplicate Inventory Overview dialogs.
+  bool _inventoryOverviewDialogOpen = false;
 
   @override
   void initState() {
@@ -166,10 +171,6 @@ class _ManagerDashboardState extends State<ManagerDashboard>
     );
   }
 
-  void _openInventoryItem(DashboardStockAlert item) {
-    context.push('/inventory/${item.itemId}');
-  }
-
   // ===========================================================================
   // STAFF ACCOUNTS
   // ===========================================================================
@@ -195,6 +196,42 @@ class _ManagerDashboardState extends State<ManagerDashboard>
       );
     } finally {
       _staffAccountsDialogOpen = false;
+    }
+  }
+
+  // ===========================================================================
+  // INVENTORY OVERVIEW
+  // ===========================================================================
+  //
+  // REVISION REQUIREMENT:
+  //
+  // The Manager may view an inventory summary from the Dashboard, but must
+  // not be routed into the operational Staff Inventory module.
+  //
+  // This modal therefore uses the Manager Dashboard statistics already loaded
+  // on this page. It is read-only and has no Stock In, Dispense, Edit, or
+  // Inventory navigation actions.
+  // ===========================================================================
+
+  Future<void> _openInventoryOverviewDialog() async {
+    if (_inventoryOverviewDialogOpen ||
+        _stats == null) {
+      return;
+    }
+
+    _inventoryOverviewDialogOpen = true;
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return _InventoryOverviewDialog(
+            stats: _stats!,
+          );
+        },
+      );
+    } finally {
+      _inventoryOverviewDialogOpen = false;
     }
   }
 
@@ -362,10 +399,10 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                         : '${_stats!.totalItems}',
                     icon: Icons.inventory_2_outlined,
                     accent: AppColors.roleManager,
-                    tooltip: 'Open inventory',
+                    tooltip: 'View inventory overview',
                     onTap: _loading
                         ? null
-                        : () => _goTo('/inventory'),
+                        : _openInventoryOverviewDialog,
                   ),
                   StatCard(
                     label: 'Zero Stock',
@@ -436,42 +473,26 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
               KeyedSubtree(
                 key: _replenishmentKey,
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Replenishment List',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                    Text(
+                      'Replenishment List',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
-                          const SizedBox(height: 3),
-                          const Text(
-                            'Items requiring stock attention. Select an item to view its full inventory details.',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color:
-                                  AppColors.mutedForeground,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
-                    const SizedBox(width: 12),
-                    TextButton.icon(
-                      onPressed: () => _goTo('/inventory'),
-                      icon: const Icon(
-                        Icons.inventory_2_outlined,
-                        size: 16,
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Items requiring stock attention. This overview is read-only for Managers.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color:
+                            AppColors.mutedForeground,
                       ),
-                      label: const Text('Open Inventory'),
                     ),
                   ],
                 ),
@@ -496,11 +517,260 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                       _stats!.zeroStockItems,
                   lowStockItems:
                       _stats!.lowStockItems,
-                  onOpenItem: _openInventoryItem,
                 ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// INVENTORY OVERVIEW DIALOG
+// =============================================================================
+
+class _InventoryOverviewDialog extends StatelessWidget {
+  final ManagerDashboardStats stats;
+
+  const _InventoryOverviewDialog({
+    required this.stats,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+
+    final dialogWidth =
+        screen.width < 560
+            ? screen.width - 72
+            : 470.0;
+
+    final itemsWithStock =
+        (stats.totalItems - stats.zeroStockCount)
+            .clamp(0, stats.totalItems);
+
+    final stockAttention =
+        stats.zeroStockCount +
+            stats.lowStockCount;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: const Row(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 21,
+            color: AppColors.roleManager,
+          ),
+          SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'Inventory Overview',
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: dialogWidth,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.visibility_outlined,
+                      size: 17,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Read-only overview. Inventory operations are handled by Staff.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.35,
+                          color:
+                              AppColors.foreground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              _InventoryOverviewRow(
+                label: 'Total Inventory Items',
+                value: '${stats.totalItems}',
+                icon:
+                    Icons.inventory_2_outlined,
+                accent:
+                    AppColors.roleManager,
+              ),
+
+              const SizedBox(height: 8),
+
+              _InventoryOverviewRow(
+                label: 'Items With Stock',
+                value: '$itemsWithStock',
+                icon:
+                    Icons.check_circle_outline,
+                accent: AppColors.sageGreen,
+              ),
+
+              const SizedBox(height: 8),
+
+              _InventoryOverviewRow(
+                label: 'Low Stock',
+                value: '${stats.lowStockCount}',
+                icon:
+                    Icons.warning_amber_outlined,
+                accent: AppColors.warning,
+              ),
+
+              const SizedBox(height: 8),
+
+              _InventoryOverviewRow(
+                label: 'Zero Stock',
+                value:
+                    '${stats.zeroStockCount}',
+                icon: Icons
+                    .remove_shopping_cart_outlined,
+                accent:
+                    AppColors.destructive,
+              ),
+
+              const SizedBox(height: 8),
+
+              _InventoryOverviewRow(
+                label:
+                    'Items Requiring Stock Attention',
+                value: '$stockAttention',
+                icon:
+                    Icons.priority_high_rounded,
+                accent: AppColors.warning,
+              ),
+
+              const SizedBox(height: 8),
+
+              _InventoryOverviewRow(
+                label: 'Expiry Alerts',
+                value:
+                    '${stats.expiringSoonCount}',
+                icon:
+                    Icons.event_busy_outlined,
+                accent: AppColors.warning,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// INVENTORY OVERVIEW ROW
+// =============================================================================
+
+class _InventoryOverviewRow
+    extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color accent;
+
+  const _InventoryOverviewRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 11,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color:
+                  accent.withValues(alpha: 0.10),
+              borderRadius:
+                  BorderRadius.circular(9),
+            ),
+            child: Icon(
+              icon,
+              size: 17,
+              color: accent,
+            ),
+          ),
+
+          const SizedBox(width: 11),
+
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: accent,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1105,85 +1375,40 @@ class _AccountCountBadge extends StatelessWidget {
 class _ReplenishmentAlerts extends StatelessWidget {
   final List<DashboardStockAlert> zeroStockItems;
   final List<DashboardStockAlert> lowStockItems;
-  final void Function(DashboardStockAlert item)
-      onOpenItem;
 
   const _ReplenishmentAlerts({
     required this.zeroStockItems,
     required this.lowStockItems,
-    required this.onOpenItem,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (zeroStockItems.isEmpty &&
-        lowStockItems.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.border,
-          ),
-        ),
-        child: const Row(
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 18,
-              color: AppColors.roleManager,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'No zero-stock or low-stock items right now.',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    final zeroPanel = _StockAlertPanel(
+      title: 'Zero Stock',
+      subtitle: 'Items with no usable inventory remaining.',
+      emptyText: 'No zero stock items as of the moment.',
+      accent: AppColors.destructive,
+      icon: Icons.remove_shopping_cart_outlined,
+      items: zeroStockItems,
+      isZeroStock: true,
+    );
 
-    final zeroPanel = zeroStockItems.isEmpty
-        ? null
-        : _StockAlertPanel(
-            title: 'Zero Stock',
-            subtitle:
-                'Items with no usable inventory remaining.',
-            accent: AppColors.destructive,
-            icon:
-                Icons.remove_shopping_cart_outlined,
-            items: zeroStockItems,
-            onOpenItem: onOpenItem,
-          );
-
-    final lowPanel = lowStockItems.isEmpty
-        ? null
-        : _StockAlertPanel(
-            title: 'Low Stock',
-            subtitle:
-                'At or below ${formatQty(lowStockPurchaseUnitThreshold)} purchase-unit equivalent.',
-            accent: AppColors.warning,
-            icon: Icons.warning_amber_outlined,
-            items: lowStockItems,
-            onOpenItem: onOpenItem,
-          );
+    final lowPanel = _StockAlertPanel(
+      title: 'Low Stock',
+      subtitle:
+          'At or below ${formatQty(lowStockPurchaseUnitThreshold)} purchase-unit equivalent.',
+      emptyText: 'No low stock items as of the moment.',
+      accent: AppColors.warning,
+      icon: Icons.warning_amber_outlined,
+      items: lowStockItems,
+      isZeroStock: false,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final sideBySide =
-            constraints.maxWidth > 720;
-
-        if (sideBySide &&
-            zeroPanel != null &&
-            lowPanel != null) {
+        if (constraints.maxWidth > 720) {
           return Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: zeroPanel),
               const SizedBox(width: 16),
@@ -1193,14 +1418,11 @@ class _ReplenishmentAlerts extends StatelessWidget {
         }
 
         return Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (zeroPanel != null) zeroPanel,
-            if (zeroPanel != null &&
-                lowPanel != null)
-              const SizedBox(height: 16),
-            if (lowPanel != null) lowPanel,
+            zeroPanel,
+            const SizedBox(height: 16),
+            lowPanel,
           ],
         );
       },
@@ -1208,26 +1430,23 @@ class _ReplenishmentAlerts extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// STOCK ALERT PANEL
-// =============================================================================
-
 class _StockAlertPanel extends StatelessWidget {
   final String title;
   final String subtitle;
+  final String emptyText;
   final Color accent;
   final IconData icon;
   final List<DashboardStockAlert> items;
-  final void Function(DashboardStockAlert item)
-      onOpenItem;
+  final bool isZeroStock;
 
   const _StockAlertPanel({
     required this.title,
     required this.subtitle,
+    required this.emptyText,
     required this.accent,
     required this.icon,
     required this.items,
-    required this.onOpenItem,
+    required this.isZeroStock,
   });
 
   @override
@@ -1237,23 +1456,15 @@ class _StockAlertPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              18,
-              16,
-              18,
-              12,
-            ),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -1261,17 +1472,10 @@ class _StockAlertPanel extends StatelessWidget {
                       width: 30,
                       height: 30,
                       decoration: BoxDecoration(
-                        color: accent.withValues(
-                          alpha: 0.10,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(8),
+                        color: accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
-                        icon,
-                        size: 16,
-                        color: accent,
-                      ),
+                      child: Icon(icon, size: 16, color: accent),
                     ),
                     const SizedBox(width: 9),
                     Text(
@@ -1283,29 +1487,21 @@ class _StockAlertPanel extends StatelessWidget {
                     ),
                     const Spacer(),
                     Container(
-                      constraints:
-                          const BoxConstraints(
+                      constraints: const BoxConstraints(
                         minWidth: 26,
                         minHeight: 24,
                       ),
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 7,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: accent.withValues(
-                          alpha: 0.10,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(12),
+                        color: accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${items.length}',
                         style: TextStyle(
                           fontSize: 11.5,
-                          fontWeight:
-                              FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                           color: accent,
                         ),
                       ),
@@ -1318,155 +1514,127 @@ class _StockAlertPanel extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 11.5,
                     height: 1.35,
-                    color:
-                        AppColors.mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
             ),
           ),
-
-          const Divider(
-            height: 1,
-            color: AppColors.border,
-          ),
-
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0)
-              const Divider(
-                height: 1,
-                indent: 18,
-                endIndent: 18,
-                color: AppColors.border,
+          const Divider(height: 1, color: AppColors.border),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 22,
               ),
-            _ReplenishmentItemRow(
-              item: items[i],
-              accent: accent,
-              isZeroStock:
-                  title == 'Zero Stock',
-              onTap: () =>
-                  onOpenItem(items[i]),
-            ),
-          ],
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: AppColors.sageGreen,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      emptyText,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0)
+                const Divider(
+                  height: 1,
+                  indent: 18,
+                  endIndent: 18,
+                  color: AppColors.border,
+                ),
+              _ReplenishmentItemRow(
+                item: items[i],
+                accent: accent,
+                isZeroStock: isZeroStock,
+              ),
+            ],
         ],
       ),
     );
   }
 }
 
-// =============================================================================
-// REPLENISHMENT ITEM ROW
-// =============================================================================
-
-class _ReplenishmentItemRow
-    extends StatelessWidget {
+class _ReplenishmentItemRow extends StatelessWidget {
   final DashboardStockAlert item;
   final Color accent;
   final bool isZeroStock;
-  final VoidCallback onTap;
 
   const _ReplenishmentItemRow({
     required this.item,
     required this.accent,
     required this.isZeroStock,
-    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final qty =
-        '${formatQty(item.stockQty)} ${item.unitAbbr}'
-            .trim();
+        '${formatQty(item.stockQty)} ${item.unitAbbr}'.trim();
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        mouseCursor:
-            SystemMouseCursors.click,
-        hoverColor:
-            accent.withValues(alpha: 0.04),
-        highlightColor:
-            accent.withValues(alpha: 0.08),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 12,
-          ),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 12,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 5,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 5,
-                      crossAxisAlignment:
-                          WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          item.itemName,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding:
-                              const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(
-                              alpha: 0.10,
-                            ),
-                            borderRadius:
-                                BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            qty,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight:
-                                  FontWeight.w700,
-                              color: accent,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      isZeroStock
-                          ? 'Requires replenishment'
-                          : 'Stock is at or below the low-stock threshold',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors
-                            .mutedForeground,
-                      ),
-                    ),
-                  ],
+              Text(
+                item.itemName,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-
-              const SizedBox(width: 8),
-
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color:
-                    AppColors.mutedForeground,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  qty,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                  ),
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            isZeroStock
+                ? 'Requires replenishment'
+                : 'Stock is at or below the low-stock threshold',
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.mutedForeground,
+            ),
+          ),
+        ],
       ),
     );
   }

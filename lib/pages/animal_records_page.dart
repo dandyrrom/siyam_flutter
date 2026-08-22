@@ -26,15 +26,6 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   final PetService _service = PetService();
   final TreatmentService _treatmentService = TreatmentService();
 
-  // ===========================================================================
-  // SEARCH CONTROLLER
-  // ===========================================================================
-  //
-  // Keeps the visible search text synchronized with the internal _search value.
-  // ===========================================================================
-
-  final TextEditingController _searchController = TextEditingController();
-
   List<Pet> _pets = [];
   List<TreatmentRecord> _treatments = [];
 
@@ -54,33 +45,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   void onExternalDataChanged() => _load(silent: true);
-
-  // ===========================================================================
-  // RESET SEARCH / FILTERS
-  // ===========================================================================
-  //
-  // Used after Add/Edit/Status Update so Animal Records returns to the complete
-  // list instead of leaving an old search/filter active.
-  // ===========================================================================
-
-  void _resetFilters() {
-    _searchController.clear();
-
-    setState(() {
-      _search = '';
-      _speciesFilter = null;
-      _statusFilter = null;
-      _breedFilter = null;
-      _sort = _AnimalSort.nameAZ;
-    });
-  }
 
   // ===========================================================================
   // LOAD
@@ -151,6 +116,103 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     return _cleanText(value ?? '').toLowerCase();
   }
 
+  // ===========================================================================
+  // BREED SEARCH TERMS
+  // ===========================================================================
+  //
+  // A detailed mixed breed such as "Husky-Samoyed Mix" must be discoverable
+  // using Husky, Samoyed, or Mix. The full breed description is also retained.
+  //
+  // We split only on clear mixed-breed separators so multi-word breeds such as
+  // "German Shepherd" remain intact.
+  // ===========================================================================
+
+  List<String> _breedTerms(String? value) {
+    final clean = _cleanText(value ?? '');
+
+    if (clean.isEmpty) {
+      return const [];
+    }
+
+    final terms = <String, String>{};
+
+    void addTerm(String raw) {
+      var term = _cleanText(raw);
+
+      if (term.isEmpty) return;
+
+      term = term.replaceAll(
+        RegExp(
+          r'\b(mixed?\s*breed|mixed|mix)\b',
+          caseSensitive: false,
+        ),
+        '',
+      );
+
+      term = _cleanText(term);
+
+      if (term.isEmpty) return;
+
+      terms.putIfAbsent(
+        term.toLowerCase(),
+        () => term,
+      );
+    }
+
+    // Keep the complete stored description.
+    terms.putIfAbsent(
+      clean.toLowerCase(),
+      () => clean,
+    );
+
+    final parts = clean.split(
+      RegExp(
+        r'\s*(?:×|/|\+|&|-|–|—|\bx\b|\band\b)\s*',
+        caseSensitive: false,
+      ),
+    );
+
+    for (final part in parts) {
+      addTerm(part);
+    }
+
+    if (RegExp(
+      r'\b(mix|mixed)\b',
+      caseSensitive: false,
+    ).hasMatch(clean)) {
+      terms.putIfAbsent(
+        'mix',
+        () => 'Mix',
+      );
+    }
+
+    final values = terms.values.toList();
+
+    values.sort(
+      (a, b) =>
+          a.toLowerCase().compareTo(b.toLowerCase()),
+    );
+
+    return values;
+  }
+
+  bool _breedMatches(
+    String? breed,
+    String query,
+  ) {
+    final q = _key(query);
+
+    if (q.isEmpty) return true;
+
+    if (_key(breed).contains(q)) {
+      return true;
+    }
+
+    return _breedTerms(breed).any(
+      (term) => _key(term).contains(q),
+    );
+  }
+
   String _cleanError(Object error) {
     return error.toString().replaceFirst('Exception: ', '');
   }
@@ -189,6 +251,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   // Preferred:
   // Persian × Siamese
   // Labrador x German Shepherd
+  // Husky-Samoyed Mix
   // Aspin / Beagle
   // ===========================================================================
 
@@ -220,6 +283,9 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           RegExp(r'\s[xX]\s').hasMatch(clean) ||
           clean.contains('/') ||
           clean.contains('+') ||
+          clean.contains('-') ||
+          clean.contains('–') ||
+          clean.contains('—') ||
           RegExp(
             r'\sand\s',
             caseSensitive: false,
@@ -247,10 +313,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
         continue;
       }
 
-      breeds.putIfAbsent(
-        breed.toLowerCase(),
-        () => breed,
-      );
+      for (final term in _breedTerms(breed)) {
+        breeds.putIfAbsent(
+          term.toLowerCase(),
+          () => term,
+        );
+      }
     }
 
     final values = breeds.values.toList();
@@ -274,7 +342,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
       final matchesSearch =
           q.isEmpty ||
           pet.petName.toLowerCase().contains(q) ||
-          (pet.breed ?? '').toLowerCase().contains(q) ||
+          _breedMatches(pet.breed, q) ||
           (pet.owner ?? '').toLowerCase().contains(q);
 
       final matchesSpecies =
@@ -287,7 +355,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
       final matchesBreed =
           _breedFilter == null ||
-          _key(pet.breed) == _key(_breedFilter);
+          _breedMatches(
+            pet.breed,
+            _breedFilter!,
+          );
 
       return matchesSearch &&
           matchesSpecies &&
@@ -314,8 +385,16 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   //
   // Same name alone is NOT considered a duplicate.
   //
-  // Duplicate identity is based on:
-  // Name + Species + Breed + Owner + Gender + Spayed/Neutered.
+  // We block:
+  //
+  // 1. Exact identifying details:
+  //    Name + Species + Breed + Owner + Gender + Spayed/Neutered
+  //
+  // 2. Strong ownership duplicate:
+  //    Same Name + Same Species + Same NON-EMPTY Owner
+  //
+  // This prevents the same owned animal from being entered twice just because
+  // another descriptive field was entered differently.
   // ===========================================================================
 
   bool _isDuplicate({
@@ -327,17 +406,34 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     String? owner,
     String? excludePetId,
   }) {
+    final ownerKey = _key(owner);
+
     return _pets.any((existing) {
       if (existing.petId == excludePetId) {
         return false;
       }
 
-      return _key(existing.petName) == _key(petName) &&
-          existing.species == species &&
+      final sameName =
+          _key(existing.petName) == _key(petName);
+
+      final sameSpecies =
+          existing.species == species;
+
+      final exactIdentity =
+          sameName &&
+          sameSpecies &&
           existing.gender == gender &&
           _key(existing.breed) == _key(breed) &&
-          _key(existing.owner) == _key(owner) &&
+          _key(existing.owner) == ownerKey &&
           existing.spayedNeutered == spayedNeutered;
+
+      final sameOwnedAnimal =
+          ownerKey.isNotEmpty &&
+          sameName &&
+          sameSpecies &&
+          _key(existing.owner) == ownerKey;
+
+      return exactIdentity || sameOwnedAnimal;
     });
   }
 
@@ -392,7 +488,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             ),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.sageGreen,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -523,6 +619,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           TextFormField(
                             controller: nameCtrl,
                             autofocus: !isEdit,
+                            onChanged: (_) {
+                              setDialogState(() {
+                                duplicateError = null;
+                              });
+                            },
                             decoration:
                                 const InputDecoration(
                               labelText: 'Name',
@@ -573,12 +674,17 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
                           TextFormField(
                             controller: breedCtrl,
+                            onChanged: (_) {
+                              setDialogState(() {
+                                duplicateError = null;
+                              });
+                            },
                             decoration:
                                 const InputDecoration(
                               labelText:
                                   'Breed (optional)',
                               hintText:
-                                  'e.g. Persian × Siamese',
+                                  'e.g. Husky-Samoyed Mix',
                               helperText:
                                   'For mixed breeds, specify the component breeds.',
                             ),
@@ -593,6 +699,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
                           TextFormField(
                             controller: ownerCtrl,
+                            onChanged: (_) {
+                              setDialogState(() {
+                                duplicateError = null;
+                              });
+                            },
                             decoration:
                                 const InputDecoration(
                               labelText:
@@ -771,7 +882,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           )) {
                             setDialogState(() {
                               duplicateError =
-                                  'An animal with the same identifying details already exists.';
+                                  'This animal already has a record with the same identifying details or owner.';
                             });
 
                             return;
@@ -816,12 +927,6 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                             ).pop();
 
                             if (!mounted) return;
-
-                            // ===============================================
-                            // RESET SEARCH + FILTERS AFTER SAVE
-                            // ===============================================
-
-                            _resetFilters();
 
                             _showSuccessSnackBar(
                               isEdit
@@ -887,6 +992,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   // ===========================================================================
   // ANIMAL DETAILS
   // ===========================================================================
+  //
+  // Manager sees:
+  // - animal information
+  // - current status
+  // - latest treatment only
+  //
+  // Manager does NOT receive navigation to the Staff-only Medical module.
+  // ===========================================================================
 
   Future<void> _openDetailDialog(
     Pet pet,
@@ -949,6 +1062,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
+                    // =========================================================
+                    // ANIMAL INFORMATION
+                    // =========================================================
+
                     _DetailRow(
                       label: 'Species',
                       value:
@@ -1163,12 +1280,6 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   );
 
                   if (!mounted) return;
-
-                  // ===============================================
-                  // RESET SEARCH + FILTERS AFTER STATUS UPDATE
-                  // ===============================================
-
-                  _resetFilters();
 
                   await _load();
 
@@ -1470,12 +1581,6 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   ? double.infinity
                   : 280,
               child: TextField(
-                // =============================================================
-                // SEARCH CONTROLLER FIX
-                // =============================================================
-
-                controller: _searchController,
-
                 onChanged: (value) {
                   setState(() {
                     _search = value;
@@ -1488,7 +1593,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                     size: 18,
                   ),
                   hintText:
-                      'Search animals',
+                      'Search name, breed, or owner',
                   isDense: true,
                 ),
               ),
@@ -1985,8 +2090,18 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 // =============================================================================
 // LATEST TREATMENT CARD
 // =============================================================================
+//
+// Read-only summary for Manager.
+//
+// There is deliberately:
+// - no InkWell
+// - no chevron
+// - no medical-history route
+// - no treatment-detail route
+// =============================================================================
 
-class _LatestTreatmentCard extends StatelessWidget {
+class _LatestTreatmentCard
+    extends StatelessWidget {
   final TreatmentRecord record;
 
   const _LatestTreatmentCard({
@@ -2108,7 +2223,8 @@ class _LatestTreatmentCard extends StatelessWidget {
 // TREATMENT INFO ROW
 // =============================================================================
 
-class _TreatmentInfoRow extends StatelessWidget {
+class _TreatmentInfoRow
+    extends StatelessWidget {
   final String label;
   final String value;
 
@@ -2177,7 +2293,8 @@ class _Hoverable extends StatefulWidget {
       _HoverableState();
 }
 
-class _HoverableState extends State<_Hoverable> {
+class _HoverableState
+    extends State<_Hoverable> {
   bool _isHovered = false;
 
   @override
@@ -2273,7 +2390,9 @@ const _monthAbbrev = [
   'Dec',
 ];
 
-String _formatTreatmentDate(DateTime date) {
+String _formatTreatmentDate(
+  DateTime date,
+) {
   return '${_monthAbbrev[date.month - 1]} '
       '${date.day}, ${date.year}';
 }

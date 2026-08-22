@@ -37,19 +37,17 @@ class SupabasePetService implements PetService {
   // DUPLICATE ANIMAL CHECK
   // ==========================================================================
   //
-  // We DO NOT block animals solely because they have the same name.
+  // Same name alone is NOT considered a duplicate.
   //
-  // An accidental duplicate means the identifying information matches:
+  // We block:
   //
-  // name
-  // species
-  // gender
-  // breed
-  // owner
-  // spayed/neutered
+  // 1. Exact identifying details:
+  //    name + species + gender + breed + owner + spayed/neutered
   //
-  // Status is deliberately excluded because the same animal's status changes
-  // over time and is not part of its identity.
+  // 2. Strong ownership duplicate:
+  //    same name + same species + same NON-EMPTY owner
+  //
+  // Status is deliberately excluded because the same animal's status changes.
   // ==========================================================================
 
   Future<void> _ensureNoDuplicate({
@@ -95,14 +93,23 @@ class SupabasePetService implements PetService {
           (row['spayed_neutered'] as bool? ?? false) ==
               spayedNeutered;
 
-      if (sameName &&
+      final exactIdentity =
+          sameName &&
           sameSpecies &&
           sameGender &&
           sameBreed &&
           sameOwner &&
-          sameSpayStatus) {
+          sameSpayStatus;
+
+      final sameOwnedAnimal =
+          ownerKey.isNotEmpty &&
+          sameName &&
+          sameSpecies &&
+          sameOwner;
+
+      if (exactIdentity || sameOwnedAnimal) {
         throw Exception(
-          'An animal with the same identifying details already exists.',
+          'This animal already has a record with the same identifying details or owner.',
         );
       }
     }
