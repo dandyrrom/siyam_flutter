@@ -34,11 +34,18 @@ class AppDropdownMenuRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(label,
-                  overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5)),
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13.5),
+              ),
             ),
             if (hasChildren)
-              const Icon(Icons.chevron_right, size: 16, color: AppColors.mutedForeground),
+              const Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: AppColors.mutedForeground,
+              ),
           ],
         ),
       ),
@@ -48,25 +55,26 @@ class AppDropdownMenuRow extends StatelessWidget {
 
 /// The flyout panel shell shared by every popup in the app: a white card
 /// with rounded corners and a soft shadow, sized to [width].
-Widget appDropdownFlyoutPanel({required double width, required List<Widget> rows}) {
+Widget appDropdownFlyoutPanel({
+  required double width,
+  required List<Widget> rows,
+}) {
   return Material(
     elevation: 6,
     borderRadius: BorderRadius.circular(16),
     color: AppColors.card,
     child: SizedBox(
       width: width,
-      child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: rows,
+      ),
     ),
   );
 }
 
 /// The trigger chrome shared by toolbar filter dropdowns (Category, Stock
-/// Level, ...) and the "New" split-action button: a bordered, rounded box
-/// showing [label] with a trailing caret and an optional [leadingIcon].
-/// [expand] fills the parent's width (for a dropdown sitting alongside
-/// full-width text fields) instead of hugging the label's width (for
-/// compact toolbar filters). Purely presentational -- wrap in your own
-/// [InkWell]/[GestureDetector] for tap handling (see [AppMenuButton]).
+/// Level, ...) and the "New" split-action button.
 class AppDropdownButton extends StatelessWidget {
   final String label;
   final bool expand;
@@ -97,9 +105,16 @@ class AppDropdownButton extends StatelessWidget {
           ],
           expand
               ? Expanded(
-                  child: Text(label,
-                      overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)))
-              : Text(label, style: const TextStyle(fontSize: 14)),
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                )
+              : Text(
+                  label,
+                  style: const TextStyle(fontSize: 14),
+                ),
           const SizedBox(width: 4),
           const Icon(Icons.arrow_drop_down, size: 18),
         ],
@@ -108,17 +123,18 @@ class AppDropdownButton extends StatelessWidget {
   }
 }
 
-/// Shared open/close/positioning plumbing for every flyout popup in the
-/// app. Mix into a [State] and implement [buildFlyoutPanel]; call
-/// [toggleDropdown] from the trigger and wrap the trigger in
-/// [CompositedTransformTarget] with [dropdownLink].
+/// Shared open/close/positioning plumbing for every flyout popup in the app.
 ///
-/// Uses a manual [OverlayEntry] rather than [MenuAnchor]/[SubmenuButton] --
-/// those throw a RenderBox layout assertion on web when their anchor sits
-/// inside a [Wrap] (https://github.com/flutter/flutter/issues/131843).
+/// ROUTE-SAFETY FIX:
+/// - root overlays are removed in deactivate(), before the source route leaves
+///   the widget tree;
+/// - OverlayEntry is disposed after removal;
+/// - the overlay subtree uses its own BuildContext, not the source page context;
+/// - delayed positioning no longer registers a MediaQuery dependency.
 mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
   final LayerLink dropdownLink = LayerLink();
-  final GlobalKey _panelSizeKey = GlobalKey();
+  final GlobalKey _panelSizeKey = GlobalKey(debugLabel: 'SIYAM dropdown panel');
+
   OverlayEntry? _entry;
   Alignment _resolvedTargetAnchor = Alignment.topLeft;
   Alignment _resolvedFollowerAnchor = Alignment.topLeft;
@@ -126,95 +142,137 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
 
   bool get isDropdownOpen => _entry != null;
 
-  /// The flyout panel's content, positioned automatically under the
-  /// trigger. Wrap the selectable rows in [appDropdownFlyoutPanel] (or a
-  /// [Material] with the same look) -- see [AppMenuButton] for the standard
-  /// single-column case.
   Widget buildFlyoutPanel(BuildContext context);
 
-  /// Where on the trigger the panel is anchored, and which corner of the
-  /// panel sits there -- override both to flip a panel leftward (e.g. for
-  /// a trigger near the right edge of the screen, so the panel doesn't
-  /// overflow off-screen) instead of the default left-aligned drop-down.
   Alignment get targetAnchor => Alignment.topLeft;
   Alignment get followerAnchor => Alignment.topLeft;
 
   @override
+  void deactivate() {
+    closeDropdown(rebuildTrigger: false);
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
-    _entry?.remove();
-    _entry = null;
+    closeDropdown(rebuildTrigger: false);
     super.dispose();
   }
 
-  void toggleDropdown() => isDropdownOpen ? closeDropdown() : openDropdown();
+  void toggleDropdown() {
+    if (isDropdownOpen) {
+      closeDropdown();
+    } else {
+      openDropdown();
+    }
+  }
 
   void openDropdown() {
+    if (!mounted || _entry != null) return;
+
     _resolvedTargetAnchor = targetAnchor;
     _resolvedFollowerAnchor = followerAnchor;
     _resolvedOffset = const Offset(0, 44);
-    _entry = OverlayEntry(builder: (context) => _buildOverlay());
-    // rootOverlay: true -- pages that use this live inside go_router's
-    // ShellRoute, which owns a nested Navigator/Overlay scoped to the
-    // scrollable page body. Inserting there clips the flyout to that body
-    // instead of the full screen; the app's outermost Overlay doesn't have
-    // that constraint.
-    Overlay.of(context, rootOverlay: true).insert(_entry!);
-    // The panel's real size isn't known until it's laid out once, so flip
-    // it to stay on-screen on the frame after that -- one frame of the
-    // default (unflipped) position is imperceptible, but avoids clipping
-    // against the viewport edge (see e.g. the "Per Page" control at the
-    // bottom of a page, or filter dropdowns near the right edge).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _flipIfOffscreen());
+
+    final overlay = Overlay.of(context, rootOverlay: true);
+
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (overlayContext) => _buildOverlay(overlayContext),
+    );
+
+    _entry = entry;
+    overlay.insert(entry);
+
+    if (mounted) setState(() {});
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _entry != entry) return;
+      _flipIfOffscreen();
+    });
   }
 
-  void closeDropdown() {
-    _entry?.remove();
+  void closeDropdown({
+    bool rebuildTrigger = true,
+  }) {
+    final entry = _entry;
+    if (entry == null) return;
+
+    // Clear first so any pending callback immediately sees the popup as closed.
     _entry = null;
+
+    entry.remove();
+    entry.dispose();
+
+    if (rebuildTrigger && mounted) {
+      setState(() {});
+    }
   }
 
-  void rebuildDropdown() => _entry?.markNeedsBuild();
+  void rebuildDropdown() {
+    final entry = _entry;
+    if (entry == null || !entry.mounted) return;
+    entry.markNeedsBuild();
+  }
 
   void _flipIfOffscreen() {
-    if (_entry == null) return;
+    if (!mounted || _entry == null) return;
+
     final triggerBox = context.findRenderObject();
     final panelBox = _panelSizeKey.currentContext?.findRenderObject();
+
     if (triggerBox is! RenderBox || !triggerBox.attached) return;
     if (panelBox is! RenderBox || !panelBox.attached) return;
 
     final triggerTopLeft = triggerBox.localToGlobal(Offset.zero);
     final triggerSize = triggerBox.size;
     final panelSize = panelBox.size;
-    final screenSize = MediaQuery.sizeOf(context);
-    const margin = 8.0;
-    bool changed = false;
 
-    // Vertical: flip the panel above the trigger if there isn't enough
-    // room below but there is more room above.
+    // Avoid MediaQuery.sizeOf(context) inside this delayed callback. That would
+    // register a new inherited dependency while a route may be tearing down.
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) return;
+
+    final view = views.first;
+    final screenSize = view.physicalSize / view.devicePixelRatio;
+
+    const margin = 8.0;
+    var changed = false;
+
     if (_resolvedTargetAnchor.y < 0) {
-      final spaceBelow = screenSize.height - (triggerTopLeft.dy + triggerSize.height);
+      final spaceBelow =
+          screenSize.height - (triggerTopLeft.dy + triggerSize.height);
       final spaceAbove = triggerTopLeft.dy;
-      if (panelSize.height + margin > spaceBelow && spaceAbove > spaceBelow) {
-        _resolvedTargetAnchor = Alignment(_resolvedTargetAnchor.x, -1);
-        _resolvedFollowerAnchor = Alignment(_resolvedFollowerAnchor.x, 1);
+
+      if (panelSize.height + margin > spaceBelow &&
+          spaceAbove > spaceBelow) {
+        _resolvedTargetAnchor =
+            Alignment(_resolvedTargetAnchor.x, -1);
+        _resolvedFollowerAnchor =
+            Alignment(_resolvedFollowerAnchor.x, 1);
         _resolvedOffset = Offset(_resolvedOffset.dx, -8);
         changed = true;
       }
     }
 
-    // Horizontal: flip to whichever side actually has room for the panel's
-    // width instead of running off the edge of a narrow viewport.
     if (_resolvedTargetAnchor.x < 0) {
       final spaceRight = screenSize.width - triggerTopLeft.dx;
+
       if (panelSize.width + margin > spaceRight) {
-        _resolvedTargetAnchor = Alignment(1, _resolvedTargetAnchor.y);
-        _resolvedFollowerAnchor = Alignment(1, _resolvedFollowerAnchor.y);
+        _resolvedTargetAnchor =
+            Alignment(1, _resolvedTargetAnchor.y);
+        _resolvedFollowerAnchor =
+            Alignment(1, _resolvedFollowerAnchor.y);
         changed = true;
       }
     } else {
       final spaceLeft = triggerTopLeft.dx + triggerSize.width;
+
       if (panelSize.width + margin > spaceLeft) {
-        _resolvedTargetAnchor = Alignment(-1, _resolvedTargetAnchor.y);
-        _resolvedFollowerAnchor = Alignment(-1, _resolvedFollowerAnchor.y);
+        _resolvedTargetAnchor =
+            Alignment(-1, _resolvedTargetAnchor.y);
+        _resolvedFollowerAnchor =
+            Alignment(-1, _resolvedFollowerAnchor.y);
         changed = true;
       }
     }
@@ -222,7 +280,7 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
     if (changed) rebuildDropdown();
   }
 
-  Widget _buildOverlay() {
+  Widget _buildOverlay(BuildContext overlayContext) {
     return Stack(
       children: [
         Positioned.fill(
@@ -237,30 +295,23 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
           targetAnchor: _resolvedTargetAnchor,
           followerAnchor: _resolvedFollowerAnchor,
           offset: _resolvedOffset,
-          child: KeyedSubtree(key: _panelSizeKey, child: buildFlyoutPanel(context)),
+          child: KeyedSubtree(
+            key: _panelSizeKey,
+            child: buildFlyoutPanel(overlayContext),
+          ),
         ),
       ],
     );
   }
 }
 
-/// Generic popup control shared by every dropdown and action-menu in the
-/// app. [triggerBuilder] renders the clickable element -- an outlined box
-/// ([AppDropdownButton]), a bare icon, a filled CTA button, a form-field
-/// box -- and receives whether the panel is currently open (e.g. to show a
-/// focused-style border). Tapping it opens [options] in the same flyout
-/// panel style used everywhere else in the app.
+/// Generic popup control shared by every dropdown and action-menu in the app.
 class AppMenuButton<T> extends StatefulWidget {
   final Widget Function(BuildContext context, bool isOpen) triggerBuilder;
   final List<AppDropdownOption<T>> options;
   final ValueChanged<T> onSelected;
   final double menuWidth;
   final String? tooltip;
-
-  /// Right-align the panel to the trigger's right edge instead of the
-  /// default left-aligned drop-down. Use for triggers that sit near the
-  /// right edge of the screen (e.g. a row's trailing "..." action menu),
-  /// so the panel doesn't overflow off-screen on narrow viewports.
   final bool alignRight;
 
   const AppMenuButton({
@@ -280,13 +331,18 @@ class AppMenuButton<T> extends StatefulWidget {
 class _AppMenuButtonState<T> extends State<AppMenuButton<T>>
     with DropdownOverlayMixin<AppMenuButton<T>> {
   void _select(T value) {
+    // Remove the overlay before the callback is allowed to rebuild/navigate.
+    closeDropdown();
+
+    if (!mounted) return;
+
     widget.onSelected(value);
-    setState(closeDropdown);
   }
 
   @override
   Alignment get targetAnchor =>
       widget.alignRight ? Alignment.topRight : Alignment.topLeft;
+
   @override
   Alignment get followerAnchor =>
       widget.alignRight ? Alignment.topRight : Alignment.topLeft;
@@ -296,8 +352,11 @@ class _AppMenuButtonState<T> extends State<AppMenuButton<T>>
     return appDropdownFlyoutPanel(
       width: widget.menuWidth,
       rows: [
-        for (final o in widget.options)
-          AppDropdownMenuRow(label: o.label, onTap: () => _select(o.value)),
+        for (final option in widget.options)
+          AppDropdownMenuRow(
+            label: option.label,
+            onTap: () => _select(option.value),
+          ),
       ],
     );
   }
@@ -308,17 +367,21 @@ class _AppMenuButtonState<T> extends State<AppMenuButton<T>>
       link: dropdownLink,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => setState(toggleDropdown),
+        onTap: toggleDropdown,
         child: widget.triggerBuilder(context, isDropdownOpen),
       ),
     );
-    return widget.tooltip == null ? trigger : Tooltip(message: widget.tooltip, child: trigger);
+
+    return widget.tooltip == null
+        ? trigger
+        : Tooltip(
+            message: widget.tooltip!,
+            child: trigger,
+          );
   }
 }
 
-/// Single-column select dropdown: an [AppDropdownButton] trigger that opens
-/// a flat list of [options]. Used for toolbar filters (nullable "All X"
-/// style, e.g. Category/Stock Level on Inventory, Species/Status filters).
+/// Single-column select dropdown.
 class AppDropdown<T> extends StatelessWidget {
   final String label;
   final List<AppDropdownOption<T>> options;
@@ -339,21 +402,15 @@ class AppDropdown<T> extends StatelessWidget {
       options: options,
       onSelected: onSelect,
       triggerBuilder: (context, isOpen) =>
-          AppDropdownButton(label: label, expand: expand),
+          AppDropdownButton(
+        label: label,
+        expand: expand,
+      ),
     );
   }
 }
 
-/// Form-integrated version of [AppDropdown]: renders as a real
-/// [InputDecorator] (the same label/border/error chrome every
-/// [TextFormField] and [SearchSelectField] in the app uses, driven by the
-/// shared [InputDecorationTheme]) so it lines up pixel-for-pixel with
-/// sibling text fields instead of adding its own label row above a
-/// differently-shaped box. Wires validation/error display through
-/// [FormField], so it drops into a [Form] exactly like a
-/// [DropdownButtonFormField] did. Pass the field's default in
-/// [initialValue], or leave it null (with [placeholder] text) to start
-/// blank -- e.g. a Stock In form opened with no preselected type.
+/// Form-integrated version of [AppDropdown].
 class AppDropdownField<T> extends FormField<T> {
   AppDropdownField({
     super.key,
@@ -368,20 +425,24 @@ class AppDropdownField<T> extends FormField<T> {
             final selected = state.value == null
                 ? null
                 : options.firstWhere(
-                    (o) => o.value == state.value,
+                    (option) => option.value == state.value,
                     orElse: () => options.first,
                   );
+
             return AppMenuButton<T>(
               options: options,
-              onSelected: (v) {
-                state.didChange(v);
-                onChanged(v);
+              onSelected: (value) {
+                state.didChange(value);
+                onChanged(value);
               },
               triggerBuilder: (context, isOpen) => InputDecorator(
                 decoration: InputDecoration(
                   labelText: label,
                   errorText: state.errorText,
-                  suffixIcon: const Icon(Icons.arrow_drop_down, size: 20),
+                  suffixIcon: const Icon(
+                    Icons.arrow_drop_down,
+                    size: 20,
+                  ),
                 ),
                 isEmpty: false,
                 isFocused: isOpen,
@@ -389,7 +450,9 @@ class AppDropdownField<T> extends FormField<T> {
                   selected?.label ?? placeholder ?? '',
                   style: TextStyle(
                     fontSize: 14,
-                    color: selected == null ? AppColors.mutedForeground : null,
+                    color: selected == null
+                        ? AppColors.mutedForeground
+                        : null,
                   ),
                 ),
               ),

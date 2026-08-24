@@ -7,6 +7,7 @@ import '../../models/replenishment_item.dart';
 import '../../services/replenishment_service.dart';
 import '../../services/report_service.dart';
 import '../../state/data_bus.dart';
+import '../../widgets/app_dropdown.dart';
 
 // =============================================================================
 // MANAGER REPORTS
@@ -18,6 +19,9 @@ import '../../state/data_bus.dart';
 //   - Shows what inventory was used during a selected month.
 //   - Separates normal usage from waste / expiry losses.
 //   - Summary cards are interactive filters.
+//   - Keeps loss-event count inside item details instead of duplicating it
+//     in the top-level summary/table.
+//   - Supports a top-level inventory category filter.
 //
 // 4.3 Reorder Point with Safety Stock Calculations
 //   - Reuses the SAME ReplenishmentService used by Staff.
@@ -29,6 +33,10 @@ import '../../state/data_bus.dart';
 // UX PRINCIPLE
 //   Show the manager what they need to decide first.
 //   Keep technical calculation details available, but not in the main table.
+//
+// DISPLAY RULE
+//   Report quantities are DISPLAYED with at most 2 decimal places.
+//   Stored values/calculations keep their original precision.
 // =============================================================================
 
 enum _ReportTab {
@@ -41,7 +49,6 @@ enum _UsageFocus {
   itemsUsed,
   usageEvents,
   itemsWithLosses,
-  lossEvents,
 }
 
 enum _RopFocus {
@@ -86,6 +93,12 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
   String _usageSearch = '';
   String _ropSearch = '';
+
+  // Top-level category only (e.g. Medical, Food).
+  //
+  // We intentionally use pCategoryName instead of itemCategory so selecting
+  // Medical also includes Medical > Tablets, Medical > Vaccine, etc.
+  String? _usageCategoryFilter;
 
   @override
   void initState() {
@@ -136,6 +149,14 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
         _ropRows =
             results[1] as List<ReplenishmentItem>;
 
+        // If a category disappears from the newly loaded month, return to All.
+        if (_usageCategoryFilter != null &&
+            !_usageCategoryOptions.contains(
+              _usageCategoryFilter,
+            )) {
+          _usageCategoryFilter = null;
+        }
+
         _loading = false;
         _error = null;
       });
@@ -157,6 +178,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     setState(() {
       _selectedMonth = month;
       _usageFocus = _UsageFocus.all;
+      _usageCategoryFilter = null;
       _loading = true;
       _error = null;
     });
@@ -188,6 +210,35 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
   // MONTHLY USAGE FILTERS
   // ===========================================================================
 
+  List<String> get _usageCategoryOptions {
+    final report = _monthlyUsage;
+
+    if (report == null) {
+      return const [];
+    }
+
+    final categories = <String>{};
+
+    for (final row in report.rows) {
+      final category =
+          row.item.pCategoryName.trim();
+
+      if (category.isNotEmpty) {
+        categories.add(category);
+      }
+    }
+
+    final values = categories.toList()
+      ..sort(
+        (a, b) =>
+            a.toLowerCase().compareTo(
+                  b.toLowerCase(),
+                ),
+      );
+
+    return values;
+  }
+
   List<MonthlyUsageRow> get _filteredUsageRows {
     final report = _monthlyUsage;
 
@@ -208,7 +259,13 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               .toLowerCase()
               .contains(query);
 
-      if (!matchesSearch) {
+      final matchesCategory =
+          _usageCategoryFilter == null ||
+          row.item.pCategoryName ==
+              _usageCategoryFilter;
+
+      if (!matchesSearch ||
+          !matchesCategory) {
         return false;
       }
 
@@ -222,10 +279,6 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
       if (_usageFocus == _UsageFocus.itemsWithLosses) {
         return row.lossQty > 0;
-      }
-
-      if (_usageFocus == _UsageFocus.lossEvents) {
-        return row.lossEvents > 0;
       }
 
       return true;
@@ -250,40 +303,31 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       rows.sort(
         (a, b) => b.lossQty.compareTo(a.lossQty),
       );
-    } else if (_usageFocus == _UsageFocus.lossEvents) {
-      rows.sort((a, b) {
-        final byEvents =
-            b.lossEvents.compareTo(a.lossEvents);
-
-        if (byEvents != 0) {
-          return byEvents;
-        }
-
-        return b.lossQty.compareTo(a.lossQty);
-      });
     }
 
     return rows;
   }
 
   String get _usageFocusLabel {
+    String focusLabel;
+
     if (_usageFocus == _UsageFocus.itemsUsed) {
-      return 'Items used';
+      focusLabel = 'Items used';
+    } else if (_usageFocus ==
+        _UsageFocus.usageEvents) {
+      focusLabel = 'Usage records';
+    } else if (_usageFocus ==
+        _UsageFocus.itemsWithLosses) {
+      focusLabel = 'Items with losses';
+    } else {
+      focusLabel = 'All activity';
     }
 
-    if (_usageFocus == _UsageFocus.usageEvents) {
-      return 'Usage records';
+    if (_usageCategoryFilter == null) {
+      return focusLabel;
     }
 
-    if (_usageFocus == _UsageFocus.itemsWithLosses) {
-      return 'Items with losses';
-    }
-
-    if (_usageFocus == _UsageFocus.lossEvents) {
-      return 'Loss records';
-    }
-
-    return 'All activity';
+    return '$focusLabel • $_usageCategoryFilter';
   }
 
   void _selectUsageFocus(
@@ -311,6 +355,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     setState(() {
       _usageSearch = '';
       _usageFocus = _UsageFocus.all;
+      _usageCategoryFilter = null;
     });
   }
 
@@ -556,17 +601,6 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                 _UsageFocus.itemsWithLosses,
               ),
             ),
-            _InteractiveSummaryCard(
-              icon: Icons.delete_outline,
-              value: '${report.lossEvents}',
-              label: 'Loss Records',
-              helper: 'Times stock expired or was wasted',
-              selected:
-                  _usageFocus == _UsageFocus.lossEvents,
-              onTap: () => _selectUsageFocus(
-                _UsageFocus.lossEvents,
-              ),
-            ),
           ],
         ),
 
@@ -576,7 +610,8 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
           label: _usageFocusLabel,
           active:
               _usageFocus != _UsageFocus.all ||
-              _usageSearch.isNotEmpty,
+              _usageSearch.isNotEmpty ||
+              _usageCategoryFilter != null,
           onClear: _clearUsageFilters,
         ),
 
@@ -587,36 +622,58 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     );
   }
 
+  // UI ORDER MARKER: REPORTS_SEARCH_LEFT_V2
   Widget _buildMonthAndSearch() {
     final narrow =
         MediaQuery.sizeOf(context).width < 850;
 
     final monthPicker =
-        DropdownButtonFormField<DateTime>(
-      initialValue: _selectedMonth,
-      decoration: const InputDecoration(
-        labelText: 'Month',
-        isDense: true,
-        prefixIcon: Icon(
-          Icons.calendar_month_outlined,
-          size: 18,
-        ),
+        AppDropdown<DateTime>(
+      label: _monthYear(
+        _selectedMonth,
       ),
-      items: [
-        for (final month in _monthOptions())
-          DropdownMenuItem(
-            value: month,
-            child: Text(
-              _monthYear(month),
-            ),
+      options: [
+        for (final month
+            in _monthOptions())
+          AppDropdownOption(
+            month,
+            _monthYear(month),
           ),
       ],
-      onChanged: (month) {
-        if (month != null &&
-            month != _selectedMonth) {
+      onSelect: (month) {
+        if (month !=
+            _selectedMonth) {
           _changeMonth(month);
         }
       },
+      expand: narrow,
+    );
+
+    final categoryPicker =
+        AppDropdown<String?>(
+      label:
+          _usageCategoryFilter ??
+          'All Categories',
+      options: [
+        const AppDropdownOption<
+            String?>(
+          null,
+          'All Categories',
+        ),
+        for (final category
+            in _usageCategoryOptions)
+          AppDropdownOption<String?>(
+            category,
+            category,
+          ),
+      ],
+      onSelect: (category) {
+        setState(() {
+          _usageCategoryFilter =
+              category;
+        });
+      },
+      expand: narrow,
     );
 
     final search = TextField(
@@ -649,22 +706,50 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
     if (narrow) {
       return Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.stretch,
         children: [
+          search,
+          const SizedBox(height: 10),
           monthPicker,
           const SizedBox(height: 10),
-          search,
+          categoryPicker,
         ],
       );
     }
 
+    // Desktop order is explicitly forced left-to-right:
+    //
+    // [ SEARCH................................ ] [ MONTH ] [ CATEGORY ]
+    //
+    // Search is the FIRST child and therefore stays on the far LEFT.
+    // The two compact filters are grouped together on the RIGHT.
     return Row(
+      textDirection: TextDirection.ltr,
+      crossAxisAlignment:
+          CrossAxisAlignment.center,
       children: [
-        SizedBox(
-          width: 220,
-          child: monthPicker,
+        Expanded(
+          child: search,
         ),
         const SizedBox(width: 12),
-        Expanded(child: search),
+        Row(
+          mainAxisSize:
+              MainAxisSize.min,
+          textDirection:
+              TextDirection.ltr,
+          children: [
+            SizedBox(
+              width: 220,
+              child: monthPicker,
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 210,
+              child: categoryPicker,
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -686,7 +771,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
         icon: Icons.search_off,
         title: 'No matching records',
         message:
-            'Try another search or clear the selected summary filter.',
+            'Try another search, category, or clear the selected summary filter.',
         actionLabel: 'Clear Filters',
         onAction: _clearUsageFilters,
       );
@@ -1337,7 +1422,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                       ),
                       child: Text(
                         'At the recent usage rate, current stock represents about '
-                        '${formatQty(stockCoverDays)} days of supply.',
+                        '${_reportQtyNumber(stockCoverDays)} days of supply.',
                         style: const TextStyle(
                           fontSize: 11.5,
                           height: 1.4,
@@ -1396,7 +1481,6 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                         ),
 
                         const SizedBox(height: 4),
-
                         Text(
                           row.currentStockPurchaseUnits <= 0
                               ? 'This item has no usable stock remaining. '
@@ -1506,7 +1590,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                               _DetailLine(
                                 label: 'ADU',
                                 value:
-                                    '${formatQty(row.averageDailyUsage)} $unit/day',
+                                    '${_reportQtyNumber(row.averageDailyUsage)} $unit/day',
                               ),
 
                               const SizedBox(
@@ -1527,10 +1611,10 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                               ),
 
                               Text(
-                                '(${formatQty(row.averageDailyUsage)} × '
+                                '(${_reportQtyNumber(row.averageDailyUsage)} × '
                                 '${row.leadTimeDays}) + '
-                                '${formatQty(row.safetyStockQty)} '
-                                '= ${formatQty(rawRop)} $unit',
+                                '${_reportQtyNumber(row.safetyStockQty)} '
+                                '= ${_reportQtyNumber(rawRop)} $unit',
                                 style: const TextStyle(
                                   fontSize: 11.5,
                                   color: AppColors
@@ -1544,7 +1628,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                               Text(
                                 'The calculated value is rounded up to '
-                                '${formatQty(row.reorderPoint)} $unit so the reorder point '
+                                '${_reportQtyNumber(row.reorderPoint)} $unit so the reorder point '
                                 'uses a practical whole purchase quantity.',
                                 style: const TextStyle(
                                   fontSize: 11.5,
@@ -1916,12 +2000,6 @@ class _UsageHeader
             child:
                 _HeaderCell('Lost'),
           ),
-          SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child:
-                _HeaderCell('Loss Records'),
-          ),
           SizedBox(width: 24),
         ],
       ),
@@ -2026,15 +2104,6 @@ class _UsageDesktopRow
                 ),
               ),
 
-              const SizedBox(width: 12),
-
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${row.lossEvents}',
-                ),
-              ),
-
               const SizedBox(width: 6),
 
               const Icon(
@@ -2134,11 +2203,6 @@ class _UsageMobileRow
                       row.lossQty,
                       unit,
                     ),
-                  ),
-                  _MiniMetric(
-                    label: 'Loss Records',
-                    value:
-                        '${row.lossEvents}',
                   ),
                 ],
               ),
@@ -2788,13 +2852,13 @@ class _StockMovementBar extends StatelessWidget {
               color: AppColors.primary,
               label: 'Used',
               value:
-                  '${formatQty(usedQty)} $unit',
+                  '${_reportQtyNumber(usedQty)} $unit',
             ),
             _LegendValue(
               color: AppColors.stockOut,
               label: 'Lost',
               value:
-                  '${formatQty(lossQty)} $unit',
+                  '${_reportQtyNumber(lossQty)} $unit',
             ),
           ],
         ),
@@ -3170,11 +3234,61 @@ class _EmptyState
   }
 }
 
+// =============================================================================
+// REPORT QUANTITY DISPLAY
+// =============================================================================
+//
+// Reports use at most 2 decimal places for readability.
+//
+// Examples:
+// 41       -> 41
+// 3.6      -> 3.6
+// 0.333    -> 0.33
+// 0.038    -> 0.04
+// 0.017    -> 0.02
+//
+// Values smaller than 0.01 but greater than zero are shown as <0.01 rather
+// than 0 so the report never visually turns real usage into "no usage".
+//
+// This is DISPLAY ONLY. No stored quantity or calculation is rounded.
+// =============================================================================
+
+String _reportQtyNumber(
+  double value,
+) {
+  if (!value.isFinite) {
+    return value.toString();
+  }
+
+  if (value == 0) {
+    return '0';
+  }
+
+  if (value.abs() < 0.005) {
+    return value.isNegative
+        ? '>-0.01'
+        : '<0.01';
+  }
+
+  final rounded =
+      value.toStringAsFixed(2);
+
+  return rounded
+      .replaceFirst(
+        RegExp(r'0+$'),
+        '',
+      )
+      .replaceFirst(
+        RegExp(r'\.$'),
+        '',
+      );
+}
+
 String _qty(
   double value,
   String unit,
 ) {
-  return '${formatQty(value)} $unit';
+  return '${_reportQtyNumber(value)} $unit';
 }
 
 const _monthNames = [

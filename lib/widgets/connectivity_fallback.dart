@@ -7,12 +7,9 @@ import '../core/app_colors.dart';
 
 /// App-wide network fallback.
 ///
-/// This wrapper is attached once in [SiyamApp], so Manager, Staff, Donor,
-/// login, registration, and other routed pages all receive the same fallback
-/// when the device has no active network connection.
-///
-/// Existing page logic is preserved underneath the fallback. Once a connection
-/// returns, the current page becomes visible again without forcing navigation.
+/// The routed child is intentionally ALWAYS kept under the same Stack parent.
+/// This avoids reparenting the Router/Navigator subtree when connectivity
+/// changes, which is safer for Flutter's inherited-widget dependency tree.
 class ConnectivityFallback extends StatefulWidget {
   final Widget child;
 
@@ -22,10 +19,12 @@ class ConnectivityFallback extends StatefulWidget {
   });
 
   @override
-  State<ConnectivityFallback> createState() => _ConnectivityFallbackState();
+  State<ConnectivityFallback> createState() =>
+      _ConnectivityFallbackState();
 }
 
-class _ConnectivityFallbackState extends State<ConnectivityFallback> {
+class _ConnectivityFallbackState
+    extends State<ConnectivityFallback> {
   final Connectivity _connectivity = Connectivity();
 
   StreamSubscription<List<ConnectivityResult>>? _subscription;
@@ -50,7 +49,6 @@ class _ConnectivityFallbackState extends State<ConnectivityFallback> {
         _isChecking = false;
       });
     } catch (_) {
-      // If the connectivity API itself cannot be read, do not block the app.
       if (!mounted) return;
 
       setState(() {
@@ -58,12 +56,15 @@ class _ConnectivityFallbackState extends State<ConnectivityFallback> {
       });
     }
 
-    _subscription =
-        _connectivity.onConnectivityChanged.listen(_handleConnectivityChanged);
+    _subscription = _connectivity.onConnectivityChanged.listen(
+      _handleConnectivityChanged,
+    );
   }
 
   bool _hasConnection(List<ConnectivityResult> results) {
-    return results.any((result) => result != ConnectivityResult.none);
+    return results.any(
+      (result) => result != ConnectivityResult.none,
+    );
   }
 
   void _handleConnectivityChanged(List<ConnectivityResult> results) {
@@ -109,86 +110,98 @@ class _ConnectivityFallbackState extends State<ConnectivityFallback> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isChecking || !_isOffline) {
-      return widget.child;
-    }
-
     return Stack(
+      fit: StackFit.expand,
       children: [
-        // Keep the routed page mounted underneath so its state is not lost.
+        // IMPORTANT:
+        // The routed child always stays in this exact slot.
         widget.child,
 
-        Positioned.fill(
-          child: Material(
-            color: AppColors.background,
-            child: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 420,
-                    ),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.border,
-                        ),
+        if (_isOffline)
+          Positioned.fill(
+            child: Material(
+              color: AppColors.background,
+              child: SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 420,
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: AppColors.muted,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.wifi_off_rounded,
-                              size: 32,
-                              color: AppColors.mutedForeground,
-                            ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.border,
                           ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'No internet connection',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.foreground,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Please check your internet connection and try again.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              height: 1.45,
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _retry,
-                              icon: const Icon(
-                                Icons.refresh_rounded,
-                                size: 18,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: AppColors.muted,
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              label: const Text('Try Again'),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.wifi_off_rounded,
+                                size: 32,
+                                color: AppColors.mutedForeground,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 20),
+                            const Text(
+                              'No internet connection',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.foreground,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Please check your internet connection and try again.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                height: 1.45,
+                                color: AppColors.mutedForeground,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _isChecking ? null : _retry,
+                                icon: _isChecking
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.refresh_rounded,
+                                        size: 18,
+                                      ),
+                                label: Text(
+                                  _isChecking
+                                      ? 'Checking...'
+                                      : 'Try Again',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -196,7 +209,6 @@ class _ConnectivityFallbackState extends State<ConnectivityFallback> {
               ),
             ),
           ),
-        ),
       ],
     );
   }

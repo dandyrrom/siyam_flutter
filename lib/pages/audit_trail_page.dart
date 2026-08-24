@@ -7,6 +7,7 @@ import '../models/audit_entry.dart';
 import '../services/audit_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../widgets/app_dropdown.dart';
 
 // =============================================================================
 // ROLE-AWARE AUDIT TRAIL
@@ -25,6 +26,11 @@ import '../state/data_bus.dart';
 //
 // This is intentionally NOT a developer/database log.
 // Technical batch movements remain in batch_transaction_log.
+//
+// UI CONSISTENCY
+// - Module, Action, and Date now use the same shared AppDropdown component
+//   used by Animal Records, Suppliers, and Reports.
+// - Audit filtering/data behavior is unchanged.
 // =============================================================================
 
 enum _AuditPeriod {
@@ -103,6 +109,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   void onExternalDataChanged() {
     _load(silent: true);
   }
+
+  // ===========================================================================
+  // LOAD
+  // ===========================================================================
 
   Future<void> _load({
     bool silent = false,
@@ -213,14 +223,12 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
     return _entries.where((entry) {
       if (_moduleFilter != null &&
-          entry.module !=
-              _moduleFilter) {
+          entry.module != _moduleFilter) {
         return false;
       }
 
       if (_actionFilter != null &&
-          entry.action !=
-              _actionFilter) {
+          entry.action != _actionFilter) {
         return false;
       }
 
@@ -358,7 +366,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   }
 
   // ===========================================================================
-  // BUILD
+  // PAGE
   // ===========================================================================
 
   @override
@@ -540,10 +548,18 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   // ===========================================================================
   // FILTERS
   // ===========================================================================
+  //
+  // These three dropdowns deliberately use the shared AppDropdown widget.
+  // That gives Audit the same rounded trigger, white flyout panel, shadow,
+  // caret, and viewport-aware positioning used across the other SIYAM pages.
+  // ===========================================================================
 
   Widget _buildFilters() {
+    final width =
+        MediaQuery.sizeOf(context).width;
+
     final narrow =
-        MediaQuery.sizeOf(context).width < 1180;
+        width < 1180;
 
     final search = TextField(
       controller: _searchCtrl,
@@ -584,107 +600,92 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       },
     );
 
-    final module = _AuditFilterMenu(
-      label: 'Module',
-      selectedLabel:
-          _moduleFilter ?? 'All modules',
-      selectedValue:
-          _moduleFilter ?? '__all__',
+    final module =
+        AppDropdown<String?>(
+      label:
+          _moduleFilter ??
+          'All modules',
       options: [
-        const _AuditFilterOption(
-          value: '__all__',
-          label: 'All modules',
+        const AppDropdownOption<String?>(
+          null,
+          'All modules',
         ),
-        for (final value in _visibleModuleOptions)
-          _AuditFilterOption(
-            value: value,
-            label: value,
+        for (final value
+            in _visibleModuleOptions)
+          AppDropdownOption<String?>(
+            value,
+            value,
           ),
       ],
-      onSelected: (value) {
+      onSelect: (value) {
         setState(() {
-          _moduleFilter =
-              value == '__all__'
-                  ? null
-                  : value;
+          _moduleFilter = value;
           _page = 0;
         });
       },
     );
 
-    final action = _AuditFilterMenu(
-      label: 'Action',
-      selectedLabel:
+    final action =
+        AppDropdown<String?>(
+      label:
           _actionFilter == null
               ? 'All actions'
               : _actionLabel(
                   _actionFilter!,
                   isStaff: _isStaff,
                 ),
-      selectedValue:
-          _actionFilter ?? '__all__',
       options: [
-        const _AuditFilterOption(
-          value: '__all__',
-          label: 'All actions',
+        const AppDropdownOption<String?>(
+          null,
+          'All actions',
         ),
-        const _AuditFilterOption(
-          value: 'CREATE',
-          label: 'Created / recorded',
+        const AppDropdownOption<String?>(
+          'CREATE',
+          'Created / recorded',
         ),
-        const _AuditFilterOption(
-          value: 'UPDATE',
-          label: 'Updated',
+        const AppDropdownOption<String?>(
+          'UPDATE',
+          'Updated',
         ),
-        _AuditFilterOption(
-          value: 'DELETE',
-          label:
-              _isStaff
-                  ? 'Removed'
-                  : 'Archived',
+        AppDropdownOption<String?>(
+          'DELETE',
+          _isStaff
+              ? 'Removed'
+              : 'Archived',
         ),
       ],
-      onSelected: (value) {
+      onSelect: (value) {
         setState(() {
-          _actionFilter =
-              value == '__all__'
-                  ? null
-                  : value;
+          _actionFilter = value;
           _page = 0;
         });
       },
     );
 
-    final period = _AuditFilterMenu(
-      label: 'Date',
-      selectedLabel:
-          _periodLabel(_period),
-      selectedValue:
-          _period.name,
+    final period =
+        AppDropdown<_AuditPeriod>(
+      label: _periodLabel(_period),
       options: const [
-        _AuditFilterOption(
-          value: 'all',
-          label: 'All time',
+        AppDropdownOption(
+          _AuditPeriod.all,
+          'All time',
         ),
-        _AuditFilterOption(
-          value: 'today',
-          label: 'Today',
+        AppDropdownOption(
+          _AuditPeriod.today,
+          'Today',
         ),
-        _AuditFilterOption(
-          value: 'sevenDays',
-          label: 'Last 7 days',
+        AppDropdownOption(
+          _AuditPeriod.sevenDays,
+          'Last 7 days',
         ),
-        _AuditFilterOption(
-          value: 'thirtyDays',
-          label: 'Last 30 days',
+        AppDropdownOption(
+          _AuditPeriod.thirtyDays,
+          'Last 30 days',
         ),
       ],
-      onSelected: (value) {
-        final selected =
-            _auditPeriodFromName(value);
-
+      onSelect: (value) {
         setState(() {
-          _period = selected;
+          _period = value;
           _page = 0;
         });
       },
@@ -692,45 +693,39 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
     if (narrow) {
       return Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.stretch,
         children: [
           search,
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment:
+                WrapCrossAlignment.center,
             children: [
-              Expanded(child: module),
-              const SizedBox(width: 10),
-              Expanded(child: action),
+              module,
+              action,
+              period,
             ],
           ),
-          const SizedBox(height: 10),
-          period,
         ],
       );
     }
 
     return Row(
       crossAxisAlignment:
-          CrossAxisAlignment.start,
+          CrossAxisAlignment.center,
       children: [
         Expanded(
-          flex: 4,
           child: search,
         ),
+        const SizedBox(width: 12),
+        module,
         const SizedBox(width: 10),
-        SizedBox(
-          width: 185,
-          child: module,
-        ),
+        action,
         const SizedBox(width: 10),
-        SizedBox(
-          width: 205,
-          child: action,
-        ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 165,
-          child: period,
-        ),
+        period,
       ],
     );
   }
@@ -1053,6 +1048,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     );
   }
 
+  // ===========================================================================
+  // CHANGE DETAILS
+  // ===========================================================================
+
   List<_AuditChange> _changedFields(
     AuditEntry entry,
   ) {
@@ -1072,7 +1071,8 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       ...newValues.keys,
     };
 
-    final rows = <_AuditChange>[];
+    final rows =
+        <_AuditChange>[];
 
     for (final key in keys) {
       if (_hiddenChangeKeys.contains(
@@ -1130,7 +1130,9 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     }
 
     if (value is bool) {
-      return value ? 'Yes' : 'No';
+      return value
+          ? 'Yes'
+          : 'No';
     }
 
     final text =
@@ -1207,7 +1209,8 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       'reason': 'Reason',
     };
 
-    final known = labels[key];
+    final known =
+        labels[key];
 
     if (known != null) {
       return known;
@@ -1263,13 +1266,14 @@ class _AuditTrailPageState extends State<AuditTrailPage>
         ),
 
         TextButton.icon(
-          onPressed: _page <= 0
-              ? null
-              : () {
-                  setState(() {
-                    _page--;
-                  });
-                },
+          onPressed:
+              _page <= 0
+                  ? null
+                  : () {
+                      setState(() {
+                        _page--;
+                      });
+                    },
           icon: const Icon(
             Icons.chevron_left,
             size: 17,
@@ -1324,130 +1328,6 @@ class _AuditTrailPageState extends State<AuditTrailPage>
               const Text('Next'),
         ),
       ],
-    );
-  }
-}
-
-// =============================================================================
-// CONSISTENT FILTER MENUS
-// =============================================================================
-//
-// Flutter's standard dropdown tries to position the currently selected item
-// close to the field. That is why selecting a lower option can make the menu
-// appear above the field.
-//
-// These popup menus are explicitly anchored UNDER the field, so Module,
-// Action, and Date open from the same place regardless of the selected option.
-// =============================================================================
-
-class _AuditFilterOption {
-  final String value;
-  final String label;
-
-  const _AuditFilterOption({
-    required this.value,
-    required this.label,
-  });
-}
-
-class _AuditFilterMenu extends StatelessWidget {
-  final String label;
-  final String selectedLabel;
-  final String selectedValue;
-  final List<_AuditFilterOption> options;
-  final ValueChanged<String> onSelected;
-
-  const _AuditFilterMenu({
-    required this.label,
-    required this.selectedLabel,
-    required this.selectedValue,
-    required this.options,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: '',
-      position: PopupMenuPosition.under,
-      offset: const Offset(0, 5),
-      color: Colors.white,
-      surfaceTintColor: Colors.white,
-      elevation: 7,
-      onSelected: onSelected,
-      itemBuilder: (menuContext) {
-        return [
-          for (final option in options)
-            PopupMenuItem<String>(
-              value: option.value,
-              height: 46,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    child:
-                        option.value ==
-                                selectedValue
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color:
-                                    AppColors.primary,
-                              )
-                            : null,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      option.label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight:
-                            option.value ==
-                                    selectedValue
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                        color:
-                            AppColors.foreground,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ];
-      },
-      child: InputDecorator(
-        isEmpty: false,
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                selectedLabel,
-                maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color:
-                      AppColors.foreground,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.arrow_drop_down,
-              size: 20,
-              color:
-                  AppColors.mutedForeground,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -2274,9 +2154,13 @@ class _AuditEntityContext
   ) {
     final parts = value
         .split(' · ')
-        .map((part) => part.trim())
+        .map(
+          (part) =>
+              part.trim(),
+        )
         .where(
-          (part) => part.isNotEmpty,
+          (part) =>
+              part.isNotEmpty,
         )
         .toList();
 
@@ -2294,11 +2178,16 @@ class _AuditEntityContext
       }
 
       final rawLabel = part
-          .substring(0, separator)
+          .substring(
+            0,
+            separator,
+          )
           .trim();
 
       final fieldValue = part
-          .substring(separator + 1)
+          .substring(
+            separator + 1,
+          )
           .trim();
 
       if (rawLabel.isEmpty ||
@@ -2440,9 +2329,13 @@ class _ContextTextCard
   Widget build(BuildContext context) {
     final items = text
         .split(',')
-        .map((item) => item.trim())
+        .map(
+          (item) =>
+              item.trim(),
+        )
         .where(
-          (item) => item.isNotEmpty,
+          (item) =>
+              item.isNotEmpty,
         )
         .toList();
 
@@ -2458,55 +2351,59 @@ class _ContextTextCard
           color: AppColors.border,
         ),
       ),
-      child: items.length <= 1
-          ? Text(
-              text,
-              style: const TextStyle(
-                fontSize: 12.2,
-                height: 1.4,
-                fontWeight:
-                    FontWeight.w600,
-              ),
-            )
-          : Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final item
-                    in items)
-                  Container(
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration:
-                        BoxDecoration(
-                      color:
-                          AppColors.card,
-                      borderRadius:
-                          BorderRadius
-                              .circular(
-                        999,
-                      ),
-                      border: Border.all(
-                        color:
-                            AppColors.border,
-                      ),
-                    ),
-                    child: Text(
-                      item,
-                      style:
-                          const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
-                    ),
+      child:
+          items.length <= 1
+              ? Text(
+                  text,
+                  style:
+                      const TextStyle(
+                    fontSize: 12.2,
+                    height: 1.4,
+                    fontWeight:
+                        FontWeight.w600,
                   ),
-              ],
-            ),
+                )
+              : Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final item
+                        in items)
+                      Container(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration:
+                            BoxDecoration(
+                          color:
+                              AppColors.card,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            999,
+                          ),
+                          border:
+                              Border.all(
+                            color:
+                                AppColors.border,
+                          ),
+                        ),
+                        child: Text(
+                          item,
+                          style:
+                              const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight:
+                                FontWeight
+                                    .w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
     );
   }
 }
@@ -2671,9 +2568,10 @@ class _BeforeAfter
           value,
           style: TextStyle(
             fontSize: 11.5,
-            fontWeight: strong
-                ? FontWeight.w700
-                : FontWeight.w500,
+            fontWeight:
+                strong
+                    ? FontWeight.w700
+                    : FontWeight.w500,
           ),
         ),
       ],
@@ -2805,21 +2703,6 @@ String _periodLabel(
       return 'Last 30 days';
     case _AuditPeriod.all:
       return 'All time';
-  }
-}
-
-_AuditPeriod _auditPeriodFromName(
-  String value,
-) {
-  switch (value) {
-    case 'today':
-      return _AuditPeriod.today;
-    case 'sevenDays':
-      return _AuditPeriod.sevenDays;
-    case 'thirtyDays':
-      return _AuditPeriod.thirtyDays;
-    default:
-      return _AuditPeriod.all;
   }
 }
 
