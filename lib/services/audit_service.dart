@@ -29,14 +29,15 @@ class AuditService {
     List<String>? modules,
     bool includeChangeDetails = true,
   }) async {
-    final selectedColumns =
-        includeChangeDetails
-            ? 'auditid, actor_user_id, module, action, '
-                'entity_type, entity_id, entity_label, summary, '
-                'old_values, new_values, createdat'
-            : 'auditid, actor_user_id, module, action, '
-                'entity_type, entity_id, entity_label, summary, '
-                'createdat';
+    // Always fetch before/after JSON internally so the service can resolve
+    // human-readable entity context even for Staff My Activity.
+    //
+    // Staff still do NOT receive these maps in AuditEntry when
+    // includeChangeDetails is false.
+    const selectedColumns =
+        'auditid, actor_user_id, module, action, '
+        'entity_type, entity_id, entity_label, summary, '
+        'old_values, new_values, createdat';
 
     var auditQuery =
         _client
@@ -90,6 +91,24 @@ class AuditService {
       _client
           .from('pet')
           .select('id, name'),
+
+      _client
+          .from('purchase_item')
+          .select('purchaseid, itemid'),
+
+      _client
+          .from('treatment')
+          .select('id, name, petid'),
+
+      _client
+          .from('treatment_item')
+          .select(
+            'treatmentitemid, treatid, itemid, dispensed_qty, dispense_unit',
+          ),
+
+      _client
+          .from('units')
+          .select('id, abbr_name'),
     ]);
 
     final auditRows =
@@ -106,6 +125,18 @@ class AuditService {
 
     final petRows =
         results[4] as List<dynamic>;
+
+    final purchaseItemRows =
+        results[5] as List<dynamic>;
+
+    final treatmentRows =
+        results[6] as List<dynamic>;
+
+    final treatmentItemRows =
+        results[7] as List<dynamic>;
+
+    final unitRows =
+        results[8] as List<dynamic>;
 
     final users =
         <String, ({String name, String role})>{};
@@ -146,6 +177,58 @@ class AuditService {
                 'Unknown item'),
     };
 
+    // ==========================================================================
+    // PURCHASE STOCK-IN ITEM LABELS
+    // ==========================================================================
+    //
+    // The overall purchase audit is stored on the purchase record, while the
+    // actual stocked item lines are stored in purchase_item.
+    // Resolve those item names here so My Activity can show what was stocked.
+    // ==========================================================================
+
+    final purchaseItems =
+        <String, List<String>>{};
+
+    for (final raw in purchaseItemRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      final purchaseId =
+          row['purchaseid'] as String?;
+
+      final itemId =
+          row['itemid'] as String?;
+
+      if (purchaseId == null ||
+          itemId == null) {
+        continue;
+      }
+
+      final itemName =
+          items[itemId] ?? 'Unknown item';
+
+      final names =
+          purchaseItems.putIfAbsent(
+        purchaseId,
+        () => <String>[],
+      );
+
+      if (!names.contains(itemName)) {
+        names.add(itemName);
+      }
+    }
+
+    for (final names
+        in purchaseItems.values) {
+      names.sort(
+        (a, b) => a
+            .toLowerCase()
+            .compareTo(
+              b.toLowerCase(),
+            ),
+      );
+    }
+
     final suppliers = <String, String>{
       for (final raw in supplierRows)
         (raw['id'] as String):
@@ -159,6 +242,120 @@ class AuditService {
             ((raw['name'] as String?) ??
                 'Unknown animal'),
     };
+
+    // ==========================================================================
+    // TREATMENT AUDIT CONTEXT
+    // ==========================================================================
+    //
+    // Staff My Activity should answer:
+    //
+    //   Which animal?
+    //   Which treatment?
+    //   Which inventory item?
+    //   How much was used?
+    //
+    // The raw audit row remains unchanged. These maps only enrich the
+    // client-facing read-only presentation.
+    // ==========================================================================
+
+    final units = <String, String>{
+      for (final raw in unitRows)
+        (raw['id'] as String):
+            ((raw['abbr_name'] as String?) ?? ''),
+    };
+
+    final treatments =
+        <String, ({String name, String petName})>{};
+
+    for (final raw in treatmentRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      final treatmentId =
+          row['id'] as String;
+
+      final petId =
+          row['petid'] as String?;
+
+      final treatmentName =
+          ((row['name'] as String?) ?? '')
+              .trim();
+
+      treatments[treatmentId] = (
+        name:
+            treatmentName.isEmpty
+                ? 'Treatment'
+                : treatmentName,
+        petName:
+            petId == null
+                ? 'Unknown animal'
+                : (pets[petId] ??
+                    'Unknown animal'),
+      );
+    }
+
+    final treatmentItems =
+        <String, String>{};
+
+    for (final raw in treatmentItemRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      final treatmentItemId =
+          row['treatmentitemid'] as String?;
+
+      final treatmentId =
+          row['treatid'] as String?;
+
+      final itemId =
+          row['itemid'] as String?;
+
+      if (treatmentItemId == null ||
+          treatmentId == null ||
+          itemId == null) {
+        continue;
+      }
+
+      final treatment =
+          treatments[treatmentId];
+
+      final treatmentName =
+          treatment?.name ?? 'Treatment';
+
+      final petName =
+          treatment?.petName ??
+              'Unknown animal';
+
+      final itemName =
+          items[itemId] ?? 'Unknown item';
+
+      final qty =
+          (row['dispensed_qty'] as num?)
+                  ?.toDouble() ??
+              0;
+
+      final dispenseUnitId =
+          row['dispense_unit'] as String?;
+
+      final unitAbbr =
+          dispenseUnitId == null
+              ? ''
+              : (units[dispenseUnitId] ?? '');
+
+      final qtyLabel =
+          _formatAuditQty(qty);
+
+      final quantityText =
+          unitAbbr.trim().isEmpty
+              ? qtyLabel
+              : '$qtyLabel $unitAbbr';
+
+      treatmentItems[treatmentItemId] =
+          'Animal: $petName · '
+          'Treatment: $treatmentName · '
+          'Item used: $itemName · '
+          'Qty: $quantityText';
+    }
 
     final entries =
         <AuditEntry>[];
@@ -176,12 +373,12 @@ class AuditService {
               ? null
               : users[actorId];
 
-      final oldValues =
+      final internalOldValues =
           _jsonMap(
         row['old_values'],
       );
 
-      final newValues =
+      final internalNewValues =
           _jsonMap(
         row['new_values'],
       );
@@ -191,25 +388,50 @@ class AuditService {
                   as String?) ??
               '';
 
+      final entityId =
+          row['entity_id']
+              as String?;
+
       var entityLabel =
           row['entity_label']
               as String?;
 
-      entityLabel ??=
+      final resolvedEntityLabel =
           _resolveEntityLabel(
         entityType:
             entityType,
+        entityId:
+            entityId,
         oldValues:
-            oldValues,
+            internalOldValues,
         newValues:
-            newValues,
+            internalNewValues,
         items:
             items,
         suppliers:
             suppliers,
         pets:
             pets,
+        purchaseItems:
+            purchaseItems,
+        treatments:
+            treatments,
+        treatmentItems:
+            treatmentItems,
+        units:
+            units,
       );
+
+      if (entityType == 'purchase' ||
+          entityType == 'treatment' ||
+          entityType == 'treatment_item') {
+        entityLabel =
+            resolvedEntityLabel ??
+                entityLabel;
+      } else {
+        entityLabel ??=
+            resolvedEntityLabel;
+      }
 
       var summary =
           (row['summary'] as String?) ??
@@ -247,16 +469,19 @@ class AuditService {
           entityType:
               entityType,
           entityId:
-              row['entity_id']
-                  as String?,
+              entityId,
           entityLabel:
               entityLabel,
           summary:
               summary,
           oldValues:
-              oldValues,
+              includeChangeDetails
+                  ? internalOldValues
+                  : null,
           newValues:
-              newValues,
+              includeChangeDetails
+                  ? internalNewValues
+                  : null,
           createdAt:
               DateTime.parse(
             row['createdat']
@@ -292,6 +517,7 @@ class AuditService {
 
   String? _resolveEntityLabel({
     required String entityType,
+    required String? entityId,
     required Map<String, dynamic>?
         oldValues,
     required Map<String, dynamic>?
@@ -299,7 +525,49 @@ class AuditService {
     required Map<String, String> items,
     required Map<String, String> suppliers,
     required Map<String, String> pets,
+    required Map<String, List<String>>
+        purchaseItems,
+    required Map<
+        String,
+        ({String name, String petName})>
+        treatments,
+    required Map<String, String>
+        treatmentItems,
+    required Map<String, String> units,
   }) {
+    if (entityType == 'purchase' &&
+        entityId != null) {
+      final stockedItems =
+          purchaseItems[entityId];
+
+      if (stockedItems != null &&
+          stockedItems.isNotEmpty) {
+        return stockedItems.join(', ');
+      }
+    }
+
+    if (entityType == 'treatment' &&
+        entityId != null) {
+      final treatment =
+          treatments[entityId];
+
+      if (treatment != null) {
+        return 'Animal: ${treatment.petName}';
+      }
+    }
+
+    // Try the generic audit entity id directly against treatment_item PKs.
+    // This does not depend on the exact entity_type text used by the trigger.
+    if (entityId != null) {
+      final context =
+          treatmentItems[entityId];
+
+      if (context != null &&
+          context.trim().isNotEmpty) {
+        return context;
+      }
+    }
+
     final data =
         newValues ?? oldValues;
 
@@ -307,8 +575,69 @@ class AuditService {
       return null;
     }
 
+    // Live SIYAM treatment_item primary key.
+    final treatmentItemId =
+        data['treatmentitemid'] as String?;
+
+    if (treatmentItemId != null) {
+      final context =
+          treatmentItems[treatmentItemId];
+
+      if (context != null &&
+          context.trim().isNotEmpty) {
+        return context;
+      }
+    }
+
+    // Fallback for audit rows where entity_id is missing or generic.
+    // The audit payload still contains the real treatment/item relationship.
+    final treatmentId =
+        data['treatid'] as String?;
+
     final itemId =
         data['itemid'] as String?;
+
+    if (treatmentId != null &&
+        itemId != null) {
+      final treatment =
+          treatments[treatmentId];
+
+      final treatmentName =
+          treatment?.name ?? 'Treatment';
+
+      final petName =
+          treatment?.petName ??
+              'Unknown animal';
+
+      final itemName =
+          items[itemId] ?? 'Unknown item';
+
+      final qty =
+          (data['dispensed_qty'] as num?)
+                  ?.toDouble() ??
+              0;
+
+      final dispenseUnitId =
+          data['dispense_unit'] as String?;
+
+      final unitAbbr =
+          dispenseUnitId == null
+              ? ''
+              : (units[dispenseUnitId] ?? '');
+
+      final qtyLabel =
+          _formatAuditQty(qty);
+
+      final quantityText =
+          unitAbbr.trim().isEmpty
+              ? qtyLabel
+              : '$qtyLabel $unitAbbr';
+
+      return 'Animal: $petName · '
+          'Treatment: $treatmentName · '
+          'Item used: $itemName · '
+          'Qty: $quantityText';
+    }
 
     if (itemId != null &&
         items.containsKey(itemId)) {
@@ -366,9 +695,7 @@ class AuditService {
     }
 
     const addLabelFor = {
-      'purchase',
       'stock_out',
-      'treatment_item',
       'item_rop_settings',
     };
 
@@ -379,6 +706,25 @@ class AuditService {
     }
 
     return '$summary — $label';
+  }
+
+  String _formatAuditQty(
+    double value,
+  ) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+
+    return value
+        .toStringAsFixed(3)
+        .replaceFirst(
+          RegExp(r'0+$'),
+          '',
+        )
+        .replaceFirst(
+          RegExp(r'\.$'),
+          '',
+        );
   }
 
   String _roleLabel(

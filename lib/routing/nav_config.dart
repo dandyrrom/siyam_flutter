@@ -26,14 +26,14 @@ class NavItem {
 ///   Profile, Notifications
 ///
 /// Staff:
-///   Dashboard, Inventory, Medical, Purchases & Replenishment, Reports,
+///   Dashboard, Inventory, Medical, Ordering, Reports,
 ///   My Activity, Profile, Notifications
 ///
 /// Donor:
 ///   Dashboard, Donate, Impacts, Donations, Profile, Notifications
 ///
 /// PANEL REVISION:
-/// Purchase and Replenishment are one Staff navigation item.
+/// Purchase and Replenishment are presented to Staff as one Ordering module.
 /// Donations approval/stock-in is handled by Manager.
 /// Staff receives limited read-only access to their own operational audit
 /// activity through My Activity.
@@ -97,7 +97,7 @@ const List<NavItem> kNavItems = [
     roles: [AppRole.staff],
   ),
   NavItem(
-    label: 'Purchases & Replenishment',
+    label: 'Ordering',
     path: '/purchase-orders',
     icon: Icons.shopping_cart_outlined,
     roles: [AppRole.staff],

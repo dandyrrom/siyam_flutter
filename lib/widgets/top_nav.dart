@@ -25,9 +25,9 @@ const Map<String, String> kBreadcrumbLabels = {
   'animal-records': 'Animals',
   'suppliers': 'Suppliers',
 
-  // Purchase + Replenishment are now one module.
-  'purchase-orders': 'Purchases & Replenishment',
-  'replenishment': 'Purchases & Replenishment',
+  // Purchase + Replenishment are presented to Staff as Ordering.
+  'purchase-orders': 'Ordering',
+  'replenishment': 'Ordering',
 
   'audit-trail': 'Audit Trail',
   'settings': 'Settings',
@@ -63,7 +63,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
   //   Inventory > Whiskas
   //
   // /purchase-orders/<uuid>
-  //   Purchases & Replenishment > Purchase Details
+  //   Ordering > Purchase Details
   //
   // /donations/<uuid>
   //   Donations > Donation Details
@@ -102,7 +102,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
     }
 
     // -------------------------------------------------------------------------
-    // PURCHASES & REPLENISHMENT
+    // ORDERING
     // -------------------------------------------------------------------------
 
     if (parts.isNotEmpty && parts.first == 'purchase-orders') {

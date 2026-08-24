@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../core/app_colors.dart';
+import '../models/app_user.dart';
 import '../models/inventory_item.dart';
 import '../services/dashboard_service.dart';
 import '../services/expiry_alerts.dart';
 import '../services/inventory_service.dart';
+import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/notification_alerts.dart';
 
@@ -43,6 +46,20 @@ class _NotificationDetailPageState
   bool _loading = true;
   bool _notFound = false;
   bool _activeAlert = true;
+
+  bool get _isManager =>
+      context
+          .read<AuthController>()
+          .profile
+          ?.role ==
+      AppRole.manager;
+
+  bool get _canOpenInventory =>
+      context
+          .read<AuthController>()
+          .profile
+          ?.role ==
+      AppRole.staff;
 
   @override
   void initState() {
@@ -286,22 +303,24 @@ class _NotificationDetailPageState
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  if (_canOpenInventory) ...[
+                    const SizedBox(height: 14),
 
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        context.push(
-                      '/inventory/${item.itemId}',
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          context.push(
+                        '/inventory/${item.itemId}',
+                      ),
+                      icon: const Icon(
+                        Icons
+                            .inventory_2_outlined,
+                        size: 16,
+                      ),
+                      label: const Text(
+                        'View Inventory Item',
+                      ),
                     ),
-                    icon: const Icon(
-                      Icons
-                          .inventory_2_outlined,
-                      size: 16,
-                    ),
-                    label: const Text(
-                      'View Inventory Item',
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -432,28 +451,30 @@ class _NotificationDetailPageState
             ),
           ],
 
-          const SizedBox(height: 20),
+          if (_canOpenInventory) ...[
+            const SizedBox(height: 20),
 
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () =>
-                  context.push(
-                '/inventory/${item.itemId}',
-              ),
-              icon: const Icon(
-                Icons.inventory_2_outlined,
-                size: 16,
-              ),
-              label: Text(
-                widget.kind ==
-                        NotifKind
-                            .expiredStock
-                    ? 'View Item & Remove Expired Stock'
-                    : 'View Inventory Item',
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    context.push(
+                  '/inventory/${item.itemId}',
+                ),
+                icon: const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 16,
+                ),
+                label: Text(
+                  widget.kind ==
+                          NotifKind
+                              .expiredStock
+                      ? 'View Item & Remove Expired Stock'
+                      : 'View Inventory Item',
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -583,11 +604,24 @@ class _NotificationDetailPageState
   }
 
   String? get _guidanceText {
+    if (_isManager) {
+      return switch (widget.kind) {
+        NotifKind.expiredStock =>
+          'This stock is excluded from usable inventory and should be recorded for removal by Staff.',
+        NotifKind.expiry =>
+          'This is the nearest valid batch expiry. The system will automatically prioritize the earliest-expiring usable batch during dispensing.',
+        NotifKind.zeroStock =>
+          'No usable stock remains for this item. Replenishment may be required.',
+        NotifKind.lowStock =>
+          'Usable stock has reached the configured low-stock threshold.',
+      };
+    }
+
     return switch (widget.kind) {
       NotifKind.expiredStock =>
         'This stock is excluded from usable inventory. Open the item, choose Dispense, then select Expired to record its removal.',
       NotifKind.expiry =>
-        'This is the nearest valid batch expiry. FEFO will automatically prioritize this batch during normal dispensing.',
+        'This is the nearest valid batch expiry. The system will automatically prioritize the earliest-expiring usable batch during normal dispensing.',
       NotifKind.zeroStock =>
         'No usable stock remains for this item. Consider adding it to Goods Received or replenishment.',
       NotifKind.lowStock =>

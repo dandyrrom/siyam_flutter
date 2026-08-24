@@ -238,7 +238,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
         entry.actorRole,
         entry.module,
         entry.entityLabel ?? '',
-        _actionLabel(entry.action),
+        _actionLabel(
+          entry.action,
+          isStaff: _isStaff,
+        ),
       ].join(' ').toLowerCase();
 
       return haystack.contains(query);
@@ -616,25 +619,29 @@ class _AuditTrailPageState extends State<AuditTrailPage>
               ? 'All actions'
               : _actionLabel(
                   _actionFilter!,
+                  isStaff: _isStaff,
                 ),
       selectedValue:
           _actionFilter ?? '__all__',
-      options: const [
-        _AuditFilterOption(
+      options: [
+        const _AuditFilterOption(
           value: '__all__',
           label: 'All actions',
         ),
-        _AuditFilterOption(
+        const _AuditFilterOption(
           value: 'CREATE',
           label: 'Created / recorded',
         ),
-        _AuditFilterOption(
+        const _AuditFilterOption(
           value: 'UPDATE',
           label: 'Updated',
         ),
         _AuditFilterOption(
           value: 'DELETE',
-          label: 'Deleted / reset',
+          label:
+              _isStaff
+                  ? 'Removed'
+                  : 'Archived',
         ),
       ],
       onSelected: (value) {
@@ -789,6 +796,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
             if (mobile)
               _AuditMobileRow(
                 entry: rows[i],
+                isStaff: _isStaff,
                 onTap: () =>
                     _showDetails(
                   rows[i],
@@ -797,6 +805,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
             else
               _AuditDesktopRow(
                 entry: rows[i],
+                isStaff: _isStaff,
                 onTap: () =>
                     _showDetails(
                   rows[i],
@@ -868,6 +877,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                   _ActionBadge(
                     action:
                         entry.action,
+                    isStaff: _isStaff,
                   ),
                 ],
               ),
@@ -919,6 +929,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                     value:
                         _actionLabel(
                       entry.action,
+                      isStaff: _isStaff,
                     ),
                   ),
 
@@ -936,10 +947,11 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                       entry.entityLabel!
                           .trim()
                           .isNotEmpty)
-                    _DetailRow(
-                      label: 'Record',
-                      value: entry
-                          .entityLabel!,
+                    _AuditEntityContext(
+                      entityType:
+                          entry.entityType,
+                      entityLabel:
+                          entry.entityLabel!,
                     ),
 
                   if (!_isStaff &&
@@ -1149,6 +1161,8 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     'updated_at',
     'recordeddate',
     'receiveddate',
+    'active_session_id',
+    'active_session_last_seen',
     'total_purchase_stocks',
     'total_package_stocks',
     'total_package_stock_ins',
@@ -1755,10 +1769,12 @@ class _AuditHeader
 class _AuditDesktopRow
     extends StatelessWidget {
   final AuditEntry entry;
+  final bool isStaff;
   final VoidCallback onTap;
 
   const _AuditDesktopRow({
     required this.entry,
+    required this.isStaff,
     required this.onTap,
   });
 
@@ -1804,7 +1820,10 @@ class _AuditDesktopRow
                             .isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        entry.entityLabel!,
+                        entry.entityType ==
+                                'purchase'
+                            ? 'Stocked items: ${entry.entityLabel!}'
+                            : entry.entityLabel!,
                         overflow:
                             TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -1881,6 +1900,7 @@ class _AuditDesktopRow
                 child: _ActionBadge(
                   action:
                       entry.action,
+                  isStaff: isStaff,
                 ),
               ),
 
@@ -1919,10 +1939,12 @@ class _AuditDesktopRow
 class _AuditMobileRow
     extends StatelessWidget {
   final AuditEntry entry;
+  final bool isStaff;
   final VoidCallback onTap;
 
   const _AuditMobileRow({
     required this.entry,
+    required this.isStaff,
     required this.onTap,
   });
 
@@ -1962,6 +1984,24 @@ class _AuditMobileRow
                 ],
               ),
 
+              if (entry.entityLabel != null &&
+                  entry.entityLabel!
+                      .trim()
+                      .isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  entry.entityType ==
+                          'purchase'
+                      ? 'Stocked items: ${entry.entityLabel!}'
+                      : entry.entityLabel!,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color:
+                        AppColors.mutedForeground,
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 7),
 
               Wrap(
@@ -1975,6 +2015,7 @@ class _AuditMobileRow
                   _ActionBadge(
                     action:
                         entry.action,
+                    isStaff: isStaff,
                   ),
                 ],
               ),
@@ -2069,15 +2110,20 @@ class _ModuleBadge
 class _ActionBadge
     extends StatelessWidget {
   final String action;
+  final bool isStaff;
 
   const _ActionBadge({
     required this.action,
+    required this.isStaff,
   });
 
   @override
   Widget build(BuildContext context) {
     final (label, color) =
-        _actionMeta(action);
+        _actionMeta(
+      action,
+      isStaff: isStaff,
+    );
 
     return Container(
       padding:
@@ -2137,6 +2183,334 @@ class _SectionTitle
   }
 }
 
+class _AuditEntityContext
+    extends StatelessWidget {
+  final String entityType;
+  final String entityLabel;
+
+  const _AuditEntityContext({
+    required this.entityType,
+    required this.entityLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final clean =
+        entityLabel.trim();
+
+    if (entityType ==
+        'treatment_item') {
+      final fields =
+          _parseContextFields(clean);
+
+      if (fields.isNotEmpty) {
+        return Padding(
+          padding:
+              const EdgeInsets.only(
+            top: 8,
+            bottom: 5,
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              const _SectionTitle(
+                'Treatment details',
+              ),
+              _ContextCard(
+                fields: fields,
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    if (entityType == 'purchase') {
+      return Padding(
+        padding:
+            const EdgeInsets.only(
+          top: 8,
+          bottom: 5,
+        ),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            const _SectionTitle(
+              'Stocked items',
+            ),
+            _ContextTextCard(
+              text: clean,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (entityType == 'treatment') {
+      final animal =
+          clean.startsWith(
+        'Animal: ',
+      )
+              ? clean.substring(8)
+              : clean;
+
+      return _DetailRow(
+        label: 'Animal',
+        value: animal,
+      );
+    }
+
+    return _DetailRow(
+      label: 'Record',
+      value: clean,
+    );
+  }
+
+  List<_ContextField>
+      _parseContextFields(
+    String value,
+  ) {
+    final parts = value
+        .split(' · ')
+        .map((part) => part.trim())
+        .where(
+          (part) => part.isNotEmpty,
+        )
+        .toList();
+
+    final fields =
+        <_ContextField>[];
+
+    for (final part in parts) {
+      final separator =
+          part.indexOf(':');
+
+      if (separator <= 0 ||
+          separator >=
+              part.length - 1) {
+        continue;
+      }
+
+      final rawLabel = part
+          .substring(0, separator)
+          .trim();
+
+      final fieldValue = part
+          .substring(separator + 1)
+          .trim();
+
+      if (rawLabel.isEmpty ||
+          fieldValue.isEmpty) {
+        continue;
+      }
+
+      final label =
+          rawLabel == 'Qty'
+              ? 'Quantity'
+              : rawLabel;
+
+      fields.add(
+        _ContextField(
+          label: label,
+          value: fieldValue,
+        ),
+      );
+    }
+
+    return fields;
+  }
+}
+
+class _ContextField {
+  final String label;
+  final String value;
+
+  const _ContextField({
+    required this.label,
+    required this.value,
+  });
+}
+
+class _ContextCard
+    extends StatelessWidget {
+  final List<_ContextField> fields;
+
+  const _ContextCard({
+    required this.fields,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0;
+              i < fields.length;
+              i++) ...[
+            if (i > 0)
+              const Divider(
+                height: 1,
+                color: AppColors.border,
+              ),
+            _ContextFieldRow(
+              field: fields[i],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ContextFieldRow
+    extends StatelessWidget {
+  final _ContextField field;
+
+  const _ContextFieldRow({
+    required this.field,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(
+        vertical: 8,
+      ),
+      child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              field.label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors
+                    .mutedForeground,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              field.value,
+              textAlign:
+                  TextAlign.start,
+              style: const TextStyle(
+                fontSize: 12.2,
+                height: 1.35,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContextTextCard
+    extends StatelessWidget {
+  final String text;
+
+  const _ContextTextCard({
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final items = text
+        .split(',')
+        .map((item) => item.trim())
+        .where(
+          (item) => item.isNotEmpty,
+        )
+        .toList();
+
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: items.length <= 1
+          ? Text(
+              text,
+              style: const TextStyle(
+                fontSize: 12.2,
+                height: 1.4,
+                fontWeight:
+                    FontWeight.w600,
+              ),
+            )
+          : Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final item
+                    in items)
+                  Container(
+                    padding:
+                        const EdgeInsets
+                            .symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          AppColors.card,
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                        999,
+                      ),
+                      border: Border.all(
+                        color:
+                            AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      item,
+                      style:
+                          const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
 class _DetailRow
     extends StatelessWidget {
   final String label;
@@ -2159,6 +2533,7 @@ class _DetailRow
             CrossAxisAlignment.start,
         children: [
           Expanded(
+            flex: 4,
             child: Text(
               label,
               style: const TextStyle(
@@ -2169,13 +2544,15 @@ class _DetailRow
             ),
           ),
           const SizedBox(width: 12),
-          Flexible(
+          Expanded(
+            flex: 6,
             child: Text(
               value,
               textAlign:
-                  TextAlign.end,
+                  TextAlign.start,
               style: const TextStyle(
                 fontSize: 12.2,
+                height: 1.35,
                 fontWeight:
                     FontWeight.w600,
               ),
@@ -2447,8 +2824,9 @@ _AuditPeriod _auditPeriodFromName(
 }
 
 (String, Color) _actionMeta(
-  String action,
-) {
+  String action, {
+  required bool isStaff,
+}) {
   if (action == 'CREATE') {
     return (
       'Created',
@@ -2458,7 +2836,9 @@ _AuditPeriod _auditPeriodFromName(
 
   if (action == 'DELETE') {
     return (
-      'Deleted',
+      isStaff
+          ? 'Removed'
+          : 'Archived',
       AppColors.stockOut,
     );
   }
@@ -2470,14 +2850,17 @@ _AuditPeriod _auditPeriodFromName(
 }
 
 String _actionLabel(
-  String action,
-) {
+  String action, {
+  required bool isStaff,
+}) {
   if (action == 'CREATE') {
     return 'Created / recorded';
   }
 
   if (action == 'DELETE') {
-    return 'Deleted / reset';
+    return isStaff
+        ? 'Removed'
+        : 'Archived';
   }
 
   return 'Updated';

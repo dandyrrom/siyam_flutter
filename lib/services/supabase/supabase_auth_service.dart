@@ -184,11 +184,19 @@ class SupabaseAuthService implements AuthService {
         email: email.trim(),
         password: password,
       );
-    } on AuthException {
-      throw Exception(
-        'Invalid email or password.',
-      );
-    }
+   } on AuthException catch (e) {
+  final message = e.message.toLowerCase();
+
+  if (message.contains('email not confirmed')) {
+    throw Exception(
+      'Please confirm your email before signing in.',
+    );
+  }
+
+  throw Exception(
+    'Invalid email or password.',
+  );
+}
 
     final userId = res.user?.id;
 

@@ -300,30 +300,40 @@ class _SignInForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // ============================================================
-          // MOVED: "Register here" text below Sign In button
-          // ============================================================
-          Center(
-            child: Text.rich(
-              TextSpan(
-                style: const TextStyle(
+
+          // Public self-registration is for Donors only.
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 2,
+            children: [
+              const Text(
+                "Don't have an account?",
+                style: TextStyle(
                   fontSize: 13.5,
                   color: AppColors.deepBrown,
                 ),
-                children: [
-                  const TextSpan(
-                    text: "Don't have an account? ",
-                  ),
-                  TextSpan(
-                    text: 'Register here!',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.deepBrown.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ],
               ),
-            ),
+              TextButton(
+                onPressed: isBusy ? null : onRegisterTap,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.sageGreen,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Register as a donor',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

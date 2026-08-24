@@ -306,6 +306,8 @@ class AuthController extends ChangeNotifier {
 
     _stopSessionHeartbeat();
 
+    // Keep the router neutral while Supabase creates the account.
+    // Registration should NOT send the user into the authenticated app.
     _setStatus(
       AuthStatus.unknown,
     );
@@ -328,14 +330,33 @@ class AuthController extends ChangeNotifier {
             contactNum,
       );
 
-      profile =
-          user;
+      // Public SIYAM registration is donor-only.
+      //
+      // Both the mock and Supabase service already create donor accounts.
+      // This guard prevents the public registration flow from accepting any
+      // unexpected Staff / Manager profile.
+      if (user.role != AppRole.donor) {
+        try {
+          await _authService.signOut();
+        } catch (_) {
+          // Continue to reject the registration flow even if cleanup fails.
+        }
+
+        throw Exception(
+          'Public registration can only create donor accounts.',
+        );
+      }
+
+      // Supabase may create a temporary authenticated session when email
+      // confirmation is disabled. Clear that session before returning so the
+      // user remains on the public auth flow and signs in normally afterward.
+      await _authService.signOut();
+
+      profile = null;
 
       _setStatus(
-        AuthStatus.authenticated,
+        AuthStatus.unauthenticated,
       );
-
-      _startSessionHeartbeat();
 
       return true;
     } catch (e) {

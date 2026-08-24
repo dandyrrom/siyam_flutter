@@ -492,25 +492,17 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                     16,
                     12,
                   ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Close this window to continue viewing Medical Records.',
-                          style:
-                              TextStyle(
-                            fontSize: 10.8,
-                            color: AppColors
-                                .mutedForeground,
-                          ),
-                        ),
-                      ),
+                  child: LayoutBuilder(
+                    builder: (
+                      context,
+                      constraints,
+                    ) {
+                      final compactFooter =
+                          constraints.maxWidth <
+                              360;
 
-                      const SizedBox(
-                        width: 12,
-                      ),
-
-                      TextButton(
+                      final closeButton =
+                          TextButton(
                         onPressed: () =>
                             Navigator.of(
                           dialogContext,
@@ -518,8 +510,59 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                         child: const Text(
                           'Close',
                         ),
-                      ),
-                    ],
+                      );
+
+                      if (compactFooter) {
+                        return Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .stretch,
+                          children: [
+                            const Text(
+                              'Close this window to continue viewing Medical Records.',
+                              style:
+                                  TextStyle(
+                                fontSize:
+                                    10.8,
+                                color: AppColors
+                                    .mutedForeground,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 6,
+                            ),
+                            Align(
+                              alignment:
+                                  Alignment
+                                      .centerRight,
+                              child:
+                                  closeButton,
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Close this window to continue viewing Medical Records.',
+                              style:
+                                  TextStyle(
+                                fontSize:
+                                    10.8,
+                                color: AppColors
+                                    .mutedForeground,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 12,
+                          ),
+                          closeButton,
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -743,6 +786,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                     Icons.search,
                     size: 18,
                   ),
+                  // Panel revision: keep the placeholder plain; no (...).
                   hintText:
                       'Search animals',
                   isDense: true,
@@ -858,8 +902,6 @@ class _SummaryBar
           animalCount.toString(),
       label:
           'Animals with Records',
-      helper:
-          'Animals shown below',
     );
 
     final treatments =
@@ -871,7 +913,7 @@ class _SummaryBar
       label:
           'Treatments Logged',
       helper:
-          'View latest Treatments',
+          'View latest treatments',
       onTap:
           onTreatmentsTap,
     );
@@ -925,6 +967,10 @@ class _SummaryItem
     final content =
         Container(
       width: double.infinity,
+      constraints:
+          const BoxConstraints(
+        minHeight: 82,
+      ),
       padding:
           const EdgeInsets
               .symmetric(

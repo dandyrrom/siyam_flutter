@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/dashboard_service.dart';
+import '../services/donor_notification_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import 'app_dropdown.dart';
+import 'donor_notification_alerts.dart';
 import 'notification_alerts.dart';
 
 const int _kBellPreviewCount = 6;
@@ -30,7 +32,14 @@ class _NotificationBellState
   final DashboardService _service =
       DashboardService();
 
+  final DonorNotificationService
+      _donorNotificationService =
+      DonorNotificationService();
+
   List<CompactNotif> _notifs = [];
+
+  List<DonorNotification>
+      _donorNotifs = [];
 
   @override
   Alignment get targetAnchor =>
@@ -40,15 +49,20 @@ class _NotificationBellState
   Alignment get followerAnchor =>
       Alignment.topRight;
 
-  bool get _tracksAlerts {
-    final role = context
-        .read<AuthController>()
-        .profile
-        ?.role;
+  AppRole? get _role => context
+      .read<AuthController>()
+      .profile
+      ?.role;
+
+  bool get _tracksInventoryAlerts {
+    final role = _role;
 
     return role == AppRole.manager ||
         role == AppRole.staff;
   }
+
+  bool get _tracksDonorUpdates =>
+      _role == AppRole.donor;
 
   @override
   void initState() {
@@ -66,42 +80,99 @@ class _NotificationBellState
   }
 
   Future<void> _load() async {
-    if (!_tracksAlerts) {
-      if (mounted && _notifs.isNotEmpty) {
+    final profile = context
+        .read<AuthController>()
+        .profile;
+
+    if (profile == null) {
+      return;
+    }
+
+    // ========================================================================
+    // DONOR
+    // ========================================================================
+
+    if (_tracksDonorUpdates) {
+      try {
+        final updates =
+            await _donorNotificationService
+                .fetchForDonor(
+          profile.userId,
+        );
+
+        if (!mounted) return;
+
         setState(() {
+          _donorNotifs = updates;
           _notifs = [];
         });
 
         rebuildDropdown();
+      } catch (_) {
+        // Bell intentionally degrades silently.
       }
 
       return;
     }
 
-    try {
-      final stats =
-          await _service.fetchManagerStats();
+    // ========================================================================
+    // MANAGER / STAFF
+    // ========================================================================
 
-      if (!mounted) return;
+    if (_tracksInventoryAlerts) {
+      try {
+        final stats =
+            await _service.fetchManagerStats();
 
+        if (!mounted) return;
+
+        setState(() {
+          _notifs =
+              buildCompactNotifs(stats);
+          _donorNotifs = [];
+        });
+
+        rebuildDropdown();
+      } catch (_) {
+        // Bell intentionally degrades silently.
+      }
+
+      return;
+    }
+
+    // Unknown / unsupported role state.
+    if (!mounted) return;
+
+    if (_notifs.isNotEmpty ||
+        _donorNotifs.isNotEmpty) {
       setState(() {
-        _notifs =
-            buildCompactNotifs(stats);
+        _notifs = [];
+        _donorNotifs = [];
       });
 
       rebuildDropdown();
-    } catch (_) {
-      // Bell intentionally degrades silently.
     }
   }
 
-  void _openDetail(CompactNotif notif) {
+  void _openDetail(
+    CompactNotif notif,
+  ) {
     closeDropdown();
 
     context.push(
       '/notifications/'
       '${notif.kind.routeSegment}/'
       '${notif.itemId}',
+    );
+  }
+
+  void _openDonorUpdate(
+    DonorNotification notification,
+  ) {
+    closeDropdown();
+
+    context.go(
+      notification.route,
     );
   }
 
@@ -113,37 +184,32 @@ class _NotificationBellState
   // ==========================================================================
   // POPOVER
   // ==========================================================================
-  //
-  // RESPONSIVE BEHAVIOR:
-  //
-  // Desktop/tablet:
-  //   - keeps the existing 360px notification panel.
-  //
-  // Mobile:
-  //   - panel width is limited to the available viewport width with a safe
-  //     margin, so it cannot extend off the left/right side of the screen.
-  //   - panel height is also capped relative to the viewport.
-  //   - notification rows become scrollable when the available height is
-  //     small, while the header and "View all notifications" action remain
-  //     visible.
-  //
-  // This changes only the bell preview layout. Notification routes and data
-  // loading remain unchanged.
-  // ==========================================================================
 
   @override
   Widget buildFlyoutPanel(
     BuildContext context,
   ) {
-    final preview =
+    final donorMode =
+        _tracksDonorUpdates;
+
+    final inventoryPreview =
         _notifs
             .take(_kBellPreviewCount)
             .toList();
 
+    final donorPreview =
+        _donorNotifs
+            .take(_kBellPreviewCount)
+            .toList();
+
+    final totalCount =
+        donorMode
+            ? _donorNotifs.length
+            : _notifs.length;
+
     final screen =
         MediaQuery.sizeOf(context);
 
-    // Keep a visible margin on narrow/mobile screens.
     final availableWidth =
         screen.width - 24.0;
 
@@ -152,7 +218,6 @@ class _NotificationBellState
             ? availableWidth
             : 360.0;
 
-    // Prevent the flyout from extending beyond a short mobile viewport.
     final availableHeight =
         screen.height - 96.0;
 
@@ -208,9 +273,11 @@ class _NotificationBellState
 
                     const Spacer(),
 
-                    if (_notifs.isNotEmpty)
+                    if (totalCount > 0)
                       Text(
-                        '${_notifs.length} active',
+                        donorMode
+                            ? '$totalCount update${totalCount == 1 ? '' : 's'}'
+                            : '$totalCount active',
                         style:
                             const TextStyle(
                           fontSize: 11.5,
@@ -226,7 +293,75 @@ class _NotificationBellState
               // PREVIEW CONTENT
               // ==============================================================
 
-              if (preview.isEmpty)
+              if (donorMode)
+                if (donorPreview.isEmpty)
+                  const Padding(
+                    padding:
+                        EdgeInsets.fromLTRB(
+                      16,
+                      2,
+                      16,
+                      16,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons
+                              .notifications_none_outlined,
+                          size: 17,
+                          color: AppColors
+                              .roleDonor,
+                        ),
+
+                        SizedBox(width: 8),
+
+                        Expanded(
+                          child: Text(
+                            'No donation updates right now.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors
+                                  .mutedForeground,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Flexible(
+                    child:
+                        ListView.separated(
+                      padding:
+                          EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount:
+                          donorPreview.length,
+                      separatorBuilder:
+                          (_, __) =>
+                              const Divider(
+                        height: 1,
+                        color:
+                            AppColors.border,
+                      ),
+                      itemBuilder:
+                          (context, index) {
+                        final notification =
+                            donorPreview[index];
+
+                        return DonorNotificationTile(
+                          notification:
+                              notification,
+                          dense: true,
+                          onTap: () =>
+                              _openDonorUpdate(
+                            notification,
+                          ),
+                        );
+                      },
+                    ),
+                  )
+              else if (inventoryPreview.isEmpty)
                 const Padding(
                   padding:
                       EdgeInsets.fromLTRB(
@@ -267,7 +402,8 @@ class _NotificationBellState
                         EdgeInsets.zero,
                     shrinkWrap: true,
                     itemCount:
-                        preview.length,
+                        inventoryPreview
+                            .length,
                     separatorBuilder:
                         (_, __) =>
                             const Divider(
@@ -278,7 +414,8 @@ class _NotificationBellState
                     itemBuilder:
                         (context, index) {
                       final notif =
-                          preview[index];
+                          inventoryPreview[
+                              index];
 
                       return CompactNotificationTile(
                         notif: notif,
@@ -325,13 +462,21 @@ class _NotificationBellState
 
   @override
   Widget build(BuildContext context) {
+    final donorMode =
+        _tracksDonorUpdates;
+
+    final count =
+        donorMode
+            ? _donorNotifs.length
+            : _notifs.length;
+
     final hasAlerts =
-        _notifs.isNotEmpty;
+        count > 0;
 
     final badgeText =
-        _notifs.length > 99
+        count > 99
             ? '99+'
-            : '${_notifs.length}';
+            : '$count';
 
     return CompositedTransformTarget(
       link: dropdownLink,

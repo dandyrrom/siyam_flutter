@@ -145,7 +145,7 @@ class _StaffDashboardState extends State<StaffDashboard>
         const DashboardHeader(
           title: 'Staff Dashboard',
           subtitle:
-              'Quick view of inventory, treatments, donations, and replenishment needs.',
+              'Quick view of inventory, treatments, and replenishment needs.',
         ),
         if (_error != null) ...[
           const SizedBox(height: 10),
@@ -159,7 +159,6 @@ class _StaffDashboardState extends State<StaffDashboard>
         ],
         const SizedBox(height: 18),
         _DashboardKpiGrid(
-          compact: compact,
           cards: [
             _DashboardKpiCard(
               icon: Icons.autorenew_outlined,
@@ -177,14 +176,6 @@ class _StaffDashboardState extends State<StaffDashboard>
               accent: AppColors.roleStaff,
               onTap: () => _go('/medical-records'),
             ),
-            _DashboardKpiCard(
-              icon: Icons.volunteer_activism_outlined,
-              value: '${stats.pendingSubmissions}',
-              label: 'Pending Donations',
-              helper: 'Donation submissions waiting for action',
-              accent: AppColors.warning,
-              onTap: () => _go('/donations'),
-            ),
           ],
         ),
         const SizedBox(height: 20),
@@ -194,7 +185,7 @@ class _StaffDashboardState extends State<StaffDashboard>
               child: _SectionHeading(
                 title: 'Operational Overview',
                 subtitle:
-                    'Activity recorded from purchases, treatments, and donations.',
+                    'Activity recorded from purchases and treatments.',
               ),
             ),
             if (!compact)
@@ -224,7 +215,6 @@ class _StaffDashboardState extends State<StaffDashboard>
                 comparisonLabel: _comparisonLabel,
                 onPurchases: () => _go('/purchase-orders'),
                 onTreatments: () => _go('/medical-records'),
-                onDonations: () => _go('/donations'),
               ),
               const SizedBox(height: 14),
               _PriorityOverviewCard(
@@ -236,31 +226,33 @@ class _StaffDashboardState extends State<StaffDashboard>
             ],
           )
         else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 7,
-                child: _OperationalActivityCard(
-                  periodStats: period,
-                  periodWord: _periodWord,
-                  comparisonLabel: _comparisonLabel,
-                  onPurchases: () => _go('/purchase-orders'),
-                  onTreatments: () => _go('/medical-records'),
-                  onDonations: () => _go('/donations'),
+          SizedBox(
+            height: 300,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: _OperationalActivityCard(
+                    periodStats: period,
+                    periodWord: _periodWord,
+                    comparisonLabel: _comparisonLabel,
+                    onPurchases: () => _go('/purchase-orders'),
+                    onTreatments: () => _go('/medical-records'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                flex: 4,
-                child: _PriorityOverviewCard(
-                  critical: _criticalCount,
-                  high: _highCount,
-                  medium: _mediumCount,
-                  onViewAll: () => _go('/purchase-orders'),
+                const SizedBox(width: 14),
+                Expanded(
+                  flex: 4,
+                  child: _PriorityOverviewCard(
+                    critical: _criticalCount,
+                    high: _highCount,
+                    medium: _mediumCount,
+                    onViewAll: () => _go('/purchase-orders'),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         const SizedBox(height: 20),
         if (medium)
@@ -279,30 +271,35 @@ class _StaffDashboardState extends State<StaffDashboard>
             ],
           )
         else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 7,
-                child: _AttentionListCard(
-                  alerts: _attentionPreview,
-                  totalCount: _replenishment.length,
-                  onViewAll: () => _go('/purchase-orders'),
-                  onOpenItem: (item) => _go(
-                    '/inventory/${item.itemId}?from=purchase-orders',
+          SizedBox(
+            height: 420,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: _AttentionListCard(
+                    alerts: _attentionPreview,
+                    totalCount: _replenishment.length,
+                    onViewAll: () => _go('/purchase-orders'),
+                    onOpenItem: (item) => _go(
+                      '/inventory/${item.itemId}?from=purchase-orders',
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                flex: 4,
-                child: _SocialTemplateCard(alerts: _replenishment),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  flex: 4,
+                  child: _SocialTemplateCard(
+                    alerts: _replenishment,
+                  ),
+                ),
+              ],
+            ),
           ),
         const SizedBox(height: 18),
         const Text(
-          'Period comparisons use recorded purchases, treatments, and donations. '
+          'Period comparisons use recorded purchases and treatments. '
           'Current stock-attention counts are live values, not period totals.',
           style: TextStyle(
             fontSize: 11.5,
@@ -316,45 +313,50 @@ class _StaffDashboardState extends State<StaffDashboard>
 }
 
 class _DashboardKpiGrid extends StatelessWidget {
-  final bool compact;
   final List<Widget> cards;
 
   const _DashboardKpiGrid({
-    required this.compact,
     required this.cards,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Mobile / APK: stack vertically for comfortable tap targets.
-    if (compact) {
-      return Column(
-        children: [
-          for (var i = 0; i < cards.length; i++) ...[
-            if (i > 0) const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 118,
-              child: cards[i],
-            ),
-          ],
-        ],
-      );
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
 
-    // Tablet / desktop: exactly three equal-width cards.
-    return Row(
-      children: [
-        for (var i = 0; i < cards.length; i++) ...[
-          if (i > 0) const SizedBox(width: 12),
-          Expanded(
-            child: SizedBox(
-              height: 118,
-              child: cards[i],
-            ),
-          ),
-        ],
-      ],
+        // Use the dashboard's REAL available width after the sidebar/app shell,
+        // not the whole screen width. This prevents three narrow cards from
+        // being forced beside each other at intermediate web/tablet sizes.
+        final preferredColumns = width >= 840
+            ? 3
+            : width >= 540
+                ? 2
+                : 1;
+
+        final columns =
+            preferredColumns > cards.length
+                ? cards.length
+                : preferredColumns;
+
+        const spacing = 12.0;
+
+        final cardWidth =
+            (width - (columns - 1) * spacing) /
+                columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final card in cards)
+              SizedBox(
+                width: cardWidth,
+                child: card,
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -386,6 +388,9 @@ class _DashboardKpiCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         hoverColor: accent.withValues(alpha: 0.035),
         child: Container(
+          constraints: const BoxConstraints(
+            minHeight: 148,
+          ),
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -419,26 +424,22 @@ class _DashboardKpiCard extends StatelessWidget {
                     ),
                     Text(
                       label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12.5,
+                        height: 1.25,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Expanded(
-                      child: Text(
-                        helper,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11.2,
-                          height: 1.25,
-                          color: AppColors.mutedForeground,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      helper,
+                      style: const TextStyle(
+                        fontSize: 11.2,
+                        height: 1.35,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
+                    const SizedBox(height: 10),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -564,7 +565,6 @@ class _OperationalActivityCard extends StatelessWidget {
   final String comparisonLabel;
   final VoidCallback onPurchases;
   final VoidCallback onTreatments;
-  final VoidCallback onDonations;
 
   const _OperationalActivityCard({
     required this.periodStats,
@@ -572,7 +572,6 @@ class _OperationalActivityCard extends StatelessWidget {
     required this.comparisonLabel,
     required this.onPurchases,
     required this.onTreatments,
-    required this.onDonations,
   });
 
   @override
@@ -630,21 +629,6 @@ class _OperationalActivityCard extends StatelessWidget {
             accent: AppColors.primary,
             onTap: onTreatments,
           ),
-          const Divider(height: 1),
-          _ActivityRow(
-            icon: Icons.volunteer_activism_outlined,
-            title: 'Donations',
-            value: '${p.donationCount}',
-            valueLabel: 'received this $periodWord',
-            change: percentChange(
-              p.donationCount,
-              p.donationCountPrior,
-            ),
-            detail1: '${p.itemsDonated} items donated',
-            detail2: '${p.distinctDonors} donors',
-            accent: AppColors.sageGreen,
-            onTap: onDonations,
-          ),
         ],
       ),
     );
@@ -680,90 +664,159 @@ class _ActivityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        hoverColor: accent.withValues(alpha: 0.025),
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, size: 18, color: accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$detail1 · $detail2',
-                      style: const TextStyle(
-                        fontSize: 11.2,
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (change != null) ...[
-                        const SizedBox(width: 7),
-                        _ChangeBadge(change: change!),
-                      ],
-                    ],
-                  ),
-                  Text(
-                    valueLabel,
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 5),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.mutedForeground,
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow =
+            constraints.maxWidth < 520;
+
+        final iconBox = Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(10),
           ),
-        ),
-      ),
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 18,
+            color: accent,
+          ),
+        );
+
+        final description = Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              '$detail1 · $detail2',
+              style: const TextStyle(
+                fontSize: 11.2,
+                height: 1.35,
+                color:
+                    AppColors.mutedForeground,
+              ),
+            ),
+          ],
+        );
+
+        final valueBlock = Column(
+          crossAxisAlignment:
+              narrow
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.end,
+          children: [
+            Wrap(
+              spacing: 7,
+              runSpacing: 5,
+              crossAxisAlignment:
+                  WrapCrossAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (change != null)
+                  _ChangeBadge(
+                    change: change!,
+                  ),
+              ],
+            ),
+            Text(
+              valueLabel,
+              style: const TextStyle(
+                fontSize: 10.5,
+                color:
+                    AppColors.mutedForeground,
+              ),
+            ),
+          ],
+        );
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            hoverColor:
+                accent.withValues(alpha: 0.025),
+            borderRadius:
+                BorderRadius.circular(10),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(
+                vertical: 14,
+              ),
+              child: narrow
+                  ? Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        iconBox,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              description,
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              valueBlock,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Padding(
+                          padding:
+                              EdgeInsets.only(
+                            top: 10,
+                          ),
+                          child: Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: AppColors
+                                .mutedForeground,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.center,
+                      children: [
+                        iconBox,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: description,
+                        ),
+                        const SizedBox(width: 10),
+                        valueBlock,
+                        const SizedBox(width: 5),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: AppColors
+                              .mutedForeground,
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -844,9 +897,12 @@ class _PriorityOverviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              SizedBox(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow =
+                  constraints.maxWidth < 420;
+
+              final donut = SizedBox(
                 width: 148,
                 height: 148,
                 child: CustomPaint(
@@ -854,62 +910,90 @@ class _PriorityOverviewCard extends StatelessWidget {
                     critical: critical,
                     high: high,
                     medium: medium,
-                    criticalColor: AppColors.stockOut,
-                    highColor: AppColors.stockLow,
-                    mediumColor: AppColors.stockNeedsRestock,
-                    trackColor: AppColors.border,
+                    criticalColor:
+                        AppColors.stockOut,
+                    highColor:
+                        AppColors.stockLow,
+                    mediumColor: AppColors
+                        .stockNeedsRestock,
+                    trackColor:
+                        AppColors.border,
                   ),
                   child: Center(
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisSize:
+                          MainAxisSize.min,
                       children: [
                         Text(
                           '$total',
-                          style: const TextStyle(
+                          style:
+                              const TextStyle(
                             fontSize: 25,
-                            fontWeight: FontWeight.w800,
+                            fontWeight:
+                                FontWeight.w800,
                           ),
                         ),
                         const Text(
                           'items',
                           style: TextStyle(
                             fontSize: 10.5,
-                            color: AppColors.mutedForeground,
+                            color: AppColors
+                                .mutedForeground,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
+              );
+
+              final legend = Column(
+                children: [
+                  _PriorityLegendRow(
+                    label: 'Critical',
+                    value: critical,
+                    helper: 'No usable stock',
+                    color:
+                        AppColors.stockOut,
+                  ),
+                  const SizedBox(height: 12),
+                  _PriorityLegendRow(
+                    label: 'High',
+                    value: high,
+                    helper: 'Low stock',
+                    color:
+                        AppColors.stockLow,
+                  ),
+                  const SizedBox(height: 12),
+                  _PriorityLegendRow(
+                    label: 'Medium',
+                    value: medium,
+                    helper:
+                        'Needs restock soon',
+                    color: AppColors
+                        .stockNeedsRestock,
+                  ),
+                ],
+              );
+
+              if (narrow) {
+                return Column(
                   children: [
-                    _PriorityLegendRow(
-                      label: 'Critical',
-                      value: critical,
-                      helper: 'No usable stock',
-                      color: AppColors.stockOut,
-                    ),
-                    const SizedBox(height: 12),
-                    _PriorityLegendRow(
-                      label: 'High',
-                      value: high,
-                      helper: 'Low stock',
-                      color: AppColors.stockLow,
-                    ),
-                    const SizedBox(height: 12),
-                    _PriorityLegendRow(
-                      label: 'Medium',
-                      value: medium,
-                      helper: 'Needs restock soon',
-                      color: AppColors.stockNeedsRestock,
-                    ),
+                    Center(child: donut),
+                    const SizedBox(height: 16),
+                    legend,
                   ],
-                ),
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                children: [
+                  donut,
+                  const SizedBox(width: 18),
+                  Expanded(child: legend),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -1203,69 +1287,169 @@ class _AttentionRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         hoverColor: color.withValues(alpha: 0.025),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 12,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow =
+                constraints.maxWidth < 520;
+
+            final statusBadge = Container(
+              constraints:
+                  const BoxConstraints(
+                minWidth: 72,
+              ),
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color:
+                    color.withValues(alpha: 0.10),
+                borderRadius:
+                    BorderRadius.circular(999),
+              ),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10.4,
+                  fontWeight: FontWeight.w700,
                   color: color,
-                  shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.itemName,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12.8,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            );
+
+            return Padding(
+              padding:
+                  const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 12,
               ),
-              const SizedBox(width: 10),
-              Text(
-                '${_formatQty(item.stockQty)} ${item.unitAbbr}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 72,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10.4,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.mutedForeground,
-              ),
-            ],
-          ),
+              child: narrow
+                  ? Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 9,
+                          height: 9,
+                          margin:
+                              const EdgeInsets.only(
+                            top: 5,
+                          ),
+                          decoration:
+                              BoxDecoration(
+                            color: color,
+                            shape:
+                                BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.itemName,
+                                style:
+                                    const TextStyle(
+                                  fontSize: 12.8,
+                                  height: 1.3,
+                                  fontWeight:
+                                      FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 7,
+                              ),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment:
+                                    WrapCrossAlignment
+                                        .center,
+                                children: [
+                                  Text(
+                                    '${_formatQty(item.stockQty)} ${item.unitAbbr}',
+                                    style:
+                                        const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight:
+                                          FontWeight.w600,
+                                    ),
+                                  ),
+                                  statusBadge,
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Padding(
+                          padding:
+                              EdgeInsets.only(
+                            top: 2,
+                          ),
+                          child: Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: AppColors
+                                .mutedForeground,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Container(
+                          width: 9,
+                          height: 9,
+                          decoration:
+                              BoxDecoration(
+                            color: color,
+                            shape:
+                                BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item.itemName,
+                            overflow:
+                                TextOverflow
+                                    .ellipsis,
+                            style:
+                                const TextStyle(
+                              fontSize: 12.8,
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${_formatQty(item.stockQty)} ${item.unitAbbr}',
+                          style:
+                              const TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        statusBadge,
+                        const SizedBox(width: 5),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: AppColors
+                              .mutedForeground,
+                        ),
+                      ],
+                    ),
+            );
+          },
         ),
       ),
     );

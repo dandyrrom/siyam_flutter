@@ -332,7 +332,7 @@ class _DonationsPageState extends State<DonationsPage>
                 Expanded(
                   child: _FilterStatCard(
                     label: 'Pending Review',
-                    description: 'Needs staff decision',
+                    description: 'Needs manager decision',
                     value: '$pendingCount',
                     icon: Icons.schedule_outlined,
                     accent: AppColors.warning,
@@ -416,7 +416,7 @@ class _DonationsPageState extends State<DonationsPage>
                     Icons.search,
                     size: 18,
                   ),
-                  hintText: 'Search by donor…',
+                  hintText: 'Search by donor',
                   isDense: true,
                 ),
               ),

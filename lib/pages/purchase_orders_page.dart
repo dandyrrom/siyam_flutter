@@ -10,12 +10,12 @@ import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
 
 // =============================================================================
-// PURCHASES & REPLENISHMENT
+// ORDERING
 // =============================================================================
 //
 // PANEL REVISION:
 //
-// Purchase and Replenishment are now one staff module.
+// Purchase and Replenishment are presented to Staff as one Ordering module.
 //
 // TAB 1:
 //   Replenishment
@@ -138,7 +138,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
       if (!silent) {
         setState(() {
           _error =
-              'Could not load purchases and replenishment: $e';
+              'Could not load ordering data: $e';
           _loading = false;
         });
       }
@@ -414,51 +414,87 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   // ===========================================================================
 
   Widget _buildHeader() {
-    return Row(
+    final showRecordPurchase =
+        _tab ==
+        _PurchaseModuleTab.purchaseHistory;
+
+    final titleBlock = const Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        const Expanded(
-          child: Column(
+        Text(
+          'Ordering',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight:
+                FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: 3),
+        Text(
+          'Review replenishment needs and recorded purchase history in one place.',
+          style: TextStyle(
+            fontSize: 13,
+            color:
+                AppColors.mutedForeground,
+          ),
+        ),
+      ],
+    );
+
+    final recordPurchaseButton =
+        ElevatedButton.icon(
+      onPressed: () => context.push(
+        '/inventory/add?type=purchased',
+      ),
+      icon: const Icon(
+        Icons.add,
+        size: 18,
+      ),
+      label:
+          const Text('Record Purchase'),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile =
+            constraints.maxWidth < 600;
+
+        if (mobile) {
+          return Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Text(
-                'Purchases & Replenishment',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight:
-                      FontWeight.w800,
-                ),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Review ROP-based replenishment needs and recorded purchase history in one place.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors
-                      .mutedForeground,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
+              titleBlock,
 
-        if (_tab ==
-            _PurchaseModuleTab.purchaseHistory)
-          ElevatedButton.icon(
-            onPressed: () => context.push(
-              '/inventory/add?type=purchased',
+              if (showRecordPurchase) ...[
+                const SizedBox(height: 14),
+
+                SizedBox(
+                  width: double.infinity,
+                  child:
+                      recordPurchaseButton,
+                ),
+              ],
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: titleBlock,
             ),
-            icon: const Icon(
-              Icons.add,
-              size: 18,
-            ),
-            label:
-                const Text('Record Purchase'),
-          ),
-      ],
+
+            if (showRecordPurchase) ...[
+              const SizedBox(width: 16),
+              recordPurchaseButton,
+            ],
+          ],
+        );
+      },
     );
   }
 

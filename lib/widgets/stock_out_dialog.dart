@@ -450,9 +450,9 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                                   Expanded(
                                     child: Text(
                                       target.expiresToday
-                                          ? 'Next FEFO batch expires today '
+                                          ? 'Next batch expires today '
                                               '(${_formatDate(target.nearestExpiryDate!)}).'
-                                          : 'Next FEFO batch expires '
+                                          : 'Next batch expires '
                                               '${_formatDate(target.nearestExpiryDate!)}'
                                               '${target.daysUntilNearestExpiry != null ? ' · ${target.daysUntilNearestExpiry} days left' : ''}.',
                                       style: TextStyle(
