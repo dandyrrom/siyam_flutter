@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="720"
+     viewBox="0 0 1480 720" role="img">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7D6D"/>
+    </marker>
+  </defs>
+  <rect x="0.0" y="0.0" width="1480.0" height="720.0" rx="0" ry="0" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0"/>
+  <rect x="0.0" y="0.0" width="1480.0" height="64.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <rect x="0.0" y="0.0" width="8.0" height="64.0" rx="0" ry="0" fill="#93B873" stroke="#93B873" stroke-width="0"/>
+  <text x="24.0" y="28.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" fill="#3E2723">Level of Explosion — 1.0 Access &amp; Identity</text>
+  <text x="24.0" y="50.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">Who may enter SIYAM, which portal they get, and how accounts are maintained.</text>
+  <rect x="0.0" y="684.0" width="1480.0" height="36.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <text x="24.0" y="706.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">SIYAM — Animal Sanctuary Management System. Drawn from current modules, services, and updated_db.md.</text>
+  <line x1="629.0" y1="184.0" x2="629.0" y2="239.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="124.0" y1="239.0" x2="1134.0" y2="239.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="124.0" y1="239.0" x2="124.0" y2="294.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="326.0" y1="239.0" x2="326.0" y2="294.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="528.0" y1="239.0" x2="528.0" y2="294.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="730.0" y1="239.0" x2="730.0" y2="294.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="932.0" y1="239.0" x2="932.0" y2="294.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="1134.0" y1="239.0" x2="1134.0" y2="294.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <rect x="519.0" y="120.0" width="220.0" height="64.0" rx="10" ry="10" fill="#FFFFFF" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="629.0" y="156.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.0 Access &amp; Identity</text>
+  <rect x="30.0" y="294.0" width="188.0" height="62.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="124.0" y="321.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.1 Sign in</text>
+  <text x="124.0" y="336.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">email + password</text>
+  <rect x="232.0" y="294.0" width="188.0" height="62.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="326.0" y="321.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.2 Donor register</text>
+  <text x="326.0" y="336.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">self-serve from login</text>
+  <rect x="434.0" y="291.5" width="188.0" height="67.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="528.0" y="314.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.3 Session restore</text>
+  <text x="528.0" y="329.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Supabase; mock is</text>
+  <text x="528.0" y="344.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">in-memory</text>
+  <rect x="636.0" y="294.0" width="188.0" height="62.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="730.0" y="321.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.4 Role routing</text>
+  <text x="730.0" y="336.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">nav_config + go_router</text>
+  <rect x="838.0" y="291.5" width="188.0" height="67.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="932.0" y="314.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.5 Profile</text>
+  <text x="932.0" y="329.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">name, contact,</text>
+  <text x="932.0" y="344.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">password</text>
+  <rect x="1040.0" y="291.5" width="188.0" height="67.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="1134.0" y="314.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.6 Staff accounts</text>
+  <text x="1134.0" y="329.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">manager enable /</text>
+  <text x="1134.0" y="344.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">disable</text>
+  <rect x="80.0" y="520.0" width="1320.0" height="120.0" rx="10" ry="10" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1.6"/>
+  <text x="740.0" y="569.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Roles in the USER table: manager, staff, donor. Donors cannot open staff/manager modules;</text>
+  <text x="740.0" y="584.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">staff/manager cannot open the donor dashboard. Manager may use /inventory/add only when stocking a donation.</text>
+  <text x="740.0" y="599.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">Supabase can restore a session across refresh; mock auth holds the user only until the app restarts.</text>
+</svg>
