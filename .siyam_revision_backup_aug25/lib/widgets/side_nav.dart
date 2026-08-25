@@ -1,12 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../state/app_operation_controller.dart';
 import '../core/app_colors.dart';
-import '../models/app_user.dart';
 import '../routing/nav_config.dart';
 import '../state/auth_state.dart';
-import 'pending_donation_badge.dart';
 
 class SideNav extends StatefulWidget {
   final bool collapsed;
@@ -569,10 +567,6 @@ Future<void> _openRoute(
                     item.path,
                   );
 
-                  final showPendingDonationBadge =
-                      user?.role == AppRole.manager &&
-                          item.path == '/donations';
-
                   return Padding(
                     padding:
                         const EdgeInsets
@@ -634,39 +628,15 @@ Future<void> _openRoute(
                                     : MainAxisAlignment
                                         .start,
                             children: [
-                              if (showPendingDonationBadge &&
-                                  widget.collapsed)
-                                Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Icon(
-                                      item.icon,
-                                      size: 18,
-                                      color: active
-                                          ? AppColors
-                                              .sidebarPrimary
-                                          : AppColors
-                                              .sidebarAccentForeground,
-                                    ),
-                                    const Positioned(
-                                      top: -10,
-                                      right: -13,
-                                      child: PendingDonationBadge(
-                                        compact: true,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              else
-                                Icon(
-                                  item.icon,
-                                  size: 18,
-                                  color: active
-                                      ? AppColors
-                                          .sidebarPrimary
-                                      : AppColors
-                                          .sidebarAccentForeground,
-                                ),
+                              Icon(
+                                item.icon,
+                                size: 18,
+                                color: active
+                                    ? AppColors
+                                        .sidebarPrimary
+                                    : AppColors
+                                        .sidebarAccentForeground,
+                              ),
 
                               if (!widget
                                   .collapsed) ...[
@@ -698,13 +668,6 @@ Future<void> _openRoute(
                                     ),
                                   ),
                                 ),
-
-                                if (showPendingDonationBadge) ...[
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                  const PendingDonationBadge(),
-                                ],
                               ],
                             ],
                           ),

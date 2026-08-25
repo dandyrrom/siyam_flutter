@@ -180,22 +180,33 @@ class SupabaseTreatmentService implements TreatmentService {
   // DOES THIS TREATMENT ACTUALLY DEDUCT INVENTORY?
   // ===========================================================================
   //
-  // InventoryItem is the single source of truth for treatment deduction
-  // eligibility so the UI, validation, and Supabase flow cannot drift apart.
+  // Keep this in exact sync with applyTreatmentDeduction().
   //
-  // Deductible examples:
-  // - package breakdown + dispense unit == package unit
-  // - no explicit dispense unit
-  // - no package breakdown + dispense unit == purchase unit
+  // 1. dispense unit == package unit + package quantity
+  //    → measurable package-unit deduction
   //
-  // A different/unconvertible dispense unit (for example ml stocked but drops
-  // administered) remains log-only because there is no safe stock conversion.
+  // 2. no dispense unit
+  //    → direct count deduction
+  //
+  // 3. otherwise
+  //    → treatment is logged, but no reliable stock conversion exists
   // ===========================================================================
 
   bool _treatmentDeductsInventory(
     InventoryItem item,
   ) {
-    return item.stockOutIsDeductible;
+    if (item.dispenseUnitId != null &&
+        item.dispenseUnitId ==
+            item.packageUnitId &&
+        item.packageQuantity != null) {
+      return true;
+    }
+
+    if (item.dispenseUnitId == null) {
+      return true;
+    }
+
+    return false;
   }
 
   // ===========================================================================

@@ -1,75 +1,74 @@
 import 'package:flutter/widgets.dart';
 
-/// App-wide "something changed" signal. Every mutating service method
-/// (create/update/delete/adjustStock, mock and Supabase alike) calls
-/// [ping] once its write succeeds; pages mix in [DataBusRefreshMixin] to
-/// silently re-fetch while they're the one currently on screen, instead of
-/// only ever seeing fresh data after a full navigate-away-and-back.
+/// App-wide "something changed" signal.
 ///
-/// Deliberately a single undifferentiated signal rather than a per-table/
-/// topic system: this app's router never keeps more than one page mounted
-/// at a time (no IndexedStack/keep-alive), so "the one visible page
-/// refetches on every write anywhere" costs at most one extra fetch, not
-/// a fan-out -- not worth a topic taxonomy to avoid that.
+/// Service methods call [ping] after a successful write. Pages that mix in
+/// [DataBusRefreshMixin] refresh after the current Flutter frame finishes.
+///
+/// Important:
+/// Multiple pings that happen before the same frame finishes are collapsed
+/// into ONE refresh per listener. This prevents donation/inventory workflows
+/// from starting several overlapping reloads at once.
 class DataChangeBus extends ChangeNotifier {
   DataChangeBus._();
+
   static final DataChangeBus instance = DataChangeBus._();
 
   void ping() => notifyListeners();
 }
 
-/// Mix into a data-displaying page's State to silently re-fetch whenever
-/// [DataChangeBus] pings, so changes made elsewhere (another page reached
-/// via `push` and popped back to, a dialog, another user on the real
-/// backend) show up without the user navigating away and back. Implement
-/// [onExternalDataChanged] to call your page's existing load method with
-/// its silent/background variant (no loading spinner, no error screen --
-/// an unrelated background refresh failing shouldn't blank out already-
-/// displayed data).
+/// Mix this into pages/widgets that should silently refresh when shared data
+/// changes.
+///
+/// This implementation is intentionally small:
+/// - never calls the page refresh synchronously from notifyListeners()
+/// - allows only one queued refresh at a time
+/// - refreshes only while this route is current
+/// - does not attach animation listeners or wait on route transitions
 mixin DataBusRefreshMixin<T extends StatefulWidget> on State<T> {
+  bool _dataBusRefreshQueued = false;
+
   @override
   void initState() {
     super.initState();
-    DataChangeBus.instance.addListener(_onPing);
+    DataChangeBus.instance.addListener(_onDataBusPing);
   }
 
   @override
   void dispose() {
-    DataChangeBus.instance.removeListener(_onPing);
+    DataChangeBus.instance.removeListener(_onDataBusPing);
     super.dispose();
   }
 
-  void _onPing() {
-    // Deferred to a post-frame callback rather than called straight from
-    // notifyListeners(): ping() often fires mid-await inside a dialog's
-    // onPressed handler or right before a Navigator pop/push, i.e. while
-    // Flutter is already mid-build/layout/transition for that same frame.
-    // Triggering setState synchronously in that window corrupts the
-    // render tree (layout/constraint assertion failures); a post-frame
-    // callback runs once the current frame is safely done.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // ping() commonly fires right before a Navigator.pop() that brings
-      // this page back into view (e.g. saving on the add-item page). The
-      // resulting pop is an animated route transition spanning many more
-      // frames; refreshing while it's still running lands this widget's
-      // setState in the middle of the transition's own layout pass and
-      // corrupts the frame (web debug/DDC relayout-boundary assertions).
-      // Wait for the transition to finish before refreshing.
-      final animation = ModalRoute.of(context)?.animation;
-      if (animation != null && animation.status != AnimationStatus.completed) {
-        void onDone(AnimationStatus status) {
-          if (status == AnimationStatus.completed) {
-            animation.removeStatusListener(onDone);
-            if (mounted) onExternalDataChanged();
-          }
-        }
+  void _onDataBusPing() {
+    if (!mounted || _dataBusRefreshQueued) {
+      return;
+    }
 
-        animation.addStatusListener(onDone);
+    _dataBusRefreshQueued = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dataBusRefreshQueued = false;
+
+      if (!mounted) {
         return;
       }
+
+      final route = ModalRoute.of(context);
+
+      // A page that is covered by another route should not refresh in the
+      // background. Shell widgets may not have their own ModalRoute, so null
+      // is intentionally allowed.
+      if (route != null && !route.isCurrent) {
+        return;
+      }
+
       onExternalDataChanged();
     });
+
+    // addPostFrameCallback does not itself guarantee another frame, so make
+    // sure Flutter has one available for the queued refresh.
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   void onExternalDataChanged();

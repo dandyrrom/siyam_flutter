@@ -5,28 +5,38 @@ import 'inventory_service.dart';
 /// via [service]. Shared by the mock and Supabase treatment services so the
 /// branching logic can't drift between them.
 ///
-///  - Package breakdown + dispense_unit == package_unit (e.g. syrup dosed in
-///    ml, package_unit=ml): [qty] is already in package_unit terms, so it's
-///    drawn from the item's batches in expiry order (FEFO) and deducted from
-///    total_package_stocks. total_purchase_stocks (whole bottles) is
-///    untouched -- using part of a bottle doesn't remove it from inventory.
-///  - No dispense_unit at all (e.g. a mop, counted per-piece): [qty] is
-///    entered directly in purchase_unit terms, so it's drawn from batches
-///    the same way and deducted 1:1 from total_purchase_stocks.
-///  - dispense_unit set and differs from package_unit (e.g. package_unit=ml,
-///    dispense_unit=drop): no known conversion between them -- usage is
-///    still logged on treatment_item by the caller, stock is left untouched.
+/// Deductible treatment quantities are already expressed in the item's
+/// canonical inventory unit:
+///
+/// - package unit when the item has a package breakdown
+/// - purchase unit when the item has no package breakdown
+///
+/// Examples:
+///
+/// - Syrup: bottle -> ml, dispense unit = ml
+///   [qty] is deducted from usable batches in FEFO order.
+///
+/// - Tablets stored directly as tablets, dispense unit = tablet
+///   [qty] is deducted 1:1 from usable batches in FEFO order.
+///
+/// - No explicit dispense unit
+///   The caller falls back to the item's canonical inventory unit, so [qty]
+///   is also safe to deduct.
+///
+/// - Stocked in ml but administered in drops
+///   No reliable conversion exists, so the treatment usage is logged by the
+///   caller but inventory is intentionally left unchanged.
 Future<void> applyTreatmentDeduction(
   InventoryService service,
   InventoryItem item,
   double qty,
 ) async {
-  if (item.dispenseUnitId != null &&
-      item.dispenseUnitId == item.packageUnitId &&
-      item.packageQuantity != null) {
-    await service.deductFefo(itemId: item.itemId, qty: qty);
-  } else if (item.dispenseUnitId == null) {
-    await service.deductFefo(itemId: item.itemId, qty: qty);
+  if (!item.stockOutIsDeductible) {
+    return;
   }
-  // else: not deductible -- logged only, handled by the caller.
+
+  await service.deductFefo(
+    itemId: item.itemId,
+    qty: qty,
+  );
 }

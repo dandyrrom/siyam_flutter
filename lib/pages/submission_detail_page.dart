@@ -50,8 +50,14 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
     _load();
   }
 
-  @override
-  void onExternalDataChanged() => _load(silent: true);
+@override
+void onExternalDataChanged() {
+  if (_acting) {
+    return;
+  }
+
+  _load(silent: true);
+}
 
   Future<void> _load({bool silent = false}) async {
     if (!silent) {

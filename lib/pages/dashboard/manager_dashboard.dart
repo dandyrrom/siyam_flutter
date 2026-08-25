@@ -430,18 +430,18 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                         ? null
                         : _openInventoryOverviewDialog,
                   ),
-                  StatCard(
-                    label: 'Zero Stock',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.zeroStockCount}',
-                    icon: Icons.remove_shopping_cart_outlined,
-                    accent: AppColors.destructive,
-                    tooltip: 'View zero-stock items',
-                    onTap: _loading
-                        ? null
-                        : _scrollToReplenishment,
-                  ),
+          StatCard(
+  label: 'Zero Stock',
+  value: _loading
+      ? '—'
+      : '${_stats!.zeroStockCount}',
+  icon: Icons.remove_shopping_cart_outlined,
+  accent: AppColors.destructive,
+  tooltip: 'Open zero-stock notifications',
+  onTap: _loading
+      ? null
+      : () => _goTo('/notifications'),
+),
                   StatCard(
                     label: 'Low Stock',
                     value: _loading

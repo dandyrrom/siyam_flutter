@@ -292,7 +292,6 @@ class _StaffDashboardState extends State<StaffDashboard>
                   flex: 4,
                   child: _SocialTemplateCard(
                     alerts: _replenishment,
-                    pinButtonToBottom: true,
                   ),
                 ),
               ],
@@ -1461,11 +1460,9 @@ class _AttentionRow extends StatelessWidget {
 
 class _SocialTemplateCard extends StatelessWidget {
   final List<ReplenishmentAlert> alerts;
-  final bool pinButtonToBottom;
 
   const _SocialTemplateCard({
     required this.alerts,
-    this.pinButtonToBottom = false,
   });
 
   @override
@@ -1566,19 +1563,7 @@ class _SocialTemplateCard extends StatelessWidget {
                 ),
               ),
           ],
-          if (pinButtonToBottom)
-            const Spacer()
-          else
-            const SizedBox(height: 16),
-          const Text(
-            'The generated caption should follow DAS’s real posting tone and format.',
-            style: TextStyle(
-              fontSize: 10.8,
-              height: 1.35,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -1598,6 +1583,15 @@ class _SocialTemplateCard extends StatelessWidget {
               label: const Text(
                 'Generate Social Media Post',
               ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'The generated caption should follow DAS’s real posting tone and format.',
+            style: TextStyle(
+              fontSize: 10.8,
+              height: 1.35,
+              color: AppColors.mutedForeground,
             ),
           ),
         ],

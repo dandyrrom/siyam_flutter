@@ -209,68 +209,69 @@ class _InventoryPageState extends State<InventoryPage>
   }
 
   Future<void> _load({bool silent = false}) async {
-    final requestId = ++_loadRequestId;
+  final requestId = ++_loadRequestId;
+
+  if (!silent) {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+  }
+
+  try {
+    Future<List<Object?>> fetchInventory() {
+      return Future.wait<Object?>([
+        _service.fetchItems(),
+        _replenishmentService.fetchReplenishmentItems(),
+      ]);
+    }
+
+    // Normal page loads use the global interaction guard so users cannot
+    // repeatedly navigate/click while Inventory is still being prepared.
+    //
+    // Background DataBus refreshes remain silent and do NOT block the app.
+    final results = silent
+        ? await fetchInventory()
+        : await AppOperationController.instance.run<List<Object?>>(
+            message: 'Loading inventory...',
+            action: fetchInventory,
+          );
+
+    if (!mounted || requestId != _loadRequestId) {
+      return;
+    }
+
+    final items =
+        results[0] as List<InventoryItem>;
+
+    final replenishmentRows =
+        results[1] as List<ReplenishmentItem>;
+
+    setState(() {
+      _items = items;
+
+      _replenishmentByItemId = {
+        for (final row in replenishmentRows)
+          row.item.itemId: row,
+      };
+
+      _loading = false;
+    });
+  } catch (e) {
+    if (!mounted || requestId != _loadRequestId) {
+      return;
+    }
 
     if (!silent) {
       setState(() {
-        _loading = true;
-        _error = null;
-      });
-    }
-
-    try {
-      Future<List<Object?>> fetchInventory() {
-        return Future.wait<Object?>([
-          _service.fetchItems(),
-          _replenishmentService.fetchReplenishmentItems(),
-        ]);
-      }
-
-      // Normal page loads use the global interaction guard so users cannot
-      // repeatedly navigate/click while Inventory is still being prepared.
-      //
-      // Background DataBus refreshes remain silent and do NOT block the app.
-      final results = silent
-          ? await fetchInventory()
-          : await AppOperationController.instance.run<List<Object?>>(
-              message: 'Loading inventory...',
-              action: fetchInventory,
-            );
-
-      if (!mounted || requestId != _loadRequestId) {
-        return;
-      }
-
-      final items = results[0] as List<InventoryItem>;
-
-      final replenishmentRows =
-          results[1] as List<ReplenishmentItem>;
-
-      setState(() {
-        _items = items;
-
-        _replenishmentByItemId = {
-          for (final row in replenishmentRows)
-            row.item.itemId: row,
-        };
+        _error =
+            'Could not load inventory: $e';
 
         _loading = false;
       });
-    } catch (e) {
-      if (!mounted || requestId != _loadRequestId) {
-        return;
-      }
-
-      if (!silent) {
-        setState(() {
-          _error =
-              'Could not load inventory: $e';
-
-          _loading = false;
-        });
-      }
     }
   }
+}
 
   // ==========================================================================
   // CATEGORY OPTIONS
@@ -420,6 +421,11 @@ class _InventoryPageState extends State<InventoryPage>
   // ==========================================================================
   // GOODS RECEIVED
   // ==========================================================================
+  //
+  // Inventory remains mounted while the Goods Received page is pushed above
+  // it. DataBus may refresh this page while the stock-in transaction is still
+  // completing, so always perform one final full reload after the form closes.
+  // ==========================================================================
 
   Future<void> _openGoodsReceived({String? itemId}) async {
     if (_goodsReceivedOpen) {
@@ -432,6 +438,8 @@ class _InventoryPageState extends State<InventoryPage>
 
     _goodsReceivedOpen = true;
 
+    // Invalidate any older Inventory fetch that may still be running before
+    // the Goods Received page opens.
     _loadRequestId++;
 
     try {
@@ -439,14 +447,20 @@ class _InventoryPageState extends State<InventoryPage>
 
       if (!mounted) return;
 
+      // Let GoRouter finish removing the Goods Received page before rebuilding
+      // Inventory. This avoids repaint/layout glitches on Flutter Web.
       await WidgetsBinding.instance.endOfFrame;
 
       if (!mounted) return;
 
+      // Show the normal Inventory loading state while the final authoritative
+      // batch-aware data is fetched from Supabase.
       await _load();
 
       if (!mounted) return;
 
+      // Keep DataBus refreshes suspended through the first fully-painted
+      // Inventory frame so queued stock-in pings cannot immediately repaint it.
       await WidgetsBinding.instance.endOfFrame;
     } finally {
       _goodsReceivedOpen = false;
@@ -455,6 +469,10 @@ class _InventoryPageState extends State<InventoryPage>
 
   // ==========================================================================
   // DISPENSE
+  // ==========================================================================
+  //
+  // Internal function/service names remain stockOut to avoid breaking the
+  // already-working backend. Only staff-facing terminology is changed.
   // ==========================================================================
 
   Future<void> _openDispenseDialog({InventoryItem? item}) async {
@@ -486,6 +504,15 @@ class _InventoryPageState extends State<InventoryPage>
 
   // ==========================================================================
   // STOCK LEVEL
+  // ==========================================================================
+  //
+  // Inventory status is now aligned with Ordering's calculated ROP:
+  //
+  // - Out of Stock: no usable stock remains
+  // - Low Stock: usable stock is at/below calculated ROP
+  // - In Stock: usable stock is above calculated ROP
+  //
+  // The old fixed low-stock threshold is intentionally NOT used here.
   // ==========================================================================
 
   StockLevel _stockLevelFor(InventoryItem item) {
@@ -579,6 +606,10 @@ class _InventoryPageState extends State<InventoryPage>
 
                     const SizedBox(height: 10),
 
+                    // ========================================================
+                    // CURRENT USABLE STOCK
+                    // ========================================================
+
                     Text(
                       '${formatQty(_currentStockQty(item))} '
                       '${_currentStockUnit(item)}',
@@ -612,6 +643,10 @@ class _InventoryPageState extends State<InventoryPage>
                         textAlign: TextAlign.center,
                       ),
                     ],
+
+                    // ========================================================
+                    // EXPIRY INFORMATION
+                    // ========================================================
 
                     if (item.hasExpiredStock) ...[
                       const SizedBox(height: 10),
@@ -648,6 +683,10 @@ class _InventoryPageState extends State<InventoryPage>
                     const SizedBox(height: 16),
                     const Divider(height: 1),
                     const SizedBox(height: 8),
+
+                    // ========================================================
+                    // ACTIONS
+                    // ========================================================
 
                     _buildActionTile(
                       icon: Icons.inventory_2_outlined,
@@ -779,6 +818,20 @@ class _InventoryPageState extends State<InventoryPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ====================================================================
+        // HEADER
+        // ====================================================================
+        //
+        // PANEL FEEDBACK:
+        // Simplified inventory entry points.
+        //
+        // OLD:
+        // New menu + Stock In
+        //
+        // NEW:
+        // Goods Received + Dispense
+        // ====================================================================
+
         if (isMobile)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,6 +947,10 @@ class _InventoryPageState extends State<InventoryPage>
 
         const SizedBox(height: 20),
 
+        // ====================================================================
+        // MAIN CARD
+        // ====================================================================
+
         Container(
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -905,6 +962,10 @@ class _InventoryPageState extends State<InventoryPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ==================================================================
+              // FILTERS
+              // ==================================================================
+
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Wrap(
@@ -1071,6 +1132,10 @@ class _InventoryPageState extends State<InventoryPage>
 
               const Divider(height: 1),
 
+              // ==================================================================
+              // EMPTY STATES
+              // ==================================================================
+
               if (_items.isEmpty)
                 const Center(
                   child: Padding(
@@ -1130,6 +1195,10 @@ class _InventoryPageState extends State<InventoryPage>
                   ),
                 )
               else ...[
+                // ==============================================================
+                // DESKTOP TABLE HEADER
+                // ==============================================================
+
                 if (!isMobile)
                   const Padding(
                     padding: EdgeInsets.symmetric(
@@ -1157,11 +1226,17 @@ class _InventoryPageState extends State<InventoryPage>
                           child: _HeaderCell('Stock'),
                         ),
                         SizedBox(width: 16),
+
+                        // =====================================================
+                        // EXPIRY COLUMN
+                        // =====================================================
+
                         Expanded(
                           flex: 3,
                           child: _HeaderCell('Expiry'),
                         ),
                         SizedBox(width: 16),
+
                         Expanded(
                           flex: 2,
                           child: _HeaderCell('Stock Level'),
@@ -1179,6 +1254,10 @@ class _InventoryPageState extends State<InventoryPage>
 
                 if (!isMobile)
                   const Divider(height: 1),
+
+                // ==============================================================
+                // ITEM ROWS
+                // ==============================================================
 
                 Column(
                   children: [
@@ -1209,6 +1288,10 @@ class _InventoryPageState extends State<InventoryPage>
 
                           final equivalentLabel =
                               _equivalentStockLabel(item);
+
+                          // ====================================================
+                          // DESKTOP ROW
+                          // ====================================================
 
                           if (!isMobile) {
                             return HoverableRow(
@@ -1271,6 +1354,15 @@ class _InventoryPageState extends State<InventoryPage>
                                               ),
                                             ),
                                           ),
+
+                                          if (item.isOutOfStock) ...[
+                                            const SizedBox(width: 8),
+                                            _SmallBadge(
+                                              label: 'Out of Stock',
+                                              color:
+                                                  AppColors.stockOut,
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -1306,6 +1398,10 @@ class _InventoryPageState extends State<InventoryPage>
                                     ),
 
                                     const SizedBox(width: 16),
+
+                                    // ==========================================
+                                    // USABLE STOCK
+                                    // ==========================================
 
                                     Expanded(
                                       flex: 2,
@@ -1343,6 +1439,10 @@ class _InventoryPageState extends State<InventoryPage>
 
                                     const SizedBox(width: 16),
 
+                                    // ==========================================
+                                    // EXPIRY
+                                    // ==========================================
+
                                     Expanded(
                                       flex: 3,
                                       child: _ExpiryCell(
@@ -1353,6 +1453,10 @@ class _InventoryPageState extends State<InventoryPage>
                                     ),
 
                                     const SizedBox(width: 16),
+
+                                    // ==========================================
+                                    // STOCK LEVEL
+                                    // ==========================================
 
                                     Expanded(
                                       flex: 2,
@@ -1382,6 +1486,10 @@ class _InventoryPageState extends State<InventoryPage>
                                         ],
                                       ),
                                     ),
+
+                                    // ==========================================
+                                    // ACTION
+                                    // ==========================================
 
                                     SizedBox(
                                       width: 56,
@@ -1447,6 +1555,10 @@ class _InventoryPageState extends State<InventoryPage>
                               ),
                             );
                           }
+
+                          // ====================================================
+                          // MOBILE CARD
+                          // ====================================================
 
                           return InkWell(
                             onTap: () {
@@ -1562,6 +1674,10 @@ class _InventoryPageState extends State<InventoryPage>
                                     ],
                                   ),
 
+                                  // ==========================================
+                                  // MOBILE EXPIRY
+                                  // ==========================================
+
                                   if (item.hasExpiredStock ||
                                       item.nearestExpiryDate !=
                                           null) ...[
@@ -1584,6 +1700,10 @@ class _InventoryPageState extends State<InventoryPage>
                 ),
 
                 const Divider(height: 1),
+
+                // ==============================================================
+                // PAGINATION
+                // ==============================================================
 
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -1753,6 +1873,16 @@ class _ExpiryCell extends StatelessWidget {
 
     final children = <Widget>[];
 
+    // =========================================================================
+    // EXPIRED STOCK
+    // =========================================================================
+    //
+    // This stock remains physically present but is excluded from usable stock.
+    // Staff must explicitly remove it using:
+    //
+    // Dispense -> Dispense Type -> Expired
+    // =========================================================================
+
     if (item.hasExpiredStock) {
       children.add(
         Row(
@@ -1780,6 +1910,10 @@ class _ExpiryCell extends StatelessWidget {
         ),
       );
     }
+
+    // =========================================================================
+    // NEAREST USABLE EXPIRY
+    // =========================================================================
 
     if (expiry != null && days != null) {
       if (children.isNotEmpty) {

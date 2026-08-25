@@ -227,8 +227,15 @@ class InventoryItem {
   }
 
   bool get stockOutIsDeductible {
-    return dispenseUnitId == null ||
-        dispenseUnitId == packageUnitId;
+    if (dispenseUnitId == null) {
+      return true;
+    }
+
+    if (hasPackageBreakdown) {
+      return dispenseUnitId == packageUnitId;
+    }
+
+    return dispenseUnitId == purchaseUnitId;
   }
 
   StockCountMode get effectiveCountMode {

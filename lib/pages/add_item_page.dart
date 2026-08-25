@@ -15,6 +15,7 @@ import '../services/catalog_service.dart';
 import '../services/donation_service.dart';
 import '../services/inventory_service.dart';
 import '../services/supplier_service.dart';
+import '../state/app_operation_controller.dart';
 import '../state/auth_state.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
@@ -492,6 +493,76 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
+  Future<void> _showStockFieldGuide() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final screenWidth =
+            MediaQuery.sizeOf(dialogContext).width;
+
+        return AlertDialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: screenWidth < 600 ? 16 : 40,
+            vertical: 24,
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Goods Received field guide',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 500,
+            ),
+            child: const SingleChildScrollView(
+              child: Text(
+                _stockFieldHelp,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  height: 1.45,
+                  color: AppColors.foreground,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _settleTransientInputs() async {
+    // Close any focused RawAutocomplete/SearchSelectField overlay before
+    // starting a save or leaving this route. This prevents Flutter Web's
+    // mouse tracker from hit-testing an overlay while its source field is
+    // being torn down.
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    // Give Flutter one frame to remove the autocomplete overlay cleanly
+    // before the route is changed or the async stock-in work begins.
+    await WidgetsBinding.instance.endOfFrame;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -584,9 +655,17 @@ class _AddItemPageState extends State<AddItemPage> {
       }
     }
 
+    // Show the existing Save-button spinner immediately, then close any
+    // focused autocomplete/search overlay before the async stock-in begins.
+    // This gives the user visible feedback instead of making the one-frame
+    // overlay-settle step look like a delay.
     setState(
       () => _saving = true,
     );
+
+    await _settleTransientInputs();
+
+    if (!mounted) return;
 
     final currentUserId =
         context
@@ -595,8 +674,11 @@ class _AddItemPageState extends State<AddItemPage> {
             .userId;
 
     try {
-      final resolvedItemIds =
-          <String>[];
+      await AppOperationController.instance.run(
+        message: 'Recording goods received...',
+        action: () async {
+          final resolvedItemIds =
+              <String>[];
 
       for (final line in _lines) {
         if (line.existingItem != null) {
@@ -822,6 +904,8 @@ class _AddItemPageState extends State<AddItemPage> {
           );
         }
       }
+        },
+      );
 
       if (!mounted) return;
 
@@ -833,6 +917,12 @@ class _AddItemPageState extends State<AddItemPage> {
           ),
         ),
       );
+
+      // The save may have been started while a search/autocomplete field was
+      // focused. Make sure its overlay is fully gone before removing this page.
+      await _settleTransientInputs();
+
+      if (!mounted) return;
 
       context.pop();
     } catch (e) {
@@ -904,8 +994,13 @@ class _AddItemPageState extends State<AddItemPage> {
             CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () =>
-                context.pop(),
+            onPressed: () async {
+              await _settleTransientInputs();
+
+              if (!mounted) return;
+
+              context.pop();
+            },
             icon: const Icon(
               Icons.arrow_back,
               size: 16,
@@ -922,13 +1017,70 @@ class _AddItemPageState extends State<AddItemPage> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Goods Received',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight:
-                  FontWeight.w800,
-            ),
+          Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.center,
+            children: [
+              const Flexible(
+                child: Text(
+                  'Goods Received',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Tooltip(
+                message:
+                    _stockFieldHelp,
+                waitDuration:
+                    const Duration(
+                  milliseconds: 250,
+                ),
+                showDuration:
+                    const Duration(
+                  seconds: 20,
+                ),
+                preferBelow: true,
+                padding:
+                    const EdgeInsets.all(
+                  12,
+                ),
+                margin:
+                    const EdgeInsets.symmetric(
+                  horizontal: 16,
+                ),
+                textStyle:
+                    const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  height: 1.35,
+                ),
+                child: IconButton(
+                  onPressed:
+                      _showStockFieldGuide,
+                  visualDensity:
+                      VisualDensity.compact,
+                  padding:
+                      const EdgeInsets.all(
+                    4,
+                  ),
+                  constraints:
+                      const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  icon: const Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color:
+                        AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Form(
@@ -1364,9 +1516,13 @@ class _AddItemPageState extends State<AddItemPage> {
                       onPressed:
                           _saving
                               ? null
-                              : () =>
-                                  context
-                                      .pop(),
+                              : () async {
+                                  await _settleTransientInputs();
+
+                                  if (!mounted) return;
+
+                                  context.pop();
+                                },
                       child:
                           const Text(
                         'Cancel',
@@ -1560,7 +1716,8 @@ class _ItemDetailsBlock
                     ),
                   ),
                   Text(
-                    'Current: ${formatQty(existing.stockQty)} ${existing.itemUom}',
+                    _currentStockSummary(existing),
+                    textAlign: TextAlign.right,
                     style:
                         const TextStyle(
                       fontSize:
@@ -2075,6 +2232,37 @@ class _ItemDetailsBlock
   }
 }
 
+String _currentStockSummary(
+  InventoryItem item,
+) {
+  // Goods Received should show the same usable-stock source of truth used by
+  // the inventory pages instead of the legacy item-level stock aggregate.
+  //
+  // For items with a package breakdown, show both units so staff can see the
+  // configured stock-count unit and its equivalent at a glance.
+  if (!item.hasPackageBreakdown) {
+    return 'Current: ${formatQty(item.currentUsableStockQty)} '
+        '${item.currentUsableStockUnit}';
+  }
+
+  final packageQty =
+      item.currentUsableStockQty;
+
+  final purchaseEquivalent =
+      item.currentPurchaseUnitEquivalent;
+
+  if (item.effectiveCountMode ==
+      StockCountMode.purchaseUnit) {
+    return 'Current: ${formatQty(purchaseEquivalent)} '
+        '${item.purchaseUnitAbbr} '
+        '(${formatQty(packageQty)} ${item.packageUnitAbbr})';
+  }
+
+  return 'Current: ${formatQty(packageQty)} '
+      '${item.packageUnitAbbr} '
+      '(${formatQty(purchaseEquivalent)} ${item.purchaseUnitAbbr})';
+}
+
 String _purchaseUnitLabel(
   _StockInLineItem line,
   InventoryItem? existing,
@@ -2090,6 +2278,42 @@ String _packageUnitLabel(
     existing?.packageUnitAbbr ??
     line.selectedPackageUnit?.name ??
     line.packageUnitCtrl.text;
+
+const String _stockFieldHelp = '''
+• Type — Choose Purchased if DAS bought the stock, or Donated if someone gave it to DAS.
+
+• Supplier — The store or supplier where the purchased stock came from.
+
+• Donation Type — How the donated stock was received.
+
+• Date received — The day the stock arrived at DAS.
+
+• Received By — The staff member who accepted the stock.
+
+• Name — The name of the item.
+
+• Category — The main group of the item, such as Medical or General Supplies.
+
+• Subcategory — A more specific group, such as Tablet, Capsule, or Syrup.
+
+• Purchase unit — The whole unit you receive or buy, such as a box, bottle, bag, or piece.
+
+• Package unit — The smaller unit inside one purchase unit, such as a tablet, capsule, piece, or mL.
+
+• Package quantity — How many smaller units are inside 1 purchase unit. Example: if 1 box contains 100 tablets, enter 100.
+
+• Dispense unit — The unit used when recording how much stock was used, such as tablet, piece, or mL.
+
+• Stock count mode — Chooses whether the stock is mainly shown as the whole purchase unit or the smaller package unit.
+
+• Stock in by — Choose the unit you are entering now. Example: enter 2 boxes, or enter 85 tablets.
+
+• Quantity — The amount that was actually received, using the unit selected under Stock in by.
+
+• Cost per — The price of one unit selected under Stock in by.
+
+• Expiry date — The date the received stock expires. It is required only for items that need an expiry date.
+''';
 
 class _SectionLabel
     extends StatelessWidget {

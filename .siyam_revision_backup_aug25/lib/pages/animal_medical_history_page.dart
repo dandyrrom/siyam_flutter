@@ -63,13 +63,6 @@ class _AnimalMedicalHistoryPageState
 
   @override
   void onExternalDataChanged() {
-    // This page performs its own controlled refresh after adding an item.
-    // Ignore DataBus pings while that write/refresh sequence is still active
-    // so the page cannot start a second overlapping _load().
-    if (_addingItem) {
-      return;
-    }
-
     _load(silent: true);
   }
 
@@ -448,20 +441,18 @@ class _AnimalMedicalHistoryPageState
 
       if (!mounted) return;
 
-      // Keep _addingItem true until our own controlled refresh is finished.
-      // DataChangeBus pings can arrive before addTreatmentItem() returns;
-      // keeping the flag active prevents those queued callbacks from starting
-      // a competing full-page _load() while this refresh is in progress.
+      setState(() {
+        _addingItem = false;
+      });
+
+      // Only refresh the panel if staff is still
+      // viewing the same treatment.
       if (_selectedTreatment?.treatId ==
           targetTreatmentId) {
         await _refreshSelectedItems();
       }
 
       if (!mounted) return;
-
-      setState(() {
-        _addingItem = false;
-      });
 
       ScaffoldMessenger.of(context)
           .showSnackBar(

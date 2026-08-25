@@ -40,7 +40,7 @@ Future<void> main() async {
               ),
               SizedBox(height: 6),
               Text(
-                'SIYAM encountered a temporary display problem.',
+                'This can happen when several actions are processed close together.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,

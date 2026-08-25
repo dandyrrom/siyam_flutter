@@ -7,7 +7,6 @@ import '../models/app_user.dart';
 import '../services/dashboard_service.dart';
 import '../services/donor_notification_service.dart';
 import '../state/auth_state.dart';
-import '../state/donor_notification_seen_store.dart';
 import '../state/data_bus.dart';
 import 'app_dropdown.dart';
 import 'donor_notification_alerts.dart';
@@ -41,19 +40,6 @@ class _NotificationBellState
 
   List<DonorNotification>
       _donorNotifs = [];
-
-  Set<String> _seenDonorNotificationIds =
-      <String>{};
-
-  int get _donorUnreadCount {
-    return _donorNotifs
-        .where(
-          (notification) =>
-              !_seenDonorNotificationIds
-                  .contains(notification.id),
-        )
-        .length;
-  }
 
   @override
   Alignment get targetAnchor =>
@@ -116,14 +102,8 @@ class _NotificationBellState
 
         if (!mounted) return;
 
-        final seenIds =
-            DonorNotificationSeenStore.load(
-          profile.userId,
-        );
-
         setState(() {
           _donorNotifs = updates;
-          _seenDonorNotificationIds = seenIds;
           _notifs = [];
         });
 
@@ -150,8 +130,6 @@ class _NotificationBellState
           _notifs =
               buildCompactNotifs(stats);
           _donorNotifs = [];
-          _seenDonorNotificationIds =
-              <String>{};
         });
 
         rebuildDropdown();
@@ -170,64 +148,10 @@ class _NotificationBellState
       setState(() {
         _notifs = [];
         _donorNotifs = [];
-        _seenDonorNotificationIds =
-            <String>{};
       });
 
       rebuildDropdown();
     }
-  }
-
-  void _markCurrentDonorNotificationsViewed() {
-    if (!_tracksDonorUpdates ||
-        _donorNotifs.isEmpty) {
-      return;
-    }
-
-    final profile = context
-        .read<AuthController>()
-        .profile;
-
-    if (profile == null) {
-      return;
-    }
-
-    final ids = _donorNotifs
-        .map((notification) => notification.id)
-        .toSet();
-
-    if (ids.isEmpty) {
-      return;
-    }
-
-    DonorNotificationSeenStore.markSeen(
-      profile.userId,
-      ids,
-    );
-
-    final hasNewlySeen = ids.any(
-      (id) =>
-          !_seenDonorNotificationIds.contains(id),
-    );
-
-    if (!hasNewlySeen) {
-      return;
-    }
-
-    setState(() {
-      _seenDonorNotificationIds.addAll(ids);
-    });
-  }
-
-  void _handleBellTap() {
-    // For donors, opening the bell means the currently available updates have
-    // been viewed. Keep the notifications themselves; only clear their unread
-    // badge state. Manager/Staff inventory alerts keep their existing behavior.
-    if (_tracksDonorUpdates) {
-      _markCurrentDonorNotificationsViewed();
-    }
-
-    toggleDropdown();
   }
 
   void _openDetail(
@@ -543,7 +467,7 @@ class _NotificationBellState
 
     final count =
         donorMode
-            ? _donorUnreadCount
+            ? _donorNotifs.length
             : _notifs.length;
 
     final hasAlerts =
@@ -563,7 +487,7 @@ class _NotificationBellState
         child: InkWell(
           borderRadius:
               BorderRadius.circular(20),
-          onTap: _handleBellTap,
+          onTap: toggleDropdown,
           hoverColor:
               AppColors.primary.withValues(
             alpha: 0.08,

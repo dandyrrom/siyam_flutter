@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -7,7 +7,6 @@ import '../models/app_user.dart';
 import '../routing/nav_config.dart';
 import '../state/auth_state.dart';
 import '../state/app_operation_controller.dart';
-import 'pending_donation_badge.dart';
 
 class MobileDrawer
     extends StatefulWidget {
@@ -230,10 +229,6 @@ Future<void> _openRoute(
                       item.path,
                     );
 
-                    final showPendingDonationBadge =
-                        user?.role == AppRole.manager &&
-                            item.path == '/donations';
-
                     return Padding(
                       padding:
                           const EdgeInsets
@@ -330,13 +325,6 @@ Future<void> _openRoute(
                                     ),
                                   ),
                                 ),
-
-                                if (showPendingDonationBadge) ...[
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                  const PendingDonationBadge(),
-                                ],
                               ],
                             ),
                           ),
