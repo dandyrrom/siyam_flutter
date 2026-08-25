@@ -164,8 +164,8 @@ List<CompactNotif> buildCompactNotifs(
         itemName: item.itemName,
         subtitle:
             '${formatQty(item.stockQty)} '
-            '${item.unitAbbr} equivalent left '
-            '(≤ ${formatQty(lowStockPurchaseUnitThreshold)})',
+            '${item.unitAbbr} equivalent left · '
+            'at/below calculated ROP',
         accent: AppColors.warning,
       ),
 

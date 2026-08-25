@@ -92,6 +92,7 @@ class _AddTreatmentPageState
 
   List<Pet> _pets = [];
   List<InventoryItem> _items = [];
+  List<TreatmentRecord> _existingTreatments = [];
 
   Pet? _selectedPet;
 
@@ -179,20 +180,58 @@ class _AddTreatmentPageState
             .profile;
 
     try {
-      final results =
-          await Future.wait([
-        _petService.fetchPets(),
-        _inventoryService.fetchItems(),
-      ]);
+      // Load the required form data together. Treatment history is loaded
+      // separately so a temporary history-read problem never blocks the form.
+      final petsFuture =
+          _petService.fetchPets();
 
-      if (!mounted) return;
+      final itemsFuture =
+          _inventoryService.fetchItems();
+
+      final treatmentsFuture =
+          _treatmentService.fetchTreatments();
 
       final pets =
-          results[0] as List<Pet>;
+          await petsFuture;
+
+      // Adopted animals are no longer under DAS care, and deceased animals
+      // cannot receive new treatment. Keep their old records in the system,
+      // but do not offer them in the Add Treatment selector.
+      final eligiblePets =
+          pets
+              .where(
+                (pet) =>
+                    pet.status !=
+                        PetStatus.adopted &&
+                    pet.status !=
+                        PetStatus.deceased,
+              )
+              .toList()
+            ..sort(
+              (a, b) =>
+                  a.petName
+                      .toLowerCase()
+                      .compareTo(
+                        b.petName
+                            .toLowerCase(),
+                      ),
+            );
 
       final items =
-          results[1]
-              as List<InventoryItem>;
+          await itemsFuture;
+
+      List<TreatmentRecord> existingTreatments = [];
+
+      try {
+        existingTreatments =
+            await treatmentsFuture;
+      } catch (_) {
+        // The existing-record notice is helpful context only. Treatment
+        // logging must remain available even if this optional read fails.
+        existingTreatments = [];
+      }
+
+      if (!mounted) return;
 
       _itemDrafts.clear();
 
@@ -241,16 +280,14 @@ class _AddTreatmentPageState
       }
 
       setState(() {
-        _pets = pets;
+        _pets = eligiblePets;
         _items = items;
+        _existingTreatments = existingTreatments;
 
-        _selectedPet =
-            _pets.isEmpty
-                ? null
-                : _pets.first;
-
-        _petCtrl.text =
-            _selectedPet?.petName ?? '';
+        // Require an explicit animal selection. This prevents a treatment from
+        // accidentally being attached to the first animal in the list.
+        _selectedPet = null;
+        _petCtrl.clear();
 
         _administeredByCtrl.text =
             currentUser?.fullName ?? '';
@@ -268,6 +305,33 @@ class _AddTreatmentPageState
       });
     }
   }
+
+  // ===========================================================================
+  // MEDICAL RECORD CONTAINER
+  // ===========================================================================
+  //
+  // SIYAM displays one medical-record container per animal and groups all
+  // treatment rows for that animal underneath it. An animal can therefore have
+  // many legitimate treatments without creating duplicate medical-record cards.
+  // ===========================================================================
+
+  bool _petHasMedicalRecord(
+    Pet? pet,
+  ) {
+    if (pet == null) {
+      return false;
+    }
+
+    return _existingTreatments.any(
+      (treatment) =>
+          treatment.petId == pet.petId,
+    );
+  }
+
+  bool get _selectedPetHasMedicalRecord =>
+      _petHasMedicalRecord(
+        _selectedPet,
+      );
 
   // ===========================================================================
   // ITEM AVAILABILITY
@@ -428,6 +492,25 @@ class _AddTreatmentPageState
         const SnackBar(
           content: Text(
             'Select a pet.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    // Defensive check in case the animal status changed after this page
+    // loaded. Historical records stay available, but a new treatment must
+    // not be created for an adopted or deceased animal.
+    if (_selectedPet!.status ==
+            PetStatus.adopted ||
+        _selectedPet!.status ==
+            PetStatus.deceased) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This animal is no longer eligible to receive treatment.',
           ),
         ),
       );
@@ -748,7 +831,7 @@ class _AddTreatmentPageState
                                 decoration:
                                     InputDecoration(
                                   labelText:
-                                      'Pet (none available)',
+                                      'Pet (none eligible for treatment)',
                                 ),
                               )
                             : SearchSelectField<
@@ -775,6 +858,28 @@ class _AddTreatmentPageState
                                   }
 
                                   return null;
+                                },
+                                onTextChanged:
+                                    (
+                                  value,
+                                ) {
+                                  final selected =
+                                      _selectedPet;
+
+                                  if (selected ==
+                                      null) {
+                                    return;
+                                  }
+
+                                  if (value.trim() !=
+                                      selected
+                                          .petName
+                                          .trim()) {
+                                    setState(() {
+                                      _selectedPet =
+                                          null;
+                                    });
+                                  }
                                 },
                                 onSelected:
                                     (
@@ -823,6 +928,95 @@ class _AddTreatmentPageState
                     );
                   },
                 ),
+
+                if (_selectedPetHasMedicalRecord) ...[
+                  const SizedBox(
+                    height: 10,
+                  ),
+
+                  Container(
+                    width:
+                        double.infinity,
+                    padding:
+                        const EdgeInsets
+                            .symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          AppColors.primary
+                              .withValues(
+                        alpha: 0.07,
+                      ),
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                        11,
+                      ),
+                      border:
+                          Border.all(
+                        color:
+                            AppColors.primary
+                                .withValues(
+                          alpha: 0.20,
+                        ),
+                      ),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment
+                              .start,
+                      children: [
+                        Icon(
+                          Icons
+                              .info_outline,
+                          size: 17,
+                          color:
+                              AppColors.primary,
+                        ),
+                        SizedBox(
+                          width: 8,
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+                            children: [
+                              Text(
+                                'This pet already exists in the medical records.',
+                                style:
+                                    TextStyle(
+                                  fontSize:
+                                      12.5,
+                                  fontWeight:
+                                      FontWeight
+                                          .w700,
+                                ),
+                              ),
+                              SizedBox(
+                                height: 2,
+                              ),
+                              Text(
+                                'The new treatment will be added to the pet\'s existing medical record.',
+                                style:
+                                    TextStyle(
+                                  fontSize:
+                                      11.5,
+                                  color:
+                                      AppColors
+                                          .mutedForeground,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(
                   height: 12,
@@ -1284,6 +1478,9 @@ class _TreatmentItemDraftCardState
   final _searchFocusNode =
       FocusNode();
 
+  final _optionsScrollController =
+      ScrollController();
+
   late final TextEditingController
       _qtyCtrl;
 
@@ -1314,6 +1511,7 @@ class _TreatmentItemDraftCardState
   void dispose() {
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
+    _optionsScrollController.dispose();
     _qtyCtrl.dispose();
 
     super.dispose();
@@ -1700,18 +1898,27 @@ class _TreatmentItemDraftCardState
                                   ],
                                 ),
                               )
-                            : ListView
-                                .separated(
-                                padding:
-                                    const EdgeInsets
-                                        .symmetric(
-                                  vertical:
-                                      6,
-                                ),
-                                shrinkWrap:
+                            : Scrollbar(
+                                controller:
+                                    _optionsScrollController,
+                                thumbVisibility:
                                     true,
-                                itemCount:
-                                    list.length,
+                                interactive:
+                                    true,
+                                child: ListView
+                                    .separated(
+                                  controller:
+                                      _optionsScrollController,
+                                  padding:
+                                      const EdgeInsets
+                                          .symmetric(
+                                    vertical:
+                                        6,
+                                  ),
+                                  shrinkWrap:
+                                      true,
+                                  itemCount:
+                                      list.length,
                                 separatorBuilder:
                                     (
                                   context,
@@ -1876,6 +2083,7 @@ class _TreatmentItemDraftCardState
                                   );
                                 },
                               ),
+                            ),
                   ),
                 ),
               ),

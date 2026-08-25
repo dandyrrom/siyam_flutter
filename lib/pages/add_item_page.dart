@@ -923,7 +923,7 @@ class _AddItemPageState extends State<AddItemPage> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Good Received',
+            'Goods Received',
             style: TextStyle(
               fontSize: 24,
               fontWeight:

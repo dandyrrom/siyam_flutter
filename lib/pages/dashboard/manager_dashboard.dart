@@ -280,11 +280,30 @@ class _ManagerDashboardState extends State<ManagerDashboard>
             // HEADER
             // =================================================================
 
-            _DashboardHero(
-              displayName: displayName,
+            Text(
+              'Welcome, $displayName!',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium
+                  ?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.foreground,
+                  ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+
+            Text(
+              'Monitor sanctuary operations, inventory alerts, and records requiring attention.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
+            ),
+
+            const SizedBox(height: 24),
 
             // =================================================================
             // ERROR STATE
@@ -312,135 +331,147 @@ class _ManagerDashboardState extends State<ManagerDashboard>
               // MANAGEMENT OVERVIEW
               // ===============================================================
 
-              _DashboardSection(
-                title: 'Management Overview',
-                subtitle:
-                    'Key sanctuary administration at a glance.',
-                icon: Icons.dashboard_outlined,
-                accent: AppColors.roleManager,
-                child: StatCardRow(
-                  cards: [
-                    StatCard(
-                      label: 'Total Animals',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.totalAnimals}',
-                      icon: Icons.pets_outlined,
-                      accent: AppColors.roleManager,
-                      tooltip: 'Open animal records',
-                      onTap: _loading
-                          ? null
-                          : () => _goTo('/animal-records'),
+              Text(
+                'Management Overview',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.foreground,
                     ),
-                    StatCard(
-                      label: 'Suppliers',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.totalSuppliers}',
-                      icon: Icons.local_shipping_outlined,
-                      accent: AppColors.roleManager,
-                      tooltip: 'Open suppliers',
-                      onTap: _loading
-                          ? null
-                          : () => _goTo('/suppliers'),
-                    ),
-                    StatCard(
-                      label: 'Pending Submissions',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.pendingSubmissions}',
-                      icon: Icons.fact_check_outlined,
-                      accent: AppColors.roleManager,
-                      tooltip: 'Open donation submissions',
-                      onTap: _loading
-                          ? null
-                          : () => _goTo('/donations'),
-                    ),
-                    StatCard(
-                      label: 'Staff Accounts',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.staffAccounts}',
-                      icon: Icons.badge_outlined,
-                      accent: AppColors.roleManager,
-                      tooltip: 'View Staff accounts',
-                      onTap: _loading
-                          ? null
-                          : _openStaffAccountsDialog,
-                    ),
-                  ],
-                ),
               ),
 
-              const SizedBox(height: 18),
+              const SizedBox(height: 10),
+
+              StatCardRow(
+                cards: [
+                  StatCard(
+                    label: 'Total Animals',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.totalAnimals}',
+                    icon: Icons.pets_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open animal records',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/animal-records'),
+                  ),
+                  StatCard(
+                    label: 'Suppliers',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.totalSuppliers}',
+                    icon: Icons.local_shipping_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open suppliers',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/suppliers'),
+                  ),
+                  StatCard(
+                    label: 'Pending Submissions',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.pendingSubmissions}',
+                    icon: Icons.fact_check_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'Open donation submissions',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/donations'),
+                  ),
+                  StatCard(
+                    label: 'Staff Accounts',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.staffAccounts}',
+                    icon: Icons.badge_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'View Staff accounts',
+                    onTap: _loading
+                        ? null
+                        : _openStaffAccountsDialog,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 22),
 
               // ===============================================================
               // INVENTORY STATUS
               // ===============================================================
 
-              _DashboardSection(
-                title: 'Inventory Status',
-                subtitle:
-                    'Current stock health and inventory alerts.',
-                icon: Icons.inventory_2_outlined,
-                accent: AppColors.sageGreen,
-                child: StatCardRow(
-                  cards: [
-                    StatCard(
-                      label: 'Total Inventory Items',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.totalItems}',
-                      icon: Icons.inventory_2_outlined,
-                      accent: AppColors.roleManager,
-                      tooltip: 'View inventory overview',
-                      onTap: _loading
-                          ? null
-                          : _openInventoryOverviewDialog,
+              Text(
+                'Inventory Status',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.foreground,
                     ),
-                    StatCard(
-                      label: 'Zero Stock',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.zeroStockCount}',
-                      icon: Icons.remove_shopping_cart_outlined,
-                      accent: AppColors.destructive,
-                      tooltip: 'View zero-stock items',
-                      onTap: _loading
-                          ? null
-                          : _scrollToReplenishment,
-                    ),
-                    StatCard(
-                      label: 'Low Stock',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.lowStockCount}',
-                      icon: Icons.warning_amber_outlined,
-                      accent: AppColors.warning,
-                      tooltip: 'View low-stock items',
-                      onTap: _loading
-                          ? null
-                          : _scrollToReplenishment,
-                    ),
+              ),
 
-                    // =========================================================
-                    // EXPIRY ALERT CARD
-                    // =========================================================
+              const SizedBox(height: 10),
 
-                    StatCard(
-                      label: 'Expiry Alerts',
-                      value: _loading
-                          ? '—'
-                          : '${_stats!.expiringSoonCount}',
-                      icon: Icons.event_busy_outlined,
-                      accent: AppColors.warning,
-                      tooltip: 'Open expiry notifications',
-                      onTap: _loading
-                          ? null
-                          : () => _goTo('/notifications'),
-                    ),
-                  ],
-                ),
+              StatCardRow(
+                cards: [
+                  StatCard(
+                    label: 'Total Inventory Items',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.totalItems}',
+                    icon: Icons.inventory_2_outlined,
+                    accent: AppColors.roleManager,
+                    tooltip: 'View inventory overview',
+                    onTap: _loading
+                        ? null
+                        : _openInventoryOverviewDialog,
+                  ),
+                  StatCard(
+                    label: 'Zero Stock',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.zeroStockCount}',
+                    icon: Icons.remove_shopping_cart_outlined,
+                    accent: AppColors.destructive,
+                    tooltip: 'View zero-stock items',
+                    onTap: _loading
+                        ? null
+                        : _scrollToReplenishment,
+                  ),
+                  StatCard(
+                    label: 'Low Stock',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.lowStockCount}',
+                    icon: Icons.warning_amber_outlined,
+                    accent: AppColors.warning,
+                    tooltip: 'View low-stock items',
+                    onTap: _loading
+                        ? null
+                        : _scrollToReplenishment,
+                  ),
+
+                  // ===========================================================
+                  // EXPIRY ALERT CARD
+                  // ===========================================================
+
+                  StatCard(
+                    label: 'Expiry Alerts',
+                    value: _loading
+                        ? '—'
+                        : '${_stats!.expiringSoonCount}',
+                    icon: Icons.event_busy_outlined,
+                    accent: AppColors.warning,
+                    tooltip: 'Open expiry notifications',
+                    onTap: _loading
+                        ? null
+                        : () => _goTo('/notifications'),
+                  ),
+                ],
               ),
 
               // ===============================================================
@@ -460,231 +491,62 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                 ),
               ],
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
 
               // ===============================================================
-              // REPLENISHMENT
+              // REPLENISHMENT SECTION HEADER
               // ===============================================================
 
               KeyedSubtree(
                 key: _replenishmentKey,
-                child: _DashboardSection(
-                  title: 'Replenishment List',
-                  subtitle:
-                      'Items requiring stock attention. This overview is read-only for Managers.',
-                  icon: Icons.priority_high_rounded,
-                  accent: AppColors.warning,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 120,
-                          child: Center(
-                            child: CircularProgressIndicator(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Replenishment List',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
-                        )
-                      : _ReplenishmentAlerts(
-                          zeroStockItems:
-                              _stats!.zeroStockItems,
-                          lowStockItems:
-                              _stats!.lowStockItems,
-                        ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Items requiring stock attention. This overview is read-only for Managers.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color:
+                            AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
+              const SizedBox(height: 12),
+
+              // ===============================================================
+              // REPLENISHMENT LIST
+              // ===============================================================
+
+              if (_loading)
+                const SizedBox(
+                  height: 120,
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else
+                _ReplenishmentAlerts(
+                  zeroStockItems:
+                      _stats!.zeroStockItems,
+                  lowStockItems:
+                      _stats!.lowStockItems,
+                ),
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// DASHBOARD UI
-// =============================================================================
-
-class _DashboardHero extends StatelessWidget {
-  final String displayName;
-
-  const _DashboardHero({
-    required this.displayName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < 560;
-
-        return Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(
-            compact ? 18 : 22,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.roleManager
-                .withValues(alpha: 0.06),
-            borderRadius:
-                BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.roleManager
-                  .withValues(alpha: 0.16),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome, $displayName!',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(
-                            fontWeight:
-                                FontWeight.w800,
-                            color:
-                                AppColors.foreground,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Monitor sanctuary operations, inventory alerts, and records requiring attention.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(
-                            height: 1.45,
-                            color: AppColors
-                                .mutedForeground,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              if (!compact) ...[
-                const SizedBox(width: 24),
-                Container(
-                  width: 54,
-                  height: 54,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius:
-                        BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.roleManager
-                          .withValues(alpha: 0.14),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.pets_outlined,
-                    size: 25,
-                    color: AppColors.roleManager,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _DashboardSection extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accent;
-  final Widget child;
-
-  const _DashboardSection({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accent,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: accent.withValues(
-          alpha: 0.028,
-        ),
-        borderRadius:
-            BorderRadius.circular(20),
-        border: Border.all(
-          color: accent.withValues(
-            alpha: 0.12,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accent.withValues(
-                    alpha: 0.10,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: accent,
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight:
-                            FontWeight.w700,
-                        color:
-                            AppColors.foreground,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        height: 1.35,
-                        color: AppColors
-                            .mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          child,
-        ],
       ),
     );
   }
@@ -1267,16 +1129,14 @@ class _StaffAccountsDialogState
                       Expanded(
                         child: Container(
                           width: double.infinity,
-                          padding:
-                              const EdgeInsets.fromLTRB(
+                          padding: const EdgeInsets.fromLTRB(
                             8,
                             8,
                             4,
                             8,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.background,
+                            color: AppColors.background,
                             borderRadius:
                                 BorderRadius.circular(14),
                             border: Border.all(
@@ -1610,13 +1470,10 @@ class _ReplenishmentAlerts extends StatelessWidget {
   Widget build(BuildContext context) {
     final zeroPanel = _StockAlertPanel(
       title: 'Zero Stock',
-      subtitle:
-          'Items with no usable inventory remaining.',
-      emptyText:
-          'No zero stock items as of the moment.',
+      subtitle: 'Items with no usable inventory remaining.',
+      emptyText: 'No zero stock items as of the moment.',
       accent: AppColors.destructive,
-      icon:
-          Icons.remove_shopping_cart_outlined,
+      icon: Icons.remove_shopping_cart_outlined,
       items: zeroStockItems,
       isZeroStock: true,
     );
@@ -1624,9 +1481,8 @@ class _ReplenishmentAlerts extends StatelessWidget {
     final lowPanel = _StockAlertPanel(
       title: 'Low Stock',
       subtitle:
-          'At or below ${formatQty(lowStockPurchaseUnitThreshold)} purchase-unit equivalent.',
-      emptyText:
-          'No low stock items as of the moment.',
+          'Usable stock has reached or fallen below its calculated reorder point (ROP).',
+      emptyText: 'No low stock items as of the moment.',
       accent: AppColors.warning,
       icon: Icons.warning_amber_outlined,
       items: lowStockItems,
@@ -1637,8 +1493,7 @@ class _ReplenishmentAlerts extends StatelessWidget {
       builder: (context, constraints) {
         if (constraints.maxWidth > 720) {
           return Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: zeroPanel),
               const SizedBox(width: 16),
@@ -1648,8 +1503,7 @@ class _ReplenishmentAlerts extends StatelessWidget {
         }
 
         return Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             zeroPanel,
             const SizedBox(height: 16),
@@ -1661,19 +1515,7 @@ class _ReplenishmentAlerts extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// STOCK ALERT PANEL
-// =============================================================================
-//
-// Dashboard preview behavior:
-// - Show a maximum of 5 items initially.
-// - If more than 5 items exist, display View all.
-// - Each panel controls its own expanded state.
-// - No stock or replenishment calculation is changed.
-// =============================================================================
-
-class _StockAlertPanel
-    extends StatefulWidget {
+class _StockAlertPanel extends StatelessWidget {
   final String title;
   final String subtitle;
   final String emptyText;
@@ -1693,307 +1535,125 @@ class _StockAlertPanel
   });
 
   @override
-  State<_StockAlertPanel> createState() =>
-      _StockAlertPanelState();
-}
-
-class _StockAlertPanelState
-    extends State<_StockAlertPanel> {
-  static const int _previewCount = 5;
-
-  bool _showAll = false;
-
-  @override
   Widget build(BuildContext context) {
-    final hasMore =
-        widget.items.length >
-            _previewCount;
-
-    final visibleItems =
-        _showAll
-            ? widget.items
-            : widget.items
-                .take(_previewCount)
-                .toList();
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===============================================================
-          // HEADER
-          // ===============================================================
-
-          Container(
-            width: double.infinity,
-            padding:
-                const EdgeInsets.fromLTRB(
-              18,
-              15,
-              18,
-              13,
-            ),
-            decoration: BoxDecoration(
-              color:
-                  widget.accent.withValues(
-                alpha: 0.045,
-              ),
-              borderRadius:
-                  const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
                       width: 30,
                       height: 30,
-                      alignment:
-                          Alignment.center,
-                      decoration:
-                          BoxDecoration(
-                        color: widget.accent
-                            .withValues(
-                          alpha: 0.10,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(
-                          8,
-                        ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
-                        widget.icon,
-                        size: 16,
-                        color:
-                            widget.accent,
+                      child: Icon(icon, size: 16, color: accent),
+                    ),
+                    const SizedBox(width: 9),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
                       ),
                     ),
-
-                    const SizedBox(
-                      width: 9,
-                    ),
-
-                    Expanded(
-                      child: Text(
-                        widget.title,
-                        style:
-                            const TextStyle(
-                          fontWeight:
-                              FontWeight
-                                  .w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-
+                    const Spacer(),
                     Container(
-                      constraints:
-                          const BoxConstraints(
+                      constraints: const BoxConstraints(
                         minWidth: 26,
                         minHeight: 24,
                       ),
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
-                        horizontal: 7,
-                      ),
-                      alignment:
-                          Alignment.center,
-                      decoration:
-                          BoxDecoration(
-                        color: widget.accent
-                            .withValues(
-                          alpha: 0.10,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(
-                          12,
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${widget.items.length}',
+                        '${items.length}',
                         style: TextStyle(
                           fontSize: 11.5,
-                          fontWeight:
-                              FontWeight
-                                  .w700,
-                          color:
-                              widget.accent,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
                         ),
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(
-                  height: 7,
-                ),
-
+                const SizedBox(height: 7),
                 Text(
-                  widget.subtitle,
+                  subtitle,
                   style: const TextStyle(
                     fontSize: 11.5,
                     height: 1.35,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
             ),
           ),
-
-          const Divider(
-            height: 1,
-            color: AppColors.border,
-          ),
-
-          // ===============================================================
-          // EMPTY
-          // ===============================================================
-
-          if (widget.items.isEmpty)
+          const Divider(height: 1, color: AppColors.border),
+          if (items.isEmpty)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: 18,
                 vertical: 22,
               ),
               child: Row(
                 children: [
                   const Icon(
-                    Icons
-                        .check_circle_outline,
+                    Icons.check_circle_outline,
                     size: 18,
-                    color:
-                        AppColors.sageGreen,
+                    color: AppColors.sageGreen,
                   ),
-                  const SizedBox(
-                    width: 8,
-                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      widget.emptyText,
-                      style:
-                          const TextStyle(
+                      emptyText,
+                      style: const TextStyle(
                         fontSize: 12.5,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ),
                 ],
               ),
             )
-
-          // ===============================================================
-          // LIST
-          // ===============================================================
-
-          else ...[
-            for (
-              var i = 0;
-              i <
-                  visibleItems.length;
-              i++
-            ) ...[
+          else
+            for (var i = 0; i < items.length; i++) ...[
               if (i > 0)
                 const Divider(
                   height: 1,
                   indent: 18,
                   endIndent: 18,
-                  color:
-                      AppColors.border,
+                  color: AppColors.border,
                 ),
-
               _ReplenishmentItemRow(
-                item:
-                    visibleItems[i],
-                accent:
-                    widget.accent,
-                isZeroStock:
-                    widget.isZeroStock,
+                item: items[i],
+                accent: accent,
+                isZeroStock: isZeroStock,
               ),
             ],
-
-            // =============================================================
-            // VIEW ALL / SHOW LESS
-            // =============================================================
-
-            if (hasMore) ...[
-              const Divider(
-                height: 1,
-                color:
-                    AppColors.border,
-              ),
-
-              Padding(
-                padding:
-                    const EdgeInsets
-                        .symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Align(
-                  alignment:
-                      Alignment
-                          .centerRight,
-                  child:
-                      TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showAll =
-                            !_showAll;
-                      });
-                    },
-                    icon: Icon(
-                      _showAll
-                          ? Icons
-                              .keyboard_arrow_up_rounded
-                          : Icons
-                              .keyboard_arrow_down_rounded,
-                      size: 18,
-                    ),
-                    label: Text(
-                      _showAll
-                          ? 'Show less'
-                          : 'View all ${widget.items.length}',
-                    ),
-                    style: TextButton
-                        .styleFrom(
-                      foregroundColor:
-                          widget.accent,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
         ],
       ),
     );
   }
 }
 
-// =============================================================================
-// REPLENISHMENT ITEM ROW
-// =============================================================================
-
-class _ReplenishmentItemRow
-    extends StatelessWidget {
+class _ReplenishmentItemRow extends StatelessWidget {
   final DashboardStockAlert item;
   final Color accent;
   final bool isZeroStock;
@@ -2007,57 +1667,42 @@ class _ReplenishmentItemRow
   @override
   Widget build(BuildContext context) {
     final qty =
-        '${formatQty(item.stockQty)} ${item.unitAbbr}'
-            .trim();
+        '${formatQty(item.stockQty)} ${item.unitAbbr}'.trim();
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 18,
         vertical: 12,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
             spacing: 8,
             runSpacing: 5,
-            crossAxisAlignment:
-                WrapCrossAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
                 item.itemName,
                 style: const TextStyle(
                   fontSize: 13,
-                  fontWeight:
-                      FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets
-                        .symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 7,
                   vertical: 3,
                 ),
-                decoration:
-                    BoxDecoration(
-                  color: accent
-                      .withValues(
-                    alpha: 0.10,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    8,
-                  ),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   qty,
                   style: TextStyle(
                     fontSize: 11.5,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                     color: accent,
                   ),
                 ),
@@ -2068,11 +1713,10 @@ class _ReplenishmentItemRow
           Text(
             isZeroStock
                 ? 'Requires replenishment'
-                : 'Stock is at or below the low-stock threshold',
+                : 'Stock is at or below the calculated reorder point (ROP)',
             style: const TextStyle(
               fontSize: 11,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ],
@@ -2085,8 +1729,7 @@ class _ReplenishmentItemRow
 // INFO BANNER
 // =============================================================================
 
-class _InfoBanner
-    extends StatelessWidget {
+class _InfoBanner extends StatelessWidget {
   final IconData icon;
   final String text;
 
@@ -2099,15 +1742,12 @@ class _InfoBanner
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color:
-            AppColors.accent.withValues(
+        color: AppColors.accent.withValues(
           alpha: 0.12,
         ),
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
@@ -2119,18 +1759,15 @@ class _InfoBanner
           Icon(
             icon,
             size: 18,
-            color:
-                AppColors.primary,
+            color: AppColors.primary,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 12.5,
-                color:
-                    AppColors.foreground,
+                color: AppColors.foreground,
               ),
             ),
           ),

@@ -5,7 +5,7 @@ import '../models/stock_movement.dart';
 import '../models/stock_out.dart';
 import '../state/data_bus.dart';
 import 'backend.dart';
-import 'supabase/supabase_inventory_service.dart';
+import 'supabase/supabase_inventory_service_history_fixed.dart';
 
 /// Data-access interface for inventory items and stock movements.
 ///

@@ -843,6 +843,29 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
       return;
     }
 
+    final hasEligibleAnimal =
+        _pets.any(
+      (pet) =>
+          pet.status !=
+              PetStatus.adopted &&
+          pet.status !=
+              PetStatus.deceased,
+    );
+
+    if (!hasEligibleAnimal) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No animals are currently eligible to receive treatment.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
     context.go(
       '/medical-records/add',
     );
@@ -1429,6 +1452,7 @@ class _AnimalRecordsGrid
               SizedBox(
                 width:
                     cardWidth,
+                height: 184,
                 child:
                     _AnimalMedicalCard(
                   record: record,
@@ -1529,6 +1553,10 @@ class _AnimalMedicalCardState
                 const Duration(
               milliseconds: 140,
             ),
+            width:
+                double.infinity,
+            height:
+                double.infinity,
             padding:
                 const EdgeInsets.all(
               17,

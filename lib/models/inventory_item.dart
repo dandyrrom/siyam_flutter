@@ -388,24 +388,25 @@ class InventoryItem {
     return 'ITM-${itemId.replaceAll('-', '').padRight(4, '0').substring(0, 4).toUpperCase()}';
   }
 
-  /// Stock-level decisions now use usable stock in purchase-unit equivalents.
+  /// Legacy/model-only physical availability status.
   ///
-  /// This means an expired batch no longer falsely makes an item appear
-  /// sufficiently stocked.
+  /// IMPORTANT:
+  /// Low Stock is now ROP-driven and cannot be calculated correctly inside
+  /// this model because ROP depends on:
+  ///
+  /// - trailing 30-day usage
+  /// - lead time
+  /// - safety stock
+  /// - optional item-specific ROP settings
+  ///
+  /// Pages that need Low Stock must use ReplenishmentService, which is the
+  /// single source of truth for the ROP calculation.
+  ///
+  /// This getter therefore only answers the model-level question:
+  /// "Is any usable stock physically available?"
   StockLevel get stockLevel {
     if (isOutOfStock) {
       return StockLevel.outOfStock;
-    }
-
-    final purchaseEquivalent =
-        currentPurchaseUnitEquivalent;
-
-    if (purchaseEquivalent <= lowStockPurchaseUnitThreshold) {
-      return StockLevel.low;
-    }
-
-    if (purchaseEquivalent <= 30) {
-      return StockLevel.needsRestock;
     }
 
     return StockLevel.inStock;

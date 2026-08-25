@@ -227,7 +227,7 @@ class _StaffDashboardState extends State<StaffDashboard>
           )
         else
           SizedBox(
-            height: 300,
+            height: 320,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1040,6 +1040,8 @@ class _PriorityLegendRow extends StatelessWidget {
               ),
               Text(
                 helper,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 10.5,
                   color: AppColors.mutedForeground,

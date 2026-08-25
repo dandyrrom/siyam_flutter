@@ -9,24 +9,15 @@ import '../services/dashboard_service.dart';
 // SOCIAL MEDIA TEMPLATE
 // =============================================================================
 //
-// PANEL REVISION:
-// The generated replenishment caption should sound like an actual
-// Dumaguete Animal Sanctuary post rather than a generic e-commerce / system
-// announcement.
+// The caption is generated from the CURRENT Replenishment list and remains
+// fully editable before Staff copies it.
 //
-// IMPORTANT:
-// - The caption is still generated from the CURRENT Replenishment list.
-// - Staff can still edit the caption before copying it.
-// - No database / Supabase changes are required.
-// - The function names are preserved so StaffDashboard does not need changes.
-//
-// Tone:
-// - direct and practical
-// - grateful to supporters
-// - centered on the animals in DAS care
-// - restrained emojis
-// - branded as Dumaguete Animal Sanctuary
-// - uses the DAS "Every Life Matters" tagline
+// DAS-style goals:
+// - reads like a warm sanctuary update rather than a system notice
+// - explains why the supplies matter to the animals
+// - asks people to like, comment, and share
+// - keeps the current replenishment items easy to read
+// - leaves payment details editable instead of inventing account numbers
 // =============================================================================
 
 String buildReplenishmentCaption(
@@ -73,26 +64,28 @@ String buildReplenishmentCaption(
 
   final buffer = StringBuffer();
 
-  // ===========================================================================
-  // NOTHING CURRENTLY NEEDS REPLENISHMENT
-  // ===========================================================================
-
   if (alerts.isEmpty) {
     buffer
-      ..writeln('A little stock update from $shelterName 🐾')
+      ..writeln('A little update from $shelterName 🐾')
       ..writeln()
       ..writeln(
-        'Our essential supplies are currently in good shape. '
-        'Thank you to everyone who continues to donate and support '
-        'the animals in our care.',
+        'Today our supply shelves are in good shape, and that is because '
+        'people continue to remember the animals in our care. Every bag, '
+        'bottle, box and small donation helps our team get through another '
+        'day of feeding, cleaning and caring for our rescues.',
       )
       ..writeln()
       ..writeln(
-        'Your support helps us continue feeding, treating and caring '
-        'for our rescues every day.',
+        'Thank you to our staff, volunteers and supporters who keep showing '
+        'up for the animals. We are very grateful for you. ❤️',
       )
       ..writeln()
-      ..writeln('Every Life Matters. ❤️')
+      ..writeln(
+        'Please like, comment and share this post so more people can continue '
+        'to see updates from the sanctuary.',
+      )
+      ..writeln()
+      ..writeln('Every Life Matters.')
       ..writeln()
       ..write(
         '#DumagueteAnimalSanctuary #EveryLifeMatters',
@@ -101,21 +94,19 @@ String buildReplenishmentCaption(
     return buffer.toString();
   }
 
-  // ===========================================================================
-  // INTRO
-  // ===========================================================================
-
   buffer
-    ..writeln('WE NEED A LITTLE HELP WITH SUPPLIES 🐾')
+    ..writeln('A little update from $shelterName 🐾')
     ..writeln()
     ..writeln(
-      '$shelterName is currently running low on a few everyday supplies '
-      'used for the animals in our care.',
+      'Every day our team is feeding, cleaning, treating and caring for the '
+      'animals who depend on us. Some of the supplies we use for them are '
+      'running low, and we could really use a little help keeping the shelves '
+      'ready for the days ahead.',
+    )
+    ..writeln()
+    ..writeln(
+      'These are the supplies we currently need:',
     );
-
-  // ===========================================================================
-  // CRITICAL / OUT OF STOCK
-  // ===========================================================================
 
   if (critical.isNotEmpty) {
     buffer
@@ -129,10 +120,6 @@ String buildReplenishmentCaption(
     }
   }
 
-  // ===========================================================================
-  // HIGH PRIORITY
-  // ===========================================================================
-
   if (high.isNotEmpty) {
     buffer
       ..writeln()
@@ -144,10 +131,6 @@ String buildReplenishmentCaption(
       );
     }
   }
-
-  // ===========================================================================
-  // MEDIUM PRIORITY
-  // ===========================================================================
 
   if (medium.isNotEmpty) {
     buffer
@@ -161,26 +144,42 @@ String buildReplenishmentCaption(
     }
   }
 
-  // ===========================================================================
-  // CALL TO ACTION
-  // ===========================================================================
-
   buffer
     ..writeln()
     ..writeln(
-      'If you would like to donate any of these items, please send us '
-      'a message so we can coordinate drop-off.',
+      'If you can help with any of these supplies, please send us a message '
+      'so we can coordinate drop-off. For medicines or veterinary supplies, '
+      'please message us first so we can confirm what is currently needed.',
     )
     ..writeln()
     ..writeln(
-      'Donations in kind help us keep our rescues fed, comfortable and '
-      'properly cared for. For medicines or veterinary supplies, please '
-      'message us first so we can confirm what is currently needed.',
+      'Please like, comment and share this post as soon as you see it. '
+      'Sharing helps this update reach more people who may be able to help '
+      'the animals.',
     )
     ..writeln()
     ..writeln(
-      'Thank you so much to everyone who continues to support our rescues. '
-      'Every contribution, big or small, makes a difference. ❤️',
+      'Thank you to our staff, volunteers and supporters who continue to '
+      'show up for the rescues every day. Every contribution, big or small, '
+      'helps us keep going. ❤️',
+    )
+    ..writeln()
+    ..writeln(
+      'Special thanks to [add staff / volunteer / editor name here] for '
+      'helping with this update.',
+    )
+    ..writeln()
+    ..writeln('DONATION DETAILS')
+    ..writeln('GCash — Christine Askew')
+    ..writeln('• Number: [Add official DAS GCash number]')
+    ..writeln()
+    ..writeln('BDO')
+    ..writeln('• Account name: [Add official DAS account name]')
+    ..writeln('• Account number: [Add official DAS BDO account number]')
+    ..writeln()
+    ..writeln(
+      'Please replace the bracketed payment details above with the official '
+      'DAS account details before posting.',
     )
     ..writeln()
     ..writeln('Every Life Matters.')
@@ -239,10 +238,6 @@ Future<void> showSocialPostDialog(
           height: dialogHeight,
           child: Column(
             children: [
-              // ===============================================================
-              // HEADER
-              // ===============================================================
-
               Padding(
                 padding:
                     const EdgeInsets.fromLTRB(
@@ -321,10 +316,6 @@ Future<void> showSocialPostDialog(
 
               const Divider(height: 1),
 
-              // ===============================================================
-              // CONTENT
-              // ===============================================================
-
               Expanded(
                 child: SingleChildScrollView(
                   padding:
@@ -368,7 +359,8 @@ Future<void> showSocialPostDialog(
                             Expanded(
                               child: Text(
                                 'The caption is generated from the live Replenishment list. '
-                                'Review and edit it before posting to the official DAS social media page.',
+                                'Review and edit it before posting. Replace the bracketed '
+                                'GCash/BDO details with the official DAS account details.',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   height: 1.4,
@@ -441,10 +433,6 @@ Future<void> showSocialPostDialog(
               ),
 
               const Divider(height: 1),
-
-              // ===============================================================
-              // ACTIONS
-              // ===============================================================
 
               Padding(
                 padding:

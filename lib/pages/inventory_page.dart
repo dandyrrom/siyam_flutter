@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
+import '../models/replenishment_item.dart';
 import '../services/inventory_service.dart';
+import '../services/replenishment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
@@ -28,9 +30,12 @@ enum _SortOption {
 class _InventoryPageState extends State<InventoryPage>
     with DataBusRefreshMixin<InventoryPage> {
   final InventoryService _service = InventoryService();
+  final ReplenishmentService _replenishmentService =
+      ReplenishmentService();
   final TextEditingController _searchCtrl = TextEditingController();
 
   List<InventoryItem> _items = [];
+  Map<String, ReplenishmentItem> _replenishmentByItemId = {};
 
   bool _loading = true;
   String? _error;
@@ -213,14 +218,27 @@ class _InventoryPageState extends State<InventoryPage>
     }
 
     try {
-      final items = await _service.fetchItems();
+      final results = await Future.wait<Object?>([
+        _service.fetchItems(),
+        _replenishmentService.fetchReplenishmentItems(),
+      ]);
 
       if (!mounted || requestId != _loadRequestId) {
         return;
       }
 
+      final items =
+          results[0] as List<InventoryItem>;
+
+      final replenishmentRows =
+          results[1] as List<ReplenishmentItem>;
+
       setState(() {
         _items = items;
+        _replenishmentByItemId = {
+          for (final row in replenishmentRows)
+            row.item.itemId: row,
+        };
         _loading = false;
       });
     } catch (e) {
@@ -293,7 +311,8 @@ class _InventoryPageState extends State<InventoryPage>
               : true;
 
       final matchesStockLevel =
-          _stockLevelFilter == null || item.stockLevel == _stockLevelFilter;
+          _stockLevelFilter == null ||
+          _stockLevelFor(item) == _stockLevelFilter;
 
       final matchesSource =
           _sourceFilter == null || item.acquisitionSource == _sourceFilter;
@@ -468,6 +487,33 @@ class _InventoryPageState extends State<InventoryPage>
   // ==========================================================================
   // STOCK LEVEL
   // ==========================================================================
+  //
+  // Inventory status is now aligned with Ordering's calculated ROP:
+  //
+  // - Out of Stock: no usable stock remains
+  // - Low Stock: usable stock is at/below calculated ROP
+  // - In Stock: usable stock is above calculated ROP
+  //
+  // The old fixed low-stock threshold is intentionally NOT used here.
+  // ==========================================================================
+
+  StockLevel _stockLevelFor(InventoryItem item) {
+    if (item.isOutOfStock) {
+      return StockLevel.outOfStock;
+    }
+
+    if (_replenishmentByItemId.containsKey(item.itemId)) {
+      return StockLevel.low;
+    }
+
+    return StockLevel.inStock;
+  }
+
+  ReplenishmentItem? _replenishmentFor(
+    InventoryItem item,
+  ) {
+    return _replenishmentByItemId[item.itemId];
+  }
 
   (String, Color) _stockLevelMeta(StockLevel level) {
     switch (level) {
@@ -983,11 +1029,24 @@ class _InventoryPageState extends State<InventoryPage>
                           null,
                           'All levels',
                         ),
-                        for (final level in StockLevel.values)
-                          AppDropdownOption(
-                            level,
-                            _stockLevelMeta(level).$1,
-                          ),
+                        AppDropdownOption(
+                          StockLevel.inStock,
+                          _stockLevelMeta(
+                            StockLevel.inStock,
+                          ).$1,
+                        ),
+                        AppDropdownOption(
+                          StockLevel.low,
+                          _stockLevelMeta(
+                            StockLevel.low,
+                          ).$1,
+                        ),
+                        AppDropdownOption(
+                          StockLevel.outOfStock,
+                          _stockLevelMeta(
+                            StockLevel.outOfStock,
+                          ).$1,
+                        ),
                       ],
                       onSelect: (value) {
                         setState(() {
@@ -1194,8 +1253,14 @@ class _InventoryPageState extends State<InventoryPage>
                         builder: (context) {
                           final item = _pageItems[index];
 
+                          final stockLevel =
+                              _stockLevelFor(item);
+
                           final (levelLabel, levelColor) =
-                              _stockLevelMeta(item.stockLevel);
+                              _stockLevelMeta(stockLevel);
+
+                          final replenishment =
+                              _replenishmentFor(item);
 
                           final currentStockQty =
                               _currentStockQty(item);
@@ -1377,13 +1442,30 @@ class _InventoryPageState extends State<InventoryPage>
 
                                     Expanded(
                                       flex: 2,
-                                      child: Align(
-                                        alignment:
-                                            Alignment.centerLeft,
-                                        child: _SmallBadge(
-                                          label: levelLabel,
-                                          color: levelColor,
-                                        ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _SmallBadge(
+                                            label: levelLabel,
+                                            color: levelColor,
+                                          ),
+                                          if (stockLevel ==
+                                                  StockLevel.low &&
+                                              replenishment != null) ...[
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              'ROP ${formatQty(replenishment.reorderPoint)} '
+                                              '${item.purchaseUnitAbbr}',
+                                              style: const TextStyle(
+                                                fontSize: 9.5,
+                                                color: AppColors
+                                                    .mutedForeground,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
 

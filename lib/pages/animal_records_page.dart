@@ -745,28 +745,26 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           // STATUS
                           // ===================================================
 
-                          if (isEdit) ...[
-                            const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                            AppDropdownField<PetStatus>(
-                              label: 'Status',
-                              initialValue: status,
-                              options:
-                                  PetStatus.values.map(
-                                (value) {
-                                  return AppDropdownOption(
-                                    value,
-                                    _statusMeta(value).$1,
-                                  );
-                                },
-                              ).toList(),
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  status = value;
-                                });
+                          AppDropdownField<PetStatus>(
+                            label: 'Status',
+                            initialValue: status,
+                            options:
+                                PetStatus.values.map(
+                              (value) {
+                                return AppDropdownOption(
+                                  value,
+                                  _statusMeta(value).$1,
+                                );
                               },
-                            ),
-                          ],
+                            ).toList(),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                status = value;
+                              });
+                            },
+                          ),
 
                           const SizedBox(height: 8),
 
@@ -911,6 +909,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 petName: cleanName,
                                 species: species,
                                 gender: gender,
+                                status: status,
                                 breed: cleanBreed,
                                 owner: cleanOwner,
                                 spayedNeutered:

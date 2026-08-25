@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/inventory_item.dart';
+import '../models/replenishment_item.dart';
 import '../services/dashboard_service.dart';
 import '../services/expiry_alerts.dart';
 import '../services/inventory_service.dart';
+import '../services/replenishment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/notification_alerts.dart';
@@ -40,8 +42,12 @@ class _NotificationDetailPageState
   final DashboardService _dashboardService =
       DashboardService();
 
+  final ReplenishmentService _replenishmentService =
+      ReplenishmentService();
+
   InventoryItem? _item;
   ExpiryAlert? _expiryAlert;
+  ReplenishmentItem? _replenishment;
 
   bool _loading = true;
   bool _notFound = false;
@@ -82,12 +88,14 @@ class _NotificationDetailPageState
     }
 
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<Object?>([
         _inventoryService.fetchItem(
           widget.itemId,
         ),
         _dashboardService
             .fetchManagerStats(),
+        _replenishmentService
+            .fetchReplenishmentItems(),
       ]);
 
       if (!mounted) return;
@@ -97,6 +105,18 @@ class _NotificationDetailPageState
 
       final stats =
           results[1] as ManagerDashboardStats;
+
+      final replenishmentRows =
+          results[2] as List<ReplenishmentItem>;
+
+      ReplenishmentItem? replenishment;
+
+      for (final row in replenishmentRows) {
+        if (row.item.itemId == widget.itemId) {
+          replenishment = row;
+          break;
+        }
+      }
 
       ExpiryAlert? expiryAlert;
       bool activeAlert = false;
@@ -154,6 +174,7 @@ class _NotificationDetailPageState
       setState(() {
         _item = item;
         _expiryAlert = expiryAlert;
+        _replenishment = replenishment;
         _notFound = item == null;
         _activeAlert = activeAlert;
         _loading = false;
@@ -507,12 +528,51 @@ class _NotificationDetailPageState
       );
     }
 
-    if (widget.kind == NotifKind.lowStock) {
+    if (widget.kind == NotifKind.lowStock &&
+        _replenishment != null) {
+      final rop = _replenishment!;
+
       rows.add(
         _DetailRow(
-          label: 'Low-stock threshold',
+          label: 'Reorder point (ROP)',
           value:
-              '${formatQty(lowStockPurchaseUnitThreshold)} '
+              '${formatQty(rop.reorderPoint)} '
+              '${item.purchaseUnitAbbr}',
+        ),
+      );
+
+      rows.add(
+        _DetailRow(
+          label: '30-day usage',
+          value:
+              '${formatQty(rop.usage30PurchaseUnits)} '
+              '${item.purchaseUnitAbbr}',
+        ),
+      );
+
+      rows.add(
+        _DetailRow(
+          label: 'Average daily usage',
+          value:
+              '${formatQty(rop.averageDailyUsage)} '
+              '${item.purchaseUnitAbbr}/day',
+        ),
+      );
+
+      rows.add(
+        _DetailRow(
+          label: 'Lead time',
+          value:
+              '${rop.leadTimeDays} '
+              'day${rop.leadTimeDays == 1 ? '' : 's'}',
+        ),
+      );
+
+      rows.add(
+        _DetailRow(
+          label: 'Safety stock',
+          value:
+              '${formatQty(rop.safetyStockQty)} '
               '${item.purchaseUnitAbbr}',
         ),
       );
@@ -613,7 +673,7 @@ class _NotificationDetailPageState
         NotifKind.zeroStock =>
           'No usable stock remains for this item. Replenishment may be required.',
         NotifKind.lowStock =>
-          'Usable stock has reached the configured low-stock threshold.',
+          'Usable stock has reached or fallen below the calculated reorder point (ROP).',
       };
     }
 
@@ -625,7 +685,7 @@ class _NotificationDetailPageState
       NotifKind.zeroStock =>
         'No usable stock remains for this item. Consider adding it to Goods Received or replenishment.',
       NotifKind.lowStock =>
-        'Usable stock has reached the configured low-stock threshold.',
+        'Usable stock has reached or fallen below the calculated reorder point (ROP).',
     };
   }
 

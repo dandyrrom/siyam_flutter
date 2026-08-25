@@ -4,7 +4,7 @@ import '../models/pet.dart';
 import 'backend.dart';
 import 'dashboard_stock_helpers.dart';
 import 'expiry_alerts.dart';
-import 'supabase/supabase_dashboard_service.dart';
+import 'supabase/rop_aware_supabase_dashboard_service.dart';
 
 /// One row in a zero- or low-stock alert list on the manager dashboard.
 class DashboardStockAlert {
