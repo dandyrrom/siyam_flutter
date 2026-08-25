@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/app_user.dart';
@@ -21,6 +22,25 @@ class SupabaseAuthService implements AuthService {
 
   static const String _columns =
       'id, fname, lname, role, email, contactnum, is_active';
+
+  // ==========================================================================
+  // EMAIL CONFIRMATION REDIRECT
+  // ==========================================================================
+  //
+  // The confirmation link should return to the SAME SIYAM web origin that
+  // created the account instead of relying only on Supabase's global Site URL.
+  //
+  // On mobile, no custom deep-link scheme is configured here, so Supabase's
+  // configured Site URL remains the fallback.
+  // ==========================================================================
+
+  String? _emailConfirmationRedirectUrl() {
+    if (!kIsWeb) {
+      return null;
+    }
+
+    return '${Uri.base.origin}/';
+  }
 
   // ==========================================================================
   // MAP USER
@@ -184,19 +204,33 @@ class SupabaseAuthService implements AuthService {
         email: email.trim(),
         password: password,
       );
-   } on AuthException catch (e) {
-  final message = e.message.toLowerCase();
+    } on AuthException catch (e) {
+      final code =
+          e.code?.trim().toLowerCase();
 
-  if (message.contains('email not confirmed')) {
-    throw Exception(
-      'Please confirm your email before signing in.',
-    );
-  }
+      final message =
+          e.message.trim().toLowerCase();
 
-  throw Exception(
-    'Invalid email or password.',
-  );
-}
+      // Supabase exposes a stable Auth error code for this case.
+      // Check the code first, then keep the message check as a compatibility
+      // fallback for environments where the code is unexpectedly absent.
+      if (code == 'email_not_confirmed' ||
+          message.contains('email not confirmed')) {
+        throw Exception(
+          'Please confirm your email before signing in.',
+        );
+      }
+
+      if (code == 'invalid_credentials') {
+        throw Exception(
+          'Invalid email or password.',
+        );
+      }
+
+      throw Exception(
+        'Invalid email or password.',
+      );
+    }
 
     final userId = res.user?.id;
 
@@ -332,6 +366,8 @@ class SupabaseAuthService implements AuthService {
       res = await _client.auth.signUp(
         email: email.trim(),
         password: password,
+        emailRedirectTo:
+            _emailConfirmationRedirectUrl(),
         data: {
           'first_name': firstName,
           'last_name': lastName,

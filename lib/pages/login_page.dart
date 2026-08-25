@@ -326,7 +326,7 @@ class _SignInForm extends StatelessWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Text(
-                  'Register as a donor',
+                  'Register your account',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,

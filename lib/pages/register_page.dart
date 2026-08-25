@@ -456,7 +456,7 @@ class _RegisterPageState
                         ),
 
                         const Text(
-                          'Create your donor account',
+                          'Create your account',
                           textAlign:
                               TextAlign.center,
                           style: TextStyle(
@@ -937,7 +937,7 @@ class _RegisterPageState
                                           ),
                                         )
                                       : const Text(
-                                          'Create Donor Account',
+                                          'Create Account',
                                           style:
                                               TextStyle(
                                             fontWeight:

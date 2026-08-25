@@ -35,6 +35,16 @@ class _InventoryPageState extends State<InventoryPage>
   bool _loading = true;
   String? _error;
 
+  // Only the newest inventory fetch is allowed to update the page.
+  // This prevents an older DataBus refresh from overwriting the final
+  // refresh after Goods Received closes.
+  int _loadRequestId = 0;
+
+  // Inventory stays mounted underneath Goods Received. Several database
+  // writes can ping DataChangeBus while that page is still open. Ignore
+  // those intermediate refreshes and do one clean reload after it closes.
+  bool _goodsReceivedOpen = false;
+
   String _search = '';
 
   String? _selectedPCategoryId;
@@ -185,10 +195,16 @@ class _InventoryPageState extends State<InventoryPage>
 
   @override
   void onExternalDataChanged() {
+    if (_goodsReceivedOpen) {
+      return;
+    }
+
     _load(silent: true);
   }
 
   Future<void> _load({bool silent = false}) async {
+    final requestId = ++_loadRequestId;
+
     if (!silent) {
       setState(() {
         _loading = true;
@@ -199,14 +215,18 @@ class _InventoryPageState extends State<InventoryPage>
     try {
       final items = await _service.fetchItems();
 
-      if (!mounted) return;
+      if (!mounted || requestId != _loadRequestId) {
+        return;
+      }
 
       setState(() {
         _items = items;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _loadRequestId) {
+        return;
+      }
 
       if (!silent) {
         setState(() {
@@ -359,6 +379,55 @@ class _InventoryPageState extends State<InventoryPage>
     final end = (start + _pageSize).clamp(0, _filtered.length);
 
     return _filtered.sublist(start, end);
+  }
+
+  // ==========================================================================
+  // GOODS RECEIVED
+  // ==========================================================================
+  //
+  // Inventory remains mounted while the Goods Received page is pushed above
+  // it. DataBus may refresh this page while the stock-in transaction is still
+  // completing, so always perform one final full reload after the form closes.
+  // ==========================================================================
+
+  Future<void> _openGoodsReceived({String? itemId}) async {
+    if (_goodsReceivedOpen) {
+      return;
+    }
+
+    final route = itemId == null
+        ? '/inventory/add'
+        : '/inventory/add?itemId=$itemId';
+
+    _goodsReceivedOpen = true;
+
+    // Invalidate any older Inventory fetch that may still be running before
+    // the Goods Received page opens.
+    _loadRequestId++;
+
+    try {
+      await context.push(route);
+
+      if (!mounted) return;
+
+      // Let GoRouter finish removing the Goods Received page before rebuilding
+      // Inventory. This avoids repaint/layout glitches on Flutter Web.
+      await WidgetsBinding.instance.endOfFrame;
+
+      if (!mounted) return;
+
+      // Show the normal Inventory loading state while the final authoritative
+      // batch-aware data is fetched from Supabase.
+      await _load();
+
+      if (!mounted) return;
+
+      // Keep DataBus refreshes suspended through the first fully-painted
+      // Inventory frame so queued stock-in pings cannot immediately repaint it.
+      await WidgetsBinding.instance.endOfFrame;
+    } finally {
+      _goodsReceivedOpen = false;
+    }
   }
 
   // ==========================================================================
@@ -559,11 +628,11 @@ class _InventoryPageState extends State<InventoryPage>
                       icon: Icons.inventory_2_outlined,
                       iconColor: AppColors.primary,
                       label: 'Goods Received',
-                      onTap: () {
+                      onTap: () async {
                         Navigator.pop(context);
 
-                        context.push(
-                          '/inventory/add?itemId=${item.itemId}',
+                        await _openGoodsReceived(
+                          itemId: item.itemId,
                         );
                       },
                     ),
@@ -644,7 +713,20 @@ class _InventoryPageState extends State<InventoryPage>
 
     if (_loading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 12),
+            Text(
+              'Refreshing inventory...',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
@@ -714,9 +796,7 @@ class _InventoryPageState extends State<InventoryPage>
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        context.push('/inventory/add');
-                      },
+                      onPressed: _openGoodsReceived,
                       icon: const Icon(
                         Icons.inventory_2_outlined,
                         size: 18,
@@ -764,9 +844,7 @@ class _InventoryPageState extends State<InventoryPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () {
-                      context.push('/inventory/add');
-                    },
+                    onPressed: _openGoodsReceived,
                     icon: const Icon(
                       Icons.inventory_2_outlined,
                       size: 18,
@@ -1338,9 +1416,8 @@ class _InventoryPageState extends State<InventoryPage>
                                           onSelected: (value) {
                                             if (value ==
                                                 'receive') {
-                                              context.push(
-                                                '/inventory/add'
-                                                '?itemId=${item.itemId}',
+                                              _openGoodsReceived(
+                                                itemId: item.itemId,
                                               );
                                             }
 
