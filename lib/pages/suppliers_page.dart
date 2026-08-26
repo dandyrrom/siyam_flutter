@@ -7,6 +7,7 @@ import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
+import '../widgets/page_loading.dart';
 
 const Color _supplierModalSurface = Color(0xFFFFFFFF);
 const Color _supplierModalSoft = Color(0xFFF7F7F5);
@@ -1129,9 +1130,11 @@ class _SuppliersPageState extends State<SuppliersPage>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  if (_loading) {
+  return const PageLoading(
+    message: 'Loading suppliers',
+  );
+}
 
     if (_error != null) {
       return Center(

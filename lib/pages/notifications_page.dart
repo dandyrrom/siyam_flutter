@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
+import '../widgets/page_loading.dart';
 import '../core/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/dashboard_service.dart';
@@ -234,9 +234,8 @@ class _NotificationsPageState
           const SizedBox(height: 20),
 
           if (_loading)
-            const Center(
-              child:
-                  CircularProgressIndicator(),
+            const PageLoading(
+              message: 'Loading notifications',
             )
           else if (_error != null)
             Column(

@@ -8,7 +8,7 @@ import '../services/audit_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
-
+import '../widgets/page_loading.dart';
 // =============================================================================
 // ROLE-AWARE AUDIT TRAIL
 // =============================================================================
@@ -371,11 +371,11 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+ if (_loading) {
+  return const PageLoading(
+    message: 'Loading audit trail',
+  );
+}
 
     if (_error != null) {
       return Center(

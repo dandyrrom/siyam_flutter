@@ -8,6 +8,7 @@ import '../../services/dashboard_service.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/social_post_dialog.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/page_loading.dart';
 
 enum _Period { week, month }
 
@@ -107,7 +108,9 @@ class _StaffDashboardState extends State<StaffDashboard>
     final period = _periodStats;
 
     if (_loading && stats == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const PageLoading(
+        message: 'Loading dashboard',
+      );
     }
 
     if (_error != null && stats == null) {
@@ -135,13 +138,15 @@ class _StaffDashboardState extends State<StaffDashboard>
       return const SizedBox.shrink();
     }
 
-    final width = MediaQuery.sizeOf(context).width;
-    final compact = width < 760;
-    final medium = width < 1180;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final compact = width < 760;
+        final medium = width < 1180;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
         const DashboardHeader(
           title: 'Staff Dashboard',
           subtitle:
@@ -308,7 +313,9 @@ class _StaffDashboardState extends State<StaffDashboard>
             color: AppColors.mutedForeground,
           ),
         ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

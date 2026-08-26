@@ -7,7 +7,7 @@ import '../../models/donation.dart';
 import '../../services/donation_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
-
+import '../../widgets/page_loading.dart';
 // Controls the donor-friendly history filters shown at the top of the page.
 enum _DonationHistoryFilter {
   all,
@@ -655,11 +655,11 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
     final bool isMobile =
         MediaQuery.of(context).size.width < 600;
 
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  if (_loading) {
+  return const PageLoading(
+    message: 'Loading your donation history',
+  );
+}
 
     if (_error != null) {
       return Center(

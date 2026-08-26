@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../state/app_operation_controller.dart';
 import '../core/app_colors.dart';
 import '../models/app_user.dart';
@@ -27,27 +28,29 @@ class _SideNavState
     extends State<SideNav> {
   bool _confirmingLogout = false;
   bool _loggingOut = false;
-Future<void> _openRoute(
-  String path,
-  String label,
-) async {
-  if (AppOperationController.instance.isBusy) {
-    return;
+
+  Future<void> _openRoute(
+    String path,
+    String label,
+  ) async {
+    if (AppOperationController.instance.isBusy) {
+      return;
+    }
+
+    await AppOperationController.instance.run<void>(
+      message: 'Opening $label...',
+      action: () async {
+        if (!mounted) return;
+
+        context.go(path);
+
+        // Give GoRouter one frame to mount the destination before allowing
+        // another navigation action.
+        await WidgetsBinding.instance.endOfFrame;
+      },
+    );
   }
 
-  await AppOperationController.instance.run<void>(
-    message: 'Opening $label...',
-    action: () async {
-      if (!mounted) return;
-
-      context.go(path);
-
-      // Give GoRouter one frame to mount the destination before allowing
-      // another navigation action.
-      await WidgetsBinding.instance.endOfFrame;
-    },
-  );
-}
   // =========================================================================
   // LOGOUT
   // =========================================================================
@@ -199,7 +202,7 @@ Future<void> _openRoute(
                       EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(
-                    minWidth: 28,
+                    minWidth: 24,
                     minHeight: 30,
                   ),
                   icon: const Icon(
@@ -222,7 +225,7 @@ Future<void> _openRoute(
                       EdgeInsets.zero,
                   constraints:
                       const BoxConstraints(
-                    minWidth: 28,
+                    minWidth: 24,
                     minHeight: 30,
                   ),
                   icon: _loggingOut
@@ -573,144 +576,155 @@ Future<void> _openRoute(
                       user?.role == AppRole.manager &&
                           item.path == '/donations';
 
+                  final navButton = Material(
+                    color: active
+                        ? AppColors
+                            .sidebarAccent
+                        : Colors
+                            .transparent,
+                    elevation:
+                        active
+                            ? 1
+                            : 0,
+                    shadowColor:
+                        AppColors
+                            .sidebarForeground
+                            .withValues(
+                      alpha:
+                          0.25,
+                    ),
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      16,
+                    ),
+                    child:
+                        InkWell(
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                        16,
+                      ),
+                      onTap: active
+                          ? null
+                          : () => _openRoute(
+                                item.path,
+                                item.label,
+                              ),
+                      child:
+                          Padding(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          horizontal:
+                              12,
+                          vertical:
+                              11,
+                        ),
+                        child: Row(
+                          mainAxisAlignment:
+                              widget
+                                      .collapsed
+                                  ? MainAxisAlignment
+                                      .center
+                                  : MainAxisAlignment
+                                      .start,
+                          children: [
+                            if (showPendingDonationBadge &&
+                                widget.collapsed)
+                              Stack(
+                                clipBehavior:
+                                    Clip.none,
+                                children: [
+                                  Icon(
+                                    item.icon,
+                                    size: 18,
+                                    color: active
+                                        ? AppColors
+                                            .sidebarPrimary
+                                        : AppColors
+                                            .sidebarAccentForeground,
+                                  ),
+                                  const Positioned(
+                                    top: -10,
+                                    right: -13,
+                                    child:
+                                        PendingDonationBadge(
+                                      compact:
+                                          true,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Icon(
+                                item.icon,
+                                size: 18,
+                                color: active
+                                    ? AppColors
+                                        .sidebarPrimary
+                                    : AppColors
+                                        .sidebarAccentForeground,
+                              ),
+
+                            if (!widget
+                                .collapsed) ...[
+                              const SizedBox(
+                                width:
+                                    12,
+                              ),
+
+                              Expanded(
+                                child:
+                                    Text(
+                                  item.label,
+                                  overflow:
+                                      TextOverflow
+                                          .ellipsis,
+                                  style:
+                                      TextStyle(
+                                    fontSize:
+                                        13.5,
+                                    fontWeight:
+                                        active
+                                            ? FontWeight
+                                                .w600
+                                            : FontWeight
+                                                .w400,
+                                    color:
+                                        AppColors
+                                            .sidebarForeground,
+                                  ),
+                                ),
+                              ),
+
+                              if (showPendingDonationBadge) ...[
+                                const SizedBox(
+                                  width: 8,
+                                ),
+                                const PendingDonationBadge(),
+                              ],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+
                   return Padding(
                     padding:
                         const EdgeInsets
                             .only(
                       bottom: 2,
                     ),
-                    child:
-                        Material(
-                      color: active
-                          ? AppColors
-                              .sidebarAccent
-                          : Colors
-                              .transparent,
-                      elevation:
-                          active
-                              ? 1
-                              : 0,
-                      shadowColor:
-                          AppColors
-                              .sidebarForeground
-                              .withValues(
-                        alpha:
-                            0.25,
-                      ),
-                      borderRadius:
-                          BorderRadius
-                              .circular(
-                        16,
-                      ),
-                      child:
-                          InkWell(
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          16,
-                        ),
-                  onTap: active
-    ? null
-    : () => _openRoute(
-          item.path,
-          item.label,
-        ),
-                        child:
-                            Padding(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal:
-                                12,
-                            vertical:
-                                11,
-                          ),
-                          child: Row(
-                            mainAxisAlignment:
-                                widget
-                                        .collapsed
-                                    ? MainAxisAlignment
-                                        .center
-                                    : MainAxisAlignment
-                                        .start,
-                            children: [
-                              if (showPendingDonationBadge &&
-                                  widget.collapsed)
-                                Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Icon(
-                                      item.icon,
-                                      size: 18,
-                                      color: active
-                                          ? AppColors
-                                              .sidebarPrimary
-                                          : AppColors
-                                              .sidebarAccentForeground,
-                                    ),
-                                    const Positioned(
-                                      top: -10,
-                                      right: -13,
-                                      child: PendingDonationBadge(
-                                        compact: true,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              else
-                                Icon(
-                                  item.icon,
-                                  size: 18,
-                                  color: active
-                                      ? AppColors
-                                          .sidebarPrimary
-                                      : AppColors
-                                          .sidebarAccentForeground,
-                                ),
-
-                              if (!widget
-                                  .collapsed) ...[
-                                const SizedBox(
-                                  width:
-                                      12,
-                                ),
-
-                                Expanded(
-                                  child:
-                                      Text(
-                                    item.label,
-                                    overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                    style:
-                                        TextStyle(
-                                      fontSize:
-                                          13.5,
-                                      fontWeight:
-                                          active
-                                              ? FontWeight
-                                                  .w600
-                                              : FontWeight
-                                                  .w400,
-                                      color:
-                                          AppColors
-                                              .sidebarForeground,
-                                    ),
-                                  ),
-                                ),
-
-                                if (showPendingDonationBadge) ...[
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                  const PendingDonationBadge(),
-                                ],
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: widget.collapsed
+                        ? Tooltip(
+                            message:
+                                item.label,
+                            child:
+                                navButton,
+                          )
+                        : navButton,
                   );
                 },
               ).toList(),
@@ -763,12 +777,14 @@ Future<void> _openRoute(
                               .circular(
                         12,
                       ),
-                onTap: widget.currentPath.startsWith('/profile')
-    ? null
-    : () => _openRoute(
-          '/profile',
-          'Profile',
-        ),
+                      onTap: widget.currentPath
+                              .startsWith(
+                                  '/profile')
+                          ? null
+                          : () => _openRoute(
+                                '/profile',
+                                'Profile',
+                              ),
                       hoverColor:
                           AppColors
                               .sidebarPrimary

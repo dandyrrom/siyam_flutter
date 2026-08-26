@@ -7,7 +7,7 @@ import '../services/donation_service.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/hoverable_row.dart';
-
+import '../widgets/page_loading.dart';
 class DonationsPage extends StatefulWidget {
   const DonationsPage({super.key});
 
@@ -100,7 +100,7 @@ class _DonationsPageState extends State<DonationsPage>
         return ('Approved', AppColors.primary);
 
       case SubmissionStatus.rejected:
-        return ('Rejected', AppColors.destructive);
+        return ('Declined', AppColors.destructive);
 
       case SubmissionStatus.received:
         return ('Received', AppColors.primary);
@@ -132,11 +132,11 @@ class _DonationsPageState extends State<DonationsPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  if (_loading) {
+  return const PageLoading(
+    message: 'Loading donations',
+  );
+}
 
     if (_error != null) {
       return Center(

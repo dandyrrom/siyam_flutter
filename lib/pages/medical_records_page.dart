@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_colors.dart';
@@ -7,7 +7,7 @@ import '../models/treatment.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/data_bus.dart';
-
+import '../widgets/page_loading.dart';
 // =============================================================================
 // MEDICAL RECORDS
 // =============================================================================
@@ -579,12 +579,11 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child:
-            CircularProgressIndicator(),
-      );
-    }
+if (_loading) {
+  return const PageLoading(
+    message: 'Loading medical records...',
+  );
+}
 
     if (_error != null) {
       return Center(

@@ -134,11 +134,11 @@ class StatCardRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final columns = width > 900
-            ? 4
-            : width > 600
-                ? 2
-                : 1;
+     final columns = width > 1100
+    ? 4
+    : width > 600
+        ? 2
+        : 1;
 
         final cardWidth =
             (width - (columns - 1) * 16) / columns;

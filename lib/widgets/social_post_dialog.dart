@@ -177,11 +177,6 @@ String buildReplenishmentCaption(
     ..writeln('• Account name: [Add official DAS account name]')
     ..writeln('• Account number: [Add official DAS BDO account number]')
     ..writeln()
-    ..writeln(
-      'Please replace the bracketed payment details above with the official '
-      'DAS account details before posting.',
-    )
-    ..writeln()
     ..writeln('Every Life Matters.')
     ..writeln()
     ..write(
@@ -324,57 +319,6 @@ Future<void> showSocialPostDialog(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width:
-                            double.infinity,
-                        padding:
-                            const EdgeInsets.all(
-                          12,
-                        ),
-                        decoration:
-                            BoxDecoration(
-                          color: AppColors
-                              .secondary,
-                          borderRadius:
-                              BorderRadius.circular(
-                            12,
-                          ),
-                          border: Border.all(
-                            color:
-                                AppColors.border,
-                          ),
-                        ),
-                        child: const Row(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color:
-                                  AppColors.primary,
-                            ),
-                            SizedBox(width: 7),
-                            Expanded(
-                              child: Text(
-                                'The caption is generated from the live Replenishment list. '
-                                'Review and edit it before posting. Replace the bracketed '
-                                'GCash/BDO details with the official DAS account details.',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  height: 1.4,
-                                  color: AppColors
-                                      .mutedForeground,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
                       const Text(
                         'PREVIEW',
                         style: TextStyle(

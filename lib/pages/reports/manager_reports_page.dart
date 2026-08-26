@@ -8,7 +8,7 @@ import '../../services/replenishment_service.dart';
 import '../../services/report_service.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/app_dropdown.dart';
-
+import '../../widgets/page_loading.dart';
 // =============================================================================
 // MANAGER REPORTS
 // =============================================================================
@@ -449,11 +449,11 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  if (_loading) {
+  return const PageLoading(
+    message: 'Loading reports',
+  );
+}
 
     if (_error != null) {
       return Center(

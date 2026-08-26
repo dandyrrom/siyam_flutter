@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../core/app_colors.dart';
 import '../models/pet.dart';
@@ -8,7 +9,7 @@ import '../services/treatment_service.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
-
+import '../widgets/page_loading.dart';
 enum _AnimalSort {
   nameAZ,
   nameZA,
@@ -457,10 +458,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     }
   }
 
-  IconData _speciesIcon(PetSpecies species) {
+  FaIconData _speciesIcon(PetSpecies species) {
     return species == PetSpecies.dog
-        ? Icons.pets
-        : Icons.pets_outlined;
+        ? FontAwesomeIcons.dog
+        : FontAwesomeIcons.cat;
   }
 
   // ===========================================================================
@@ -1033,7 +1034,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           ),
           title: Row(
             children: [
-              Icon(
+              FaIcon(
                 _speciesIcon(pet.species),
                 size: 20,
                 color:
@@ -1339,11 +1340,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     final isMobile =
         MediaQuery.sizeOf(context).width < 600;
 
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  if (_loading) {
+  return const PageLoading(
+    message: 'Loading animal records',
+  );
+}
 
     if (_error != null) {
       return Center(
@@ -1866,7 +1867,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                         children: [
                           Row(
                             children: [
-                              Icon(
+                              FaIcon(
                                 _speciesIcon(
                                   pet.species,
                                 ),

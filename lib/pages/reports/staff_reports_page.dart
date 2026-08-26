@@ -4,7 +4,7 @@ import '../../core/app_colors.dart';
 import '../../models/monthly_usage_report.dart';
 import '../../services/report_service.dart';
 import '../../state/data_bus.dart';
-
+import '../../widgets/page_loading.dart';
 // =============================================================================
 // STAFF REPORTS - WBS 6.1 MONTHLY USAGE REPORT
 // =============================================================================
@@ -389,11 +389,11 @@ class _StaffReportsPageState extends State<StaffReportsPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+   if (_loading) {
+  return const PageLoading(
+    message: 'Loading reports',
+  );
+}
 
     if (_error != null) {
       return Center(

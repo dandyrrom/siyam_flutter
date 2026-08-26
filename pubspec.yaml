@@ -16,6 +16,7 @@ dependencies:
   web: ^1.1.1
   image_picker: ^1.1.2
   connectivity_plus: ^6.1.4
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:

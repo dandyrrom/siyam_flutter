@@ -8,7 +8,7 @@ import '../models/supplier.dart';
 import '../services/replenishment_service.dart';
 import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
-
+import '../widgets/page_loading.dart';
 // =============================================================================
 // ORDERING
 // =============================================================================
@@ -363,11 +363,11 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+if (_loading) {
+  return const PageLoading(
+    message: 'Loading purchase orders',
+  );
+}
 
     if (_error != null) {
       return Center(

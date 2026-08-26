@@ -736,24 +736,9 @@ class _InventoryPageState extends State<InventoryPage>
     final isMobile =
         MediaQuery.of(context).size.width < 600;
 
-    if (_loading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 12),
-            Text(
-              'Refreshing inventory...',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+if (_loading) {
+  return const SizedBox.shrink();
+}
 
     if (_error != null) {
       return Center(

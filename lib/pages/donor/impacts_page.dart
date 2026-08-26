@@ -6,7 +6,7 @@ import '../../models/stock_out.dart';
 import '../../services/impact_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
-
+import '../../widgets/page_loading.dart';
 /// Donor-facing page for showing donation acknowledgments and impact updates.
 ///
 /// Internal inventory details such as remaining stock, waste, expiration,
@@ -163,11 +163,11 @@ class _ImpactsPageState extends State<ImpactsPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+if (_loading) {
+  return const PageLoading(
+    message: 'Loading your donation impacts',
+  );
+}
 
     if (_error != null) {
       return Center(
