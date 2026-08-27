@@ -2,14 +2,17 @@ import 'dart:math' as math;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../mock/mock_database.dart';
 import '../models/inventory_item.dart';
 import '../models/item_rop_settings.dart';
 import '../models/qty_unit.dart';
 import '../models/replenishment_item.dart';
+import '../models/stock_out.dart';
 import '../models/system_settings.dart';
+import 'backend.dart';
 import 'inventory_service.dart';
+import 'rop_service.dart';
 import 'settings_service.dart';
-import 'supabase/supabase_rop_service.dart';
 
 // =============================================================================
 // REPLENISHMENT SERVICE
@@ -34,15 +37,16 @@ import 'supabase/supabase_rop_service.dart';
 // IMPORTANT:
 // SIYAM only recommends replenishment. It does not automatically create a
 // purchase record/order.
+//
+// Mock mode never touches Supabase.instance (including at construction).
 // =============================================================================
 
 class ReplenishmentService {
   static const int usageWindowDays = 30;
 
-  final SupabaseClient _client = Supabase.instance.client;
   final InventoryService _inventoryService = InventoryService();
   final SettingsService _settingsService = SettingsService();
-  final SupabaseRopService _ropService = SupabaseRopService();
+  final RopService _ropService = RopService();
 
   double _toDouble(dynamic value) {
     if (value == null) return 0;
@@ -58,15 +62,6 @@ class ReplenishmentService {
 
   // ===========================================================================
   // TREATMENT QUANTITY -> PURCHASE UNIT EQUIVALENT
-  // ===========================================================================
-  //
-  // A treatment is included only when the item's configured treatment unit is
-  // stock-deductible. This mirrors the treatment UI/service behavior:
-  //
-  // - package-unit treatment: divide by packageQuantity
-  // - purchase-unit treatment: already in purchase-unit terms
-  // - unconvertible/custom treatment unit: logged clinically but excluded from
-  //   inventory demand because it does not deduct stock
   // ===========================================================================
 
   double _treatmentPurchaseEquivalent(
@@ -103,7 +98,6 @@ class ReplenishmentService {
       return qty / packageQuantity;
     }
 
-    // No reliable conversion exists for this historical row.
     return 0;
   }
 
@@ -130,21 +124,6 @@ class ReplenishmentService {
 
     return qty;
   }
-
-  // ===========================================================================
-  // WHICH STOCK-OUT EVENTS COUNT TOWARD ADU
-  // ===========================================================================
-  //
-  // Adjustment:
-  //   excluded because it corrects recorded inventory rather than representing
-  //   operational consumption.
-  //
-  // Expired:
-  //   excluded because removing already-expired stock is not recurring demand.
-  //
-  // Waste and any future normal dispense reason:
-  //   included because it physically consumes usable inventory.
-  // ===========================================================================
 
   bool _stockOutCountsTowardUsage(String? reason) {
     final normalized = (reason ?? '').trim().toLowerCase();
@@ -174,6 +153,43 @@ class ReplenishmentService {
     return ReplenishmentPriority.medium;
   }
 
+  /// Builds usage rows from MockDatabase for the mock path.
+  (List<Map<String, dynamic>>, List<Map<String, dynamic>>) _mockUsageRows(
+    DateTime startLocal,
+  ) {
+    final db = MockDatabase.instance;
+
+    final treatmentRows = <Map<String, dynamic>>[];
+    for (final row in db.treatmentItems) {
+      final consumed = DateTime(
+        row.consumedDate.year,
+        row.consumedDate.month,
+        row.consumedDate.day,
+      );
+      if (consumed.isBefore(startLocal)) continue;
+      treatmentRows.add({
+        'itemid': row.itemId,
+        'dispensed_qty': row.dispensedQty,
+        'dispense_unit': row.dispenseUnitId,
+        'consumeddate': _dateOnly(row.consumedDate),
+      });
+    }
+
+    final stockOutRows = <Map<String, dynamic>>[];
+    for (final row in db.stockOuts) {
+      if (row.recordedDate.isBefore(startLocal)) continue;
+      stockOutRows.add({
+        'itemid': row.itemId,
+        'qty': row.qty,
+        'qtyunit': qtyUnitToString(row.qtyUnit),
+        'reason': stockOutReasonToString(row.reason),
+        'recordeddate': row.recordedDate.toUtc().toIso8601String(),
+      });
+    }
+
+    return (treatmentRows, stockOutRows);
+  }
+
   // ===========================================================================
   // FETCH CALCULATED REPLENISHMENT LIST
   // ===========================================================================
@@ -190,37 +206,59 @@ class ReplenishmentService {
       const Duration(days: usageWindowDays - 1),
     );
 
-    final results = await Future.wait<Object?>([
-      _inventoryService.fetchItems(),
-      _settingsService.fetchSettings(),
-      _ropService.fetchOverrides(),
+    late final List<InventoryItem> items;
+    late final SystemSettings settings;
+    late final List<ItemRopSettings> overrides;
+    late final List<dynamic> treatmentRows;
+    late final List<dynamic> stockOutRows;
 
-      _client
-          .from('treatment_item')
-          .select(
-            'itemid, dispensed_qty, dispense_unit, consumeddate',
-          )
-          .gte(
-            'consumeddate',
-            _dateOnly(startLocal),
-          ),
+    if (kUseMock) {
+      final results = await Future.wait<Object?>([
+        _inventoryService.fetchItems(),
+        _settingsService.fetchSettings(),
+        _ropService.fetchOverrides(),
+      ]);
 
-      _client
-          .from('stock_out')
-          .select(
-            'itemid, qty, qtyunit, reason, recordeddate',
-          )
-          .gte(
-            'recordeddate',
-            startLocal.toUtc().toIso8601String(),
-          ),
-    ]);
+      items = results[0] as List<InventoryItem>;
+      settings = results[1] as SystemSettings;
+      overrides = results[2] as List<ItemRopSettings>;
 
-    final items = results[0] as List<InventoryItem>;
-    final settings = results[1] as SystemSettings;
-    final overrides = results[2] as List<ItemRopSettings>;
-    final treatmentRows = results[3] as List<dynamic>;
-    final stockOutRows = results[4] as List<dynamic>;
+      final mockUsage = _mockUsageRows(startLocal);
+      treatmentRows = mockUsage.$1;
+      stockOutRows = mockUsage.$2;
+    } else {
+      final client = Supabase.instance.client;
+
+      final results = await Future.wait<Object?>([
+        _inventoryService.fetchItems(),
+        _settingsService.fetchSettings(),
+        _ropService.fetchOverrides(),
+        client
+            .from('treatment_item')
+            .select(
+              'itemid, dispensed_qty, dispense_unit, consumeddate',
+            )
+            .gte(
+              'consumeddate',
+              _dateOnly(startLocal),
+            ),
+        client
+            .from('stock_out')
+            .select(
+              'itemid, qty, qtyunit, reason, recordeddate',
+            )
+            .gte(
+              'recordeddate',
+              startLocal.toUtc().toIso8601String(),
+            ),
+      ]);
+
+      items = results[0] as List<InventoryItem>;
+      settings = results[1] as SystemSettings;
+      overrides = results[2] as List<ItemRopSettings>;
+      treatmentRows = results[3] as List<dynamic>;
+      stockOutRows = results[4] as List<dynamic>;
+    }
 
     final itemById = <String, InventoryItem>{
       for (final item in items) item.itemId: item,
@@ -232,10 +270,6 @@ class ReplenishmentService {
     };
 
     final usageByItemId = <String, double>{};
-
-    // -------------------------------------------------------------------------
-    // TREATMENT USAGE
-    // -------------------------------------------------------------------------
 
     for (final raw in treatmentRows) {
       final row = Map<String, dynamic>.from(raw);
@@ -254,10 +288,6 @@ class ReplenishmentService {
           (usageByItemId[itemId] ?? 0) +
           purchaseEquivalent;
     }
-
-    // -------------------------------------------------------------------------
-    // NON-TREATMENT DISPENSE / STOCK-OUT USAGE
-    // -------------------------------------------------------------------------
 
     for (final raw in stockOutRows) {
       final row = Map<String, dynamic>.from(raw);
@@ -284,10 +314,6 @@ class ReplenishmentService {
           purchaseEquivalent;
     }
 
-    // -------------------------------------------------------------------------
-    // BUILD ROP ROWS
-    // -------------------------------------------------------------------------
-
     final rows = <ReplenishmentItem>[];
 
     for (final item in items) {
@@ -308,34 +334,19 @@ class ReplenishmentService {
       final adu =
           usage30 / usageWindowDays;
 
-      // -----------------------------------------------------------------------
-      // OPERATIONAL WHOLE-UNIT ROP
-      // -----------------------------------------------------------------------
-      //
-      // The raw formula can produce fractions such as:
-      //   0.84 bag
-      //   5.133 box
-      //
-      // Those values are mathematically valid, but a purchase/replenishment
-      // decision must be actionable in whole PURCHASE UNITS. We therefore
-      // always round UP, never to the nearest whole number.
-      //
-      // Example:
-      //   raw ROP = 5.133 boxes
-      //   operational ROP = 6 boxes
-      //
-      // Rounding down could leave the shelter below the calculated threshold.
-      // -----------------------------------------------------------------------
-
       final rawReorderPoint =
           (adu * leadTimeDays) +
           safetyStockQty;
 
-      final reorderPoint =
-          rawReorderPoint.ceilToDouble();
+      // Mock fallback: when there is no usage-based ROP yet, use the
+      // low-stock threshold so Inventory can still surface out/low items.
+      final effectiveRaw = kUseMock && rawReorderPoint <= 0
+          ? settings.lowStockThreshold
+          : rawReorderPoint;
 
-      // If there is no demand and no safety stock, there is no meaningful ROP
-      // to act on.
+      final reorderPoint =
+          effectiveRaw.ceilToDouble();
+
       if (reorderPoint <= 0) {
         continue;
       }
@@ -343,21 +354,11 @@ class ReplenishmentService {
       final currentStock =
           item.currentPurchaseUnitEquivalent;
 
-      // Use the actionable whole-unit ROP as the actual trigger point.
       if (currentStock >
           reorderPoint + 0.000000001) {
         continue;
       }
 
-      // Suggested procurement is also a whole PURCHASE UNIT.
-      //
-      // Example:
-      //   operational ROP = 6 boxes
-      //   current stock   = 2 boxes
-      //   suggested       = 4 boxes
-      //
-      // If current stock is a partial purchase-unit equivalent, ceil() ensures
-      // the next purchase still reaches/exceeds the operational ROP.
       final suggestedQty = math
           .max(
             0.0,
@@ -385,7 +386,6 @@ class ReplenishmentService {
       );
     }
 
-    // Critical → High → Medium, then largest shortage first.
     rows.sort((a, b) {
       final byPriority =
           a.priority.index.compareTo(

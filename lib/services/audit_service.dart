@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/audit_entry.dart';
+import 'backend.dart';
 
 // =============================================================================
 // AUDIT SERVICE
@@ -20,8 +21,11 @@ import '../models/audit_entry.dart';
 // =============================================================================
 
 class AuditService {
-  final SupabaseClient _client =
-      Supabase.instance.client;
+  AuditService()
+      : _client =
+            kUseMock ? null : Supabase.instance.client;
+
+  final SupabaseClient? _client;
 
   Future<List<AuditEntry>> fetchEntries({
     int limit = 500,
@@ -29,6 +33,14 @@ class AuditService {
     List<String>? modules,
     bool includeChangeDetails = true,
   }) async {
+    // Mock mode has no audit_log table. Return an empty trail so Audit /
+    // My Activity pages still open without requiring Supabase.
+    if (kUseMock || _client == null) {
+      return const <AuditEntry>[];
+    }
+
+    final client = _client;
+
     // Always fetch before/after JSON internally so the service can resolve
     // human-readable entity context even for Staff My Activity.
     //
@@ -40,7 +52,7 @@ class AuditService {
         'old_values, new_values, createdat';
 
     var auditQuery =
-        _client
+        client
             .from('audit_log')
             .select(selectedColumns);
 
@@ -74,39 +86,39 @@ class AuditService {
           )
           .limit(limit),
 
-      _client
+      client
           .from('users')
           .select(
             'id, fname, lname, role',
           ),
 
-      _client
+      client
           .from('item')
           .select('id, name'),
 
-      _client
+      client
           .from('supplier')
           .select('id, name'),
 
-      _client
+      client
           .from('pet')
           .select('id, name'),
 
-      _client
+      client
           .from('purchase_item')
           .select('purchaseid, itemid'),
 
-      _client
+      client
           .from('treatment')
           .select('id, name, petid'),
 
-      _client
+      client
           .from('treatment_item')
           .select(
             'treatmentitemid, treatid, itemid, dispensed_qty, dispense_unit',
           ),
 
-      _client
+      client
           .from('units')
           .select('id, abbr_name'),
     ]);

@@ -9,7 +9,7 @@ import '../models/unit.dart';
 import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
 import '../services/settings_service.dart';
-import '../services/supabase/supabase_rop_service.dart';
+import '../services/rop_service.dart';
 
 // =============================================================================
 // MANAGER SETTINGS PAGE
@@ -913,7 +913,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   static const int _previewLimit = 5;
 
   final InventoryService _inventoryService = InventoryService();
-  final SupabaseRopService _ropService = SupabaseRopService();
+  final RopService _ropService = RopService();
 
   bool _loading = true;
   String? _error;

@@ -1,13 +1,21 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../mock/mock_database.dart';
 import '../models/inventory_item.dart';
 import '../models/monthly_usage_report.dart';
 import '../models/qty_unit.dart';
+import '../models/stock_out.dart';
+import 'backend.dart';
 import 'inventory_service.dart';
 
 class ReportService {
-  final SupabaseClient _client = Supabase.instance.client;
+  ReportService();
+
   final InventoryService _inventoryService = InventoryService();
+
+  // Lazily resolved only on the Supabase path so mock construction never
+  // touches Supabase.instance.
+  SupabaseClient get _client => Supabase.instance.client;
 
   double _d(dynamic value) {
     if (value == null) return 0;
@@ -80,6 +88,46 @@ class ReportService {
     return qty;
   }
 
+  (List<Map<String, dynamic>>, List<Map<String, dynamic>>) _mockUsageRows({
+    required DateTime monthStart,
+    required DateTime nextMonth,
+  }) {
+    final db = MockDatabase.instance;
+
+    final treatmentRows = <Map<String, dynamic>>[];
+    for (final row in db.treatmentItems) {
+      final day = DateTime(
+        row.consumedDate.year,
+        row.consumedDate.month,
+        row.consumedDate.day,
+      );
+      if (day.isBefore(monthStart) || !day.isBefore(nextMonth)) continue;
+      treatmentRows.add({
+        'itemid': row.itemId,
+        'dispensed_qty': row.dispensedQty,
+        'dispense_unit': row.dispenseUnitId,
+        'consumeddate': _dateOnly(row.consumedDate),
+      });
+    }
+
+    final stockOutRows = <Map<String, dynamic>>[];
+    for (final row in db.stockOuts) {
+      if (row.recordedDate.isBefore(monthStart) ||
+          !row.recordedDate.isBefore(nextMonth)) {
+        continue;
+      }
+      stockOutRows.add({
+        'itemid': row.itemId,
+        'qty': row.qty,
+        'qtyunit': qtyUnitToString(row.qtyUnit),
+        'reason': stockOutReasonToString(row.reason),
+        'recordeddate': row.recordedDate.toUtc().toIso8601String(),
+      });
+    }
+
+    return (treatmentRows, stockOutRows);
+  }
+
   Future<MonthlyUsageReport> fetchMonthlyUsage(
     DateTime selectedMonth,
   ) async {
@@ -91,33 +139,47 @@ class ReportService {
 
     final nextMonth = _nextMonth(monthStart);
 
-    final results = await Future.wait<Object?>([
-      _inventoryService.fetchItems(),
-      _client
-          .from('treatment_item')
-          .select(
-            'itemid, dispensed_qty, dispense_unit, consumeddate',
-          )
-          .gte('consumeddate', _dateOnly(monthStart))
-          .lt('consumeddate', _dateOnly(nextMonth)),
-      _client
-          .from('stock_out')
-          .select(
-            'itemid, qty, qtyunit, reason, recordeddate',
-          )
-          .gte(
-            'recordeddate',
-            monthStart.toUtc().toIso8601String(),
-          )
-          .lt(
-            'recordeddate',
-            nextMonth.toUtc().toIso8601String(),
-          ),
-    ]);
+    late final List<InventoryItem> items;
+    late final List<dynamic> treatmentRows;
+    late final List<dynamic> stockOutRows;
 
-    final items = results[0] as List<InventoryItem>;
-    final treatmentRows = results[1] as List<dynamic>;
-    final stockOutRows = results[2] as List<dynamic>;
+    if (kUseMock) {
+      items = await _inventoryService.fetchItems();
+      final mockUsage = _mockUsageRows(
+        monthStart: monthStart,
+        nextMonth: nextMonth,
+      );
+      treatmentRows = mockUsage.$1;
+      stockOutRows = mockUsage.$2;
+    } else {
+      final results = await Future.wait<Object?>([
+        _inventoryService.fetchItems(),
+        _client
+            .from('treatment_item')
+            .select(
+              'itemid, dispensed_qty, dispense_unit, consumeddate',
+            )
+            .gte('consumeddate', _dateOnly(monthStart))
+            .lt('consumeddate', _dateOnly(nextMonth)),
+        _client
+            .from('stock_out')
+            .select(
+              'itemid, qty, qtyunit, reason, recordeddate',
+            )
+            .gte(
+              'recordeddate',
+              monthStart.toUtc().toIso8601String(),
+            )
+            .lt(
+              'recordeddate',
+              nextMonth.toUtc().toIso8601String(),
+            ),
+      ]);
+
+      items = results[0] as List<InventoryItem>;
+      treatmentRows = results[1] as List<dynamic>;
+      stockOutRows = results[2] as List<dynamic>;
+    }
 
     final itemById = <String, InventoryItem>{
       for (final item in items) item.itemId: item,
