@@ -358,28 +358,29 @@ class _DonorDashboardState extends State<DonorDashboard>
                 ],
               );
             }
+return IntrinsicHeight(
+  child: Row(
+    crossAxisAlignment:
+        CrossAxisAlignment.stretch,
+    children: [
+      const Expanded(
+        child:
+            _CurrentNeedsCard(),
+      ),
 
-            return Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                const Expanded(
-                  child:
-                      _CurrentNeedsCard(),
-                ),
+      const SizedBox(width: 16),
 
-                const SizedBox(width: 16),
-
-                Expanded(
-                  child:
-                      _RecentImpactCard(
-                    loading: _loading,
-                    impacts:
-                        recentImpact,
-                  ),
-                ),
-              ],
-            );
+      Expanded(
+        child:
+            _RecentImpactCard(
+          loading: _loading,
+          impacts:
+              recentImpact,
+        ),
+      ),
+    ],
+  ),
+);
           },
         ),
 
@@ -1141,7 +1142,7 @@ class _RecentImpactCard
             ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 30),
 
           if (loading)
             const Padding(

@@ -68,11 +68,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _notAvailable(String label) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('$label isn\'t available yet.')));
-  }
-
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -133,11 +128,11 @@ class _LoginPageState extends State<LoginPage> {
                         passwordController: _passwordController,
                         obscurePassword: _obscurePassword,
                         onToggleObscure: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                         onSubmit: _handleSubmit,
                         isBusy: auth.isBusy,
                         errorMessage: auth.errorMessage,
-                        onForgotPassword: () => _notAvailable('Password reset'),
                         onRegisterTap: () => context.go('/register'),
                       ),
                     ],
@@ -161,7 +156,6 @@ class _SignInForm extends StatelessWidget {
   final VoidCallback onSubmit;
   final bool isBusy;
   final String? errorMessage;
-  final VoidCallback onForgotPassword;
   final VoidCallback onRegisterTap;
 
   const _SignInForm({
@@ -173,7 +167,6 @@ class _SignInForm extends StatelessWidget {
     required this.onSubmit,
     required this.isBusy,
     required this.errorMessage,
-    required this.onForgotPassword,
     required this.onRegisterTap,
   });
 
@@ -232,23 +225,6 @@ class _SignInForm extends StatelessWidget {
             validator: (v) =>
                 (v == null || v.isEmpty) ? 'Password is required' : null,
             onFieldSubmitted: (_) => onSubmit(),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: onForgotPassword,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.lightScheme.onSurfaceVariant,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(
-                'Forgot password?',
-                style: TextStyle(fontSize: 12.5),
-              ),
-            ),
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: 8),
@@ -326,7 +302,7 @@ class _SignInForm extends StatelessWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Text(
-                  'Register your account',
+                  'Register as a donor',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,

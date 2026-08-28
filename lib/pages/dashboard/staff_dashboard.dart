@@ -98,7 +98,7 @@ class _StaffDashboardState extends State<StaffDashboard>
       .length;
 
   List<ReplenishmentAlert> get _attentionPreview =>
-      _replenishment.take(5).toList();
+      _replenishment.take(3).toList();
 
   void _go(String path) => context.go(path);
 
@@ -232,7 +232,7 @@ class _StaffDashboardState extends State<StaffDashboard>
           )
         else
           SizedBox(
-            height: 320,
+            height: 270,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -277,7 +277,7 @@ class _StaffDashboardState extends State<StaffDashboard>
           )
         else
           SizedBox(
-            height: 420,
+            height: 270,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -908,7 +908,7 @@ class _PriorityOverviewCard extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final narrow =
-                  constraints.maxWidth < 420;
+                  constraints.maxWidth < 300;
 
               final donut = SizedBox(
                 width: 148,
