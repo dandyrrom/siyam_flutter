@@ -9,8 +9,15 @@ import '../treatment_service.dart';
 
 /// Supabase-backed access for public.treatment / treatment_item.
 ///
-/// Treatment item creation and deductible inventory consumption are committed
-/// through the PostgreSQL atomic treatment-item function.
+/// New treatment creation is committed through one PostgreSQL transaction:
+///
+/// treatment
+///   → treatment_item
+///   → FEFO inventory_batch deduction
+///   → batch_transaction_log (txntype = TREATMENT)
+///
+/// Adding one item to an existing treatment continues to use the existing
+/// atomic treatment-item function.
 ///
 /// IMPORTANT DONOR IMPACT LINK:
 ///
@@ -57,8 +64,11 @@ class SupabaseTreatmentService implements TreatmentService {
   // The UI filters out unavailable items, but the stock can still change
   // after the form has loaded.
   //
-  // Because of that, treatment stock must always be checked again immediately
-  // before a treatment or treatment item is written.
+  // Because of that, treatment stock is checked again before the PostgreSQL
+  // transaction is started.
+  //
+  // PostgreSQL remains the final authority because stock may still change
+  // between this validation and the database transaction.
   //
   // currentUsableStockQty is batch-aware and excludes:
   // - expired batches
@@ -110,6 +120,8 @@ class SupabaseTreatmentService implements TreatmentService {
   // ===========================================================================
   // ATOMIC TREATMENT ITEM
   // ===========================================================================
+  //
+  // Used when adding ONE item to an already-existing treatment.
   //
   // PostgreSQL performs the treatment_item insert and, when the item is
   // deductible, the complete FEFO inventory deduction in one transaction.
@@ -302,7 +314,29 @@ class SupabaseTreatmentService implements TreatmentService {
   }
 
   // ===========================================================================
-  // CREATE TREATMENT
+  // CREATE NEW TREATMENT ATOMICALLY
+  // ===========================================================================
+  //
+  // The complete new-treatment operation is now ONE PostgreSQL transaction:
+  //
+  // validate current stock in PostgreSQL
+  //   ↓
+  // create treatment parent
+  //   ↓
+  // create every treatment_item
+  //   ↓
+  // FEFO deductions
+  //   ↓
+  // batch_transaction_log rows
+  //   ↓
+  // COMMIT
+  //
+  // If ANY treatment item fails, PostgreSQL rolls back everything.
+  //
+  // This prevents:
+  // - empty/orphan treatment parents
+  // - partially recorded multi-item treatments
+  // - partial inventory deductions
   // ===========================================================================
 
   @override
@@ -318,21 +352,13 @@ class SupabaseTreatmentService implements TreatmentService {
     final consumedDate = (dateAdministered ?? DateTime.now()).toUtc();
 
     // ========================================================================
-    // PRE-VALIDATE ALL ITEMS
+    // FRIENDLY PRE-VALIDATION
     // ========================================================================
     //
-    // This happens BEFORE the treatment parent row is created.
+    // Keep the existing client-side checks so Staff gets a useful error early.
     //
-    // validate live usable stock
-    //   ↓
-    // create treatment
-    //   ↓
-    // treatment_item
-    //   ↓
-    // FEFO deduction
-    //   ↓
-    // TREATMENT batch transaction
-    //
+    // This is NOT relied upon for concurrency safety.
+    // PostgreSQL re-checks everything when the atomic RPC runs.
     // ========================================================================
 
     final validatedItems = <TreatmentItemInput>[];
@@ -356,37 +382,36 @@ class SupabaseTreatmentService implements TreatmentService {
     }
 
     // ========================================================================
-    // CREATE TREATMENT PARENT
+    // ONE DATABASE CALL FOR THE COMPLETE TREATMENT
     // ========================================================================
 
-    final treatment = await _client
-        .from('treatment')
-        .insert({
-          'name': treatName,
-          'petid': petId,
-          'recordedby': performedByUserId,
-          'notes': notes,
-        })
-        .select(
-          'id',
-        )
-        .single();
+    final result = await _client.rpc(
+      'siyam_atomic_create_treatment',
+      params: {
+        'p_pet_id': petId,
+        'p_treat_name': treatName,
+        'p_notes': notes,
+        'p_recorded_by': performedByUserId,
+        'p_given_by': administeredByName,
+        'p_consumed_date': consumedDate.toIso8601String(),
+        'p_items': [
+          for (final row in validatedItems)
+            {
+              'item_id': row.itemId,
+              'qty': row.qty,
+              'dispense_unit': row.doseUnitId,
+            },
+        ],
+      },
+    );
 
-    final treatId = treatment['id'] as String;
-
-    // ========================================================================
-    // CREATE TREATMENT ITEMS
-    // ========================================================================
-
-    for (final row in validatedItems) {
-      await _createTreatmentItemAtomically(
-        treatId: treatId,
-        input: row,
-        administeredByName: administeredByName,
-        performedByUserId: performedByUserId,
-        consumedDate: consumedDate,
+    if (result == null) {
+      throw Exception(
+        'Could not create treatment.',
       );
     }
+
+    final treatId = result.toString();
 
     final records = await fetchTreatments();
 
@@ -399,6 +424,13 @@ class SupabaseTreatmentService implements TreatmentService {
 
   // ===========================================================================
   // ADD ITEM TO EXISTING TREATMENT
+  // ===========================================================================
+  //
+  // IMPORTANT:
+  // Do NOT change this to siyam_atomic_create_treatment.
+  //
+  // This operation adds only one item to an existing treatment, so the existing
+  // siyam_atomic_treatment_item function is already the correct transaction.
   // ===========================================================================
 
   @override
