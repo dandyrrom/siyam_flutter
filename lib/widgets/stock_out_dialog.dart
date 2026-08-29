@@ -20,9 +20,7 @@ bool _hasPackageUnit(InventoryItem item) {
 }
 
 QtyUnit _defaultDispenseUnit(InventoryItem item) {
-  return _hasPackageUnit(item)
-      ? QtyUnit.packageUnit
-      : QtyUnit.purchaseUnit;
+  return _hasPackageUnit(item) ? QtyUnit.packageUnit : QtyUnit.purchaseUnit;
 }
 
 String _dispenseUnitAbbr(InventoryItem item, QtyUnit qtyUnit) {
@@ -86,9 +84,7 @@ double _canonicalAvailable(
   String reason,
 ) {
   if (_isExpiredRemoval(reason)) {
-    return item.hasBatchHistory
-        ? item.expiredBatchStockQty
-        : 0;
+    return item.hasBatchHistory ? item.expiredBatchStockQty : 0;
   }
 
   return item.currentUsableStockQty;
@@ -140,8 +136,7 @@ double _purchaseEquivalent(
     return _canonicalAvailable(item, reason);
   }
 
-  return _canonicalAvailable(item, reason) /
-      item.packageQuantity!;
+  return _canonicalAvailable(item, reason) / item.packageQuantity!;
 }
 
 // ============================================================================
@@ -176,9 +171,8 @@ Future<(InventoryItem, double)?> showStockOutDialog(
   String reason = 'Waste';
   InventoryItem? selectedItem = item;
 
-  QtyUnit selectedQtyUnit = item == null
-      ? QtyUnit.purchaseUnit
-      : _defaultDispenseUnit(item);
+  QtyUnit selectedQtyUnit =
+      item == null ? QtyUnit.purchaseUnit : _defaultDispenseUnit(item);
 
   bool isSubmitting = false;
 
@@ -189,8 +183,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
         builder: (dialogContext, setDialogState) {
           final target = selectedItem;
 
-          final hasPackageUnit =
-              target != null && _hasPackageUnit(target);
+          final hasPackageUnit = target != null && _hasPackageUnit(target);
 
           final expiredRemoval = _isExpiredRemoval(reason);
 
@@ -254,12 +247,10 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                             inventoryItem.itemName,
                         validator: (_) =>
                             selectedItem == null ? 'Required' : null,
-
                         onSelected: (picked) {
                           setDialogState(() {
                             selectedItem = picked;
-                            selectedQtyUnit =
-                                _defaultDispenseUnit(picked);
+                            selectedQtyUnit = _defaultDispenseUnit(picked);
                             qtyCtrl.clear();
                           });
                         },
@@ -319,9 +310,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                                       : AppColors.foreground,
                                 ),
                               ),
-
                               const SizedBox(height: 2),
-
                               Text(
                                 'Equivalent: '
                                 '${formatQty(_purchaseEquivalent(target, reason))} '
@@ -331,9 +320,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                                   color: AppColors.mutedForeground,
                                 ),
                               ),
-
                               const SizedBox(height: 2),
-
                               Text(
                                 '1 ${target.purchaseUnitAbbr} = '
                                 '${formatQty(target.packageQuantity!)} '
@@ -367,7 +354,6 @@ Future<(InventoryItem, double)?> showStockOutDialog(
 
                             if (expiredRemoval) ...[
                               const SizedBox(height: 8),
-
                               const Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -395,10 +381,8 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                             // EXPIRED STOCK WARNING DURING NORMAL DISPENSE
                             // ==================================================
 
-                            if (!expiredRemoval &&
-                                target.hasExpiredStock) ...[
+                            if (!expiredRemoval && target.hasExpiredStock) ...[
                               const SizedBox(height: 8),
-
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -408,7 +392,6 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                                     color: AppColors.destructive,
                                   ),
                                   const SizedBox(width: 5),
-
                                   Expanded(
                                     child: Text(
                                       '${formatQty(target.expiredBatchStockQty)} '
@@ -433,7 +416,6 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                             if (!expiredRemoval &&
                                 target.nearestExpiryDate != null) ...[
                               const SizedBox(height: 8),
-
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -444,9 +426,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                                         ? AppColors.warning
                                         : AppColors.mutedForeground,
                                   ),
-
                                   const SizedBox(width: 5),
-
                                   Expanded(
                                     child: Text(
                                       target.expiresToday
@@ -486,8 +466,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
 
                       TextFormField(
                         controller: qtyCtrl,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(
+                        keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         autofocus: item != null,
@@ -538,14 +517,12 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                             final requiredPackageQty =
                                 qty * currentItem.packageQuantity!;
 
-                            final availablePackageQty =
-                                _canonicalAvailable(
+                            final availablePackageQty = _canonicalAvailable(
                               currentItem,
                               reason,
                             );
 
-                            if (requiredPackageQty >
-                                availablePackageQty) {
+                            if (requiredPackageQty > availablePackageQty) {
                               return '${formatQty(qty)} '
                                   '${currentItem.purchaseUnitAbbr} requires '
                                   '${formatQty(requiredPackageQty)} '
@@ -621,7 +598,6 @@ Future<(InventoryItem, double)?> showStockOutDialog(
 
                       if (target != null) ...[
                         const SizedBox(height: 8),
-
                         Row(
                           children: [
                             Icon(
@@ -633,9 +609,7 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                                   ? AppColors.destructive
                                   : AppColors.mutedForeground,
                             ),
-
                             const SizedBox(width: 5),
-
                             Expanded(
                               child: Text(
                                 '${expiredRemoval ? 'Expired stock' : 'Available'} '
@@ -720,7 +694,6 @@ Future<(InventoryItem, double)?> showStockOutDialog(
                     : () => Navigator.of(dialogContext).pop(),
                 child: const Text('Cancel'),
               ),
-
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.destructive,
@@ -818,7 +791,14 @@ Future<(InventoryItem, double)?> showStockOutDialog(
 
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
                             SnackBar(
-                              content: Text(e.toString()),
+                              content: Text(
+                                e.toString().toLowerCase().contains(
+                                          'available stock changed while saving',
+                                        )
+                                    ? 'The available stock changed while you were saving. '
+                                        'Please check the current stock and try again.'
+                                    : e.toString(),
+                              ),
                             ),
                           );
                         }

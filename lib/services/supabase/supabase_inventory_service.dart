@@ -69,20 +69,15 @@ class SupabaseInventoryService implements InventoryService {
     String table,
     String labelCol,
   ) async {
-    final rows = await _client
-        .from(table)
-        .select('id, $labelCol');
+    final rows = await _client.from(table).select('id, $labelCol');
 
     return {
-      for (final r in rows)
-        r['id'] as String: (r[labelCol] as String?) ?? '',
+      for (final r in rows) r['id'] as String: (r[labelCol] as String?) ?? '',
     };
   }
 
   Future<Map<String, String>> _userNameMap() async {
-    final rows = await _client
-        .from('users')
-        .select('id, fname, lname');
+    final rows = await _client.from('users').select('id, fname, lname');
 
     return {
       for (final r in rows)
@@ -121,13 +116,9 @@ class SupabaseInventoryService implements InventoryService {
   }
 
   Future<Set<String>> _itemIdsIn(String table) async {
-    final rows = await _client
-        .from(table)
-        .select('itemid');
+    final rows = await _client.from(table).select('itemid');
 
-    return rows
-        .map((r) => r['itemid'] as String)
-        .toSet();
+    return rows.map((r) => r['itemid'] as String).toSet();
   }
 
   // ==========================================================================
@@ -138,18 +129,14 @@ class SupabaseInventoryService implements InventoryService {
     String table,
     String qtyCol,
   ) async {
-    final rows = await _client
-        .from(table)
-        .select('itemid, $qtyCol');
+    final rows = await _client.from(table).select('itemid, $qtyCol');
 
     final totals = <String, double>{};
 
     for (final r in rows) {
       final itemId = r['itemid'] as String;
 
-      totals[itemId] =
-          (totals[itemId] ?? 0) +
-          (_toDouble(r[qtyCol]) ?? 0);
+      totals[itemId] = (totals[itemId] ?? 0) + (_toDouble(r[qtyCol]) ?? 0);
     }
 
     return totals;
@@ -162,9 +149,7 @@ class SupabaseInventoryService implements InventoryService {
   Future<Map<String, double>> _stockOutTotalsInPurchaseUnits(
     Map<String, double?> packageQuantityByItem,
   ) async {
-    final rows = await _client
-        .from('stock_out')
-        .select('itemid, qty, qtyunit');
+    final rows = await _client.from('stock_out').select('itemid, qty, qtyunit');
 
     final totals = <String, double>{};
 
@@ -176,21 +161,17 @@ class SupabaseInventoryService implements InventoryService {
         (row['qtyunit'] as String?) ?? 'purchase_unit',
       );
 
-      final packageQuantity =
-          packageQuantityByItem[itemId];
+      final packageQuantity = packageQuantityByItem[itemId];
 
       double purchaseEquivalent = qty;
 
       if (qtyUnit == QtyUnit.packageUnit &&
           packageQuantity != null &&
           packageQuantity > 0) {
-        purchaseEquivalent =
-            qty / packageQuantity;
+        purchaseEquivalent = qty / packageQuantity;
       }
 
-      totals[itemId] =
-          (totals[itemId] ?? 0) +
-          purchaseEquivalent;
+      totals[itemId] = (totals[itemId] ?? 0) + purchaseEquivalent;
     }
 
     return totals;
@@ -204,8 +185,7 @@ class SupabaseInventoryService implements InventoryService {
     Map<String, dynamic> batch,
   ) {
     return qtyUnitFromString(
-      (batch['qtyunit'] as String?) ??
-          'purchase_unit',
+      (batch['qtyunit'] as String?) ?? 'purchase_unit',
     );
   }
 
@@ -217,8 +197,7 @@ class SupabaseInventoryService implements InventoryService {
     Map<String, dynamic> batch,
     double? packageQuantity,
   ) {
-    final available =
-        _toDouble(batch['qtyavailable']) ?? 0;
+    final available = _toDouble(batch['qtyavailable']) ?? 0;
 
     if (packageQuantity == null) {
       return available;
@@ -230,8 +209,7 @@ class SupabaseInventoryService implements InventoryService {
       );
     }
 
-    if (_batchQtyUnit(batch) ==
-        QtyUnit.purchaseUnit) {
+    if (_batchQtyUnit(batch) == QtyUnit.purchaseUnit) {
       return available * packageQuantity;
     }
 
@@ -274,15 +252,12 @@ class SupabaseInventoryService implements InventoryService {
   ) {
     final today = _todayOnly();
 
-    final mutable =
-        <String, _MutableBatchStockSummary>{};
+    final mutable = <String, _MutableBatchStockSummary>{};
 
     for (final raw in rows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final itemId =
-          row['itemid'] as String;
+      final itemId = row['itemid'] as String;
 
       final summary = mutable.putIfAbsent(
         itemId,
@@ -292,16 +267,13 @@ class SupabaseInventoryService implements InventoryService {
       // At least one batch record exists for the item.
       summary.hasBatchHistory = true;
 
-      final qtyAvailable =
-          _toDouble(row['qtyavailable']) ?? 0;
+      final qtyAvailable = _toDouble(row['qtyavailable']) ?? 0;
 
       if (qtyAvailable <= 0) {
         continue;
       }
 
-      final status =
-          ((row['status'] as String?) ?? 'ACTIVE')
-              .toUpperCase();
+      final status = ((row['status'] as String?) ?? 'ACTIVE').toUpperCase();
 
       // A depleted batch should never contribute to stock even if bad data
       // accidentally leaves a positive qtyavailable.
@@ -309,17 +281,14 @@ class SupabaseInventoryService implements InventoryService {
         continue;
       }
 
-      final packageQuantity =
-          packageQuantityByItem[itemId];
+      final packageQuantity = packageQuantityByItem[itemId];
 
-      final canonicalQty =
-          _batchCanonicalAvailableForPackageQuantity(
+      final canonicalQty = _batchCanonicalAvailableForPackageQuantity(
         row,
         packageQuantity,
       );
 
-      final expiryDate =
-          _parseDateOnly(row['expirydate']);
+      final expiryDate = _parseDateOnly(row['expirydate']);
 
       // ----------------------------------------------------------------------
       // EXPIRED PHYSICAL STOCK
@@ -328,8 +297,7 @@ class SupabaseInventoryService implements InventoryService {
       // Expired stock remains physically present until staff records its
       // removal. It does NOT count as usable stock.
       //
-      if (expiryDate != null &&
-          expiryDate.isBefore(today)) {
+      if (expiryDate != null && expiryDate.isBefore(today)) {
         summary.expiredQty += canonicalQty;
         continue;
       }
@@ -353,30 +321,23 @@ class SupabaseInventoryService implements InventoryService {
       // ----------------------------------------------------------------------
 
       if (expiryDate != null) {
-        final currentNearest =
-            summary.nearestExpiryDate;
+        final currentNearest = summary.nearestExpiryDate;
 
-        if (currentNearest == null ||
-            expiryDate.isBefore(currentNearest)) {
-          summary.nearestExpiryDate =
-              expiryDate;
+        if (currentNearest == null || expiryDate.isBefore(currentNearest)) {
+          summary.nearestExpiryDate = expiryDate;
         }
       }
     }
 
     return {
-      for (final entry in mutable.entries)
-        entry.key: entry.value.freeze(),
+      for (final entry in mutable.entries) entry.key: entry.value.freeze(),
     };
   }
 
-  Future<Map<String, _BatchStockSummary>>
-      _fetchBatchStockSummaries(
+  Future<Map<String, _BatchStockSummary>> _fetchBatchStockSummaries(
     Map<String, double?> packageQuantityByItem,
   ) async {
-    final rows = await _client
-        .from('inventory_batch')
-        .select(
+    final rows = await _client.from('inventory_batch').select(
           'itemid, expirydate, qtyavailable, qtyunit, status',
         );
 
@@ -397,16 +358,14 @@ class SupabaseInventoryService implements InventoryService {
         )
         .eq('itemid', itemId);
 
-    final summaries =
-        _buildBatchStockSummaries(
+    final summaries = _buildBatchStockSummaries(
       rows,
       {
         itemId: packageQuantity,
       },
     );
 
-    return summaries[itemId] ??
-        const _BatchStockSummary();
+    return summaries[itemId] ?? const _BatchStockSummary();
   }
 
   // ==========================================================================
@@ -427,41 +386,30 @@ class SupabaseInventoryService implements InventoryService {
   Future<InventoryItem> _syncLegacyItemStockFromBatches(
     InventoryItem item,
   ) async {
-    final summary =
-        await _fetchBatchStockSummaryForItem(
+    final summary = await _fetchBatchStockSummaryForItem(
       item.itemId,
       item.packageQuantity,
     );
 
     final updates = <String, dynamic>{};
 
-    final packageQuantity =
-        item.packageQuantity;
+    final packageQuantity = item.packageQuantity;
 
-    if (packageQuantity != null &&
-        packageQuantity > 0) {
+    if (packageQuantity != null && packageQuantity > 0) {
       // Batch summaries are canonical package-unit quantities when an item
       // has a package breakdown.
-      updates['total_package_stocks'] =
-          summary.usableQty;
+      updates['total_package_stocks'] = summary.usableQty;
 
-      updates['total_purchase_stocks'] =
-          summary.usableQty /
-          packageQuantity;
+      updates['total_purchase_stocks'] = summary.usableQty / packageQuantity;
     } else {
       // Without a package breakdown, batch quantities are already expressed
       // in the item's purchase unit.
-      updates['total_purchase_stocks'] =
-          summary.usableQty;
+      updates['total_purchase_stocks'] = summary.usableQty;
     }
 
-    await _client
-        .from('item')
-        .update(updates)
-        .eq('id', item.itemId);
+    await _client.from('item').update(updates).eq('id', item.itemId);
 
-    final updated =
-        await fetchItem(item.itemId);
+    final updated = await fetchItem(item.itemId);
 
     if (updated == null) {
       throw Exception('Item not found');
@@ -489,98 +437,70 @@ class SupabaseInventoryService implements InventoryService {
   }) {
     final itemId = r['id'] as String;
 
-    final sCategoryId =
-        r['s_category'] as String?;
+    final sCategoryId = r['s_category'] as String?;
 
-    final packageUnitId =
-        r['package_unit'] as String?;
+    final packageUnitId = r['package_unit'] as String?;
 
-    final dispenseUnitId =
-        r['dispense_unit'] as String?;
+    final dispenseUnitId = r['dispense_unit'] as String?;
 
     final batchSummary =
-        batchStockSummaries[itemId] ??
-        const _BatchStockSummary();
+        batchStockSummaries[itemId] ?? const _BatchStockSummary();
 
     return InventoryItem(
       itemId: itemId,
       itemName: (r['name'] as String?) ?? '',
 
-      pCategoryId:
-          r['p_category'] as String,
+      pCategoryId: r['p_category'] as String,
 
-      pCategoryName:
-          pcats[r['p_category']] ??
-          'Unknown category',
+      pCategoryName: pcats[r['p_category']] ?? 'Unknown category',
 
       sCategoryId: sCategoryId,
 
-      sCategoryName: sCategoryId == null
-          ? null
-          : scats[sCategoryId],
+      sCategoryName: sCategoryId == null ? null : scats[sCategoryId],
 
-      purchaseUnitId:
-          r['purchase_unit'] as String,
+      purchaseUnitId: r['purchase_unit'] as String,
 
-      purchaseUnitAbbr:
-          units[r['purchase_unit']] ?? '',
+      purchaseUnitAbbr: units[r['purchase_unit']] ?? '',
 
       packageUnitId: packageUnitId,
 
-      packageUnitAbbr: packageUnitId == null
-          ? null
-          : units[packageUnitId],
+      packageUnitAbbr: packageUnitId == null ? null : units[packageUnitId],
 
-      packageQuantity:
-          _toDouble(r['package_quantity']),
+      packageQuantity: _toDouble(r['package_quantity']),
 
       dispenseUnitId: dispenseUnitId,
 
-      dispenseUnitAbbr: dispenseUnitId == null
-          ? null
-          : units[dispenseUnitId],
+      dispenseUnitAbbr: dispenseUnitId == null ? null : units[dispenseUnitId],
 
-      stockQty:
-          _toDouble(r['total_purchase_stocks']) ?? 0,
+      stockQty: _toDouble(r['total_purchase_stocks']) ?? 0,
 
-      packageStockQty:
-          _toDouble(r['total_package_stocks']),
+      packageStockQty: _toDouble(r['total_package_stocks']),
 
-      totalPackageStockIns:
-          _toDouble(r['total_package_stock_ins']) ?? 0,
+      totalPackageStockIns: _toDouble(r['total_package_stock_ins']) ?? 0,
 
-      stockCountMode:
-          stockCountModeFromString(
+      stockCountMode: stockCountModeFromString(
         r['stock_count_mode'] as String?,
       ),
 
-      hasPurchaseHistory:
-          purchasedItemIds.contains(itemId),
+      hasPurchaseHistory: purchasedItemIds.contains(itemId),
 
-      hasDonationHistory:
-          donatedItemIds.contains(itemId),
+      hasDonationHistory: donatedItemIds.contains(itemId),
 
-      lifetimeStockOutQty:
-          lifetimeStockOutTotals[itemId] ?? 0,
+      lifetimeStockOutQty: lifetimeStockOutTotals[itemId] ?? 0,
 
-      lifetimeTreatmentQty:
-          lifetimeTreatmentTotals[itemId] ?? 0,
+      lifetimeTreatmentQty: lifetimeTreatmentTotals[itemId] ?? 0,
 
       // ======================================================================
       // BATCH-DERIVED STOCK + EXPIRY
       // ======================================================================
 
-      hasBatchHistory:
-          batchSummary.hasBatchHistory,
+      hasBatchHistory: batchSummary.hasBatchHistory,
 
-      usableBatchStockQty:
-          batchSummary.usableQty,
+      usableBatchStockQty: batchSummary.usableQty,
 
-      expiredBatchStockQty:
-          batchSummary.expiredQty,
+      expiredBatchStockQty: batchSummary.expiredQty,
 
-      nearestExpiryDate:
-          batchSummary.nearestExpiryDate,
+      nearestExpiryDate: batchSummary.nearestExpiryDate,
     );
   }
 
@@ -605,31 +525,22 @@ class SupabaseInventoryService implements InventoryService {
       'abbr_name',
     );
 
-    final purchasedItemIds =
-        await _itemIdsIn('purchase_item');
+    final purchasedItemIds = await _itemIdsIn('purchase_item');
 
-    final donatedItemIds =
-        await _itemIdsIn('donation_item');
+    final donatedItemIds = await _itemIdsIn('donation_item');
 
-    final rows = await _client
-        .from('item')
-        .select(_itemColumns)
-        .order('name');
+    final rows = await _client.from('item').select(_itemColumns).order('name');
 
-    final packageQuantityByItem =
-        <String, double?>{
+    final packageQuantityByItem = <String, double?>{
       for (final row in rows)
-        row['id'] as String:
-            _toDouble(row['package_quantity']),
+        row['id'] as String: _toDouble(row['package_quantity']),
     };
 
-    final lifetimeStockOutTotals =
-        await _stockOutTotalsInPurchaseUnits(
+    final lifetimeStockOutTotals = await _stockOutTotalsInPurchaseUnits(
       packageQuantityByItem,
     );
 
-    final lifetimeTreatmentTotals =
-        await _qtySumByItem(
+    final lifetimeTreatmentTotals = await _qtySumByItem(
       'treatment_item',
       'dispensed_qty',
     );
@@ -638,8 +549,7 @@ class SupabaseInventoryService implements InventoryService {
     // BATCH STOCK + EXPIRY SUMMARY
     // ========================================================================
 
-    final batchStockSummaries =
-        await _fetchBatchStockSummaries(
+    final batchStockSummaries = await _fetchBatchStockSummaries(
       packageQuantityByItem,
     );
 
@@ -650,16 +560,11 @@ class SupabaseInventoryService implements InventoryService {
             pcats: pcats,
             scats: scats,
             units: units,
-            purchasedItemIds:
-                purchasedItemIds,
-            donatedItemIds:
-                donatedItemIds,
-            lifetimeStockOutTotals:
-                lifetimeStockOutTotals,
-            lifetimeTreatmentTotals:
-                lifetimeTreatmentTotals,
-            batchStockSummaries:
-                batchStockSummaries,
+            purchasedItemIds: purchasedItemIds,
+            donatedItemIds: donatedItemIds,
+            lifetimeStockOutTotals: lifetimeStockOutTotals,
+            lifetimeTreatmentTotals: lifetimeTreatmentTotals,
+            batchStockSummaries: batchStockSummaries,
           ),
         )
         .toList();
@@ -698,44 +603,38 @@ class SupabaseInventoryService implements InventoryService {
       'abbr_name',
     );
 
-    final hasPurchaseHistory =
-        (await _client
-                .from('purchase_item')
-                .select('itemid')
-                .eq('itemid', itemId))
-            .isNotEmpty;
+    final hasPurchaseHistory = (await _client
+            .from('purchase_item')
+            .select('itemid')
+            .eq('itemid', itemId))
+        .isNotEmpty;
 
-    final hasDonationHistory =
-        (await _client
-                .from('donation_item')
-                .select('itemid')
-                .eq('itemid', itemId))
-            .isNotEmpty;
+    final hasDonationHistory = (await _client
+            .from('donation_item')
+            .select('itemid')
+            .eq('itemid', itemId))
+        .isNotEmpty;
 
     final stockOutRows = await _client
         .from('stock_out')
         .select('qty, qtyunit')
         .eq('itemid', itemId);
 
-    final packageQuantity =
-        _toDouble(row['package_quantity']);
+    final packageQuantity = _toDouble(row['package_quantity']);
 
     double lifetimeStockOutQty = 0;
 
     for (final stockOut in stockOutRows) {
-      final qty =
-          _toDouble(stockOut['qty']) ?? 0;
+      final qty = _toDouble(stockOut['qty']) ?? 0;
 
       final qtyUnit = qtyUnitFromString(
-        (stockOut['qtyunit'] as String?) ??
-            'purchase_unit',
+        (stockOut['qtyunit'] as String?) ?? 'purchase_unit',
       );
 
       if (qtyUnit == QtyUnit.packageUnit &&
           packageQuantity != null &&
           packageQuantity > 0) {
-        lifetimeStockOutQty +=
-            qty / packageQuantity;
+        lifetimeStockOutQty += qty / packageQuantity;
       } else {
         lifetimeStockOutQty += qty;
       }
@@ -746,8 +645,7 @@ class SupabaseInventoryService implements InventoryService {
         .select('dispensed_qty')
         .eq('itemid', itemId);
 
-    final lifetimeTreatmentQty =
-        treatmentRows.fold<double>(
+    final lifetimeTreatmentQty = treatmentRows.fold<double>(
       0,
       (sum, treatment) =>
           sum +
@@ -761,8 +659,7 @@ class SupabaseInventoryService implements InventoryService {
     // BATCH STOCK + EXPIRY FOR ONE ITEM
     // ========================================================================
 
-    final batchSummary =
-        await _fetchBatchStockSummaryForItem(
+    final batchSummary = await _fetchBatchStockSummaryForItem(
       itemId,
       packageQuantity,
     );
@@ -772,10 +669,8 @@ class SupabaseInventoryService implements InventoryService {
       pcats: pcats,
       scats: scats,
       units: units,
-      purchasedItemIds:
-          hasPurchaseHistory ? {itemId} : {},
-      donatedItemIds:
-          hasDonationHistory ? {itemId} : {},
+      purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
+      donatedItemIds: hasDonationHistory ? {itemId} : {},
       lifetimeStockOutTotals: {
         itemId: lifetimeStockOutQty,
       },
@@ -815,9 +710,8 @@ class SupabaseInventoryService implements InventoryService {
           'package_quantity': packageQuantity,
           'dispense_unit': dispenseUnitId,
           'total_purchase_stocks': initialQty,
-          'total_package_stocks': packageQuantity == null
-              ? null
-              : initialQty * packageQuantity,
+          'total_package_stocks':
+              packageQuantity == null ? null : initialQty * packageQuantity,
           'stock_count_mode': stockCountMode == null
               ? null
               : stockCountModeToString(
@@ -827,8 +721,7 @@ class SupabaseInventoryService implements InventoryService {
         .select('id')
         .single();
 
-    final created =
-        await fetchItem(row['id'] as String);
+    final created = await fetchItem(row['id'] as String);
 
     DataChangeBus.instance.ping();
 
@@ -848,22 +741,19 @@ class SupabaseInventoryService implements InventoryService {
     String? purchaseUnitId,
     StockCountMode? stockCountMode,
   }) async {
-    final current =
-        await fetchItem(itemId);
+    final current = await fetchItem(itemId);
 
     if (current == null) {
       throw Exception('Item not found');
     }
 
-    final updates =
-        <String, dynamic>{};
+    final updates = <String, dynamic>{};
 
     if (itemName != null) {
       updates['name'] = itemName;
     }
 
-    if (pCategoryId != null &&
-        pCategoryId != current.pCategoryId) {
+    if (pCategoryId != null && pCategoryId != current.pCategoryId) {
       updates['p_category'] = pCategoryId;
       updates['s_category'] = null;
     }
@@ -873,26 +763,20 @@ class SupabaseInventoryService implements InventoryService {
     }
 
     if (purchaseUnitId != null) {
-      updates['purchase_unit'] =
-          purchaseUnitId;
+      updates['purchase_unit'] = purchaseUnitId;
     }
 
     if (stockCountMode != null) {
-      updates['stock_count_mode'] =
-          stockCountModeToString(
+      updates['stock_count_mode'] = stockCountModeToString(
         stockCountMode,
       );
     }
 
     if (updates.isNotEmpty) {
-      await _client
-          .from('item')
-          .update(updates)
-          .eq('id', itemId);
+      await _client.from('item').update(updates).eq('id', itemId);
     }
 
-    final updated =
-        await fetchItem(itemId);
+    final updated = await fetchItem(itemId);
 
     DataChangeBus.instance.ping();
 
@@ -908,15 +792,13 @@ class SupabaseInventoryService implements InventoryService {
     required String itemId,
     required double delta,
   }) async {
-    final current =
-        await fetchItem(itemId);
+    final current = await fetchItem(itemId);
 
     if (current == null) {
       throw Exception('Item not found');
     }
 
-    final next =
-        current.stockQty + delta;
+    final next = current.stockQty + delta;
 
     if (next < 0) {
       throw Exception(
@@ -926,23 +808,17 @@ class SupabaseInventoryService implements InventoryService {
       );
     }
 
-    final updates =
-        <String, dynamic>{
+    final updates = <String, dynamic>{
       'total_purchase_stocks': next,
     };
 
-    final packageQuantity =
-        current.packageQuantity;
+    final packageQuantity = current.packageQuantity;
 
     if (packageQuantity != null) {
       final currentPackage =
-          current.packageStockQty ??
-          current.stockQty *
-              packageQuantity;
+          current.packageStockQty ?? current.stockQty * packageQuantity;
 
-      final nextPackage =
-          currentPackage +
-          delta * packageQuantity;
+      final nextPackage = currentPackage + delta * packageQuantity;
 
       if (nextPackage < 0) {
         throw Exception(
@@ -952,17 +828,12 @@ class SupabaseInventoryService implements InventoryService {
         );
       }
 
-      updates['total_package_stocks'] =
-          nextPackage;
+      updates['total_package_stocks'] = nextPackage;
     }
 
-    await _client
-        .from('item')
-        .update(updates)
-        .eq('id', itemId);
+    await _client.from('item').update(updates).eq('id', itemId);
 
-    final updated =
-        await fetchItem(itemId);
+    final updated = await fetchItem(itemId);
 
     DataChangeBus.instance.ping();
 
@@ -978,25 +849,18 @@ class SupabaseInventoryService implements InventoryService {
     required String itemId,
     required double delta,
   }) async {
-    final current =
-        await fetchItem(itemId);
+    final current = await fetchItem(itemId);
 
     if (current == null) {
       throw Exception('Item not found');
     }
 
-    final packageQuantity =
-        current.packageQuantity;
+    final packageQuantity = current.packageQuantity;
 
-    final currentPackage =
-        current.packageStockQty ??
-        (packageQuantity == null
-            ? 0
-            : current.stockQty *
-                packageQuantity);
+    final currentPackage = current.packageStockQty ??
+        (packageQuantity == null ? 0 : current.stockQty * packageQuantity);
 
-    final next =
-        currentPackage + delta;
+    final next = currentPackage + delta;
 
     if (next < 0) {
       throw Exception(
@@ -1006,15 +870,11 @@ class SupabaseInventoryService implements InventoryService {
       );
     }
 
-    await _client
-        .from('item')
-        .update({
-          'total_package_stocks': next,
-        })
-        .eq('id', itemId);
+    await _client.from('item').update({
+      'total_package_stocks': next,
+    }).eq('id', itemId);
 
-    final updated =
-        await fetchItem(itemId);
+    final updated = await fetchItem(itemId);
 
     DataChangeBus.instance.ping();
 
@@ -1031,8 +891,7 @@ class SupabaseInventoryService implements InventoryService {
     required double qty,
     required QtyUnit qtyUnit,
   }) async {
-    final current =
-        await fetchItem(itemId);
+    final current = await fetchItem(itemId);
 
     if (current == null) {
       throw Exception('Item not found');
@@ -1063,8 +922,7 @@ class SupabaseInventoryService implements InventoryService {
     // Retained for older/mock-compatible flows where no inventory_batch exists.
     // ========================================================================
 
-    if (qtyUnit == QtyUnit.purchaseUnit ||
-        current.packageQuantity == null) {
+    if (qtyUnit == QtyUnit.purchaseUnit || current.packageQuantity == null) {
       return adjustStock(
         itemId: itemId,
         delta: qty,
@@ -1072,45 +930,18 @@ class SupabaseInventoryService implements InventoryService {
     }
 
     final currentPackage =
-        current.packageStockQty ??
-        current.stockQty *
-            current.packageQuantity!;
+        current.packageStockQty ?? current.stockQty * current.packageQuantity!;
 
-    await _client
-        .from('item')
-        .update({
-          'total_package_stocks':
-              currentPackage + qty,
-          'total_package_stock_ins':
-              current.totalPackageStockIns + qty,
-        })
-        .eq('id', itemId);
+    await _client.from('item').update({
+      'total_package_stocks': currentPackage + qty,
+      'total_package_stock_ins': current.totalPackageStockIns + qty,
+    }).eq('id', itemId);
 
-    final updated =
-        await fetchItem(itemId);
+    final updated = await fetchItem(itemId);
 
     DataChangeBus.instance.ping();
 
     return updated!;
-  }
-
-  // ==========================================================================
-  // STOCK OUT TRANSACTION TYPE
-  // ==========================================================================
-
-  String _stockOutTransactionType(
-    StockOutReason reason,
-  ) {
-    switch (reason) {
-      case StockOutReason.waste:
-        return 'DISPOSAL';
-
-      case StockOutReason.expired:
-        return 'EXPIRE';
-
-      case StockOutReason.adjustment:
-        return 'ADJUSTMENT';
-    }
   }
 
   // ==========================================================================
@@ -1122,8 +953,7 @@ class SupabaseInventoryService implements InventoryService {
     Map<String, dynamic> batch,
     InventoryItem item,
   ) {
-    final packageQuantity =
-        item.packageQuantity;
+    final packageQuantity = item.packageQuantity;
 
     if (packageQuantity == null) {
       return canonicalQty;
@@ -1135,229 +965,11 @@ class SupabaseInventoryService implements InventoryService {
       );
     }
 
-    if (_batchQtyUnit(batch) ==
-        QtyUnit.purchaseUnit) {
-      return canonicalQty /
-          packageQuantity;
+    if (_batchQtyUnit(batch) == QtyUnit.purchaseUnit) {
+      return canonicalQty / packageQuantity;
     }
 
     return canonicalQty;
-  }
-
-  // ==========================================================================
-  // FETCH ELIGIBLE DISPENSE BATCHES
-  // ==========================================================================
-
-  /// NORMAL DISPENSE:
-  ///
-  /// - skips expired batches
-  /// - skips quarantined batches
-  /// - FEFO among usable batches
-  ///
-  /// EXPIRED DISPENSE:
-  ///
-  /// - targets ONLY expired batches
-  /// - explicitly allows staff to remove an expired batch even if it had
-  ///   previously been quarantined
-  Future<List<Map<String, dynamic>>>
-      _fetchEligibleBatchesForStockOut({
-    required String itemId,
-    required StockOutReason reason,
-  }) async {
-    final rows = await _client
-        .from('inventory_batch')
-        .select(
-          'inventorybatchid, expirydate, receiveddate, '
-          'qtyavailable, qtyunit, status',
-        )
-        .eq('itemid', itemId)
-        .gt('qtyavailable', 0);
-
-    final today = _todayOnly();
-
-    final batches = rows
-        .where((r) {
-          final status =
-              ((r['status'] as String?) ?? 'ACTIVE')
-                  .toUpperCase();
-
-          if (status == 'DEPLETED') {
-            return false;
-          }
-
-          final expiryDate =
-              _parseDateOnly(r['expirydate']);
-
-          // ==================================================================
-          // EXPIRED REMOVAL
-          // ==================================================================
-          //
-          // Explicit staff removal:
-          // only actual expired physical stock is eligible.
-          //
-          if (reason == StockOutReason.expired) {
-            return expiryDate != null &&
-                expiryDate.isBefore(today);
-          }
-
-          // ==================================================================
-          // NORMAL DISPENSE
-          // ==================================================================
-
-          if (status == 'QUARANTINED') {
-            return false;
-          }
-
-          if (expiryDate != null &&
-              expiryDate.isBefore(today)) {
-            return false;
-          }
-
-          return true;
-        })
-        .map(
-          (r) => Map<String, dynamic>.from(r),
-        )
-        .toList();
-
-    // ========================================================================
-    // FEFO
-    // ========================================================================
-
-    batches.sort((a, b) {
-      final aExpiry =
-          _parseDateOnly(a['expirydate']);
-
-      final bExpiry =
-          _parseDateOnly(b['expirydate']);
-
-      if (aExpiry == null &&
-          bExpiry != null) {
-        return 1;
-      }
-
-      if (aExpiry != null &&
-          bExpiry == null) {
-        return -1;
-      }
-
-      if (aExpiry != null &&
-          bExpiry != null) {
-        final expiryCompare =
-            aExpiry.compareTo(bExpiry);
-
-        if (expiryCompare != 0) {
-          return expiryCompare;
-        }
-      }
-
-      final aReceived = DateTime.parse(
-        a['receiveddate'] as String,
-      );
-
-      final bReceived = DateTime.parse(
-        b['receiveddate'] as String,
-      );
-
-      return aReceived.compareTo(bReceived);
-    });
-
-    return batches;
-  }
-
-  // ==========================================================================
-  // DRAIN PRE-VALIDATED DISPENSE BATCHES
-  // ==========================================================================
-
-  Future<void> _drainBatchesFefoForStockOut({
-    required List<Map<String, dynamic>> batches,
-    required InventoryItem item,
-    required double canonicalQty,
-    required StockOutReason reason,
-    required String stockOutId,
-    required String recordedByUserId,
-  }) async {
-    var remaining = canonicalQty;
-
-    for (final batch in batches) {
-      if (remaining <= 0) break;
-
-      final inventoryBatchId =
-          batch['inventorybatchid'] as String;
-
-      final canonicalAvailable =
-          _batchCanonicalAvailable(
-        batch,
-        item,
-      );
-
-      if (canonicalAvailable <= 0) {
-        continue;
-      }
-
-      final canonicalDraw =
-          remaining < canonicalAvailable
-              ? remaining
-              : canonicalAvailable;
-
-      final batchDraw =
-          _canonicalToBatchQty(
-        canonicalDraw,
-        batch,
-        item,
-      );
-
-      final availableInBatchUnit =
-          _toDouble(batch['qtyavailable']) ?? 0;
-
-      var nextAvailable =
-          availableInBatchUnit - batchDraw;
-
-      if (nextAvailable.abs() <
-          0.000000001) {
-        nextAvailable = 0;
-      }
-
-      await _client
-          .from('inventory_batch')
-          .update({
-            'qtyavailable': nextAvailable,
-            'status': nextAvailable <= 0
-                ? 'DEPLETED'
-                : 'ACTIVE',
-            'updatedat': DateTime.now()
-                .toUtc()
-                .toIso8601String(),
-          })
-          .eq(
-            'inventorybatchid',
-            inventoryBatchId,
-          );
-
-      await _client
-          .from('batch_transaction_log')
-          .insert({
-            'inventorybatchid':
-                inventoryBatchId,
-            'treatmentitemid': null,
-            'stockoutid': stockOutId,
-            'txntype':
-                _stockOutTransactionType(reason),
-            'qtychange': -batchDraw,
-            'qtyunit': qtyUnitToString(
-              _batchQtyUnit(batch),
-            ),
-            'txndate': DateTime.now()
-                .toUtc()
-                .toIso8601String(),
-            'performedby':
-                recordedByUserId,
-            'notes':
-                'Dispense: ${stockOutReasonToString(reason)}',
-          });
-
-      remaining -= canonicalDraw;
-    }
   }
 
   // ==========================================================================
@@ -1369,8 +981,7 @@ class SupabaseInventoryService implements InventoryService {
     required String itemId,
     required double qty,
   }) async {
-    final current =
-        await fetchItem(itemId);
+    final current = await fetchItem(itemId);
 
     if (current == null) {
       throw Exception('Item not found');
@@ -1389,17 +1000,13 @@ class SupabaseInventoryService implements InventoryService {
 
     final batches = rows
         .where((r) {
-          final status =
-              ((r['status'] as String?) ?? 'ACTIVE')
-                  .toUpperCase();
+          final status = ((r['status'] as String?) ?? 'ACTIVE').toUpperCase();
 
-          if (status == 'DEPLETED' ||
-              status == 'QUARANTINED') {
+          if (status == 'DEPLETED' || status == 'QUARANTINED') {
             return false;
           }
 
-          final expiryDate =
-              _parseDateOnly(r['expirydate']);
+          final expiryDate = _parseDateOnly(r['expirydate']);
 
           if (expiryDate == null) {
             return true;
@@ -1417,26 +1024,20 @@ class SupabaseInventoryService implements InventoryService {
     // ========================================================================
 
     batches.sort((a, b) {
-      final aExpiry =
-          _parseDateOnly(a['expirydate']);
+      final aExpiry = _parseDateOnly(a['expirydate']);
 
-      final bExpiry =
-          _parseDateOnly(b['expirydate']);
+      final bExpiry = _parseDateOnly(b['expirydate']);
 
-      if (aExpiry == null &&
-          bExpiry != null) {
+      if (aExpiry == null && bExpiry != null) {
         return 1;
       }
 
-      if (aExpiry != null &&
-          bExpiry == null) {
+      if (aExpiry != null && bExpiry == null) {
         return -1;
       }
 
-      if (aExpiry != null &&
-          bExpiry != null) {
-        final compare =
-            aExpiry.compareTo(bExpiry);
+      if (aExpiry != null && bExpiry != null) {
+        final compare = aExpiry.compareTo(bExpiry);
 
         if (compare != 0) {
           return compare;
@@ -1454,8 +1055,7 @@ class SupabaseInventoryService implements InventoryService {
       return aReceived.compareTo(bReceived);
     });
 
-    final totalAvailable =
-        batches.fold<double>(
+    final totalAvailable = batches.fold<double>(
       0,
       (sum, batch) =>
           sum +
@@ -1479,11 +1079,9 @@ class SupabaseInventoryService implements InventoryService {
     for (final batch in batches) {
       if (remaining <= 0) break;
 
-      final inventoryBatchId =
-          batch['inventorybatchid'] as String;
+      final inventoryBatchId = batch['inventorybatchid'] as String;
 
-      final canonicalAvailable =
-          _batchCanonicalAvailable(
+      final canonicalAvailable = _batchCanonicalAvailable(
         batch,
         current,
       );
@@ -1493,43 +1091,30 @@ class SupabaseInventoryService implements InventoryService {
       }
 
       final canonicalDraw =
-          remaining < canonicalAvailable
-              ? remaining
-              : canonicalAvailable;
+          remaining < canonicalAvailable ? remaining : canonicalAvailable;
 
-      final batchDraw =
-          _canonicalToBatchQty(
+      final batchDraw = _canonicalToBatchQty(
         canonicalDraw,
         batch,
         current,
       );
 
-      final availableInBatchUnit =
-          _toDouble(batch['qtyavailable']) ?? 0;
+      final availableInBatchUnit = _toDouble(batch['qtyavailable']) ?? 0;
 
-      var nextAvailable =
-          availableInBatchUnit - batchDraw;
+      var nextAvailable = availableInBatchUnit - batchDraw;
 
-      if (nextAvailable.abs() <
-          0.000000001) {
+      if (nextAvailable.abs() < 0.000000001) {
         nextAvailable = 0;
       }
 
-      await _client
-          .from('inventory_batch')
-          .update({
-            'qtyavailable': nextAvailable,
-            'status': nextAvailable <= 0
-                ? 'DEPLETED'
-                : 'ACTIVE',
-            'updatedat': DateTime.now()
-                .toUtc()
-                .toIso8601String(),
-          })
-          .eq(
-            'inventorybatchid',
-            inventoryBatchId,
-          );
+      await _client.from('inventory_batch').update({
+        'qtyavailable': nextAvailable,
+        'status': nextAvailable <= 0 ? 'DEPLETED' : 'ACTIVE',
+        'updatedat': DateTime.now().toUtc().toIso8601String(),
+      }).eq(
+        'inventorybatchid',
+        inventoryBatchId,
+      );
 
       remaining -= canonicalDraw;
     }
@@ -1566,203 +1151,59 @@ class SupabaseInventoryService implements InventoryService {
       );
     }
 
-    final current =
-        await fetchItem(itemId);
+    final current = await fetchItem(itemId);
 
     if (current == null) {
       throw Exception('Item not found');
     }
 
-    final packageQuantity =
-        current.packageQuantity;
-
-    // =========================================================================
-    // DETERMINE AVAILABLE STOCK FOR THIS DISPENSE TYPE
-    // =========================================================================
-    //
-    // NORMAL:
-    //   usable, unexpired stock
-    //
-    // EXPIRED:
-    //   expired physical stock awaiting staff removal
-    // =========================================================================
-
-    final double availableCanonical;
-
-    if (reason == StockOutReason.expired) {
-      availableCanonical =
-          current.hasBatchHistory
-              ? current.expiredBatchStockQty
-              : 0;
-    } else {
-      availableCanonical =
-          current.currentUsableStockQty;
-    }
-
-    // =========================================================================
-    // PACKAGE-UNIT VALIDATION
-    // =========================================================================
-
-    if (qtyUnit == QtyUnit.packageUnit) {
-      if (packageQuantity == null ||
-          packageQuantity <= 0 ||
-          current.packageUnitId == null) {
-        throw Exception(
-          '${current.itemName} does not have a package unit configured.',
-        );
-      }
-
-      if (qty > availableCanonical) {
-        final label =
-            reason == StockOutReason.expired
-                ? 'expired'
-                : 'usable';
-
-        throw Exception(
-          'Not enough $label stock. Only '
-          '${formatQty(availableCanonical)} '
-          '${current.packageUnitAbbr ?? ''} '
-          'available.',
-        );
-      }
-    }
-
-    // =========================================================================
-    // PURCHASE-UNIT VALIDATION
-    // =========================================================================
-
-    if (qtyUnit == QtyUnit.purchaseUnit) {
-      final purchaseAvailable =
-          packageQuantity != null &&
-                  packageQuantity > 0
-              ? availableCanonical /
-                  packageQuantity
-              : availableCanonical;
-
-      if (qty > purchaseAvailable) {
-        final label =
-            reason == StockOutReason.expired
-                ? 'expired'
-                : 'usable';
-
-        throw Exception(
-          'Not enough $label stock. Only '
-          '${formatQty(purchaseAvailable)} '
-          '${current.purchaseUnitAbbr} '
-          'equivalent available.',
-        );
-      }
-    }
-
-    // =========================================================================
-    // NORMALIZE TO CANONICAL UNIT
-    // =========================================================================
-
-    final double canonicalQty;
-
-    if (packageQuantity != null) {
-      if (packageQuantity <= 0) {
-        throw Exception(
-          'Invalid package quantity configured for ${current.itemName}.',
-        );
-      }
-
-      canonicalQty =
-          qtyUnit == QtyUnit.purchaseUnit
-              ? qty * packageQuantity
-              : qty;
-    } else {
-      canonicalQty = qty;
-    }
-
-    // =========================================================================
-    // ELIGIBLE FEFO BATCHES
-    // =========================================================================
-
-    final batches =
-        await _fetchEligibleBatchesForStockOut(
-      itemId: itemId,
-      reason: reason,
-    );
-
-    final totalBatchAvailable =
-        batches.fold<double>(
-      0,
-      (sum, batch) =>
-          sum +
-          _batchCanonicalAvailable(
-            batch,
-            current,
-          ),
-    );
-
-    if (totalBatchAvailable <
-        canonicalQty) {
-      final canonicalUnit =
-          packageQuantity != null
-              ? current.packageUnitAbbr
-              : current.purchaseUnitAbbr;
-
-      final label =
-          reason == StockOutReason.expired
-              ? 'expired batch'
-              : 'usable batch';
-
+    // Keep the existing quick client-side configuration check for a clearer
+    // message. The database RPC below remains the final authority for stock.
+    if (qtyUnit == QtyUnit.packageUnit &&
+        (!current.hasPackageBreakdown || current.packageUnitId == null)) {
       throw Exception(
-        'Not enough $label stock. '
-        'Only ${formatQty(totalBatchAvailable)} '
-        '${canonicalUnit ?? ''} available.',
+        '${current.itemName} does not have a package unit configured.',
       );
     }
 
-    // =========================================================================
-    // CREATE PARENT STOCK OUT
-    // =========================================================================
-
-    final stockOutRow = await _client
-        .from('stock_out')
-        .insert({
-          'itemid': itemId,
-          'qty': qty,
-          'qtyunit':
-              qtyUnitToString(qtyUnit),
-          'reason':
-              stockOutReasonToString(reason),
-          'recordedby':
-              recordedByUserId,
-        })
-        .select('id')
-        .single();
-
-    final stockOutId =
-        stockOutRow['id'] as String;
-
-    // =========================================================================
-    // FEFO BATCH DEDUCTION
-    // =========================================================================
-
-    await _drainBatchesFefoForStockOut(
-      batches: batches,
-      item: current,
-      canonicalQty: canonicalQty,
-      reason: reason,
-      stockOutId: stockOutId,
-      recordedByUserId:
-          recordedByUserId,
-    );
-
-    // =========================================================================
-    // LEGACY ITEM AGGREGATE SYNC
-    // =========================================================================
+    // ========================================================================
+    // ATOMIC DATABASE COMMIT
+    // ========================================================================
     //
-    // inventory_batch has already been deducted. Keep the old item totals as a
-    // derived compatibility cache by replacing them with the authoritative
-    // usable batch balance.
-    // =========================================================================
+    // PostgreSQL now performs, in ONE transaction:
+    //
+    // item lock
+    //   -> FEFO batch row locks
+    //   -> live stock validation
+    //   -> stock_out insert
+    //   -> inventory_batch deductions
+    //   -> batch_transaction_log inserts
+    //   -> legacy item-cache synchronization
+    //
+    // If another Staff member is consuming the same item, this call waits for
+    // that transaction and re-evaluates the remaining stock afterwards.
+    // ========================================================================
 
-    return _syncLegacyItemStockFromBatches(
-      current,
+    await _client.rpc(
+      'siyam_atomic_stock_out',
+      params: {
+        'p_item_id': itemId,
+        'p_qty': qty,
+        'p_qty_unit': qtyUnitToString(qtyUnit),
+        'p_reason': stockOutReasonToString(reason),
+        'p_recorded_by': recordedByUserId,
+      },
     );
+
+    final updated = await fetchItem(itemId);
+
+    if (updated == null) {
+      throw Exception('Item not found');
+    }
+
+    DataChangeBus.instance.ping();
+
+    return updated;
   }
 
   // ==========================================================================
@@ -1773,10 +1214,7 @@ class SupabaseInventoryService implements InventoryService {
   Future<void> deleteItem(
     String itemId,
   ) async {
-    await _client
-        .from('item')
-        .delete()
-        .eq('id', itemId);
+    await _client.from('item').delete().eq('id', itemId);
 
     DataChangeBus.instance.ping();
   }
@@ -1808,26 +1246,20 @@ class SupabaseInventoryService implements InventoryService {
   Future<List<StockMovement>> fetchStockHistory(
     String itemId,
   ) async {
-    final item =
-        await fetchItem(itemId);
+    final item = await fetchItem(itemId);
 
-    final purchaseUnitAbbr =
-        item?.purchaseUnitAbbr ?? '';
+    final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
 
-    final packageUnitAbbr =
-        item?.packageUnitAbbr ??
-        purchaseUnitAbbr;
+    final packageUnitAbbr = item?.packageUnitAbbr ?? purchaseUnitAbbr;
 
-    final users =
-        await _userNameMap();
+    final users = await _userNameMap();
 
     final units = await _map(
       'units',
       'abbr_name',
     );
 
-    final movements =
-        <StockMovement>[];
+    final movements = <StockMovement>[];
 
     // =========================================================================
     // PURCHASE
@@ -1841,9 +1273,7 @@ class SupabaseInventoryService implements InventoryService {
         .eq('itemid', itemId);
 
     for (final r in purchaseRows) {
-      final purchase =
-          r['purchase']
-              as Map<String, dynamic>?;
+      final purchase = r['purchase'] as Map<String, dynamic>?;
 
       if (purchase == null) {
         continue;
@@ -1855,16 +1285,11 @@ class SupabaseInventoryService implements InventoryService {
           date: DateTime.parse(
             purchase['receiveddate'] as String,
           ),
-          direction:
-              StockDirection.stockIn,
-          qty:
-              _toDouble(r['qty']) ?? 0,
-          unitAbbr:
-              purchaseUnitAbbr,
+          direction: StockDirection.stockIn,
+          qty: _toDouble(r['qty']) ?? 0,
+          unitAbbr: purchaseUnitAbbr,
           typeLabel: 'Purchased',
-          recordedByName:
-              users[purchase['recordedby']] ??
-              'Unknown user',
+          recordedByName: users[purchase['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -1881,9 +1306,7 @@ class SupabaseInventoryService implements InventoryService {
         .eq('itemid', itemId);
 
     for (final r in donationRows) {
-      final donation =
-          r['donation']
-              as Map<String, dynamic>?;
+      final donation = r['donation'] as Map<String, dynamic>?;
 
       if (donation == null) {
         continue;
@@ -1895,18 +1318,13 @@ class SupabaseInventoryService implements InventoryService {
           date: DateTime.parse(
             donation['receiveddate'] as String,
           ),
-          direction:
-              StockDirection.stockIn,
-          qty:
-              _toDouble(r['qty']) ?? 0,
-          unitAbbr:
-              r['qty_unit'] == 'package_unit'
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
+          direction: StockDirection.stockIn,
+          qty: _toDouble(r['qty']) ?? 0,
+          unitAbbr: r['qty_unit'] == 'package_unit'
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
           typeLabel: 'Donated',
-          recordedByName:
-              users[donation['recordedby']] ??
-              'Unknown user',
+          recordedByName: users[donation['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -1924,13 +1342,9 @@ class SupabaseInventoryService implements InventoryService {
         .eq('itemid', itemId);
 
     for (final r in treatmentRows) {
-      final treatment =
-          r['treatment']
-              as Map<String, dynamic>?;
+      final treatment = r['treatment'] as Map<String, dynamic>?;
 
-      final dispenseUnit =
-          r['dispense_unit']
-              as String?;
+      final dispenseUnit = r['dispense_unit'] as String?;
 
       movements.add(
         StockMovement(
@@ -1938,28 +1352,17 @@ class SupabaseInventoryService implements InventoryService {
           date: DateTime.parse(
             r['consumeddate'] as String,
           ),
-          direction:
-              StockDirection.stockOut,
-          qty:
-              _toDouble(
-                    r['dispensed_qty'],
-                  ) ??
-                  0,
-          unitAbbr:
-              (dispenseUnit == null
-                      ? null
-                      : units[dispenseUnit]) ??
-                  purchaseUnitAbbr,
+          direction: StockDirection.stockOut,
+          qty: _toDouble(
+                r['dispensed_qty'],
+              ) ??
+              0,
+          unitAbbr: (dispenseUnit == null ? null : units[dispenseUnit]) ??
+              purchaseUnitAbbr,
           typeLabel: 'Treatment',
-          treatmentId:
-              r['treatid'] as String?,
-          treatmentName:
-              treatment?['name']
-                      as String? ??
-                  'Unknown treatment',
-          recordedByName:
-              users[r['recordedby']] ??
-              'Unknown user',
+          treatmentId: r['treatid'] as String?,
+          treatmentName: treatment?['name'] as String? ?? 'Unknown treatment',
+          recordedByName: users[r['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -1976,10 +1379,8 @@ class SupabaseInventoryService implements InventoryService {
         .eq('itemid', itemId);
 
     for (final r in stockOutRows) {
-      final qtyUnit =
-          qtyUnitFromString(
-        (r['qtyunit'] as String?) ??
-            'purchase_unit',
+      final qtyUnit = qtyUnitFromString(
+        (r['qtyunit'] as String?) ?? 'purchase_unit',
       );
 
       movements.add(
@@ -1988,23 +1389,17 @@ class SupabaseInventoryService implements InventoryService {
           date: DateTime.parse(
             r['recordeddate'] as String,
           ),
-          direction:
-              StockDirection.stockOut,
-          qty:
-              _toDouble(r['qty']) ?? 0,
-          unitAbbr:
-              qtyUnit == QtyUnit.packageUnit
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
-          typeLabel:
-              _stockOutReasonLabel(
+          direction: StockDirection.stockOut,
+          qty: _toDouble(r['qty']) ?? 0,
+          unitAbbr: qtyUnit == QtyUnit.packageUnit
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
+          typeLabel: _stockOutReasonLabel(
             stockOutReasonFromString(
               r['reason'] as String,
             ),
           ),
-          recordedByName:
-              users[r['recordedby']] ??
-              'Unknown user',
+          recordedByName: users[r['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -2022,9 +1417,7 @@ class SupabaseInventoryService implements InventoryService {
 
   @override
   Future<List<DateTime>> fetchStockOutDates() async {
-    final rows = await _client
-        .from('stock_out')
-        .select('recordeddate');
+    final rows = await _client.from('stock_out').select('recordeddate');
 
     return [
       for (final row in rows)
