@@ -8,9 +8,13 @@ import 'inventory_item.dart';
 //
 // Nothing in this model is persisted. It is derived from:
 // - current usable inventory batches
-// - the previous 30 days of usage
+// - stock-consuming usage from a rolling window of up to 30 days
 // - system ROP defaults
 // - optional item-specific ROP overrides
+//
+// New items use the number of days since their first received inventory batch
+// as the ADU observation period, capped at 30 days. Established items continue
+// using the normal 30-day window.
 // =============================================================================
 
 enum ReplenishmentPriority {
@@ -22,11 +26,22 @@ enum ReplenishmentPriority {
 class ReplenishmentItem {
   final InventoryItem item;
 
-  /// Previous 30 days of stock-consuming usage, normalized back into the
-  /// item's PURCHASE UNIT.
+  /// Stock-consuming usage collected within the rolling window, normalized
+  /// back into the item's PURCHASE UNIT.
+  ///
+  /// The field name is kept for compatibility with the existing Ordering UI.
+  /// The maximum usage window remains 30 days.
   final double usage30PurchaseUnits;
 
-  /// Average Daily Usage = usage30PurchaseUnits / 30.
+  /// Number of calendar days used as the ADU denominator.
+  ///
+  /// - Established item: 30
+  /// - New item: days since first received inventory batch, capped at 30
+  /// - No batch history: 30
+  final int observationDays;
+
+  /// Average Daily Usage =
+  /// usage30PurchaseUnits / observationDays.
   final double averageDailyUsage;
 
   final int leadTimeDays;
@@ -40,7 +55,7 @@ class ReplenishmentItem {
   /// Current usable stock expressed in purchase-unit equivalents.
   final double currentStockPurchaseUnits;
 
-  /// Shortfall to the ROP.
+  /// Minimum shortfall to the operational ROP.
   ///
   /// SIYAM does not automatically create a supplier order from this value.
   /// It is a recommendation/reference for staff.
@@ -53,6 +68,7 @@ class ReplenishmentItem {
   const ReplenishmentItem({
     required this.item,
     required this.usage30PurchaseUnits,
+    required this.observationDays,
     required this.averageDailyUsage,
     required this.leadTimeDays,
     required this.safetyStockQty,

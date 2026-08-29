@@ -498,7 +498,7 @@ class _SettingsPageState
                                   labelText:
                                       'Low stock threshold',
                                   helperText:
-                                      'Whole containers at or below this level are flagged as Low Stock.',
+                                      'Usable stock at or below this purchase-unit equivalent is flagged as Low Stock.',
                                 ),
                                 validator:
                                     _positiveNumberValidator,
@@ -740,7 +740,8 @@ class _SettingsPageState
                                     Expanded(
                                       child: Text(
                                         'ROP = Average Daily Usage × Lead Time + Safety Stock. '
-                                        'Average Daily Usage will be calculated from the last 30 days of recorded usage.',
+                                        'ADU uses up to 30 days of recent usage; newer items use the number '
+                                        'of days since their first received stock.',
                                         style:
                                             TextStyle(
                                           fontSize:

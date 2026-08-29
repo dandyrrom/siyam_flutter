@@ -48,6 +48,7 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   List<DonationSubmission> _submissions = [];
   List<DonationImpactLine> _impactLines = [];
+  List<ReplenishmentAlert> _currentNeeds = [];
 
   bool _loading = true;
   String? _error;
@@ -84,7 +85,7 @@ class _DonorDashboardState extends State<DonorDashboard>
     try {
       // Loads the existing dashboard stats, donation history,
       // and donor impact data at the same time.
-      final results = await Future.wait([
+      final results = await Future.wait<Object?>([
         _dashboardService.fetchDonorStats(
           donorId,
         ),
@@ -94,6 +95,8 @@ class _DonorDashboardState extends State<DonorDashboard>
         _impactService.fetchDonorImpact(
           donorId,
         ),
+        _dashboardService
+            .fetchReplenishmentAlerts(),
       ]);
 
       if (!mounted) return;
@@ -107,6 +110,9 @@ class _DonorDashboardState extends State<DonorDashboard>
 
         _impactLines =
             results[2] as List<DonationImpactLine>;
+
+        _currentNeeds =
+            results[3] as List<ReplenishmentAlert>;
 
         _loading = false;
       });
@@ -250,6 +256,9 @@ class _DonorDashboardState extends State<DonorDashboard>
     final recentImpact =
         _recentImpact;
 
+    final currentNeeds =
+        _currentNeeds.take(3).toList();
+
     return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
@@ -344,7 +353,11 @@ class _DonorDashboardState extends State<DonorDashboard>
             if (compact) {
               return Column(
                 children: [
-                  const _CurrentNeedsCard(),
+                  _CurrentNeedsCard(
+                    loading: _loading,
+                    alerts:
+                        currentNeeds,
+                  ),
 
                   const SizedBox(
                     height: 16,
@@ -363,9 +376,13 @@ return IntrinsicHeight(
     crossAxisAlignment:
         CrossAxisAlignment.stretch,
     children: [
-      const Expanded(
+      Expanded(
         child:
-            _CurrentNeedsCard(),
+            _CurrentNeedsCard(
+          loading: _loading,
+          alerts:
+              currentNeeds,
+        ),
       ),
 
       const SizedBox(width: 16),
@@ -965,19 +982,21 @@ class _MetricCardState
 // CURRENT NEEDS
 // ============================================================================
 //
-// IMPORTANT:
-//
-// This is intentionally not connected to a guessed database/service.
-//
-// Once you send your existing Supply Priority List page/service/model,
-// this card can use the exact same data source and show the top 3 items.
-//
-// That is safer than introducing duplicate low-stock logic here.
+// Uses the same live replenishment list as the Staff Dashboard/Ordering flow.
+// Only the top three items are shown here, with donor-friendly wording.
+// Technical ROP details stay on the Staff/Manager side.
 // ============================================================================
 
 class _CurrentNeedsCard
     extends StatelessWidget {
-  const _CurrentNeedsCard();
+  final bool loading;
+  final List<ReplenishmentAlert>
+      alerts;
+
+  const _CurrentNeedsCard({
+    required this.loading,
+    required this.alerts,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1024,64 +1043,232 @@ class _CurrentNeedsCard
 
           const SizedBox(height: 16),
 
-          // Temporary visual state until connected to the
-          // real Supply Priority List service.
-          Container(
-            width: double.infinity,
-            padding:
-                const EdgeInsets.all(
-              16,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.warning
-                  .withValues(
-                alpha: 0.045,
+          if (loading)
+            const Padding(
+              padding:
+                  EdgeInsets.symmetric(
+                vertical: 24,
               ),
-              borderRadius:
-                  BorderRadius.circular(
-                12,
+              child: Center(
+                child:
+                    CircularProgressIndicator(),
               ),
-            ),
-            child: const Column(
+            )
+          else if (alerts.isEmpty)
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.all(
+                16,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary
+                    .withValues(
+                  alpha: 0.045,
+                ),
+                borderRadius:
+                    BorderRadius.circular(
+                  12,
+                ),
+              ),
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons
+                        .check_circle_outline,
+                    size: 26,
+                    color:
+                        AppColors.primary,
+                  ),
+
+                  SizedBox(height: 8),
+
+                  Text(
+                    'Supply needs are currently covered',
+                    textAlign:
+                        TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+
+                  SizedBox(height: 3),
+
+                  Text(
+                    'New priority items will appear here when the shelter needs support.',
+                    textAlign:
+                        TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11.8,
+                      color: AppColors
+                          .mutedForeground,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
               children: [
-                Icon(
-                  Icons
-                      .inventory_2_outlined,
-                  size: 26,
-                  color: AppColors
-                      .warning,
-                ),
+                for (var i = 0;
+                    i < alerts.length;
+                    i++) ...[
+                  if (i > 0)
+                    const Divider(
+                      height: 18,
+                    ),
 
-                SizedBox(height: 8),
-
-                Text(
-                  'Shelter supply needs',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight:
-                        FontWeight.w600,
+                  _CurrentNeedRow(
+                    alert:
+                        alerts[i],
                   ),
-                ),
-
-                SizedBox(height: 3),
-
-                Text(
-                  'Top priority items will appear here.',
-                  textAlign:
-                      TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11.8,
-                    color: AppColors
-                        .mutedForeground,
-                  ),
-                ),
+                ],
               ],
             ),
-          ),
         ],
       ),
     );
   }
+}
+
+class _CurrentNeedRow
+    extends StatelessWidget {
+  final ReplenishmentAlert alert;
+
+  const _CurrentNeedRow({
+    required this.alert,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) =
+        _needMeta(alert.priority);
+
+    return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          margin:
+              const EdgeInsets.only(
+            top: 5,
+          ),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                alert.itemName,
+                overflow:
+                    TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12.8,
+                  fontWeight:
+                      FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 2),
+
+              Text(
+                alert.stockQty <= 0
+                    ? 'Currently out of stock'
+                    : '${_formatQty(alert.stockQty)} ${alert.unitAbbr} remaining',
+                style: const TextStyle(
+                  fontSize: 11.2,
+                  color: AppColors
+                      .mutedForeground,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        Container(
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: color.withValues(
+              alpha: 0.10,
+            ),
+            borderRadius:
+                BorderRadius.circular(
+              999,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight:
+                  FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+(String, Color) _needMeta(
+  ReplenishmentPriority priority,
+) {
+  switch (priority) {
+    case ReplenishmentPriority.critical:
+      return (
+        'Urgent',
+        AppColors.stockOut,
+      );
+
+    case ReplenishmentPriority.high:
+      return (
+        'Running Low',
+        AppColors.stockLow,
+      );
+
+    case ReplenishmentPriority.medium:
+      return (
+        'Needed Soon',
+        AppColors.stockNeedsRestock,
+      );
+  }
+}
+
+String _formatQty(double value) {
+  if (value ==
+      value.roundToDouble()) {
+    return value.toInt().toString();
+  }
+
+  return value
+      .toStringAsFixed(2)
+      .replaceFirst(
+        RegExp(r'0+$'),
+        '',
+      )
+      .replaceFirst(
+        RegExp(r'\.$'),
+        '',
+      );
 }
 
 // ============================================================================

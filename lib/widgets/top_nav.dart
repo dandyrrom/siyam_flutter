@@ -92,7 +92,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
 
     if (parts.isNotEmpty && parts.first == 'inventory') {
       if (index == 1 && part == 'add') {
-        return 'Stock In';
+        return 'Goods Received';
       }
 
       if (index == 1) {

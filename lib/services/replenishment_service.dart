@@ -19,7 +19,12 @@ import 'supabase/supabase_rop_service.dart';
 //
 // Usage window: previous 30 days, including today.
 //
-// ADU = normalized 30-day usage / 30
+// ADU = normalized usage / observation days
+//
+// Observation days:
+// - established item: 30 days
+// - new item: days since its first inventory batch was received, up to 30
+// - no batch history: falls back to 30 days
 //
 // Raw ROP = (ADU × lead time days) + safety stock
 // Operational ROP = ceil(Raw ROP) to a whole purchase unit
@@ -54,6 +59,33 @@ class ReplenishmentService {
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
     return '$y-$m-$d';
+  }
+
+  int _observationDaysFor({
+    required DateTime today,
+    required DateTime? firstBatchDate,
+  }) {
+    if (firstBatchDate == null) {
+      return usageWindowDays;
+    }
+
+    final firstDay = DateTime(
+      firstBatchDate.year,
+      firstBatchDate.month,
+      firstBatchDate.day,
+    );
+
+    final days =
+        today.difference(firstDay).inDays + 1;
+
+    if (days <= 1) {
+      return 1;
+    }
+
+    return math.min(
+      usageWindowDays,
+      days,
+    );
   }
 
   // ===========================================================================
@@ -214,6 +246,12 @@ class ReplenishmentService {
             'recordeddate',
             startLocal.toUtc().toIso8601String(),
           ),
+
+      _client
+          .from('inventory_batch')
+          .select(
+            'itemid, receiveddate',
+          ),
     ]);
 
     final items = results[0] as List<InventoryItem>;
@@ -221,6 +259,7 @@ class ReplenishmentService {
     final overrides = results[2] as List<ItemRopSettings>;
     final treatmentRows = results[3] as List<dynamic>;
     final stockOutRows = results[4] as List<dynamic>;
+    final batchRows = results[5] as List<dynamic>;
 
     final itemById = <String, InventoryItem>{
       for (final item in items) item.itemId: item,
@@ -230,6 +269,58 @@ class ReplenishmentService {
       for (final ropOverride in overrides)
         ropOverride.itemId: ropOverride,
     };
+
+    // -------------------------------------------------------------------------
+    // FIRST OBSERVED INVENTORY DATE
+    // -------------------------------------------------------------------------
+    //
+    // New items should not be treated as if they had 27+ days of zero usage.
+    // The earliest received batch gives us a simple, reliable observation
+    // start without adding another table or setting.
+    //
+    // Items without batch history keep the original 30-day denominator.
+    // -------------------------------------------------------------------------
+
+    final firstBatchDateByItemId =
+        <String, DateTime>{};
+
+    for (final raw in batchRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      final itemId =
+          row['itemid'] as String?;
+
+      if (itemId == null) {
+        continue;
+      }
+
+      final parsed = DateTime.tryParse(
+        row['receiveddate']?.toString() ?? '',
+      );
+
+      if (parsed == null) {
+        continue;
+      }
+
+      final receivedLocal =
+          parsed.toLocal();
+
+      final receivedDay = DateTime(
+        receivedLocal.year,
+        receivedLocal.month,
+        receivedLocal.day,
+      );
+
+      final current =
+          firstBatchDateByItemId[itemId];
+
+      if (current == null ||
+          receivedDay.isBefore(current)) {
+        firstBatchDateByItemId[itemId] =
+            receivedDay;
+      }
+    }
 
     final usageByItemId = <String, double>{};
 
@@ -305,8 +396,19 @@ class ReplenishmentService {
       final usage30 =
           usageByItemId[item.itemId] ?? 0;
 
+      final observationDays =
+          _observationDaysFor(
+        today: DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ),
+        firstBatchDate:
+            firstBatchDateByItemId[item.itemId],
+      );
+
       final adu =
-          usage30 / usageWindowDays;
+          usage30 / observationDays;
 
       // -----------------------------------------------------------------------
       // OPERATIONAL WHOLE-UNIT ROP
@@ -369,6 +471,7 @@ class ReplenishmentService {
         ReplenishmentItem(
           item: item,
           usage30PurchaseUnits: usage30,
+          observationDays: observationDays,
           averageDailyUsage: adu,
           leadTimeDays: leadTimeDays,
           safetyStockQty: safetyStockQty,

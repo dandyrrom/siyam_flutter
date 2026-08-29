@@ -968,7 +968,7 @@ class _PriorityOverviewCard extends StatelessWidget {
                   _PriorityLegendRow(
                     label: 'High',
                     value: high,
-                    helper: 'Low stock',
+                    helper: 'Well below ROP',
                     color:
                         AppColors.stockLow,
                   ),
@@ -977,7 +977,7 @@ class _PriorityOverviewCard extends StatelessWidget {
                     label: 'Medium',
                     value: medium,
                     helper:
-                        'Needs restock soon',
+                        'At or below ROP',
                     color: AppColors
                         .stockNeedsRestock,
                   ),
@@ -1264,7 +1264,7 @@ class _AttentionListCard extends StatelessWidget {
                 ),
                 child: Text(
                   'Showing ${alerts.length} of $totalCount items. '
-                  'Open Purchases & Replenishment for the complete list.',
+                  'Open Ordering for the complete list.',
                   style: const TextStyle(
                     fontSize: 11.2,
                     color: AppColors.mutedForeground,
@@ -1577,15 +1577,6 @@ class _SocialTemplateCard extends StatelessWidget {
             const Spacer()
           else
             const SizedBox(height: 16),
-          const Text(
-            'The generated caption should follow DAS’s real posting tone and format.',
-            style: TextStyle(
-              fontSize: 10.8,
-              height: 1.35,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(

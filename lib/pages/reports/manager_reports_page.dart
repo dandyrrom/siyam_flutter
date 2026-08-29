@@ -1397,12 +1397,17 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                   ),
 
                   _DetailLine(
-                    label:
-                        'Used in last 30 days',
+                    label: 'Usage in observation period',
                     value: _qty(
                       row.usage30PurchaseUnits,
                       unit,
                     ),
+                  ),
+
+                  _DetailLine(
+                    label: 'Observation period',
+                    value:
+                        '${row.observationDays} day${row.observationDays == 1 ? '' : 's'}',
                   ),
 
                   _DetailLine(
@@ -1588,6 +1593,18 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                                     .start,
                             children: [
                               _DetailLine(
+                                label: 'Usage',
+                                value:
+                                    '${_reportQtyNumber(row.usage30PurchaseUnits)} $unit',
+                              ),
+
+                              _DetailLine(
+                                label: 'Observation period',
+                                value:
+                                    '${row.observationDays} day${row.observationDays == 1 ? '' : 's'}',
+                              ),
+
+                              _DetailLine(
                                 label: 'ADU',
                                 value:
                                     '${_reportQtyNumber(row.averageDailyUsage)} $unit/day',
@@ -1595,6 +1612,34 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                               const SizedBox(
                                 height: 4,
+                              ),
+
+                              const Text(
+                                'ADU = Usage ÷ Observation Period',
+                                style: TextStyle(
+                                  fontSize: 11.8,
+                                  fontWeight:
+                                      FontWeight.w600,
+                                ),
+                              ),
+
+                              const SizedBox(
+                                height: 5,
+                              ),
+
+                              Text(
+                                '${_reportQtyNumber(row.usage30PurchaseUnits)} ÷ '
+                                '${row.observationDays} '
+                                '= ${_reportQtyNumber(row.averageDailyUsage)} $unit/day',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors
+                                      .mutedForeground,
+                                ),
+                              ),
+
+                              const SizedBox(
+                                height: 8,
                               ),
 
                               const Text(
@@ -2245,7 +2290,7 @@ class _RopHeader
           Expanded(
             flex: 2,
             child:
-                _HeaderCell('30d Usage'),
+                _HeaderCell('Usage'),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -2493,7 +2538,7 @@ class _RopMobileRow
                 ),
               ),
               _MiniMetric(
-                label: '30d Usage',
+                label: 'Usage',
                 value: _qty(
                   row.usage30PurchaseUnits,
                   unit,

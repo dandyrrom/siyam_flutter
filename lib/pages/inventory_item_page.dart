@@ -5,11 +5,13 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../models/inventory_item.dart';
 import '../models/primary_category.dart';
+import '../models/replenishment_item.dart';
 import '../models/qty_unit.dart';
 import '../models/stock_movement.dart';
 import '../models/unit.dart';
 import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
+import '../services/replenishment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
 import '../widgets/search_select_field.dart';
@@ -31,8 +33,11 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     with DataBusRefreshMixin<InventoryItemPage> {
   final InventoryService _service = InventoryService();
   final CatalogService _catalogService = CatalogService();
+  final ReplenishmentService _replenishmentService =
+      ReplenishmentService();
 
   InventoryItem? _item;
+  ReplenishmentItem? _replenishment;
   List<StockMovement> _history = [];
   List<PrimaryCategory> _primaryCategories = [];
   List<Unit> _units = [];
@@ -65,33 +70,71 @@ class _InventoryItemPageState extends State<InventoryItemPage>
         item.packageUnitAbbr!.trim().isNotEmpty;
   }
 
-  double _currentStockQty(InventoryItem item) {
-    if (_hasPackageBreakdown(item)) {
-      return item.packageStockQty ?? (item.stockQty * item.packageQuantity!);
-    }
+double _currentStockQty(InventoryItem item) {
+  return item.currentUsableStockQty;
+}
 
-    return item.stockQty;
+String _currentStockUnit(InventoryItem item) {
+  return item.currentUsableStockUnit;
+}
+
+double? _purchaseUnitEquivalent(InventoryItem item) {
+  if (!item.hasPackageBreakdown) {
+    return null;
   }
 
-  String _currentStockUnit(InventoryItem item) {
-    if (_hasPackageBreakdown(item)) {
-      return item.packageUnitAbbr!;
-    }
-
-    return item.purchaseUnitAbbr;
-  }
-
-  double? _purchaseUnitEquivalent(InventoryItem item) {
-    if (!_hasPackageBreakdown(item)) return null;
-
-    return _currentStockQty(item) / item.packageQuantity!;
-  }
+  return item.currentPurchaseUnitEquivalent;
+}
 
   String? _packageConversionLabel(InventoryItem item) {
     if (!_hasPackageBreakdown(item)) return null;
 
     return '1 ${item.purchaseUnitAbbr} = '
         '${formatQty(item.packageQuantity!)} ${item.packageUnitAbbr}';
+  }
+
+  // ===========================================================================
+  // STOCK LEVEL
+  // ===========================================================================
+  //
+  // Keep this page aligned with the Inventory list:
+  // - 0 usable stock -> Out of Stock
+  // - at/below Manager low-stock threshold -> Low Stock
+  // - above threshold but at/below ROP -> Needs Restock
+  // - above ROP -> In Stock
+  // ===========================================================================
+
+  StockLevel _stockLevelFor(InventoryItem item) {
+    if (item.isOutOfStock) {
+      return StockLevel.outOfStock;
+    }
+
+    if (item.currentPurchaseUnitEquivalent <=
+        lowStockPurchaseUnitThreshold) {
+      return StockLevel.low;
+    }
+
+    if (_replenishment != null) {
+      return StockLevel.needsRestock;
+    }
+
+    return StockLevel.inStock;
+  }
+
+  (String, Color) _stockLevelMeta(StockLevel level) {
+    switch (level) {
+      case StockLevel.inStock:
+        return ('In Stock', AppColors.stockInStock);
+
+      case StockLevel.needsRestock:
+        return ('Needs Restock', AppColors.stockNeedsRestock);
+
+      case StockLevel.low:
+        return ('Low Stock', AppColors.stockLow);
+
+      case StockLevel.outOfStock:
+        return ('Out of Stock', AppColors.stockOut);
+    }
   }
 
   @override
@@ -117,14 +160,29 @@ class _InventoryItemPageState extends State<InventoryItemPage>
         _service.fetchStockHistory(widget.itemId),
         _catalogService.fetchPrimaryCategories(),
         _catalogService.fetchUnits(),
+        _replenishmentService.fetchReplenishmentItems(),
       ]);
 
       if (!mounted) return;
 
       final item = results[0] as InventoryItem?;
+      final replenishmentRows =
+          results[4] as List<ReplenishmentItem>;
+
+      ReplenishmentItem? replenishment;
+
+      if (item != null) {
+        for (final row in replenishmentRows) {
+          if (row.item.itemId == item.itemId) {
+            replenishment = row;
+            break;
+          }
+        }
+      }
 
       setState(() {
         _item = item;
+        _replenishment = replenishment;
         _history = results[1] as List<StockMovement>;
         _primaryCategories = results[2] as List<PrimaryCategory>;
         _units = results[3] as List<Unit>;
@@ -317,7 +375,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   }
 
   String get _backLabel => _openedFromPurchases
-      ? 'Back to Purchases & Replenishment'
+      ? 'Back to Ordering'
       : 'Back to Inventory';
 
   @override
@@ -352,7 +410,9 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     }
 
     final item = _item!;
-    final outOfStock = item.isOutOfStock;
+    final stockLevel = _stockLevelFor(item);
+    final (stockLevelLabel, stockLevelColor) =
+        _stockLevelMeta(stockLevel);
 
     // =========================================================================
     // CURRENT STOCK VALUES
@@ -387,20 +447,17 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: (outOfStock
-                          ? AppColors.destructive
-                          : AppColors.roleManager)
-                      .withValues(alpha: 0.12),
+                  color: stockLevelColor.withValues(
+                    alpha: 0.12,
+                  ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  outOfStock ? 'Out of Stock' : 'In Stock',
+                  stockLevelLabel,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: outOfStock
-                        ? AppColors.destructive
-                        : AppColors.roleManager,
+                    color: stockLevelColor,
                   ),
                 ),
               ),

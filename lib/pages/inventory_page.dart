@@ -488,13 +488,39 @@ class _InventoryPageState extends State<InventoryPage>
   // STOCK LEVEL
   // ==========================================================================
 
+  // ==========================================================================
+  // STOCK LEVEL
+  // ==========================================================================
+  //
+  // Inventory and Ordering answer two different questions:
+  //
+  // - Low Stock is a PHYSICAL stock warning based on the Manager-configured
+  //   low-stock threshold.
+  // - Needs Restock is an ROP warning based on usage, lead time, and safety
+  //   stock.
+  //
+  // Priority:
+  //   1. Out of Stock
+  //   2. Low Stock
+  //   3. Needs Restock
+  //   4. In Stock
+  //
+  // This keeps the fixed alert threshold meaningful without duplicating the
+  // ROP calculation here.
+  // ==========================================================================
+
   StockLevel _stockLevelFor(InventoryItem item) {
     if (item.isOutOfStock) {
       return StockLevel.outOfStock;
     }
 
-    if (_replenishmentByItemId.containsKey(item.itemId)) {
+    if (item.currentPurchaseUnitEquivalent <=
+        lowStockPurchaseUnitThreshold) {
       return StockLevel.low;
+    }
+
+    if (_replenishmentByItemId.containsKey(item.itemId)) {
+      return StockLevel.needsRestock;
     }
 
     return StockLevel.inStock;
@@ -978,6 +1004,12 @@ if (_loading) {
                           ).$1,
                         ),
                         AppDropdownOption(
+                          StockLevel.needsRestock,
+                          _stockLevelMeta(
+                            StockLevel.needsRestock,
+                          ).$1,
+                        ),
+                        AppDropdownOption(
                           StockLevel.low,
                           _stockLevelMeta(
                             StockLevel.low,
@@ -1350,8 +1382,10 @@ if (_loading) {
                                             label: levelLabel,
                                             color: levelColor,
                                           ),
-                                          if (stockLevel ==
-                                                  StockLevel.low &&
+                                          if ((stockLevel ==
+                                                      StockLevel.low ||
+                                                  stockLevel ==
+                                                      StockLevel.needsRestock) &&
                                               replenishment != null) ...[
                                             const SizedBox(height: 3),
                                             Text(

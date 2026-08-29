@@ -410,6 +410,69 @@ class SupabaseInventoryService implements InventoryService {
   }
 
   // ==========================================================================
+  // SYNC LEGACY ITEM AGGREGATES FROM AUTHORITATIVE BATCH STOCK
+  // ==========================================================================
+  //
+  // inventory_batch is the source of truth.
+  //
+  // The old item-level totals are kept only for compatibility with older
+  // screens/services. They must therefore be REPLACED with the current usable
+  // batch total after a batch deduction, not independently deducted again.
+  //
+  // This avoids false failures such as:
+  //   batch stock: 8 -> 6   (success)
+  //   legacy item stock: 0 -> -2   (throws after the real deduction succeeded)
+  // ==========================================================================
+
+  Future<InventoryItem> _syncLegacyItemStockFromBatches(
+    InventoryItem item,
+  ) async {
+    final summary =
+        await _fetchBatchStockSummaryForItem(
+      item.itemId,
+      item.packageQuantity,
+    );
+
+    final updates = <String, dynamic>{};
+
+    final packageQuantity =
+        item.packageQuantity;
+
+    if (packageQuantity != null &&
+        packageQuantity > 0) {
+      // Batch summaries are canonical package-unit quantities when an item
+      // has a package breakdown.
+      updates['total_package_stocks'] =
+          summary.usableQty;
+
+      updates['total_purchase_stocks'] =
+          summary.usableQty /
+          packageQuantity;
+    } else {
+      // Without a package breakdown, batch quantities are already expressed
+      // in the item's purchase unit.
+      updates['total_purchase_stocks'] =
+          summary.usableQty;
+    }
+
+    await _client
+        .from('item')
+        .update(updates)
+        .eq('id', item.itemId);
+
+    final updated =
+        await fetchItem(item.itemId);
+
+    if (updated == null) {
+      throw Exception('Item not found');
+    }
+
+    DataChangeBus.instance.ping();
+
+    return updated;
+  }
+
+  // ==========================================================================
   // MAP DATABASE ITEM
   // ==========================================================================
 
@@ -975,6 +1038,31 @@ class SupabaseInventoryService implements InventoryService {
       throw Exception('Item not found');
     }
 
+    // ========================================================================
+    // BATCH-BASED STOCK IN
+    // ========================================================================
+    //
+    // Purchase and donation services create inventory_batch first, then call
+    // stockIn() only to keep the old item-level aggregate fields synchronized.
+    //
+    // Once batch history exists, inventory_batch is already the source of
+    // truth. Do not add [qty] to the legacy aggregate independently because
+    // that can drift when the cache was already stale.
+    // ========================================================================
+
+    if (current.hasBatchHistory) {
+      return _syncLegacyItemStockFromBatches(
+        current,
+      );
+    }
+
+    // ========================================================================
+    // LEGACY / NON-BATCH FALLBACK
+    // ========================================================================
+    //
+    // Retained for older/mock-compatible flows where no inventory_batch exists.
+    // ========================================================================
+
     if (qtyUnit == QtyUnit.purchaseUnit ||
         current.packageQuantity == null) {
       return adjustStock(
@@ -1447,19 +1535,16 @@ class SupabaseInventoryService implements InventoryService {
     }
 
     // ========================================================================
-    // TEMPORARY ITEM AGGREGATE SYNC
+    // LEGACY ITEM AGGREGATE SYNC
+    // ========================================================================
+    //
+    // The batch deduction above already changed the real stock.
+    // Recalculate the compatibility totals FROM the batch ledger instead of
+    // deducting the old item totals a second time.
     // ========================================================================
 
-    if (current.packageQuantity != null) {
-      return deductPackageStock(
-        itemId: itemId,
-        delta: -qty,
-      );
-    }
-
-    return adjustStock(
-      itemId: itemId,
-      delta: -qty,
+    return _syncLegacyItemStockFromBatches(
+      current,
     );
   }
 
@@ -1667,19 +1752,16 @@ class SupabaseInventoryService implements InventoryService {
     );
 
     // =========================================================================
-    // TEMPORARY ITEM AGGREGATE SYNC
+    // LEGACY ITEM AGGREGATE SYNC
+    // =========================================================================
+    //
+    // inventory_batch has already been deducted. Keep the old item totals as a
+    // derived compatibility cache by replacing them with the authoritative
+    // usable batch balance.
     // =========================================================================
 
-    if (qtyUnit == QtyUnit.packageUnit) {
-      return deductPackageStock(
-        itemId: itemId,
-        delta: -qty,
-      );
-    }
-
-    return adjustStock(
-      itemId: itemId,
-      delta: -qty,
+    return _syncLegacyItemStockFromBatches(
+      current,
     );
   }
 

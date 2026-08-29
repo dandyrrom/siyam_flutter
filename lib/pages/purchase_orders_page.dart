@@ -19,7 +19,7 @@ import '../widgets/page_loading.dart';
 //
 // TAB 1:
 //   Replenishment
-//   - 30-day normalized usage
+//   - normalized usage from an observation window of up to 30 days
 //   - ADU
 //   - Lead Time
 //   - Safety Stock
@@ -635,9 +635,10 @@ if (_loading) {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'ROP = (30-day Average Daily Usage × Lead Time) + Safety Stock. '
-                  'Current stock is taken from usable inventory batches and normalized '
-                  'to the item\'s purchase unit.',
+                  'ROP = (Average Daily Usage × Lead Time) + Safety Stock. '
+                  'ADU uses up to 30 days of recent usage; newer items use the number '
+                  'of days since their first received stock. Current stock is taken '
+                  'from usable inventory batches and normalized to the item\'s purchase unit.',
                   style: TextStyle(
                     fontSize: 12.5,
                     height: 1.4,
@@ -1440,7 +1441,7 @@ class _ReplenishmentHeader
           Expanded(
             flex: 2,
             child:
-                _HeaderCell('30d Usage'),
+                _HeaderCell('Usage'),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -1585,6 +1586,8 @@ class _ReplenishmentDesktopRow
                 flex: 2,
                 child: Tooltip(
                   message:
+                      'Observed ${row.observationDays} day'
+                      '${row.observationDays == 1 ? '' : 's'} • '
                       '(${formatQty(row.averageDailyUsage)} × ${row.leadTimeDays} days) + '
                       '${formatQty(row.safetyStockQty)} $unit safety stock',
                   child: Text(
@@ -1733,11 +1736,16 @@ class _ReplenishmentMobileRow
                     ),
                   ),
                   _MiniMetric(
-                    label: '30d Usage',
+                    label: 'Usage',
                     value: _qty(
                       row.usage30PurchaseUnits,
                       unit,
                     ),
+                  ),
+                  _MiniMetric(
+                    label: 'Observed',
+                    value:
+                        '${row.observationDays} day${row.observationDays == 1 ? '' : 's'}',
                   ),
                   _MiniMetric(
                     label: 'ADU',
