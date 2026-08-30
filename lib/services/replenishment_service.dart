@@ -207,6 +207,161 @@ class ReplenishmentService {
   }
 
   // ===========================================================================
+  // FETCH ADU FOR ONE ITEM
+  // ===========================================================================
+  //
+  // Used by Manager Settings to suggest a safety-stock quantity even when the
+  // selected item is currently above its ROP and therefore does not appear in
+  // the replenishment list. The calculation intentionally mirrors the ADU
+  // rules used by fetchReplenishmentItems().
+  // ===========================================================================
+
+  Future<double> fetchAverageDailyUsage(
+    String itemId,
+  ) async {
+    final now = DateTime.now();
+
+    final startLocal = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(
+      const Duration(
+        days: usageWindowDays - 1,
+      ),
+    );
+
+    final items =
+        await _inventoryService.fetchItems();
+
+    InventoryItem? item;
+
+    for (final candidate in items) {
+      if (candidate.itemId == itemId) {
+        item = candidate;
+        break;
+      }
+    }
+
+    if (item == null) {
+      throw Exception(
+        'Inventory item not found.',
+      );
+    }
+
+    final results =
+        await Future.wait<Object?>([
+      _client
+          .from('treatment_item')
+          .select(
+            'itemid, dispensed_qty, dispense_unit, consumeddate',
+          )
+          .eq('itemid', itemId)
+          .gte(
+            'consumeddate',
+            _dateOnly(startLocal),
+          ),
+      _client
+          .from('stock_out')
+          .select(
+            'itemid, qty, qtyunit, reason, recordeddate',
+          )
+          .eq('itemid', itemId)
+          .gte(
+            'recordeddate',
+            startLocal
+                .toUtc()
+                .toIso8601String(),
+          ),
+      _client
+          .from('inventory_batch')
+          .select('receiveddate')
+          .eq('itemid', itemId),
+    ]);
+
+    final treatmentRows =
+        results[0] as List<dynamic>;
+    final stockOutRows =
+        results[1] as List<dynamic>;
+    final batchRows =
+        results[2] as List<dynamic>;
+
+    DateTime? firstBatchDate;
+
+    for (final raw in batchRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      final parsed = DateTime.tryParse(
+        row['receiveddate']
+                ?.toString() ??
+            '',
+      );
+
+      if (parsed == null) {
+        continue;
+      }
+
+      final receivedLocal =
+          parsed.toLocal();
+
+      final receivedDay = DateTime(
+        receivedLocal.year,
+        receivedLocal.month,
+        receivedLocal.day,
+      );
+
+      if (firstBatchDate == null ||
+          receivedDay
+              .isBefore(firstBatchDate)) {
+        firstBatchDate = receivedDay;
+      }
+    }
+
+    double usage = 0;
+
+    for (final raw in treatmentRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      usage +=
+          _treatmentPurchaseEquivalent(
+        row,
+        item,
+      );
+    }
+
+    for (final raw in stockOutRows) {
+      final row =
+          Map<String, dynamic>.from(raw);
+
+      if (!_stockOutCountsTowardUsage(
+        row['reason'] as String?,
+      )) {
+        continue;
+      }
+
+      usage +=
+          _stockOutPurchaseEquivalent(
+        row,
+        item,
+      );
+    }
+
+    final observationDays =
+        _observationDaysFor(
+      today: DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ),
+      firstBatchDate: firstBatchDate,
+    );
+
+    return usage / observationDays;
+  }
+
+  // ===========================================================================
   // FETCH CALCULATED REPLENISHMENT LIST
   // ===========================================================================
 

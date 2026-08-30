@@ -13,6 +13,7 @@ class StatCard extends StatelessWidget {
   final Color accent;
   final VoidCallback? onTap;
   final String? tooltip;
+  final String? actionLabel;
 
   const StatCard({
     super.key,
@@ -22,6 +23,7 @@ class StatCard extends StatelessWidget {
     this.accent = AppColors.primary,
     this.onTap,
     this.tooltip,
+    this.actionLabel,
   });
 
   @override
@@ -92,10 +94,10 @@ class StatCard extends StatelessWidget {
                 ),
               ),
 
-              if (onTap != null) ...[
+              if (onTap != null && actionLabel != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'View details',
+                  actionLabel!,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -134,11 +136,11 @@ class StatCardRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-     final columns = width > 1100
-    ? 4
-    : width > 600
-        ? 2
-        : 1;
+        final columns = width > 1100
+            ? 4
+            : width > 600
+                ? 2
+                : 1;
 
         final cardWidth =
             (width - (columns - 1) * 16) / columns;

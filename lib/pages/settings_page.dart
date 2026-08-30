@@ -8,6 +8,7 @@ import '../models/subcategory.dart';
 import '../models/unit.dart';
 import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
+import '../services/replenishment_service.dart';
 import '../services/settings_service.dart';
 import '../services/supabase/supabase_rop_service.dart';
 
@@ -73,12 +74,14 @@ class _SettingsPageState
   bool _saving = false;
   String? _error;
 
+  // Initializes the Settings page and loads saved settings.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  // Disposes the Settings page text controllers.
   @override
   void dispose() {
     _lowStockCtrl.dispose();
@@ -92,6 +95,7 @@ class _SettingsPageState
   // LOAD SYSTEM SETTINGS
   // ===========================================================================
 
+  // Loads the current system settings from the settings service.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -151,6 +155,7 @@ class _SettingsPageState
   // SAVE SYSTEM SETTINGS
   // ===========================================================================
 
+  // Validates and saves the system-wide inventory and ROP settings.
   Future<void> _save() async {
     if (!_formKey.currentState!
         .validate()) {
@@ -294,6 +299,7 @@ class _SettingsPageState
   // VALIDATION
   // ===========================================================================
 
+  // Validates numeric fields that must be greater than zero.
   String? _positiveNumberValidator(
     String? value, {
     bool allowDecimal = true,
@@ -322,6 +328,7 @@ class _SettingsPageState
     return null;
   }
 
+  // Validates numeric fields that may be zero but not negative.
   String? _nonNegativeNumberValidator(
     String? value, {
     bool allowDecimal = true,
@@ -354,6 +361,7 @@ class _SettingsPageState
   // PAGE
   // ===========================================================================
 
+  // Builds the Manager Settings page UI.
   @override
   Widget build(
     BuildContext context,
@@ -922,6 +930,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   List<InventoryItem> _items = [];
   final Map<String, ItemRopSettings> _overrides = {};
 
+  // Initializes the ROP override section and loads its data.
   @override
   void initState() {
     super.initState();
@@ -932,6 +941,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // LOAD ITEMS + OVERRIDES
   // ===========================================================================
 
+  // Loads inventory items and their item-specific ROP overrides.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -988,6 +998,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // searchable/filterable modal opened by See All.
   // ===========================================================================
 
+  // Returns the compact ROP override preview list.
   List<InventoryItem> get _previewItems {
     final items = [..._items];
 
@@ -1011,6 +1022,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // EDIT / CREATE OVERRIDE
   // ===========================================================================
 
+  // Opens and saves an item-specific ROP override.
   Future<void> _editOverride(InventoryItem item) async {
     final existing = _overrides[item.itemId];
 
@@ -1061,6 +1073,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // RESET OVERRIDE
   // ===========================================================================
 
+  // Resets an item to the system-wide ROP defaults.
   Future<void> _resetOverride(InventoryItem item) async {
     final existing = _overrides[item.itemId];
     if (existing == null) return;
@@ -1122,6 +1135,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // OPEN FULL ROP MANAGER
   // ===========================================================================
 
+  // Opens the complete searchable ROP override manager.
   Future<void> _openAllItems() async {
     await showDialog<void>(
       context: context,
@@ -1140,6 +1154,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // BUILD
   // ===========================================================================
 
+  // Builds the compact ROP overrides section.
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -1381,6 +1396,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
   static const Color _textMuted = Color(0xFF475569);
   static const Color _borderStrong = Color(0xFFCBD5E1);
 
+  // Disposes the ROP override search controller.
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -1397,6 +1413,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
   // the manager does not remain trapped in the previous search result.
   // ===========================================================================
 
+  // Clears the ROP search and optionally resets the active filter.
   void _clearSearch({bool resetFilter = false}) {
     _searchCtrl.clear();
 
@@ -1409,6 +1426,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
     });
   }
 
+  // Returns ROP items matching the current search and filter.
   List<InventoryItem> get _filteredItems {
     final query = _search.trim().toLowerCase();
 
@@ -1445,6 +1463,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
     return items;
   }
 
+  // Edits an item and then restores the full ROP list.
   Future<void> _edit(InventoryItem item) async {
     await widget.onEdit(item);
 
@@ -1455,6 +1474,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
     _clearSearch(resetFilter: true);
   }
 
+  // Resets an item and then restores the full ROP list.
   Future<void> _reset(InventoryItem item) async {
     await widget.onReset(item);
 
@@ -1464,6 +1484,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
     _clearSearch(resetFilter: true);
   }
 
+  // Builds one filter chip for the ROP item list.
   Widget _filterChip({
     required String label,
     required _RopListFilter value,
@@ -1494,6 +1515,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
     );
   }
 
+  // Builds the full ROP override management dialog.
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -1911,6 +1933,7 @@ class _RopItemRow
     required this.onReset,
   });
 
+  // Builds one item row in the ROP override list.
   @override
   Widget build(
     BuildContext context,
@@ -1938,6 +1961,7 @@ class _RopItemRow
             ? 'purchase units'
             : item.purchaseUnitAbbr;
 
+    // Builds the Custom or Default ROP status badge.
     Widget statusBadge() =>
         Container(
           padding:
@@ -2162,6 +2186,18 @@ class _RopOverrideDialogState
   late final TextEditingController
       _safetyStockCtrl;
 
+  static const int
+      _suggestedSafetyStockDays = 3;
+
+  final ReplenishmentService
+      _replenishmentService =
+      ReplenishmentService();
+
+  bool _loadingSuggestion = true;
+  double? _averageDailyUsage;
+  String? _suggestionError;
+
+  // Initializes the ROP override form and loads the ADU suggestion.
   @override
   void initState() {
     super.initState();
@@ -2185,8 +2221,215 @@ class _RopOverrideDialogState
                 .defaultSafetyStockQty,
       ),
     );
+
+    _loadUsageSuggestion();
   }
 
+  // Loads the selected item's current ADU for the safety-stock suggestion.
+  Future<void>
+      _loadUsageSuggestion() async {
+    try {
+      final adu =
+          await _replenishmentService
+              .fetchAverageDailyUsage(
+        widget.item.itemId,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _averageDailyUsage = adu;
+        _loadingSuggestion = false;
+        _suggestionError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _averageDailyUsage = null;
+        _loadingSuggestion = false;
+        _suggestionError =
+            'Usage-based suggestion is unavailable right now.';
+      });
+    }
+  }
+
+  // Calculates suggested safety stock as the current ADU times three days.
+  double? get
+      _suggestedSafetyStockQty {
+    final adu =
+        _averageDailyUsage;
+
+    if (adu == null || adu <= 0) {
+      return null;
+    }
+
+    return (adu *
+            _suggestedSafetyStockDays)
+        .ceilToDouble();
+  }
+
+  // Fills the safety-stock field with the calculated suggestion.
+  void _useSuggestedSafetyStock() {
+    final suggested =
+        _suggestedSafetyStockQty;
+
+    if (suggested == null) {
+      return;
+    }
+
+    _safetyStockCtrl.text =
+        formatQty(suggested);
+  }
+
+  // Builds the usage-based safety-stock suggestion panel.
+  Widget _buildSafetyStockSuggestion(
+    String unit,
+  ) {
+    Widget content;
+
+    if (_loadingSuggestion) {
+      content = const Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child:
+                CircularProgressIndicator(
+              strokeWidth: 2,
+            ),
+          ),
+          SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'Calculating a safety stock suggestion from recent usage...',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: AppColors
+                    .mutedForeground,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else if (_suggestionError !=
+        null) {
+      content = Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline,
+            size: 17,
+            color: AppColors
+                .mutedForeground,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$_suggestionError You can still enter the safety stock manually.',
+              style: const TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: AppColors
+                    .mutedForeground,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      final adu =
+          _averageDailyUsage ?? 0;
+      final suggested =
+          _suggestedSafetyStockQty;
+
+      if (suggested == null) {
+        content = Text(
+          'Current ADU: ${formatQty(adu)} $unit/day. '
+          'No usage-based safety stock suggestion is available yet because no recent usage was recorded.',
+          style: const TextStyle(
+            fontSize: 12.5,
+            height: 1.4,
+            color: AppColors.mutedForeground,
+          ),
+        );
+      } else {
+        content = Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Usage-based suggestion',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Current ADU: ${formatQty(adu)} $unit/day',
+              style: const TextStyle(
+                fontSize: 12.5,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Suggested safety stock: ${formatQty(suggested)} $unit',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight:
+                    FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Based on $_suggestedSafetyStockDays days of average usage '
+              '(${formatQty(adu)} × $_suggestedSafetyStockDays). '
+              'This is a suggestion only.',
+              style: const TextStyle(
+                fontSize: 11.8,
+                height: 1.4,
+                color: AppColors
+                    .mutedForeground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment:
+                  Alignment.centerRight,
+              child: TextButton(
+                onPressed:
+                    _useSuggestedSafetyStock,
+                child: const Text(
+                  'Use suggested',
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary
+            .withValues(alpha: 0.05),
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary
+              .withValues(alpha: 0.18),
+        ),
+      ),
+      child: content,
+    );
+  }
+
+  // Disposes the ROP override form controllers.
   @override
   void dispose() {
     _leadTimeCtrl.dispose();
@@ -2194,6 +2437,7 @@ class _RopOverrideDialogState
     super.dispose();
   }
 
+  // Validates the custom lead-time value.
   String? _validateLeadTime(
     String? value,
   ) {
@@ -2218,6 +2462,7 @@ class _RopOverrideDialogState
     return null;
   }
 
+  // Validates the custom safety-stock quantity.
   String? _validateSafetyStock(
     String? value,
   ) {
@@ -2246,6 +2491,7 @@ class _RopOverrideDialogState
     return null;
   }
 
+  // Validates and returns the ROP override values to the caller.
   void _submit() {
     if (!_formKey.currentState!
         .validate()) {
@@ -2270,6 +2516,7 @@ class _RopOverrideDialogState
     );
   }
 
+  // Builds the Add or Edit ROP Override dialog.
   @override
   Widget build(
     BuildContext context,
@@ -2287,6 +2534,7 @@ class _RopOverrideDialogState
         widget.existing != null;
 
     return AlertDialog(
+      scrollable: true,
       shape: RoundedRectangleBorder(
         borderRadius:
             BorderRadius.circular(20),
@@ -2369,6 +2617,12 @@ class _RopOverrideDialogState
                     _validateSafetyStock,
                 onFieldSubmitted:
                     (_) => _submit(),
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildSafetyStockSuggestion(
+                unit,
               ),
 
               const SizedBox(height: 16),
@@ -2468,19 +2722,23 @@ class _CategoryManagementSectionState
   final Map<String, bool?>
       _pendingSub = {};
 
+  // Returns the number of unsaved category-setting changes.
   int get _pendingCount =>
       _pendingPrimary.length +
       _pendingSub.length;
 
+  // Checks whether category-setting changes are waiting to be saved.
   bool get _hasPendingChanges =>
       _pendingCount > 0;
 
+  // Initializes category management and loads category data.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  // Loads primary categories and subcategories.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -2524,6 +2782,7 @@ class _CategoryManagementSectionState
     }
   }
 
+  // Refreshes categories after a create, rename, or delete action.
   Future<void> _refetch() async {
     final results =
         await Future.wait([
@@ -2560,6 +2819,7 @@ class _CategoryManagementSectionState
     });
   }
 
+  // Creates a new primary inventory category.
   Future<void>
       _addPrimaryCategory() async {
     await _promptForName(
@@ -2576,6 +2836,7 @@ class _CategoryManagementSectionState
     await _refetch();
   }
 
+  // Creates a new subcategory under the selected primary category.
   Future<void> _addSubcategory(
     PrimaryCategory parent,
   ) async {
@@ -2595,6 +2856,7 @@ class _CategoryManagementSectionState
     await _refetch();
   }
 
+  // Renames an existing primary inventory category.
   Future<void>
       _renamePrimaryCategory(
     PrimaryCategory category,
@@ -2609,6 +2871,7 @@ class _CategoryManagementSectionState
     await _refetch();
   }
 
+  // Renames an existing inventory subcategory.
   Future<void> _renameSubcategory(
     Subcategory sub,
     String newName,
@@ -2622,6 +2885,7 @@ class _CategoryManagementSectionState
     await _refetch();
   }
 
+  // Deletes a primary category after confirmation.
   Future<void>
       _deletePrimaryCategory(
     PrimaryCategory category,
@@ -2667,6 +2931,7 @@ class _CategoryManagementSectionState
     }
   }
 
+  // Deletes a subcategory after confirmation.
   Future<void> _deleteSubcategory(
     Subcategory sub,
   ) async {
@@ -2712,12 +2977,14 @@ class _CategoryManagementSectionState
     }
   }
 
+  // Returns the effective expiry requirement for a primary category.
   bool _effectivePrimary(
     PrimaryCategory c,
   ) =>
       _pendingPrimary[c.id] ??
       c.requiresExpiry;
 
+  // Returns the staged or saved expiry setting for a subcategory.
   bool? _effectiveSub(
     Subcategory s,
   ) =>
@@ -2725,6 +2992,7 @@ class _CategoryManagementSectionState
           ? _pendingSub[s.id]
           : s.requiresExpiry;
 
+  // Resolves the final expiry requirement inherited by a subcategory.
   bool _resolvedSub(
     Subcategory s,
   ) {
@@ -2748,11 +3016,13 @@ class _CategoryManagementSectionState
     );
   }
 
+  // Checks whether a subcategory overrides its parent expiry setting.
   bool _isSubOverridden(
     Subcategory s,
   ) =>
       _effectiveSub(s) != null;
 
+  // Stages an expiry-requirement change for a primary category.
   void _stagePrimary(
     PrimaryCategory category,
     bool value,
@@ -2770,6 +3040,7 @@ class _CategoryManagementSectionState
     });
   }
 
+  // Stages an expiry-requirement change for a subcategory.
   void _stageSub(
     Subcategory sub,
     bool? value,
@@ -2787,6 +3058,7 @@ class _CategoryManagementSectionState
     });
   }
 
+  // Discards all unsaved category expiry-setting changes.
   void _discardChanges() {
     setState(() {
       _pendingPrimary.clear();
@@ -2794,6 +3066,7 @@ class _CategoryManagementSectionState
     });
   }
 
+  // Converts an expiry-setting value into a readable label.
   String _label(
     bool? value,
   ) =>
@@ -2803,6 +3076,7 @@ class _CategoryManagementSectionState
               ? 'Required'
               : 'Not required';
 
+  // Reviews and saves all staged category expiry-setting changes.
   Future<void>
       _reviewAndSave() async {
     final primaryById = {
@@ -2991,6 +3265,7 @@ class _CategoryManagementSectionState
     }
   }
 
+  // Builds the category management section.
   @override
   Widget build(
     BuildContext context,
@@ -3304,6 +3579,7 @@ class _PrimaryCategoryCardState
 
   String _filter = '';
 
+  // Disposes the subcategory filter controller.
   @override
   void dispose() {
     _filterCtrl.dispose();
@@ -3325,6 +3601,7 @@ class _PrimaryCategoryCardState
         ),
       );
 
+  // Builds one expandable primary-category management card.
   @override
   Widget build(
     BuildContext context,
@@ -3725,18 +4002,21 @@ class _UnitManagementSectionState
   List<Unit> _units = [];
   String _filter = '';
 
+  // Initializes unit management and loads the available units.
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  // Disposes the unit filter controller.
   @override
   void dispose() {
     _filterCtrl.dispose();
     super.dispose();
   }
 
+  // Loads all configured inventory units.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -3765,6 +4045,7 @@ class _UnitManagementSectionState
     }
   }
 
+  // Creates a new inventory unit.
   Future<void> _addUnit() async {
     await _promptForUnit(
       context: context,
@@ -3783,6 +4064,7 @@ class _UnitManagementSectionState
     await _load();
   }
 
+  // Edits the selected inventory unit.
   Future<void> _editUnit(
     Unit unit,
   ) async {
@@ -3807,6 +4089,7 @@ class _UnitManagementSectionState
     await _load();
   }
 
+  // Deletes an inventory unit after confirmation.
   Future<void> _deleteUnit(
     Unit unit,
   ) async {
@@ -3850,6 +4133,7 @@ class _UnitManagementSectionState
     }
   }
 
+  // Builds the unit management section.
   @override
   Widget build(
     BuildContext context,
@@ -4161,6 +4445,7 @@ class _UnitManagementSectionState
 // NAME DIALOG HELPER
 // =============================================================================
 
+// Opens a reusable dialog for creating a named category value.
 Future<void> _promptForName({
   required BuildContext context,
   required String title,
@@ -4199,6 +4484,7 @@ Future<void> _promptForName({
 // UNIT DIALOG HELPER
 // =============================================================================
 
+// Opens a reusable dialog for creating or editing an inventory unit.
 Future<void> _promptForUnit({
   required BuildContext context,
   required String title,
@@ -4268,12 +4554,14 @@ class _NameDialogState
   final _formKey =
       GlobalKey<FormState>();
 
+  // Disposes the category-name input controller.
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
   }
 
+  // Validates and returns the entered category name.
   void _submit() {
     if (_formKey.currentState!
         .validate()) {
@@ -4283,6 +4571,7 @@ class _NameDialogState
     }
   }
 
+  // Builds the category-name input dialog.
   @override
   Widget build(
     BuildContext context,
@@ -4371,6 +4660,7 @@ class _UnitDialogState
   final _formKey =
       GlobalKey<FormState>();
 
+  // Disposes the unit name and abbreviation controllers.
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -4378,6 +4668,7 @@ class _UnitDialogState
     super.dispose();
   }
 
+  // Validates and returns the unit name and abbreviation.
   void _submit() {
     if (_formKey.currentState!
         .validate()) {
@@ -4390,6 +4681,7 @@ class _UnitDialogState
     }
   }
 
+  // Builds the unit create or edit dialog.
   @override
   Widget build(
     BuildContext context,
@@ -4477,6 +4769,7 @@ class _UnitDialogState
 // DELETE CONFIRMATION
 // =============================================================================
 
+// Shows a reusable delete confirmation dialog.
 Future<bool> _confirmDelete({
   required BuildContext context,
   required String title,
@@ -4527,6 +4820,7 @@ Future<bool> _confirmDelete({
 // ERROR DIALOG
 // =============================================================================
 
+// Shows a reusable error dialog with optional dependency details.
 Future<void> _showErrorDialog(
   BuildContext context, {
   required String title,
@@ -4681,6 +4975,7 @@ class _EditableLabelState
     text: widget.value,
   );
 
+  // Keeps the inline editor synchronized with updated widget data.
   @override
   void didUpdateWidget(
     covariant _EditableLabel
@@ -4698,12 +4993,14 @@ class _EditableLabelState
     }
   }
 
+  // Disposes the inline-edit text controller.
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
   }
 
+  // Validates and saves an inline rename operation.
   Future<void> _confirm() async {
     final newValue =
         _ctrl.text.trim();
@@ -4751,6 +5048,7 @@ class _EditableLabelState
     }
   }
 
+  // Cancels inline editing and restores the saved value.
   void _cancel() {
     setState(() {
       _editing = false;
@@ -4759,6 +5057,7 @@ class _EditableLabelState
     });
   }
 
+  // Builds the inline editable text label.
   @override
   Widget build(
     BuildContext context,

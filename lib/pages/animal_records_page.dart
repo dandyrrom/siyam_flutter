@@ -26,6 +26,8 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     with DataBusRefreshMixin<AnimalRecordsPage> {
   final PetService _service = PetService();
   final TreatmentService _treatmentService = TreatmentService();
+  final TextEditingController _searchController =
+      TextEditingController();
 
   List<Pet> _pets = [];
   List<TreatmentRecord> _treatments = [];
@@ -43,6 +45,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -1332,6 +1340,43 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   }
 
   // ===========================================================================
+  // QUICK STATUS FILTER
+  // ===========================================================================
+  //
+  // The summary cards use the same status filter as the Status dropdown.
+  //
+  // Total Animals clears the status filter, while the other cards apply their
+  // corresponding status. Species, breed, search, and sorting remain active.
+  // ===========================================================================
+
+  void _applyStatusQuickFilter(
+    PetStatus? status,
+  ) {
+    setState(() {
+      _statusFilter = status;
+    });
+  }
+
+  bool get _hasActiveFilters =>
+      _search.trim().isNotEmpty ||
+      _speciesFilter != null ||
+      _statusFilter != null ||
+      _breedFilter != null ||
+      _sort != _AnimalSort.nameAZ;
+
+  void _resetFilters() {
+    _searchController.clear();
+
+    setState(() {
+      _search = '';
+      _speciesFilter = null;
+      _statusFilter = null;
+      _breedFilter = null;
+      _sort = _AnimalSort.nameAZ;
+    });
+  }
+
+  // ===========================================================================
   // PAGE
   // ===========================================================================
 
@@ -1487,7 +1532,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
         const SizedBox(height: 20),
 
         // =====================================================================
-        // STAT CARDS
+        // STAT CARDS / QUICK STATUS FILTERS
         // =====================================================================
 
         if (isMobile)
@@ -1499,6 +1544,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 icon: Icons.pets_outlined,
                 accent:
                     AppColors.roleManager,
+                selected: _statusFilter == null,
+                onTap: () {
+                  _applyStatusQuickFilter(null);
+                },
               ),
 
               const SizedBox(height: 10),
@@ -1509,6 +1558,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 icon: Icons
                     .check_circle_outline,
                 accent: AppColors.primary,
+                selected:
+                    _statusFilter ==
+                    PetStatus.healthy,
+                onTap: () {
+                  _applyStatusQuickFilter(
+                    PetStatus.healthy,
+                  );
+                },
               ),
 
               const SizedBox(height: 10),
@@ -1519,6 +1576,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 icon: Icons
                     .medical_services_outlined,
                 accent: AppColors.warning,
+                selected:
+                    _statusFilter ==
+                    PetStatus.underTreatment,
+                onTap: () {
+                  _applyStatusQuickFilter(
+                    PetStatus.underTreatment,
+                  );
+                },
               ),
 
               const SizedBox(height: 10),
@@ -1528,38 +1593,107 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 value: '$adoptedCount',
                 icon: Icons.home_outlined,
                 accent: AppColors.accent,
+                selected:
+                    _statusFilter ==
+                    PetStatus.adopted,
+                onTap: () {
+                  _applyStatusQuickFilter(
+                    PetStatus.adopted,
+                  );
+                },
               ),
             ],
           )
         else
-          StatCardRow(
-            cards: [
-              StatCard(
-                label: 'Total Animals',
-                value: '$totalCount',
-                icon: Icons.pets_outlined,
-                accent:
-                    AppColors.roleManager,
+          Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildDesktopStatCard(
+                  label: 'Total Animals',
+                  value: '$totalCount',
+                  icon: Icons.pets_outlined,
+                  accent:
+                      AppColors.roleManager,
+                  tooltip: 'Show all animals',
+                  actionLabel: 'View animals',
+                  selected:
+                      _statusFilter == null,
+                  onTap: () {
+                    _applyStatusQuickFilter(
+                      null,
+                    );
+                  },
+                ),
               ),
-              StatCard(
-                label: 'Healthy',
-                value: '$healthyCount',
-                icon: Icons
-                    .check_circle_outline,
-                accent: AppColors.primary,
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: _buildDesktopStatCard(
+                  label: 'Healthy',
+                  value: '$healthyCount',
+                  icon: Icons
+                      .check_circle_outline,
+                  accent: AppColors.primary,
+                  tooltip:
+                      'Show healthy animals',
+                  actionLabel: 'View animals',
+                  selected:
+                      _statusFilter ==
+                      PetStatus.healthy,
+                  onTap: () {
+                    _applyStatusQuickFilter(
+                      PetStatus.healthy,
+                    );
+                  },
+                ),
               ),
-              StatCard(
-                label: 'Under Treatment',
-                value: '$treatmentCount',
-                icon: Icons
-                    .medical_services_outlined,
-                accent: AppColors.warning,
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: _buildDesktopStatCard(
+                  label: 'Under Treatment',
+                  value: '$treatmentCount',
+                  icon: Icons
+                      .medical_services_outlined,
+                  accent: AppColors.warning,
+                  tooltip:
+                      'Show animals under treatment',
+                  actionLabel: 'View animals',
+                  selected:
+                      _statusFilter ==
+                      PetStatus.underTreatment,
+                  onTap: () {
+                    _applyStatusQuickFilter(
+                      PetStatus.underTreatment,
+                    );
+                  },
+                ),
               ),
-              StatCard(
-                label: 'Adopted',
-                value: '$adoptedCount',
-                icon: Icons.home_outlined,
-                accent: AppColors.accent,
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: _buildDesktopStatCard(
+                  label: 'Adopted',
+                  value: '$adoptedCount',
+                  icon: Icons.home_outlined,
+                  accent: AppColors.accent,
+                  tooltip:
+                      'Show adopted animals',
+                  actionLabel: 'View animals',
+                  selected:
+                      _statusFilter ==
+                      PetStatus.adopted,
+                  onTap: () {
+                    _applyStatusQuickFilter(
+                      PetStatus.adopted,
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -1581,6 +1715,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   ? double.infinity
                   : 280,
               child: TextField(
+                controller: _searchController,
                 onChanged: (value) {
                   setState(() {
                     _search = value;
@@ -1715,6 +1850,18 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 });
               },
             ),
+
+            if (_hasActiveFilters)
+              OutlinedButton.icon(
+                onPressed: _resetFilters,
+                icon: const Icon(
+                  Icons.restart_alt,
+                  size: 18,
+                ),
+                label: const Text(
+                  'Reset filters',
+                ),
+              ),
           ],
         ),
 
@@ -2013,6 +2160,61 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   }
 
   // ===========================================================================
+  // DESKTOP QUICK-FILTER STAT CARD
+  // ===========================================================================
+
+  Widget _buildDesktopStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accent,
+    required String tooltip,
+    required String actionLabel,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius:
+            BorderRadius.circular(16),
+        border: Border.all(
+          color: selected
+              ? accent.withValues(
+                  alpha: 0.75,
+                )
+              : Colors.transparent,
+          width: selected ? 1.6 : 1,
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: accent.withValues(
+                    alpha: 0.10,
+                  ),
+                  blurRadius: 12,
+                  offset:
+                      const Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius:
+            BorderRadius.circular(16),
+        child: StatCard(
+          label: label,
+          value: value,
+          icon: icon,
+          accent: accent,
+          tooltip: tooltip,
+          actionLabel: actionLabel,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
   // MOBILE STAT CARD
   // ===========================================================================
 
@@ -2021,67 +2223,105 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     required String value,
     required IconData icon,
     required Color accent,
+    required bool selected,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: Colors.transparent,
+      borderRadius:
+          BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius:
             BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.border,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding:
-                const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color:
-                  accent.withValues(
-                alpha: 0.1,
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                10,
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: accent,
+        child: Container(
+          width: double.infinity,
+          padding:
+              const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: selected
+                ? accent.withValues(
+                    alpha: 0.06,
+                  )
+                : AppColors.card,
+            borderRadius:
+                BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? accent.withValues(
+                      alpha: 0.7,
+                    )
+                  : AppColors.border,
+              width: selected ? 1.5 : 1,
             ),
           ),
-
-          const SizedBox(width: 14),
-
-          Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Text(
-                value,
-                style:
-                    const TextStyle(
-                  fontSize: 20,
-                  fontWeight:
-                      FontWeight.w700,
+              Container(
+                padding:
+                    const EdgeInsets.all(
+                  10,
+                ),
+                decoration:
+                    BoxDecoration(
+                  color:
+                      accent.withValues(
+                    alpha:
+                        selected
+                            ? 0.16
+                            : 0.1,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(
+                    10,
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: accent,
                 ),
               ),
-              Text(
-                label,
-                style:
-                    const TextStyle(
-                  fontSize: 13,
-                  color: AppColors
-                      .mutedForeground,
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    Text(
+                      value,
+                      style:
+                          const TextStyle(
+                        fontSize: 20,
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      label,
+                      style:
+                          const TextStyle(
+                        fontSize: 13,
+                        color: AppColors
+                            .mutedForeground,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
+              if (selected)
+                Icon(
+                  Icons.check_circle,
+                  size: 18,
+                  color: accent,
+                ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
