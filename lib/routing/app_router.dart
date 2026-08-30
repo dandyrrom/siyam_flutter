@@ -470,25 +470,27 @@ if (!managerDonationStockIn &&
                   MedicalRecordsPage(),
             ),
           ),
-
-          GoRoute(
-            path:
-                '/medical-records/add',
-            pageBuilder: (
-              context,
-              state,
-            ) =>
-                NoTransitionPage(
-              child: AddTreatmentPage(
-                prefillItemId: state
-                    .uri
-                    .queryParameters['itemId'],
-                prefillQty: state
-                    .uri
-                    .queryParameters['qty'],
-              ),
-            ),
-          ),
+GoRoute(
+  path:
+      '/medical-records/add',
+  pageBuilder: (
+    context,
+    state,
+  ) =>
+      NoTransitionPage(
+    child: AddTreatmentPage(
+      prefillItemId: state
+          .uri
+          .queryParameters['itemId'],
+      prefillQty: state
+          .uri
+          .queryParameters['qty'],
+      followUpTreatId: state
+          .uri
+          .queryParameters['followUpTreatId'],
+    ),
+  ),
+),
 
           GoRoute(
             path:

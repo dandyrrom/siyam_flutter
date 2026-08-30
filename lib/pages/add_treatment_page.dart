@@ -10,6 +10,7 @@ import '../services/inventory_service.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 
 // =============================================================================
@@ -19,11 +20,18 @@ import '../widgets/search_select_field.dart';
 class AddTreatmentPage extends StatefulWidget {
   final String? prefillItemId;
   final String? prefillQty;
+  final String? prefillPetId;
+
+  /// When supplied, this page records the next real administration under an
+  /// existing treatment series instead of creating a second treatment card.
+  final String? followUpTreatId;
 
   const AddTreatmentPage({
     super.key,
     this.prefillItemId,
     this.prefillQty,
+    this.prefillPetId,
+    this.followUpTreatId,
   });
 
   @override
@@ -75,6 +83,12 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
 
   final _administeredByCtrl = TextEditingController();
 
+  final _followUpIntervalCtrl = TextEditingController(
+    text: '2',
+  );
+
+  final _followUpNoteCtrl = TextEditingController();
+
   bool _loading = true;
   bool _saving = false;
 
@@ -87,6 +101,17 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
   Pet? _selectedPet;
 
   DateTime _dateAdministered = DateTime.now();
+
+  bool _requiresFollowUp = false;
+  FollowUpType _followUpType = FollowUpType.oneTime;
+  DateTime _nextFollowUpDate = DateTime.now().add(
+    const Duration(days: 14),
+  );
+  FollowUpIntervalUnit _followUpIntervalUnit = FollowUpIntervalUnit.weeks;
+  bool _followUpNoEndDate = true;
+  DateTime? _followUpEndDate;
+
+  TreatmentRecord? _followUpTreatment;
 
   final List<_TreatmentItemDraft> _itemDrafts = [];
 
@@ -104,6 +129,8 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     _notesCtrl.dispose();
     _petCtrl.dispose();
     _administeredByCtrl.dispose();
+    _followUpIntervalCtrl.dispose();
+    _followUpNoteCtrl.dispose();
 
     super.dispose();
   }
@@ -141,6 +168,121 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
 
       qty: qty,
     );
+  }
+
+  // ===========================================================================
+  // FOLLOW-UP MODE / SCHEDULE
+  // ===========================================================================
+
+  bool get _isFollowUpMode => widget.followUpTreatId != null;
+
+  // Builds the optional reminder schedule for a newly-created treatment.
+  FollowUpScheduleInput? _followUpInput() {
+    if (!_requiresFollowUp || _isFollowUpMode) {
+      return null;
+    }
+
+    if (!_nextFollowUpDate.isAfter(_dateOnly(_dateAdministered))) {
+      throw Exception(
+        'The first follow-up must be after the administered date.',
+      );
+    }
+
+    if (_followUpType == FollowUpType.oneTime) {
+      return FollowUpScheduleInput(
+        type: FollowUpType.oneTime,
+        nextFollowUpDate: _nextFollowUpDate,
+        note: _followUpNoteCtrl.text.trim().isEmpty
+            ? null
+            : _followUpNoteCtrl.text.trim(),
+      );
+    }
+
+    final interval = int.tryParse(
+      _followUpIntervalCtrl.text.trim(),
+    );
+
+    if (interval == null || interval <= 0) {
+      throw Exception(
+        'Repeat interval must be greater than 0.',
+      );
+    }
+
+    final endDate = _followUpNoEndDate ? null : _followUpEndDate;
+
+    if (!_followUpNoEndDate && endDate == null) {
+      throw Exception(
+        'Choose when the repeating follow-up schedule ends.',
+      );
+    }
+
+    if (endDate != null && endDate.isBefore(_nextFollowUpDate)) {
+      throw Exception(
+        'Follow-up end date cannot be before the first follow-up.',
+      );
+    }
+
+    return FollowUpScheduleInput(
+      type: FollowUpType.repeating,
+      nextFollowUpDate: _nextFollowUpDate,
+      intervalValue: interval,
+      intervalUnit: _followUpIntervalUnit,
+      endDate: endDate,
+      note: _followUpNoteCtrl.text.trim().isEmpty
+          ? null
+          : _followUpNoteCtrl.text.trim(),
+    );
+  }
+
+  // Removes the time component for calendar-date comparisons.
+  DateTime _dateOnly(DateTime value) => DateTime(
+        value.year,
+        value.month,
+        value.day,
+      );
+
+  // Lets Staff choose the first/next follow-up calendar date.
+  Future<void> _pickNextFollowUpDate() async {
+    final earliest = _dateOnly(_dateAdministered).add(
+      const Duration(days: 1),
+    );
+
+    final initial = _nextFollowUpDate.isBefore(earliest)
+        ? earliest
+        : _nextFollowUpDate;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: earliest,
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _nextFollowUpDate = picked;
+
+        if (_followUpEndDate != null && _followUpEndDate!.isBefore(picked)) {
+          _followUpEndDate = picked;
+        }
+      });
+    }
+  }
+
+  // Lets Staff choose the optional end date for a repeating schedule.
+  Future<void> _pickFollowUpEndDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _followUpEndDate ?? _nextFollowUpDate,
+      firstDate: _nextFollowUpDate,
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _followUpEndDate = picked;
+      });
+    }
   }
 
   // ===========================================================================
@@ -236,15 +378,67 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
         }
       }
 
+      TreatmentRecord? followUpTreatment;
+      Pet? followUpPet;
+
+      if (_isFollowUpMode) {
+        for (final treatment in existingTreatments) {
+          if (treatment.treatId == widget.followUpTreatId) {
+            followUpTreatment = treatment;
+            break;
+          }
+        }
+
+        if (followUpTreatment == null || !followUpTreatment.hasActiveFollowUp) {
+          throw Exception(
+            'This treatment no longer has an active follow-up reminder.',
+          );
+        }
+
+        for (final pet in eligiblePets) {
+          if (pet.petId == followUpTreatment.petId) {
+            followUpPet = pet;
+            break;
+          }
+        }
+
+        if (followUpPet == null) {
+          throw Exception(
+            'This animal is no longer eligible to receive treatment.',
+          );
+        }
+      }
+
+      Pet? normalPrefillPet;
+
+      if (!_isFollowUpMode && widget.prefillPetId != null) {
+        for (final pet in eligiblePets) {
+          if (pet.petId == widget.prefillPetId) {
+            normalPrefillPet = pet;
+            break;
+          }
+        }
+      }
+
       setState(() {
         _pets = eligiblePets;
         _items = items;
         _existingTreatments = existingTreatments;
+        _followUpTreatment = followUpTreatment;
 
-        // Require an explicit animal selection. This prevents a treatment from
-        // accidentally being attached to the first animal in the list.
-        _selectedPet = null;
-        _petCtrl.clear();
+        if (followUpTreatment != null && followUpPet != null) {
+          _selectedPet = followUpPet;
+          _petCtrl.text = followUpPet.petName;
+          _treatNameCtrl.text = followUpTreatment.treatName;
+        } else if (normalPrefillPet != null) {
+          _selectedPet = normalPrefillPet;
+          _petCtrl.text = normalPrefillPet.petName;
+        } else {
+          // Normal treatment entry requires explicit animal selection unless a
+          // pet was deliberately supplied by another SIYAM workflow.
+          _selectedPet = null;
+          _petCtrl.clear();
+        }
 
         _administeredByCtrl.text = currentUser?.fullName ?? '';
 
@@ -393,6 +587,16 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     if (picked != null && mounted) {
       setState(() {
         _dateAdministered = picked;
+
+        if (!_isFollowUpMode && _requiresFollowUp) {
+          final earliest = _dateOnly(picked).add(
+            const Duration(days: 1),
+          );
+
+          if (_nextFollowUpDate.isBefore(earliest)) {
+            _nextFollowUpDate = earliest;
+          }
+        }
       });
     }
   }
@@ -402,12 +606,15 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
   // ===========================================================================
 
   void _goBackToMedicalRecords() {
-    // Keep this explicit route.
-    //
-    // It works whether the Add Treatment page was opened from:
-    // - Medical Records
-    // - Inventory -> Treatment
-    // - browser navigation
+    final followUp = _followUpTreatment;
+
+    if (_isFollowUpMode && followUp != null) {
+      context.go(
+        '/medical-records/pet/${followUp.petId}',
+      );
+      return;
+    }
+
     context.go(
       '/medical-records',
     );
@@ -527,15 +734,41 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     });
 
     try {
-      await _treatmentService.createTreatment(
-        petId: _selectedPet!.petId,
-        administeredByName: _administeredByCtrl.text.trim(),
-        performedByUserId: performedByUserId,
-        treatName: _treatNameCtrl.text.trim(),
-        notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-        dateAdministered: _dateAdministered,
-        items: treatmentItems,
-      );
+      if (_isFollowUpMode) {
+        final followUp = _followUpTreatment;
+
+        if (followUp == null) {
+          throw Exception(
+            'The follow-up treatment could not be identified.',
+          );
+        }
+
+        await _treatmentService.recordFollowUpOccurrence(
+          treatId: followUp.treatId,
+          administeredByName: _administeredByCtrl.text.trim(),
+          performedByUserId: performedByUserId,
+          dateAdministered: _dateAdministered,
+          notes: _notesCtrl.text.trim().isEmpty
+              ? null
+              : _notesCtrl.text.trim(),
+          items: treatmentItems,
+        );
+      } else {
+        final followUp = _followUpInput();
+
+        await _treatmentService.createTreatment(
+          petId: _selectedPet!.petId,
+          administeredByName: _administeredByCtrl.text.trim(),
+          performedByUserId: performedByUserId,
+          treatName: _treatNameCtrl.text.trim(),
+          notes: _notesCtrl.text.trim().isEmpty
+              ? null
+              : _notesCtrl.text.trim(),
+          dateAdministered: _dateAdministered,
+          items: treatmentItems,
+          followUp: followUp,
+        );
+      }
 
       if (!mounted) return;
 
@@ -555,7 +788,9 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                     )
                 ? 'The available stock changed while you were saving. '
                     'The treatment was not completed. Please check the current stock and try again.'
-                : 'Could not log treatment: $e',
+                : _isFollowUpMode
+                    ? 'Could not record follow-up treatment: $e'
+                    : 'Could not log treatment: $e',
           ),
         ),
       );
@@ -635,9 +870,9 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
           // HEADER
           // ===================================================================
 
-          const Text(
-            'Add Treatment',
-            style: TextStyle(
+          Text(
+            _isFollowUpMode ? 'Record Follow-up Treatment' : 'Add Treatment',
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
             ),
@@ -647,9 +882,11 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
             height: 4,
           ),
 
-          const Text(
-            'Record treatment details and the inventory items used.',
-            style: TextStyle(
+          Text(
+            _isFollowUpMode
+                ? 'Record the actual follow-up administration and inventory items used.'
+                : 'Record treatment details and the inventory items used.',
+            style: const TextStyle(
               fontSize: 12.5,
               color: AppColors.mutedForeground,
             ),
@@ -677,9 +914,11 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
 
                     final treatmentField = TextFormField(
                       controller: _treatNameCtrl,
-                      enabled: !_saving,
-                      decoration: const InputDecoration(
-                        labelText: 'Treatment name',
+                      enabled: !_saving && !_isFollowUpMode,
+                      decoration: InputDecoration(
+                        labelText: _isFollowUpMode
+                            ? 'Treatment series'
+                            : 'Treatment name',
                       ),
                       validator: (
                         value,
@@ -692,50 +931,52 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                       },
                     );
 
-                    final petField = _pets.isEmpty
-                        ? const TextField(
+                    final petField = _isFollowUpMode
+                        ? TextFormField(
+                            controller: _petCtrl,
                             enabled: false,
-                            decoration: InputDecoration(
-                              labelText: 'Pet (none eligible for treatment)',
+                            decoration: const InputDecoration(
+                              labelText: 'Pet',
                             ),
                           )
-                        : SearchSelectField<Pet>(
-                            labelText: 'Search pet',
-                            controller: _petCtrl,
-                            options: _pets,
-                            displayStringForOption: (pet) => pet.petName,
-                            validator: (
-                              value,
-                            ) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Required';
-                              }
+                        : _pets.isEmpty
+                            ? const TextField(
+                                enabled: false,
+                                decoration: InputDecoration(
+                                  labelText: 'Pet (none eligible for treatment)',
+                                ),
+                              )
+                            : SearchSelectField<Pet>(
+                                labelText: 'Search pet',
+                                controller: _petCtrl,
+                                options: _pets,
+                                displayStringForOption: (pet) => pet.petName,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Required';
+                                  }
 
-                              return null;
-                            },
-                            onTextChanged: (
-                              value,
-                            ) {
-                              final selected = _selectedPet;
+                                  return null;
+                                },
+                                onTextChanged: (value) {
+                                  final selected = _selectedPet;
 
-                              if (selected == null) {
-                                return;
-                              }
+                                  if (selected == null) {
+                                    return;
+                                  }
 
-                              if (value.trim() != selected.petName.trim()) {
-                                setState(() {
-                                  _selectedPet = null;
-                                });
-                              }
-                            },
-                            onSelected: (
-                              pet,
-                            ) {
-                              setState(() {
-                                _selectedPet = pet;
-                              });
-                            },
-                          );
+                                  if (value.trim() != selected.petName.trim()) {
+                                    setState(() {
+                                      _selectedPet = null;
+                                    });
+                                  }
+                                },
+                                onSelected: (pet) {
+                                  setState(() {
+                                    _selectedPet = pet;
+                                  });
+                                },
+                              );
 
                     if (stacked) {
                       return Column(
@@ -766,7 +1007,57 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                   },
                 ),
 
-                if (_selectedPetHasMedicalRecord) ...[
+                if (_isFollowUpMode && _followUpTreatment != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.20),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.event_repeat_outlined,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Scheduled follow-up',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _followUpTreatment!.nextFollowUpDate == null
+                                    ? 'No scheduled date'
+                                    : 'Due ${_formatDate(_followUpTreatment!.nextFollowUpDate!)}',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.mutedForeground,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                if (!_isFollowUpMode && _selectedPetHasMedicalRecord) ...[
                   const SizedBox(
                     height: 10,
                   ),
@@ -1064,6 +1355,57 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                   },
                 ),
 
+                if (!_isFollowUpMode) ...[
+                  const SizedBox(height: 22),
+                  _FollowUpScheduleCard(
+                    enabled: !_saving,
+                    requiredFollowUp: _requiresFollowUp,
+                    type: _followUpType,
+                    nextDate: _nextFollowUpDate,
+                    intervalController: _followUpIntervalCtrl,
+                    intervalUnit: _followUpIntervalUnit,
+                    noEndDate: _followUpNoEndDate,
+                    endDate: _followUpEndDate,
+                    noteController: _followUpNoteCtrl,
+                    onRequiredChanged: (value) {
+                      setState(() {
+                        _requiresFollowUp = value;
+
+                        if (value) {
+                          final earliest = _dateOnly(_dateAdministered).add(
+                            const Duration(days: 1),
+                          );
+
+                          if (_nextFollowUpDate.isBefore(earliest)) {
+                            _nextFollowUpDate = earliest;
+                          }
+                        }
+                      });
+                    },
+                    onTypeChanged: (value) {
+                      setState(() {
+                        _followUpType = value;
+                      });
+                    },
+                    onPickNextDate: _pickNextFollowUpDate,
+                    onIntervalUnitChanged: (value) {
+                      setState(() {
+                        _followUpIntervalUnit = value;
+                      });
+                    },
+                    onNoEndDateChanged: (value) {
+                      setState(() {
+                        _followUpNoEndDate = value;
+
+                        if (!value && _followUpEndDate == null) {
+                          _followUpEndDate = _nextFollowUpDate;
+                        }
+                      });
+                    },
+                    onPickEndDate: _pickFollowUpEndDate,
+                  ),
+                ],
+
                 const SizedBox(
                   height: 28,
                 ),
@@ -1100,7 +1442,11 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
                               size: 17,
                             ),
                       label: Text(
-                        _saving ? 'Saving' : 'Save Treatment',
+                        _saving
+                            ? 'Saving'
+                            : _isFollowUpMode
+                                ? 'Record Follow-up'
+                                : 'Save Treatment',
                       ),
                     ),
                   ],
@@ -1112,6 +1458,265 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// FOLLOW-UP SCHEDULE CARD
+// =============================================================================
+
+class _FollowUpScheduleCard extends StatelessWidget {
+  final bool enabled;
+  final bool requiredFollowUp;
+  final FollowUpType type;
+  final DateTime nextDate;
+  final TextEditingController intervalController;
+  final FollowUpIntervalUnit intervalUnit;
+  final bool noEndDate;
+  final DateTime? endDate;
+  final TextEditingController noteController;
+  final ValueChanged<bool> onRequiredChanged;
+  final ValueChanged<FollowUpType> onTypeChanged;
+  final VoidCallback onPickNextDate;
+  final ValueChanged<FollowUpIntervalUnit> onIntervalUnitChanged;
+  final ValueChanged<bool> onNoEndDateChanged;
+  final VoidCallback onPickEndDate;
+
+  const _FollowUpScheduleCard({
+    required this.enabled,
+    required this.requiredFollowUp,
+    required this.type,
+    required this.nextDate,
+    required this.intervalController,
+    required this.intervalUnit,
+    required this.noEndDate,
+    required this.endDate,
+    required this.noteController,
+    required this.onRequiredChanged,
+    required this.onTypeChanged,
+    required this.onPickNextDate,
+    required this.onIntervalUnitChanged,
+    required this.onNoEndDateChanged,
+    required this.onPickEndDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Follow-up Reminder',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Schedule the next real treatment when follow-up care is needed.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: requiredFollowUp,
+                onChanged: enabled ? onRequiredChanged : null,
+              ),
+            ],
+          ),
+          if (requiredFollowUp) ...[
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stacked = constraints.maxWidth < 520;
+
+                final typeField = IgnorePointer(
+                  ignoring: !enabled,
+                  child: Opacity(
+                    opacity: enabled ? 1 : 0.6,
+                    child: AppDropdownField<FollowUpType>(
+                      label: 'Follow-up type',
+                      initialValue: type,
+                      options: const [
+                        AppDropdownOption(
+                          FollowUpType.oneTime,
+                          'One-time',
+                        ),
+                        AppDropdownOption(
+                          FollowUpType.repeating,
+                          'Repeating',
+                        ),
+                      ],
+                      onChanged: onTypeChanged,
+                    ),
+                  ),
+                );
+
+                final dateField = InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: enabled ? onPickNextDate : null,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'First follow-up',
+                    ),
+                    child: Text(_formatDate(nextDate)),
+                  ),
+                );
+
+                if (stacked) {
+                  return Column(
+                    children: [
+                      typeField,
+                      const SizedBox(height: 12),
+                      dateField,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: typeField),
+                    const SizedBox(width: 12),
+                    Expanded(child: dateField),
+                  ],
+                );
+              },
+            ),
+            if (type == FollowUpType.repeating) ...[
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final stacked = constraints.maxWidth < 520;
+
+                  final intervalField = TextFormField(
+                    controller: intervalController,
+                    enabled: enabled,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Repeat every',
+                    ),
+                    validator: (value) {
+                      if (!requiredFollowUp || type != FollowUpType.repeating) {
+                        return null;
+                      }
+
+                      final amount = int.tryParse((value ?? '').trim());
+                      if (amount == null || amount <= 0) {
+                        return 'Enter a number above 0';
+                      }
+                      return null;
+                    },
+                  );
+
+                  final unitField = IgnorePointer(
+                    ignoring: !enabled,
+                    child: Opacity(
+                      opacity: enabled ? 1 : 0.6,
+                      child: AppDropdownField<FollowUpIntervalUnit>(
+                        label: 'Interval unit',
+                        initialValue: intervalUnit,
+                        options: FollowUpIntervalUnit.values
+                            .map(
+                              (unit) => AppDropdownOption(
+                                unit,
+                                followUpIntervalUnitLabel(unit),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: onIntervalUnitChanged,
+                      ),
+                    ),
+                  );
+
+                  if (stacked) {
+                    return Column(
+                      children: [
+                        intervalField,
+                        const SizedBox(height: 12),
+                        unitField,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: intervalField),
+                      const SizedBox(width: 12),
+                      Expanded(child: unitField),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              CheckboxListTile(
+                value: noEndDate,
+                onChanged: enabled
+                    ? (value) => onNoEndDateChanged(value ?? true)
+                    : null,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                  'No end date',
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'Use this for ongoing reminders such as annual vaccinations.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+              ),
+              if (!noEndDate) ...[
+                const SizedBox(height: 4),
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: enabled ? onPickEndDate : null,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Schedule end date',
+                    ),
+                    child: Text(
+                      endDate == null ? 'Choose date' : _formatDate(endDate!),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: noteController,
+              enabled: enabled,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Follow-up note (optional)',
+              ),
+            ),
+          ],
         ],
       ),
     );

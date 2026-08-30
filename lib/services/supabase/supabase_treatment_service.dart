@@ -7,32 +7,39 @@ import '../../state/data_bus.dart';
 import '../inventory_service.dart';
 import '../treatment_service.dart';
 
-/// Supabase-backed access for public.treatment / treatment_item.
+/// Supabase-backed access for public.treatment / treatment_occurrence /
+/// treatment_item.
 ///
-/// New treatment creation is committed through one PostgreSQL transaction:
-///
-/// treatment
-///   → treatment_item
-///   → FEFO inventory_batch deduction
-///   → batch_transaction_log (txntype = TREATMENT)
-///
-/// Adding one item to an existing treatment continues to use the existing
-/// atomic treatment-item function.
-///
-/// IMPORTANT DONOR IMPACT LINK:
-///
-/// treatment_item
-///   → FEFO inventory_batch deduction
-///   → batch_transaction_log (txntype = TREATMENT)
-///
-/// The batch transaction keeps donor impact linked to the exact physical batch
-/// that supplied the treatment usage.
+/// Existing FEFO inventory protection remains inside the PostgreSQL atomic
+/// treatment functions. Follow-up reminders only control when the next real
+/// treatment occurrence is due.
 class SupabaseTreatmentService implements TreatmentService {
   final SupabaseClient _client = Supabase.instance.client;
   final InventoryService _inventoryService = InventoryService();
 
   double _d(dynamic v) => v == null ? 0 : (v as num).toDouble();
 
+  // Returns a local date from a Postgres date-only value.
+  DateTime? _dateFromDateOnly(dynamic value) {
+    if (value == null) return null;
+
+    final text = value.toString();
+    final parsed = DateTime.tryParse(text);
+
+    if (parsed == null) return null;
+
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  // Formats a local calendar date for a Postgres date parameter.
+  String _dateOnly(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  // Loads display names for user IDs used by medical history.
   Future<Map<String, String>> _userNameMap() async {
     final rows = await _client.from('users').select(
           'id, fname, lname',
@@ -46,6 +53,7 @@ class SupabaseTreatmentService implements TreatmentService {
     };
   }
 
+  // Loads unit abbreviations for treatment-item display.
   Future<Map<String, String>> _unitAbbrMap() async {
     final rows = await _client.from('units').select(
           'id, abbr_name',
@@ -57,25 +65,7 @@ class SupabaseTreatmentService implements TreatmentService {
     };
   }
 
-  // ===========================================================================
-  // TREATMENT STOCK VALIDATION
-  // ===========================================================================
-  //
-  // The UI filters out unavailable items, but the stock can still change
-  // after the form has loaded.
-  //
-  // Because of that, treatment stock is checked again before the PostgreSQL
-  // transaction is started.
-  //
-  // PostgreSQL remains the final authority because stock may still change
-  // between this validation and the database transaction.
-  //
-  // currentUsableStockQty is batch-aware and excludes:
-  // - expired batches
-  // - quarantined batches
-  // - depleted batches
-  // ===========================================================================
-
+  // Re-reads usable stock before the database transaction for friendly errors.
   Future<InventoryItem> _validateTreatmentStock(
     TreatmentItemInput input,
   ) async {
@@ -103,8 +93,6 @@ class SupabaseTreatmentService implements TreatmentService {
       );
     }
 
-    // When SIYAM knows how to deduct the treatment quantity from inventory,
-    // the requested treatment quantity must not exceed current usable stock.
     if (item.stockOutIsDeductible && input.qty > available) {
       throw Exception(
         'Not enough usable stock for '
@@ -117,97 +105,100 @@ class SupabaseTreatmentService implements TreatmentService {
     return item;
   }
 
-  // ===========================================================================
-  // ATOMIC TREATMENT ITEM
-  // ===========================================================================
-  //
-  // Used when adding ONE item to an already-existing treatment.
-  //
-  // PostgreSQL performs the treatment_item insert and, when the item is
-  // deductible, the complete FEFO inventory deduction in one transaction.
-  //
-  // This keeps the existing treatment semantics:
-  // - deductible units reduce inventory
-  // - unconvertible/clinical-only units are still logged without stock change
-  //
-  // The database is the final authority, so two Staff sessions cannot both
-  // consume the same remaining stock from a stale screen.
-  // ===========================================================================
+  // Validates every treatment item before starting a multi-item RPC.
+  Future<List<TreatmentItemInput>> _validatedItems(
+    List<TreatmentItemInput> items,
+  ) async {
+    final result = <TreatmentItemInput>[];
 
-  Future<String> _createTreatmentItemAtomically({
-    required String treatId,
-    required TreatmentItemInput input,
-    required String administeredByName,
-    required String performedByUserId,
-    required DateTime consumedDate,
-  }) async {
-    final result = await _client.rpc(
-      'siyam_atomic_treatment_item',
-      params: {
-        'p_treat_id': treatId,
-        'p_item_id': input.itemId,
-        'p_qty': input.qty,
-        'p_dispense_unit': input.doseUnitId,
-        'p_consumed_date': consumedDate.toIso8601String(),
-        'p_given_by': administeredByName,
-        'p_recorded_by': performedByUserId,
-      },
-    );
+    for (final row in items) {
+      if (row.qty <= 0) continue;
 
-    if (result == null) {
+      await _validateTreatmentStock(row);
+      result.add(row);
+    }
+
+    if (result.isEmpty) {
       throw Exception(
-        'Could not record treatment item.',
+        'Add at least one in-stock inventory item to the treatment.',
       );
     }
 
-    return result.toString();
+    return result;
   }
 
-  // ===========================================================================
-  // FETCH TREATMENTS
-  // ===========================================================================
+  // Maps treatment item form rows to the JSON accepted by PostgreSQL RPCs.
+  List<Map<String, dynamic>> _itemsJson(
+    List<TreatmentItemInput> items,
+  ) {
+    return [
+      for (final row in items)
+        {
+          'item_id': row.itemId,
+          'qty': row.qty,
+          'dispense_unit': row.doseUnitId,
+        },
+    ];
+  }
 
+  // Fetches all treatments and attaches the latest occurrence + schedule data.
   @override
   Future<List<TreatmentRecord>> fetchTreatments() async {
-    final users = await _userNameMap();
+    final results = await Future.wait<Object?>([
+      _userNameMap(),
+      _client.from('treatment').select(
+            'id, name, petid, recordedby, recordeddate, notes, '
+            'followup_required, followup_type, next_followup_date, '
+            'followup_interval_value, followup_interval_unit, '
+            'followup_end_date, followup_note, followup_active, '
+            'followup_stopped_at, followup_stop_reason, '
+            'pet(name, species, breed)',
+          ),
+      _client.from('treatment_occurrence').select(
+            'occurrenceid, treatid, administereddate, administeredby, '
+            'recordedby, recordeddate',
+          ),
+    ]);
 
-    final rows = await _client.from('treatment').select(
-          'id, name, petid, recordedby, recordeddate, notes, '
-          'pet(name, species, breed)',
-        );
+    final users = results[0] as Map<String, String>;
+    final rows = results[1] as List<dynamic>;
+    final occurrenceRows = results[2] as List<dynamic>;
 
-    // First treatment_item per treatment supplies performedBy/recDate.
-    final itemRows = await _client
-        .from('treatment_item')
-        .select(
-          'treatid, givenby, consumeddate',
-        )
-        .order(
-          'consumeddate',
-          ascending: true,
-        );
+    final latestOccurrence = <String, Map<String, dynamic>>{};
+    final occurrenceCount = <String, int>{};
 
-    final firstItem = <String, Map<String, dynamic>>{};
+    for (final raw in occurrenceRows) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      final treatId = row['treatid'] as String;
 
-    for (final r in itemRows) {
-      firstItem.putIfAbsent(
-        r['treatid'] as String,
-        () => r,
-      );
+      occurrenceCount[treatId] = (occurrenceCount[treatId] ?? 0) + 1;
+
+      final current = latestOccurrence[treatId];
+      final currentDate = current == null
+          ? null
+          : DateTime.parse(current['administereddate'] as String);
+      final rowDate = DateTime.parse(row['administereddate'] as String);
+
+      if (currentDate == null || rowDate.isAfter(currentDate)) {
+        latestOccurrence[treatId] = row;
+      }
     }
 
-    final records = rows.map((r) {
+    final records = rows.map((raw) {
+      final r = Map<String, dynamic>.from(raw as Map);
       final pet = r['pet'] as Map<String, dynamic>?;
-
       final treatId = r['id'] as String;
-
-      final first = firstItem[treatId];
-
+      final latest = latestOccurrence[treatId];
       final recordedBy = r['recordedby'] as String;
-
       final loggedDate = DateTime.parse(
         r['recordeddate'] as String,
       ).toLocal();
+
+      final latestDate = latest == null
+          ? loggedDate
+          : DateTime.parse(
+              latest['administereddate'] as String,
+            ).toLocal();
 
       return TreatmentRecord(
         treatId: treatId,
@@ -217,67 +208,114 @@ class SupabaseTreatmentService implements TreatmentService {
           pet?['species'] as String? ?? 'dog',
         ),
         petBreed: pet?['breed'] as String?,
-        performedByName: first?['givenby'] as String? ?? '',
+        performedByName: (latest?['administeredby'] as String?) ?? '',
         recordedByUserId: recordedBy,
         recordedByName: users[recordedBy] ?? 'Unknown user',
         treatName: (r['name'] as String?) ?? '',
         notes: r['notes'] as String?,
-        recDate: first?['consumeddate'] == null
-            ? loggedDate
-            : DateTime.parse(
-                first!['consumeddate'] as String,
-              ).toLocal(),
+        recDate: latestDate,
         loggedDate: loggedDate,
+        administrationCount: occurrenceCount[treatId] ?? 0,
+        followUpRequired: (r['followup_required'] as bool?) ?? false,
+        followUpType: followUpTypeFromString(
+          r['followup_type']?.toString(),
+        ),
+        nextFollowUpDate: _dateFromDateOnly(r['next_followup_date']),
+        followUpIntervalValue: (r['followup_interval_value'] as num?)?.toInt(),
+        followUpIntervalUnit: followUpIntervalUnitFromString(
+          r['followup_interval_unit']?.toString(),
+        ),
+        followUpEndDate: _dateFromDateOnly(r['followup_end_date']),
+        followUpNote: r['followup_note'] as String?,
+        followUpActive: (r['followup_active'] as bool?) ?? false,
+        followUpStoppedAt: r['followup_stopped_at'] == null
+            ? null
+            : DateTime.parse(
+                r['followup_stopped_at'] as String,
+              ).toLocal(),
+        followUpStopReason: r['followup_stop_reason'] as String?,
       );
     }).toList();
 
     records.sort(
-      (a, b) => b.recDate.compareTo(
-        a.recDate,
-      ),
+      (a, b) => b.recDate.compareTo(a.recDate),
     );
 
     return records;
   }
 
-  // ===========================================================================
-  // FETCH ITEMS USED
-  // ===========================================================================
-
+  // Fetches actual administrations for one treatment series.
   @override
-  Future<List<TreatmentItemUsed>> fetchItemsUsed(
+  Future<List<TreatmentOccurrence>> fetchOccurrences(
     String treatId,
   ) async {
     final users = await _userNameMap();
 
-    final units = await _unitAbbrMap();
+    final rows = await _client
+        .from('treatment_occurrence')
+        .select(
+          'occurrenceid, treatid, administereddate, administeredby, '
+          'recordedby, recordeddate, notes, isfollowup, scheduleddate',
+        )
+        .eq('treatid', treatId)
+        .order('administereddate', ascending: false)
+        .order('recordeddate', ascending: false);
+
+    return [
+      for (final raw in rows)
+        (() {
+          final r = Map<String, dynamic>.from(raw);
+          final recordedBy = r['recordedby'] as String;
+
+          return TreatmentOccurrence(
+            occurrenceId: r['occurrenceid'] as String,
+            treatId: r['treatid'] as String,
+            administeredDate: DateTime.parse(
+              r['administereddate'] as String,
+            ).toLocal(),
+            administeredBy: (r['administeredby'] as String?) ?? '',
+            recordedByUserId: recordedBy,
+            recordedByName: users[recordedBy] ?? 'Unknown user',
+            recordedDate: DateTime.parse(
+              r['recordeddate'] as String,
+            ).toLocal(),
+            notes: r['notes'] as String?,
+            isFollowUp: (r['isfollowup'] as bool?) ?? false,
+            scheduledDate: _dateFromDateOnly(r['scheduleddate']),
+          );
+        })(),
+    ];
+  }
+
+  // Fetches all inventory items used under one treatment series.
+  @override
+  Future<List<TreatmentItemUsed>> fetchItemsUsed(
+    String treatId,
+  ) async {
+    final usersFuture = _userNameMap();
+    final unitsFuture = _unitAbbrMap();
 
     final rows = await _client
         .from('treatment_item')
         .select(
           'itemid, dispensed_qty, dispense_unit, consumeddate, givenby, '
-          'recordeddate, recordedby, item(name)',
+          'recordeddate, recordedby, occurrenceid, item(name)',
         )
-        .eq(
-          'treatid',
-          treatId,
-        )
-        .order(
-          'recordeddate',
-          ascending: false,
-        );
+        .eq('treatid', treatId)
+        .order('recordeddate', ascending: false);
 
-    return rows.map((r) {
+    final users = await usersFuture;
+    final units = await unitsFuture;
+
+    return rows.map((raw) {
+      final r = Map<String, dynamic>.from(raw);
       final item = r['item'] as Map<String, dynamic>?;
-
       final dispenseUnit = r['dispense_unit'] as String?;
 
       return TreatmentItemUsed(
         itemId: r['itemid'] as String,
         itemName: item?['name'] as String? ?? 'Unknown item',
-        dispensedQty: _d(
-          r['dispensed_qty'],
-        ),
+        dispensedQty: _d(r['dispensed_qty']),
         dispenseUnitAbbr:
             dispenseUnit == null ? '' : (units[dispenseUnit] ?? ''),
         consumedDate: DateTime.parse(
@@ -288,14 +326,12 @@ class SupabaseTreatmentService implements TreatmentService {
         recordedDate: DateTime.parse(
           r['recordeddate'] as String,
         ).toLocal(),
+        occurrenceId: r['occurrenceid'] as String?,
       );
     }).toList();
   }
 
-  // ===========================================================================
-  // TOTAL ITEMS USED
-  // ===========================================================================
-
+  // Returns the total raw quantity logged across treatment items.
   @override
   Future<double> fetchTotalItemsUsed() async {
     final rows = await _client.from('treatment_item').select(
@@ -305,40 +341,14 @@ class SupabaseTreatmentService implements TreatmentService {
     var total = 0.0;
 
     for (final r in rows) {
-      total += _d(
-        r['dispensed_qty'],
-      );
+      total += _d(r['dispensed_qty']);
     }
 
     return total;
   }
 
-  // ===========================================================================
-  // CREATE NEW TREATMENT ATOMICALLY
-  // ===========================================================================
-  //
-  // The complete new-treatment operation is now ONE PostgreSQL transaction:
-  //
-  // validate current stock in PostgreSQL
-  //   ↓
-  // create treatment parent
-  //   ↓
-  // create every treatment_item
-  //   ↓
-  // FEFO deductions
-  //   ↓
-  // batch_transaction_log rows
-  //   ↓
-  // COMMIT
-  //
-  // If ANY treatment item fails, PostgreSQL rolls back everything.
-  //
-  // This prevents:
-  // - empty/orphan treatment parents
-  // - partially recorded multi-item treatments
-  // - partial inventory deductions
-  // ===========================================================================
-
+  // Creates one treatment, one initial occurrence, all items, and its optional
+  // reminder schedule in one database transaction.
   @override
   Future<TreatmentRecord> createTreatment({
     required String petId,
@@ -348,45 +358,13 @@ class SupabaseTreatmentService implements TreatmentService {
     String? notes,
     DateTime? dateAdministered,
     required List<TreatmentItemInput> items,
+    FollowUpScheduleInput? followUp,
   }) async {
     final consumedDate = (dateAdministered ?? DateTime.now()).toUtc();
-
-    // ========================================================================
-    // FRIENDLY PRE-VALIDATION
-    // ========================================================================
-    //
-    // Keep the existing client-side checks so Staff gets a useful error early.
-    //
-    // This is NOT relied upon for concurrency safety.
-    // PostgreSQL re-checks everything when the atomic RPC runs.
-    // ========================================================================
-
-    final validatedItems = <TreatmentItemInput>[];
-
-    for (final row in items) {
-      if (row.qty <= 0) {
-        continue;
-      }
-
-      await _validateTreatmentStock(
-        row,
-      );
-
-      validatedItems.add(row);
-    }
-
-    if (validatedItems.isEmpty) {
-      throw Exception(
-        'Add at least one in-stock inventory item to the treatment.',
-      );
-    }
-
-    // ========================================================================
-    // ONE DATABASE CALL FOR THE COMPLETE TREATMENT
-    // ========================================================================
+    final validatedItems = await _validatedItems(items);
 
     final result = await _client.rpc(
-      'siyam_atomic_create_treatment',
+      'siyam_atomic_create_treatment_v2',
       params: {
         'p_pet_id': petId,
         'p_treat_name': treatName,
@@ -394,25 +372,27 @@ class SupabaseTreatmentService implements TreatmentService {
         'p_recorded_by': performedByUserId,
         'p_given_by': administeredByName,
         'p_consumed_date': consumedDate.toIso8601String(),
-        'p_items': [
-          for (final row in validatedItems)
-            {
-              'item_id': row.itemId,
-              'qty': row.qty,
-              'dispense_unit': row.doseUnitId,
-            },
-        ],
+        'p_items': _itemsJson(validatedItems),
+        'p_followup_required': followUp != null,
+        'p_followup_type':
+            followUp == null ? null : followUpTypeToString(followUp.type),
+        'p_next_followup_date':
+            followUp == null ? null : _dateOnly(followUp.nextFollowUpDate),
+        'p_followup_interval_value': followUp?.intervalValue,
+        'p_followup_interval_unit': followUp?.intervalUnit == null
+            ? null
+            : followUpIntervalUnitToString(followUp!.intervalUnit!),
+        'p_followup_end_date':
+            followUp?.endDate == null ? null : _dateOnly(followUp!.endDate!),
+        'p_followup_note': followUp?.note,
       },
     );
 
     if (result == null) {
-      throw Exception(
-        'Could not create treatment.',
-      );
+      throw Exception('Could not create treatment.');
     }
 
     final treatId = result.toString();
-
     final records = await fetchTreatments();
 
     DataChangeBus.instance.ping();
@@ -422,17 +402,7 @@ class SupabaseTreatmentService implements TreatmentService {
     );
   }
 
-  // ===========================================================================
-  // ADD ITEM TO EXISTING TREATMENT
-  // ===========================================================================
-  //
-  // IMPORTANT:
-  // Do NOT change this to siyam_atomic_create_treatment.
-  //
-  // This operation adds only one item to an existing treatment, so the existing
-  // siyam_atomic_treatment_item function is already the correct transaction.
-  // ===========================================================================
-
+  // Adds one later item/dose as its own atomic administration occurrence.
   @override
   Future<void> addTreatmentItem({
     required String treatId,
@@ -441,37 +411,90 @@ class SupabaseTreatmentService implements TreatmentService {
     required String performedByUserId,
     DateTime? dateAdministered,
   }) async {
-    if (item.qty <= 0) {
-      throw Exception(
-        'Treatment quantity must be greater than 0.',
-      );
-    }
-
-    // Re-read current inventory before creating treatment_item.
-    //
-    // This protects against a stale page where an item had stock when the
-    // dialog opened but became out of stock before staff clicked Save.
-    await _validateTreatmentStock(
-      item,
-    );
+    await _validateTreatmentStock(item);
 
     final consumedDate = (dateAdministered ?? DateTime.now()).toUtc();
 
-    await _createTreatmentItemAtomically(
-      treatId: treatId,
-      input: item,
-      administeredByName: administeredByName,
-      performedByUserId: performedByUserId,
-      consumedDate: consumedDate,
+    await _client.rpc(
+      'siyam_atomic_add_treatment_item_occurrence',
+      params: {
+        'p_treat_id': treatId,
+        'p_item_id': item.itemId,
+        'p_qty': item.qty,
+        'p_dispense_unit': item.doseUnitId,
+        'p_consumed_date': consumedDate.toIso8601String(),
+        'p_given_by': administeredByName,
+        'p_recorded_by': performedByUserId,
+      },
     );
 
     DataChangeBus.instance.ping();
   }
 
-  // ===========================================================================
-  // USAGE EVENT DATES
-  // ===========================================================================
+  // Records the real follow-up administration, deducts every item, and only
+  // then advances/stops the reminder schedule.
+  @override
+  Future<void> recordFollowUpOccurrence({
+    required String treatId,
+    required String administeredByName,
+    required String performedByUserId,
+    DateTime? dateAdministered,
+    String? notes,
+    required List<TreatmentItemInput> items,
+  }) async {
+    final consumedDate = (dateAdministered ?? DateTime.now()).toUtc();
+    final validatedItems = await _validatedItems(items);
 
+    await _client.rpc(
+      'siyam_atomic_record_followup_occurrence',
+      params: {
+        'p_treat_id': treatId,
+        'p_given_by': administeredByName,
+        'p_recorded_by': performedByUserId,
+        'p_consumed_date': consumedDate.toIso8601String(),
+        'p_notes': notes,
+        'p_items': _itemsJson(validatedItems),
+      },
+    );
+
+    DataChangeBus.instance.ping();
+  }
+
+  // Moves the current reminder without recording a treatment.
+  @override
+  Future<void> rescheduleFollowUp({
+    required String treatId,
+    required DateTime nextDate,
+  }) async {
+    await _client.rpc(
+      'siyam_reschedule_treatment_followup',
+      params: {
+        'p_treat_id': treatId,
+        'p_new_date': _dateOnly(nextDate),
+      },
+    );
+
+    DataChangeBus.instance.ping();
+  }
+
+  // Stops future reminders while preserving the treatment and its history.
+  @override
+  Future<void> stopFollowUp({
+    required String treatId,
+    String? reason,
+  }) async {
+    await _client.rpc(
+      'siyam_stop_treatment_followup',
+      params: {
+        'p_treat_id': treatId,
+        'p_reason': reason,
+      },
+    );
+
+    DataChangeBus.instance.ping();
+  }
+
+  // Keeps the existing treatment-usage reporting behavior unchanged.
   @override
   Future<List<DateTime>> fetchUsageEventDates() async {
     final rows = await _client.from('treatment_item').select(
@@ -486,15 +509,11 @@ class SupabaseTreatmentService implements TreatmentService {
     ];
   }
 
-  DateTime _parseUsageDate(
-    dynamic value,
-  ) {
+  DateTime _parseUsageDate(dynamic value) {
     if (value is DateTime) {
       return value.toLocal();
     }
 
-    return DateTime.parse(
-      value as String,
-    ).toLocal();
+    return DateTime.parse(value as String).toLocal();
   }
 }

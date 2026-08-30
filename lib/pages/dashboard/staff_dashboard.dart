@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_colors.dart';
 import '../../services/dashboard_service.dart';
+import '../../services/follow_up_service.dart';
 import '../../state/data_bus.dart';
 import '../../widgets/social_post_dialog.dart';
 import '../../widgets/stat_card.dart';
@@ -22,11 +23,16 @@ class StaffDashboard extends StatefulWidget {
 class _StaffDashboardState extends State<StaffDashboard>
     with DataBusRefreshMixin<StaffDashboard> {
   final DashboardService _service = DashboardService();
+  final FollowUpService _followUpService = FollowUpService();
 
   StaffDashboardStats? _stats;
   List<ReplenishmentAlert> _replenishment = [];
+  List<MedicalFollowUpReminder> _followUps = [];
 
   bool _loading = true;
+  bool _loadInProgress = false;
+  bool _refreshPending = false;
+
   String? _error;
   _Period _period = _Period.week;
 
@@ -37,10 +43,64 @@ class _StaffDashboardState extends State<StaffDashboard>
   }
 
   @override
-  void onExternalDataChanged() => _load(silent: true);
+  void onExternalDataChanged() {
+    _load(silent: true);
+  }
 
-  Future<void> _load({bool silent = false}) async {
-    if (!silent) {
+  // Loads follow-up reminders without allowing a reminder-only failure
+  // to block the rest of the Staff dashboard.
+  Future<
+      ({
+        List<MedicalFollowUpReminder> reminders,
+        String? warning,
+      })> _fetchFollowUpsSafely() async {
+    try {
+      final reminders =
+          await _followUpService.fetchActionableReminders();
+
+      return (
+        reminders: reminders,
+        warning: null,
+      );
+    } catch (_) {
+      return (
+        reminders: _followUps,
+        warning:
+            'Medical follow-up reminders could not refresh. Showing the last loaded reminder data.',
+      );
+    }
+  }
+
+  // Collapses a burst of DataBus refreshes into the current load plus,
+  // at most, one silent catch-up load. Loads never overlap.
+  Future<void> _load({
+    bool silent = false,
+  }) async {
+    if (_loadInProgress) {
+      _refreshPending = true;
+      return;
+    }
+
+    _loadInProgress = true;
+
+    try {
+      await _performLoad(silent: silent);
+
+      if (_refreshPending && mounted) {
+        _refreshPending = false;
+        await _performLoad(silent: true);
+      }
+    } finally {
+      _refreshPending = false;
+      _loadInProgress = false;
+    }
+  }
+
+  // Performs one dashboard snapshot load. The three reads start together.
+  Future<void> _performLoad({
+    required bool silent,
+  }) async {
+    if (!silent && mounted) {
       setState(() {
         _loading = true;
         _error = null;
@@ -51,25 +111,32 @@ class _StaffDashboardState extends State<StaffDashboard>
       final results = await Future.wait<Object?>([
         _service.fetchStaffStats(),
         _service.fetchReplenishmentAlerts(),
+        _fetchFollowUpsSafely(),
       ]);
 
       if (!mounted) return;
 
+      final followUpResult = results[2]
+          as ({
+            List<MedicalFollowUpReminder> reminders,
+            String? warning,
+          });
+
       setState(() {
         _stats = results[0] as StaffDashboardStats;
         _replenishment = results[1] as List<ReplenishmentAlert>;
+        _followUps = followUpResult.reminders;
+
         _loading = false;
-        _error = null;
+        _error = followUpResult.warning;
       });
     } catch (e) {
       if (!mounted) return;
 
-      if (!silent) {
-        setState(() {
-          _error = 'Could not load dashboard: $e';
-          _loading = false;
-        });
-      }
+      setState(() {
+        _error = 'Could not load dashboard: $e';
+        _loading = false;
+      });
     }
   }
 
@@ -97,10 +164,37 @@ class _StaffDashboardState extends State<StaffDashboard>
       .where((item) => item.priority == ReplenishmentPriority.medium)
       .length;
 
-  List<ReplenishmentAlert> get _attentionPreview =>
-      _replenishment.take(3).toList();
+  List<MedicalFollowUpReminder> get _followUpPreview =>
+      _followUps.take(2).toList();
 
   void _go(String path) => context.go(path);
+
+  // Opens the animal's medical history. All treatment actions remain there.
+  void _openFollowUpReminder(
+    MedicalFollowUpReminder reminder,
+  ) {
+    _go(
+      '/medical-records/pet/${Uri.encodeComponent(reminder.petId)}',
+    );
+  }
+
+  // Uses the already-loaded reminder snapshot; opening this dialog makes
+  // no additional Supabase request.
+  Future<void> _openAllFollowUps() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _MedicalFollowUpDialog(
+        reminders: _followUps,
+        onOpenReminder: (reminder) {
+          Navigator.of(dialogContext).pop();
+
+          if (mounted) {
+            _openFollowUpReminder(reminder);
+          }
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -263,13 +357,11 @@ class _StaffDashboardState extends State<StaffDashboard>
         if (medium)
           Column(
             children: [
-              _AttentionListCard(
-                alerts: _attentionPreview,
-                totalCount: _replenishment.length,
-                onViewAll: () => _go('/purchase-orders'),
-                onOpenItem: (item) => _go(
-                  '/inventory/${item.itemId}?from=purchase-orders',
-                ),
+              _MedicalFollowUpCard(
+                reminders: _followUpPreview,
+                totalCount: _followUps.length,
+                onViewAll: _followUps.isEmpty ? null : _openAllFollowUps,
+                onOpenReminder: _openFollowUpReminder,
               ),
               const SizedBox(height: 14),
               _SocialTemplateCard(alerts: _replenishment),
@@ -283,13 +375,11 @@ class _StaffDashboardState extends State<StaffDashboard>
               children: [
                 Expanded(
                   flex: 7,
-                  child: _AttentionListCard(
-                    alerts: _attentionPreview,
-                    totalCount: _replenishment.length,
-                    onViewAll: () => _go('/purchase-orders'),
-                    onOpenItem: (item) => _go(
-                      '/inventory/${item.itemId}?from=purchase-orders',
-                    ),
+                  child: _MedicalFollowUpCard(
+                    reminders: _followUpPreview,
+                    totalCount: _followUps.length,
+                    onViewAll: _followUps.isEmpty ? null : _openAllFollowUps,
+                    onOpenReminder: _openFollowUpReminder,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -306,7 +396,7 @@ class _StaffDashboardState extends State<StaffDashboard>
         const SizedBox(height: 18),
         const Text(
           'Period comparisons use recorded purchases and treatments. '
-          'Current stock-attention counts are live values, not period totals.',
+          'Stock-attention and medical follow-up counts are current live values.',
           style: TextStyle(
             fontSize: 11.5,
             height: 1.45,
@@ -1171,17 +1261,17 @@ class _PriorityDonutPainter extends CustomPainter {
   }
 }
 
-class _AttentionListCard extends StatelessWidget {
-  final List<ReplenishmentAlert> alerts;
+class _MedicalFollowUpCard extends StatelessWidget {
+  final List<MedicalFollowUpReminder> reminders;
   final int totalCount;
-  final VoidCallback onViewAll;
-  final ValueChanged<ReplenishmentAlert> onOpenItem;
+  final VoidCallback? onViewAll;
+  final ValueChanged<MedicalFollowUpReminder> onOpenReminder;
 
-  const _AttentionListCard({
-    required this.alerts,
+  const _MedicalFollowUpCard({
+    required this.reminders,
     required this.totalCount,
     required this.onViewAll,
-    required this.onOpenItem,
+    required this.onOpenReminder,
   });
 
   @override
@@ -1202,10 +1292,30 @@ class _AttentionListCard extends StatelessWidget {
               children: [
                 const Expanded(
                   child: _SectionHeading(
-                    title: 'Items Needing Attention',
-                    subtitle: 'Highest-priority stock items right now.',
+                    title: 'Medical Follow-up Reminders',
+                    subtitle: 'Follow-ups needing attention within 7 days.',
                   ),
                 ),
+                if (totalCount > 0)
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$totalCount',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
                 TextButton(
                   onPressed: onViewAll,
                   child: const Text('View All'),
@@ -1214,7 +1324,7 @@ class _AttentionListCard extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          if (alerts.isEmpty)
+          if (reminders.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: 20,
@@ -1230,14 +1340,15 @@ class _AttentionListCard extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'No stock items need attention',
+                      'No follow-ups need attention',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     SizedBox(height: 3),
                     Text(
-                      'Current stock alerts are clear.',
+                      'Nothing is due within the next 7 days.',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11.5,
                         color: AppColors.mutedForeground,
@@ -1248,25 +1359,24 @@ class _AttentionListCard extends StatelessWidget {
               ),
             )
           else ...[
-            for (var i = 0; i < alerts.length; i++) ...[
+            for (var i = 0; i < reminders.length; i++) ...[
               if (i > 0) const Divider(height: 1),
-              _AttentionRow(
-                item: alerts[i],
-                onTap: () => onOpenItem(alerts[i]),
+              _MedicalFollowUpRow(
+                reminder: reminders[i],
+                onTap: () => onOpenReminder(reminders[i]),
               ),
             ],
-            if (totalCount > alerts.length) ...[
+            if (totalCount > reminders.length) ...[
               const Divider(height: 1),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
-                  vertical: 10,
+                  vertical: 9,
                 ),
                 child: Text(
-                  'Showing ${alerts.length} of $totalCount items. '
-                  'Open Ordering for the complete list.',
+                  'Showing the 2 most urgent of $totalCount follow-ups.',
                   style: const TextStyle(
-                    fontSize: 11.2,
+                    fontSize: 11,
                     color: AppColors.mutedForeground,
                   ),
                 ),
@@ -1279,187 +1389,454 @@ class _AttentionListCard extends StatelessWidget {
   }
 }
 
-class _AttentionRow extends StatelessWidget {
-  final ReplenishmentAlert item;
+class _MedicalFollowUpRow extends StatelessWidget {
+  final MedicalFollowUpReminder reminder;
   final VoidCallback onTap;
 
-  const _AttentionRow({
-    required this.item,
+  const _MedicalFollowUpRow({
+    required this.reminder,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = _priorityMeta(item.priority);
+    final meta = _followUpMeta(reminder);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        hoverColor: color.withValues(alpha: 0.025),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final narrow =
-                constraints.maxWidth < 520;
-
-            final statusBadge = Container(
-              constraints:
-                  const BoxConstraints(
-                minWidth: 72,
-              ),
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color:
-                    color.withValues(alpha: 0.10),
-                borderRadius:
-                    BorderRadius.circular(999),
-              ),
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10.4,
-                  fontWeight: FontWeight.w700,
-                  color: color,
+        hoverColor: meta.color.withValues(alpha: 0.025),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 14,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: meta.color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.medical_services_outlined,
+                  size: 17,
+                  color: meta.color,
                 ),
               ),
-            );
-
-            return Padding(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 12,
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reminder.petName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      reminder.treatmentName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Due ${_formatDashboardDate(reminder.dueDate)}',
+                      style: TextStyle(
+                        fontSize: 10.8,
+                        fontWeight: FontWeight.w600,
+                        color: meta.color,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: narrow
-                  ? Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+              const SizedBox(width: 10),
+              _FollowUpStatusBadge(
+                label: meta.label,
+                color: meta.color,
+              ),
+              const SizedBox(width: 3),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.mutedForeground,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FollowUpStatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _FollowUpStatusBadge({
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(
+        minWidth: 72,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 9.8,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+enum _FollowUpFilter {
+  all,
+  overdue,
+  dueSoon,
+}
+
+class _MedicalFollowUpDialog extends StatefulWidget {
+  final List<MedicalFollowUpReminder> reminders;
+  final ValueChanged<MedicalFollowUpReminder> onOpenReminder;
+
+  const _MedicalFollowUpDialog({
+    required this.reminders,
+    required this.onOpenReminder,
+  });
+
+  @override
+  State<_MedicalFollowUpDialog> createState() =>
+      _MedicalFollowUpDialogState();
+}
+
+class _MedicalFollowUpDialogState
+    extends State<_MedicalFollowUpDialog> {
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  String _search = '';
+  _FollowUpFilter _filter = _FollowUpFilter.all;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<MedicalFollowUpReminder> get _filtered {
+    final query = _search.trim().toLowerCase();
+
+    return widget.reminders.where((reminder) {
+      if (query.isNotEmpty) {
+        final matches =
+            reminder.petName.toLowerCase().contains(query) ||
+            reminder.treatmentName.toLowerCase().contains(query);
+
+        if (!matches) {
+          return false;
+        }
+      }
+
+      final status = reminder.statusAt(DateTime.now());
+
+      switch (_filter) {
+        case _FollowUpFilter.all:
+          return true;
+        case _FollowUpFilter.overdue:
+          return status == FollowUpReminderStatus.overdue;
+        case _FollowUpFilter.dueSoon:
+          return status != FollowUpReminderStatus.overdue;
+      }
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    final width =
+        screen.width < 700 ? screen.width - 24 : 640.0;
+    final height =
+        screen.height < 760 ? screen.height - 24 : 690.0;
+
+    final reminders = _filtered;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(12),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(
+          color: AppColors.border,
+        ),
+      ),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                18,
+                17,
+                10,
+                12,
+              ),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 9,
-                          height: 9,
-                          margin:
-                              const EdgeInsets.only(
-                            top: 5,
-                          ),
-                          decoration:
-                              BoxDecoration(
-                            color: color,
-                            shape:
-                                BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.itemName,
-                                style:
-                                    const TextStyle(
-                                  fontSize: 12.8,
-                                  height: 1.3,
-                                  fontWeight:
-                                      FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(
-                                height: 7,
-                              ),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                crossAxisAlignment:
-                                    WrapCrossAlignment
-                                        .center,
-                                children: [
-                                  Text(
-                                    '${_formatQty(item.stockQty)} ${item.unitAbbr}',
-                                    style:
-                                        const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight:
-                                          FontWeight.w600,
-                                    ),
-                                  ),
-                                  statusBadge,
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        const Padding(
-                          padding:
-                              EdgeInsets.only(
-                            top: 2,
-                          ),
-                          child: Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: AppColors
-                                .mutedForeground,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        Container(
-                          width: 9,
-                          height: 9,
-                          decoration:
-                              BoxDecoration(
-                            color: color,
-                            shape:
-                                BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            item.itemName,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                            style:
-                                const TextStyle(
-                              fontSize: 12.8,
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
                         Text(
-                          '${_formatQty(item.stockQty)} ${item.unitAbbr}',
-                          style:
-                              const TextStyle(
-                            fontSize: 12,
-                            fontWeight:
-                                FontWeight.w600,
+                          'Medical Follow-up Reminders',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        statusBadge,
-                        const SizedBox(width: 5),
-                        const Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: AppColors
-                              .mutedForeground,
+                        SizedBox(height: 2),
+                        Text(
+                          'Overdue, today, and the next 7 days.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.mutedForeground,
+                          ),
                         ),
                       ],
                     ),
-            );
-          },
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                14,
+                16,
+                10,
+              ),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _search = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search animal or treatment',
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        size: 19,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.muted.withValues(
+                        alpha: 0.35,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 13,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppColors.border,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: AppColors.primary.withValues(
+                            alpha: 0.55,
+                          ),
+                          width: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: [
+                        _FilterChipButton(
+                          label: 'All',
+                          selected: _filter == _FollowUpFilter.all,
+                          onTap: () {
+                            setState(() {
+                              _filter = _FollowUpFilter.all;
+                            });
+                          },
+                        ),
+                        _FilterChipButton(
+                          label: 'Overdue',
+                          selected:
+                              _filter == _FollowUpFilter.overdue,
+                          onTap: () {
+                            setState(() {
+                              _filter = _FollowUpFilter.overdue;
+                            });
+                          },
+                        ),
+                        _FilterChipButton(
+                          label: 'Due Soon',
+                          selected:
+                              _filter == _FollowUpFilter.dueSoon,
+                          onTap: () {
+                            setState(() {
+                              _filter = _FollowUpFilter.dueSoon;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: reminders.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.event_available_outlined,
+                              size: 34,
+                              color: AppColors.mutedForeground,
+                            ),
+                            SizedBox(height: 9),
+                            Text(
+                              'No matching follow-ups',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 3),
+                            Text(
+                              'Try another search or filter.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.mutedForeground,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                      ),
+                      itemCount: reminders.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final reminder = reminders[index];
+
+                        return _MedicalFollowUpRow(
+                          reminder: reminder,
+                          onTap: () =>
+                              widget.onOpenReminder(reminder),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChipButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChipButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? AppColors.primary.withValues(alpha: 0.09)
+          : Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 11,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary.withValues(alpha: 0.35)
+                  : AppColors.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.8,
+              fontWeight: FontWeight.w600,
+              color:
+                  selected ? AppColors.primary : AppColors.foreground,
+            ),
+          ),
         ),
       ),
     );
@@ -1678,6 +2055,56 @@ class _InlineNotice extends StatelessWidget {
       ),
     );
   }
+}
+
+({String label, Color color}) _followUpMeta(
+  MedicalFollowUpReminder reminder,
+) {
+  switch (reminder.statusAt(DateTime.now())) {
+    case FollowUpReminderStatus.overdue:
+      return (
+        label: 'OVERDUE',
+        color: AppColors.stockOut,
+      );
+    case FollowUpReminderStatus.dueToday:
+      return (
+        label: 'DUE TODAY',
+        color: AppColors.warning,
+      );
+    case FollowUpReminderStatus.dueSoonUrgent:
+      final days = reminder.daysUntil(DateTime.now());
+      return (
+        label: days == 1 ? '1 DAY' : '$days DAYS',
+        color: AppColors.stockLow,
+      );
+    case FollowUpReminderStatus.dueSoon:
+      return (
+        label: 'DUE SOON',
+        color: AppColors.primary,
+      );
+  }
+}
+
+const _dashboardMonths = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+String _formatDashboardDate(
+  DateTime date,
+) {
+  return '${_dashboardMonths[date.month - 1]} '
+      '${date.day}, ${date.year}';
 }
 
 (String, Color) _priorityMeta(

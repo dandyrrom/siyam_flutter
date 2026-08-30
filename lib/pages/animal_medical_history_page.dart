@@ -36,6 +36,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
   final InventoryService _inventoryService = InventoryService();
 
   List<TreatmentRecord> _records = [];
+  List<TreatmentOccurrence> _occurrences = [];
   List<TreatmentItemUsed> _itemsUsed = [];
   List<InventoryItem> _inventoryItems = [];
 
@@ -44,6 +45,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
   bool _loading = true;
   bool _detailLoading = false;
   bool _addingItem = false;
+  bool _changingFollowUp = false;
 
   String? _error;
   String? _detailError;
@@ -63,7 +65,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
     // This page performs its own controlled refresh after adding an item.
     // Ignore DataBus pings while that write/refresh sequence is still active
     // so the page cannot start a second overlapping _load().
-    if (_addingItem) {
+    if (_addingItem || _changingFollowUp) {
       return;
     }
 
@@ -128,6 +130,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
         setState(() {
           _records = [];
           _selectedTreatment = null;
+          _occurrences = [];
           _itemsUsed = [];
           _inventoryItems = inventoryItems;
           _loading = false;
@@ -148,16 +151,21 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
               orElse: () => records.first,
             );
 
+      List<TreatmentOccurrence> selectedOccurrences = [];
       List<TreatmentItemUsed> selectedItems = [];
 
       String? detailError;
 
       try {
-        selectedItems = await _treatmentService.fetchItemsUsed(
-          selected.treatId,
-        );
+        final details = await Future.wait<Object?>([
+          _treatmentService.fetchOccurrences(selected.treatId),
+          _treatmentService.fetchItemsUsed(selected.treatId),
+        ]);
+
+        selectedOccurrences = details[0] as List<TreatmentOccurrence>;
+        selectedItems = details[1] as List<TreatmentItemUsed>;
       } catch (_) {
-        detailError = 'Could not load items used for this treatment.';
+        detailError = 'Could not load treatment administration history.';
       }
 
       if (!mounted) return;
@@ -168,6 +176,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
 
         _selectedTreatment = selected;
 
+        _occurrences = selectedOccurrences;
         _itemsUsed = selectedItems;
 
         _detailError = detailError;
@@ -213,9 +222,13 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
     });
 
     try {
-      final items = await _treatmentService.fetchItemsUsed(
-        treatment.treatId,
-      );
+      final details = await Future.wait<Object?>([
+        _treatmentService.fetchOccurrences(treatment.treatId),
+        _treatmentService.fetchItemsUsed(treatment.treatId),
+      ]);
+
+      final occurrences = details[0] as List<TreatmentOccurrence>;
+      final items = details[1] as List<TreatmentItemUsed>;
 
       if (!mounted) return;
 
@@ -230,6 +243,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
       }
 
       setState(() {
+        _occurrences = occurrences;
         _itemsUsed = items;
         _detailLoading = false;
       });
@@ -241,9 +255,10 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
       }
 
       setState(() {
+        _occurrences = [];
         _itemsUsed = [];
         _detailLoading = false;
-        _detailError = 'Could not load items used for this treatment.';
+        _detailError = 'Could not load treatment administration history.';
       });
     }
   }
@@ -267,9 +282,13 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
     });
 
     try {
-      final items = await _treatmentService.fetchItemsUsed(
-        treatment.treatId,
-      );
+      final details = await Future.wait<Object?>([
+        _treatmentService.fetchOccurrences(treatment.treatId),
+        _treatmentService.fetchItemsUsed(treatment.treatId),
+      ]);
+
+      final occurrences = details[0] as List<TreatmentOccurrence>;
+      final items = details[1] as List<TreatmentItemUsed>;
 
       if (!mounted) return;
 
@@ -282,6 +301,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
       }
 
       setState(() {
+        _occurrences = occurrences;
         _itemsUsed = items;
         _detailLoading = false;
       });
@@ -294,7 +314,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
 
       setState(() {
         _detailLoading = false;
-        _detailError = 'Could not load items used for this treatment.';
+        _detailError = 'Could not load treatment administration history.';
       });
     }
   }
@@ -419,6 +439,190 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
     }
   }
 
+  // ========================================================================
+  // FOLLOW-UP ACTIONS
+  // ========================================================================
+
+  // Opens the existing treatment-entry page in follow-up mode.
+  void _recordSelectedFollowUp() {
+    final treatment = _selectedTreatment;
+
+    if (treatment == null || !treatment.hasActiveFollowUp) {
+      return;
+    }
+
+    context.go(
+      '/medical-records/add?followUpTreatId=${Uri.encodeComponent(treatment.treatId)}',
+    );
+  }
+
+  // Moves the current reminder without creating a treatment administration.
+  Future<void> _rescheduleSelectedFollowUp() async {
+    final treatment = _selectedTreatment;
+    final currentDate = treatment?.nextFollowUpDate;
+
+    if (_changingFollowUp ||
+        treatment == null ||
+        currentDate == null ||
+        !treatment.hasActiveFollowUp) {
+      return;
+    }
+
+    final today = DateTime.now();
+    final firstDate = DateTime(today.year, today.month, today.day);
+    final endDate = treatment.followUpEndDate;
+
+    // A repeating schedule may already have reached its configured end date.
+    // Avoid opening a date picker with an invalid first/last date range.
+    if (endDate != null && endDate.isBefore(firstDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This follow-up schedule has reached its end date. Record the follow-up or stop the schedule.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final initialDate =
+        currentDate.isBefore(firstDate) ? firstDate : currentDate;
+    final lastDate = endDate ?? DateTime(2100);
+    final safeInitialDate =
+        initialDate.isAfter(lastDate) ? lastDate : initialDate;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: safeInitialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    _changingFollowUp = true;
+
+    try {
+      await _treatmentService.rescheduleFollowUp(
+        treatId: treatment.treatId,
+        nextDate: picked,
+      );
+
+      if (!mounted) return;
+      await _load(silent: true);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Follow-up reminder rescheduled.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not reschedule follow-up: $e'),
+        ),
+      );
+    } finally {
+      _changingFollowUp = false;
+    }
+  }
+
+  // Stops future reminders while preserving every administration in history.
+  Future<void> _stopSelectedFollowUp() async {
+    final treatment = _selectedTreatment;
+
+    if (_changingFollowUp ||
+        treatment == null ||
+        !treatment.hasActiveFollowUp) {
+      return;
+    }
+
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        title: const Text('Stop follow-up schedule?'),
+        content: SizedBox(
+          width: 430,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This stops future reminders only. Existing treatment history and inventory records are kept.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: reasonController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Reason (optional)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Stop Schedule'),
+          ),
+        ],
+      ),
+    );
+
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    _changingFollowUp = true;
+
+    try {
+      await _treatmentService.stopFollowUp(
+        treatId: treatment.treatId,
+        reason: reason.isEmpty ? null : reason,
+      );
+
+      if (!mounted) return;
+      await _load(silent: true);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Follow-up schedule stopped.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not stop follow-up schedule: $e'),
+        ),
+      );
+    } finally {
+      _changingFollowUp = false;
+    }
+  }
+
   // ==========================================================================
   // HELPERS
   // ==========================================================================
@@ -538,6 +742,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
                       const SizedBox(height: 18),
                       _TreatmentDetailPanel(
                         record: _selectedTreatment!,
+                        occurrences: _occurrences,
                         itemsUsed: _itemsUsed,
                         loading: _detailLoading,
                         error: _detailError,
@@ -545,6 +750,9 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
                         canAddItem: _inventoryItems.isNotEmpty,
                         onRetry: _refreshSelectedItems,
                         onAddItem: _openAddItemDialog,
+                        onRecordFollowUp: _recordSelectedFollowUp,
+                        onRescheduleFollowUp: _rescheduleSelectedFollowUp,
+                        onStopFollowUp: _stopSelectedFollowUp,
                       ),
                     ],
                   )
@@ -569,6 +777,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
                         flex: 7,
                         child: _TreatmentDetailPanel(
                           record: _selectedTreatment!,
+                          occurrences: _occurrences,
                           itemsUsed: _itemsUsed,
                           loading: _detailLoading,
                           error: _detailError,
@@ -576,6 +785,9 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
                           canAddItem: _inventoryItems.isNotEmpty,
                           onRetry: _refreshSelectedItems,
                           onAddItem: _openAddItemDialog,
+                          onRecordFollowUp: _recordSelectedFollowUp,
+                          onRescheduleFollowUp: _rescheduleSelectedFollowUp,
+                          onStopFollowUp: _stopSelectedFollowUp,
                         ),
                       ),
                     ],
@@ -800,7 +1012,7 @@ class _TreatmentHistoryPanel extends StatelessWidget {
 // LEFT: INDIVIDUAL TREATMENT CARD
 // ============================================================================
 
-class _TreatmentHistoryCard extends StatefulWidget {
+class _TreatmentHistoryCard extends StatelessWidget {
   final TreatmentRecord record;
   final bool selected;
   final VoidCallback onTap;
@@ -812,127 +1024,93 @@ class _TreatmentHistoryCard extends StatefulWidget {
   });
 
   @override
-  State<_TreatmentHistoryCard> createState() => _TreatmentHistoryCardState();
-}
+  Widget build(BuildContext context) {
+    final backgroundColor =
+        selected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.card;
 
-class _TreatmentHistoryCardState extends State<_TreatmentHistoryCard> {
-  bool _hovering = false;
+    final borderColor =
+        selected ? AppColors.primary.withValues(alpha: 0.45) : AppColors.border;
 
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final record = widget.record;
-
-    final backgroundColor = widget.selected
-        ? AppColors.primary.withValues(
-            alpha: 0.08,
-          )
-        : _hovering
-            ? AppColors.muted
-            : AppColors.card;
-
-    final borderColor = widget.selected
-        ? AppColors.primary.withValues(
-            alpha: 0.45,
-          )
-        : AppColors.border;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) {
-        if (!mounted) return;
-
-        setState(() {
-          _hovering = true;
-        });
-      },
-      onExit: (_) {
-        if (!mounted) return;
-
-        setState(() {
-          _hovering = false;
-        });
-      },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.onTap,
-          hoverColor: Colors.transparent,
-          borderRadius: BorderRadius.circular(
-            15,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: borderColor,
+              width: selected ? 1.4 : 1,
+            ),
           ),
-          child: AnimatedContainer(
-            duration: const Duration(
-              milliseconds: 130,
-            ),
-            width: double.infinity,
-            padding: const EdgeInsets.all(
-              14,
-            ),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(
-                15,
-              ),
-              border: Border.all(
-                color: borderColor,
-                width: widget.selected ? 1.4 : 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: widget.selected
-                        ? AppColors.primary.withValues(
-                            alpha: 0.12,
-                          )
-                        : AppColors.muted,
-                    borderRadius: BorderRadius.circular(
-                      10,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.medical_services_outlined,
-                    size: 17,
-                    color: widget.selected
-                        ? AppColors.primary
-                        : AppColors.mutedForeground,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.primary.withValues(alpha: 0.12)
+                      : AppColors.muted,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: Icon(
+                  Icons.medical_services_outlined,
+                  size: 17,
+                  color:
+                      selected ? AppColors.primary : AppColors.mutedForeground,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      record.treatName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Latest ${_formatDate(record.recDate)} · '
+                      '${record.administrationCount} '
+                      '${record.administrationCount == 1 ? 'administration' : 'administrations'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                    if (record.hasActiveFollowUp &&
+                        record.nextFollowUpDate != null) ...[
+                      const SizedBox(height: 5),
                       Text(
-                        record.treatName,
+                        'Next follow-up ${_formatDate(record.nextFollowUpDate!)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        _formatDate(
-                          record.recDate,
-                        ),
-                        style: const TextStyle(
                           fontSize: 11.5,
-                          color: AppColors.mutedForeground,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                    ] else ...[
+                      const SizedBox(height: 5),
                       Text(
                         record.performedByName.trim().isEmpty
                             ? 'Performed by not specified'
-                            : 'Performed by ${record.performedByName}',
+                            : 'Latest by ${record.performedByName}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -941,21 +1119,19 @@ class _TreatmentHistoryCardState extends State<_TreatmentHistoryCard> {
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+              if (selected)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Icon(
+                    Icons.check_circle,
+                    size: 17,
+                    color: AppColors.primary,
                   ),
                 ),
-                if (widget.selected)
-                  const Padding(
-                    padding: EdgeInsets.only(
-                      top: 8,
-                    ),
-                    child: Icon(
-                      Icons.check_circle,
-                      size: 17,
-                      color: AppColors.primary,
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -969,20 +1145,21 @@ class _TreatmentHistoryCardState extends State<_TreatmentHistoryCard> {
 
 class _TreatmentDetailPanel extends StatelessWidget {
   final TreatmentRecord record;
-
+  final List<TreatmentOccurrence> occurrences;
   final List<TreatmentItemUsed> itemsUsed;
-
   final bool loading;
   final bool addingItem;
   final bool canAddItem;
-
   final String? error;
-
   final VoidCallback onRetry;
   final VoidCallback onAddItem;
+  final VoidCallback onRecordFollowUp;
+  final Future<void> Function() onRescheduleFollowUp;
+  final Future<void> Function() onStopFollowUp;
 
   const _TreatmentDetailPanel({
     required this.record,
+    required this.occurrences,
     required this.itemsUsed,
     required this.loading,
     required this.error,
@@ -990,28 +1167,24 @@ class _TreatmentDetailPanel extends StatelessWidget {
     required this.canAddItem,
     required this.onRetry,
     required this.onAddItem,
+    required this.onRecordFollowUp,
+    required this.onRescheduleFollowUp,
+    required this.onStopFollowUp,
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ================================================================
-          // DETAIL HEADER
-          // ================================================================
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1019,12 +1192,8 @@ class _TreatmentDetailPanel extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(
-                    alpha: 0.08,
-                  ),
-                  borderRadius: BorderRadius.circular(
-                    12,
-                  ),
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.medical_services_outlined,
@@ -1046,7 +1215,9 @@ class _TreatmentDetailPanel extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Administered ${_formatDate(record.recDate)}',
+                      '${record.administrationCount} '
+                      '${record.administrationCount == 1 ? 'administration' : 'administrations'} · '
+                      'Latest ${_formatDate(record.recDate)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.mutedForeground,
@@ -1057,118 +1228,47 @@ class _TreatmentDetailPanel extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
-
-          // ================================================================
-          // TREATMENT INFORMATION
-          // ================================================================
-          LayoutBuilder(
-            builder: (
-              context,
-              constraints,
-            ) {
-              final stacked = constraints.maxWidth < 560;
-
-              if (stacked) {
-                return Column(
-                  children: [
-                    _FieldBlock(
-                      label: 'Performed by',
-                      value: record.performedByName.trim().isEmpty
-                          ? 'Not specified'
-                          : record.performedByName,
-                    ),
-                    const SizedBox(height: 12),
-                    _FieldBlock(
-                      label: 'Date administered',
-                      value: _formatDate(
-                        record.recDate,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _FieldBlock(
-                      label: 'Recorded by',
-                      value: record.recordedByName,
-                    ),
-                    const SizedBox(height: 12),
-                    _FieldBlock(
-                      label: 'Recorded date',
-                      value: _formatDate(
-                        record.loggedDate,
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              return Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _FieldBlock(
-                          label: 'Performed by',
-                          value: record.performedByName.trim().isEmpty
-                              ? 'Not specified'
-                              : record.performedByName,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _FieldBlock(
-                          label: 'Date administered',
-                          value: _formatDate(
-                            record.recDate,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _FieldBlock(
-                          label: 'Recorded by',
-                          value: record.recordedByName,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _FieldBlock(
-                          label: 'Recorded date',
-                          value: _formatDate(
-                            record.loggedDate,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-
           if (record.notes != null && record.notes!.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _FieldBlock(
-              label: 'Notes',
-              value: record.notes!.trim(),
+            const SizedBox(height: 18),
+            const Text(
+              'NOTES',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 13,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.muted.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                record.notes!.trim(),
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ],
-
+          if (record.followUpRequired) ...[
+            const SizedBox(height: 20),
+            _FollowUpSchedulePanel(
+              record: record,
+              onRecordFollowUp: onRecordFollowUp,
+              onReschedule: onRescheduleFollowUp,
+              onStop: onStopFollowUp,
+            ),
+          ],
           const SizedBox(height: 22),
-
           const Divider(height: 1),
-
           const SizedBox(height: 18),
-
-          // ================================================================
-          // ITEMS USED HEADER
-          // ================================================================
           Row(
             children: [
               const Expanded(
@@ -1176,7 +1276,7 @@ class _TreatmentDetailPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Items Used',
+                      'Administration History',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -1184,7 +1284,7 @@ class _TreatmentDetailPanel extends StatelessWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Medicine and supplies logged under this treatment.',
+                      'Each date is one actual treatment event with its own Staff and inventory usage.',
                       style: TextStyle(
                         fontSize: 11.5,
                         color: AppColors.mutedForeground,
@@ -1200,44 +1300,29 @@ class _TreatmentDetailPanel extends StatelessWidget {
                     ? const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(
-                        Icons.add,
-                        size: 16,
-                      ),
-                label: const Text(
-                  'Add Item',
-                ),
+                    : const Icon(Icons.add, size: 16),
+                label: const Text('Add Item'),
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
-          // ================================================================
-          // ITEMS USED CONTENT
-          // ================================================================
           if (loading)
             const Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: 28,
-              ),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(child: CircularProgressIndicator()),
             )
           else if (error != null)
             _DetailError(
               message: error!,
               onRetry: onRetry,
             )
-          else if (itemsUsed.isEmpty)
+          else if (occurrences.isEmpty)
             const _NoItemsUsed()
           else
-            _ItemsUsedList(
+            _AdministrationHistory(
+              occurrences: occurrences,
               items: itemsUsed,
             ),
         ],
@@ -1247,96 +1332,172 @@ class _TreatmentDetailPanel extends StatelessWidget {
 }
 
 // ============================================================================
-// FIELD BLOCK
+// FOLLOW-UP SCHEDULE PANEL
 // ============================================================================
 
-class _FieldBlock extends StatelessWidget {
-  final String label;
-  final String value;
+class _FollowUpSchedulePanel extends StatelessWidget {
+  final TreatmentRecord record;
+  final VoidCallback onRecordFollowUp;
+  final Future<void> Function() onReschedule;
+  final Future<void> Function() onStop;
 
-  const _FieldBlock({
-    required this.label,
-    required this.value,
+  const _FollowUpSchedulePanel({
+    required this.record,
+    required this.onRecordFollowUp,
+    required this.onReschedule,
+    required this.onStop,
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.7,
-            color: AppColors.mutedForeground,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 13,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.muted.withValues(
-              alpha: 0.55,
-            ),
-            borderRadius: BorderRadius.circular(
-              11,
-            ),
-            border: Border.all(
-              color: AppColors.border,
-            ),
-          ),
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+  Widget build(BuildContext context) {
+    final active = record.hasActiveFollowUp;
+    final next = record.nextFollowUpDate;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
 
-// ============================================================================
-// ITEMS USED
-// ============================================================================
+    String status = 'Completed';
+    Color statusColor = AppColors.primary;
 
-class _ItemsUsedList extends StatelessWidget {
-  final List<TreatmentItemUsed> items;
+    if (record.followUpStoppedAt != null) {
+      status = 'Stopped';
+      statusColor = AppColors.mutedForeground;
+    } else if (active && next != null) {
+      final due = DateTime(next.year, next.month, next.day);
+      final days = due.difference(todayDate).inDays;
 
-  const _ItemsUsedList({
-    required this.items,
-  });
+      if (days < 0) {
+        status = 'Overdue';
+        statusColor = Colors.red.shade700;
+      } else if (days == 0) {
+        status = 'Due Today';
+        statusColor = Colors.orange.shade800;
+      } else if (days <= 7) {
+        status = 'Due Soon';
+        statusColor = Colors.orange.shade700;
+      } else {
+        status = 'Upcoming';
+        statusColor = AppColors.primary;
+      }
+    }
 
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
+    String repeatText = 'One-time follow-up';
+
+    if (record.followUpType == FollowUpType.repeating &&
+        record.followUpIntervalValue != null &&
+        record.followUpIntervalUnit != null) {
+      final amount = record.followUpIntervalValue!;
+      repeatText = 'Every $amount '
+          '${followUpIntervalUnitLabel(record.followUpIntervalUnit!, amount: amount)}';
+    }
+
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.border,
+          color: AppColors.primary.withValues(alpha: 0.18),
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0)
-              const Divider(
-                height: 1,
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Follow-up Schedule',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            _TreatmentItemRow(
-              item: items[i],
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 18,
+            runSpacing: 10,
+            children: [
+              _CompactInfo(
+                label: 'NEXT FOLLOW-UP',
+                value: next == null ? 'None scheduled' : _formatDate(next),
+              ),
+              _CompactInfo(
+                label: 'REPEATS',
+                value: repeatText,
+              ),
+              if (record.followUpType == FollowUpType.repeating)
+                _CompactInfo(
+                  label: 'ENDS',
+                  value: record.followUpEndDate == null
+                      ? 'No end date'
+                      : _formatDate(record.followUpEndDate!),
+                ),
+            ],
+          ),
+          if (record.followUpNote != null &&
+              record.followUpNote!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              record.followUpNote!.trim(),
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ],
+          if (active) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: onRecordFollowUp,
+                  icon: const Icon(Icons.medical_services_outlined, size: 16),
+                  label: const Text('Record Follow-up Treatment'),
+                ),
+                OutlinedButton(
+                  onPressed: () => onReschedule(),
+                  child: const Text('Reschedule'),
+                ),
+                TextButton(
+                  onPressed: () => onStop(),
+                  child: const Text('Stop Schedule'),
+                ),
+              ],
+            ),
+          ] else if (record.followUpStoppedAt != null &&
+              record.followUpStopReason != null &&
+              record.followUpStopReason!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Reason: ${record.followUpStopReason!.trim()}',
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: AppColors.mutedForeground,
+              ),
             ),
           ],
         ],
@@ -1345,98 +1506,37 @@ class _ItemsUsedList extends StatelessWidget {
   }
 }
 
-class _TreatmentItemRow extends StatelessWidget {
-  final TreatmentItemUsed item;
+class _CompactInfo extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const _TreatmentItemRow({
-    required this.item,
+  const _CompactInfo({
+    required this.label,
+    required this.value,
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
-      ),
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 155,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(
-                    alpha: 0.07,
-                  ),
-                  borderRadius: BorderRadius.circular(
-                    9,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.medication_outlined,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.itemName,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Given by ${item.givenBy}',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '${formatQty(item.dispensedQty)} '
-                '${item.dispenseUnitAbbr}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 42,
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: AppColors.mutedForeground,
             ),
-            child: Wrap(
-              spacing: 14,
-              runSpacing: 5,
-              children: [
-                _SmallMeta(
-                  icon: Icons.calendar_today_outlined,
-                  text: 'Given ${_formatDate(item.consumedDate)}',
-                ),
-                _SmallMeta(
-                  icon: Icons.edit_note_outlined,
-                  text: 'Recorded by ${item.recordedByName} · '
-                      '${_formatDate(item.recordedDate)}',
-                ),
-              ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1445,36 +1545,183 @@ class _TreatmentItemRow extends StatelessWidget {
   }
 }
 
-class _SmallMeta extends StatelessWidget {
-  final IconData icon;
-  final String text;
+// ============================================================================
+// ADMINISTRATION HISTORY
+// ============================================================================
 
-  const _SmallMeta({
-    required this.icon,
-    required this.text,
+class _AdministrationHistory extends StatelessWidget {
+  final List<TreatmentOccurrence> occurrences;
+  final List<TreatmentItemUsed> items;
+
+  const _AdministrationHistory({
+    required this.occurrences,
+    required this.items,
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) {
+    return Column(
       children: [
-        Icon(
-          icon,
-          size: 13,
-          color: AppColors.mutedForeground,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.mutedForeground,
+        for (var i = 0; i < occurrences.length; i++) ...[
+          _AdministrationCard(
+            occurrence: occurrences[i],
+            items: items
+                .where(
+                  (item) => item.occurrenceId == occurrences[i].occurrenceId,
+                )
+                .toList(),
           ),
-        ),
+          if (i < occurrences.length - 1) const SizedBox(height: 10),
+        ],
       ],
+    );
+  }
+}
+
+class _AdministrationCard extends StatelessWidget {
+  final TreatmentOccurrence occurrence;
+  final List<TreatmentItemUsed> items;
+
+  const _AdministrationCard({
+    required this.occurrence,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.muted.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _formatDate(occurrence.administeredDate),
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      occurrence.administeredBy.trim().isEmpty
+                          ? 'Performed by not specified'
+                          : 'Performed by ${occurrence.administeredBy}',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (occurrence.isFollowUp)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'FOLLOW-UP',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Recorded by ${occurrence.recordedByName} · '
+            '${_formatDateTime(occurrence.recordedDate)}',
+            style: const TextStyle(
+              fontSize: 10.8,
+              color: AppColors.mutedForeground,
+            ),
+          ),
+          if (occurrence.scheduledDate != null && occurrence.isFollowUp) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Scheduled for ${_formatDate(occurrence.scheduledDate!)}',
+              style: const TextStyle(
+                fontSize: 10.8,
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ],
+          if (occurrence.notes != null &&
+              occurrence.notes!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              occurrence.notes!.trim(),
+              style: const TextStyle(fontSize: 11.5),
+            ),
+          ],
+          const SizedBox(height: 10),
+          const Text(
+            'Items used',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (items.isEmpty)
+            const Text(
+              'No linked items.',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.mutedForeground,
+              ),
+            )
+          else
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        item.itemName,
+                        style: const TextStyle(fontSize: 11.5),
+                      ),
+                    ),
+                    Text(
+                      '${formatQty(item.dispensedQty)} ${item.dispenseUnitAbbr}',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
     );
   }
 }
@@ -2152,6 +2399,18 @@ const _monthAbbrev = [
   'Nov',
   'Dec',
 ];
+
+String _formatDateTime(DateTime value) {
+  final local = value.toLocal();
+  final hour = local.hour == 0
+      ? 12
+      : local.hour > 12
+          ? local.hour - 12
+          : local.hour;
+  final minute = local.minute.toString().padLeft(2, '0');
+  final period = local.hour >= 12 ? 'PM' : 'AM';
+  return '${_formatDate(local)} · $hour:$minute $period';
+}
 
 String _formatDate(
   DateTime date,

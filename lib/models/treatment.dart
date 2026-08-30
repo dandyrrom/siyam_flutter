@@ -1,26 +1,143 @@
 import 'pet.dart';
 
-/// Mirrors a row in public.treatment, joined with the pet it was performed
-/// on. [recordedByUserId]/[recordedByName]/[loggedDate] come straight off
-/// `treatment` itself (who/when it was entered into the system);
-/// [performedByName]/[recDate] are the free text `givenby`/`consumeddate` off
-/// the first `treatment_item` row (who actually administered it and when --
-/// may differ from when it was logged; every item row in one Add Treatment
-/// submission shares the same value, since the form only collects one such
-/// pair per treatment).
+// =============================================================================
+// FOLLOW-UP TYPES
+// =============================================================================
+
+enum FollowUpType {
+  oneTime,
+  repeating,
+}
+
+FollowUpType? followUpTypeFromString(String? value) {
+  switch (value) {
+    case 'one_time':
+      return FollowUpType.oneTime;
+    case 'repeating':
+      return FollowUpType.repeating;
+    default:
+      return null;
+  }
+}
+
+String followUpTypeToString(FollowUpType value) {
+  switch (value) {
+    case FollowUpType.oneTime:
+      return 'one_time';
+    case FollowUpType.repeating:
+      return 'repeating';
+  }
+}
+
+enum FollowUpIntervalUnit {
+  days,
+  weeks,
+  months,
+  years,
+}
+
+FollowUpIntervalUnit? followUpIntervalUnitFromString(String? value) {
+  switch (value) {
+    case 'days':
+      return FollowUpIntervalUnit.days;
+    case 'weeks':
+      return FollowUpIntervalUnit.weeks;
+    case 'months':
+      return FollowUpIntervalUnit.months;
+    case 'years':
+      return FollowUpIntervalUnit.years;
+    default:
+      return null;
+  }
+}
+
+String followUpIntervalUnitToString(FollowUpIntervalUnit value) => value.name;
+
+String followUpIntervalUnitLabel(
+  FollowUpIntervalUnit value, {
+  int amount = 2,
+}) {
+  final plural = amount != 1;
+
+  switch (value) {
+    case FollowUpIntervalUnit.days:
+      return plural ? 'days' : 'day';
+    case FollowUpIntervalUnit.weeks:
+      return plural ? 'weeks' : 'week';
+    case FollowUpIntervalUnit.months:
+      return plural ? 'months' : 'month';
+    case FollowUpIntervalUnit.years:
+      return plural ? 'years' : 'year';
+  }
+}
+
+// =============================================================================
+// FOLLOW-UP SCHEDULE INPUT
+// =============================================================================
+
+/// Form-side schedule attached to one treatment series.
+///
+/// This is only a reminder schedule. Every actual follow-up administration is
+/// still recorded as a real treatment occurrence with inventory usage.
+class FollowUpScheduleInput {
+  final FollowUpType type;
+  final DateTime nextFollowUpDate;
+  final int? intervalValue;
+  final FollowUpIntervalUnit? intervalUnit;
+  final DateTime? endDate;
+  final String? note;
+
+  const FollowUpScheduleInput({
+    required this.type,
+    required this.nextFollowUpDate,
+    this.intervalValue,
+    this.intervalUnit,
+    this.endDate,
+    this.note,
+  });
+}
+
+// =============================================================================
+// TREATMENT RECORD
+// =============================================================================
+
+/// One treatment/series under an animal's medical history.
+///
+/// Example: "Anti-rabies" remains one [TreatmentRecord] even when it is
+/// administered again next year. Each actual administration is represented by
+/// a [TreatmentOccurrence].
 class TreatmentRecord {
   final String treatId;
   final String petId;
   final String petName;
   final PetSpecies petSpecies;
   final String? petBreed;
+
+  /// Latest administration's performer. Kept for compact list cards.
   final String performedByName;
+
   final String recordedByUserId;
   final String recordedByName;
   final String treatName;
   final String? notes;
+
+  /// Latest administration date. Existing UI uses this as the treatment's
+  /// activity date and sorts the animal's treatment list by it.
   final DateTime recDate;
+
   final DateTime loggedDate;
+  final int administrationCount;
+
+  final bool followUpRequired;
+  final FollowUpType? followUpType;
+  final DateTime? nextFollowUpDate;
+  final int? followUpIntervalValue;
+  final FollowUpIntervalUnit? followUpIntervalUnit;
+  final DateTime? followUpEndDate;
+  final String? followUpNote;
+  final bool followUpActive;
+  final DateTime? followUpStoppedAt;
+  final String? followUpStopReason;
 
   const TreatmentRecord({
     required this.treatId,
@@ -35,11 +152,63 @@ class TreatmentRecord {
     this.notes,
     required this.recDate,
     required this.loggedDate,
+    this.administrationCount = 1,
+    this.followUpRequired = false,
+    this.followUpType,
+    this.nextFollowUpDate,
+    this.followUpIntervalValue,
+    this.followUpIntervalUnit,
+    this.followUpEndDate,
+    this.followUpNote,
+    this.followUpActive = false,
+    this.followUpStoppedAt,
+    this.followUpStopReason,
+  });
+
+  bool get hasActiveFollowUp =>
+      followUpRequired && followUpActive && nextFollowUpDate != null;
+}
+
+// =============================================================================
+// TREATMENT OCCURRENCE
+// =============================================================================
+
+/// One actual administration inside a treatment series.
+///
+/// Multiple inventory items used at the same administration share the same
+/// occurrence ID, so the medical history can display the correct date, Staff,
+/// notes, and items together.
+class TreatmentOccurrence {
+  final String occurrenceId;
+  final String treatId;
+  final DateTime administeredDate;
+  final String administeredBy;
+  final String recordedByUserId;
+  final String recordedByName;
+  final DateTime recordedDate;
+  final String? notes;
+  final bool isFollowUp;
+  final DateTime? scheduledDate;
+
+  const TreatmentOccurrence({
+    required this.occurrenceId,
+    required this.treatId,
+    required this.administeredDate,
+    required this.administeredBy,
+    required this.recordedByUserId,
+    required this.recordedByName,
+    required this.recordedDate,
+    this.notes,
+    required this.isFollowUp,
+    this.scheduledDate,
   });
 }
 
-/// A single item consumed during a treatment -- the full set of
-/// TREATMENT_ITEM columns (joined with item for its name).
+// =============================================================================
+// TREATMENT ITEM USED
+// =============================================================================
+
+/// One inventory item consumed during one treatment occurrence.
 class TreatmentItemUsed {
   final String itemId;
   final String itemName;
@@ -49,6 +218,7 @@ class TreatmentItemUsed {
   final String givenBy;
   final String recordedByName;
   final DateTime recordedDate;
+  final String? occurrenceId;
 
   const TreatmentItemUsed({
     required this.itemId,
@@ -59,28 +229,25 @@ class TreatmentItemUsed {
     required this.givenBy,
     required this.recordedByName,
     required this.recordedDate,
+    this.occurrenceId,
   });
 }
 
-/// Form-side input for one row in the "items used" list while logging a
-/// treatment, before it's written to treatment_item.
-///
-/// The dose unit is NOT chosen per-transaction -- it's fixed to the item's
-/// own configuration ([doseUnitId]/[doseUnitAbbr], resolved as
-/// dispense_unit, falling back to package_unit then purchase_unit).
-/// [deductible] mirrors [InventoryItem.stockOutIsDeductible] at the time the
-/// row was added: when false, the usage is still logged on treatment_item,
-/// but stock isn't touched, since there's no known conversion between the
-/// item's package_unit and dispense_unit.
+// =============================================================================
+// FORM ITEM INPUT
+// =============================================================================
+
+/// Form-side input for one row in the "items used" list before it is written
+/// to treatment_item.
 class TreatmentItemInput {
   final String itemId;
   final String itemName;
   final String doseUnitId;
   final String doseUnitAbbr;
   final bool deductible;
-  final double stockQty; // current total_purchase_stocks, for validation
-  final double? packageQuantity; // for converting dose -> purchase_units
-  final double? packageStockQty; // current total_package_stocks, for validation
+  final double stockQty;
+  final double? packageQuantity;
+  final double? packageStockQty;
   double qty;
 
   TreatmentItemInput({
