@@ -836,11 +836,13 @@ class _SettingsPageState
           ),
           const SizedBox(height: 16),
 
-          _RopOverridesSection(
-            defaultLeadTimeDays:
-                _defaultLeadTimeDays,
-            defaultSafetyStockQty:
-                _defaultSafetyStockQty,
+          RepaintBoundary(
+            child: _RopOverridesSection(
+              defaultLeadTimeDays:
+                  _defaultLeadTimeDays,
+              defaultSafetyStockQty:
+                  _defaultSafetyStockQty,
+            ),
           ),
 
           const SizedBox(height: 40),
@@ -868,7 +870,9 @@ class _SettingsPageState
           ),
           const SizedBox(height: 20),
 
-          const _CategoryManagementSection(),
+          const RepaintBoundary(
+            child: _CategoryManagementSection(),
+          ),
 
           const SizedBox(height: 40),
 
@@ -895,7 +899,9 @@ class _SettingsPageState
           ),
           const SizedBox(height: 20),
 
-          const _UnitManagementSection(),
+          const RepaintBoundary(
+            child: _UnitManagementSection(),
+          ),
 
           const SizedBox(height: 40),
               ],
@@ -3585,6 +3591,7 @@ class _PrimaryCategoryCardState
       TextEditingController();
 
   String _filter = '';
+  bool _expanded = false;
 
   // Disposes the subcategory filter controller.
   @override
@@ -3614,19 +3621,21 @@ class _PrimaryCategoryCardState
     BuildContext context,
   ) {
     final visibleSubs =
-        _filter.isEmpty
-            ? widget.subcategories
-            : widget
-                .subcategories
-                .where(
-                  (s) => s.type
-                      .toLowerCase()
-                      .contains(
-                        _filter
-                            .toLowerCase(),
-                      ),
-                )
-                .toList();
+        !_expanded
+            ? const <Subcategory>[]
+            : _filter.isEmpty
+                ? widget.subcategories
+                : widget
+                    .subcategories
+                    .where(
+                      (s) => s.type
+                          .toLowerCase()
+                          .contains(
+                            _filter
+                                .toLowerCase(),
+                          ),
+                    )
+                    .toList();
 
     return Card(
       margin: EdgeInsets.zero,
@@ -3653,6 +3662,11 @@ class _PrimaryCategoryCardState
               Colors.transparent,
         ),
         child: ExpansionTile(
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _expanded = expanded;
+            });
+          },
           tilePadding:
               const EdgeInsets.only(
             left: 16,
@@ -3711,7 +3725,9 @@ class _PrimaryCategoryCardState
               ),
             ],
           ),
-          children: [
+          children: !_expanded
+              ? const <Widget>[]
+              : [
             SwitchListTile(
               title: const Text(
                 'Requires expiry date',
@@ -4277,6 +4293,7 @@ class _UnitManagementSectionState
                       )
                     : ListView
                         .separated(
+                        primary: false,
                         shrinkWrap:
                             true,
                         padding:
