@@ -46,7 +46,9 @@ class SupabaseAuthService implements AuthService {
   // MAP USER
   // ==========================================================================
 
-  AppUser _mapUser(Map<String, dynamic> row) {
+  AppUser _mapUser(
+    Map<String, dynamic> row,
+  ) {
     return AppUser(
       userId: row['id'] as String,
       firstName: (row['fname'] as String?) ?? '',
@@ -117,8 +119,7 @@ class SupabaseAuthService implements AuthService {
     final result = await _client.rpc(
       'replace_user_session',
       params: {
-        'previous_session_id':
-            previousSessionId,
+        'previous_session_id': previousSessionId,
       },
     );
 
@@ -157,9 +158,7 @@ class SupabaseAuthService implements AuthService {
 
       final text = value.toString().trim();
 
-      return text.isEmpty
-          ? null
-          : text;
+      return text.isEmpty ? null : text;
     } catch (_) {
       return null;
     }
@@ -205,17 +204,17 @@ class SupabaseAuthService implements AuthService {
         password: password,
       );
     } on AuthException catch (e) {
-      final code =
-          e.code?.trim().toLowerCase();
+      final code = e.code?.trim().toLowerCase();
 
-      final message =
-          e.message.trim().toLowerCase();
+      final message = e.message.trim().toLowerCase();
 
       // Supabase exposes a stable Auth error code for this case.
       // Check the code first, then keep the message check as a compatibility
       // fallback for environments where the code is unexpectedly absent.
       if (code == 'email_not_confirmed' ||
-          message.contains('email not confirmed')) {
+          message.contains(
+            'email not confirmed',
+          )) {
         throw Exception(
           'Please confirm your email before signing in.',
         );
@@ -234,8 +233,7 @@ class SupabaseAuthService implements AuthService {
 
     final userId = res.user?.id;
 
-    if (userId == null ||
-        res.session == null) {
+    if (userId == null || res.session == null) {
       await _client.auth.signOut(
         scope: SignOutScope.local,
       );
@@ -263,8 +261,7 @@ class SupabaseAuthService implements AuthService {
       await _rejectDisabledLogin();
     }
 
-    final claimed =
-        await _claimCurrentSession();
+    final claimed = await _claimCurrentSession();
 
     if (!claimed) {
       await _rejectSecondLogin();
@@ -296,15 +293,16 @@ class SupabaseAuthService implements AuthService {
   @override
   Future<AppUser?> restoreSession() async {
     // Prefer the currently restored in-memory Supabase session.
-    var userId =
-        _client.auth.currentSession?.user.id;
+    var userId = _client.auth.currentSession?.user.id;
 
     // If recoverSession() is still completing after app initialization,
     // briefly wait for the first authentication event.
     if (userId == null) {
       try {
         final event = await _client.auth.onAuthStateChange.first.timeout(
-          const Duration(seconds: 2),
+          const Duration(
+            seconds: 2,
+          ),
         );
 
         userId = event.session?.user.id;
@@ -314,19 +312,16 @@ class SupabaseAuthService implements AuthService {
         // Fall through and check currentSession one more time.
       }
 
-      userId ??=
-          _client.auth.currentSession?.user.id;
+      userId ??= _client.auth.currentSession?.user.id;
     }
 
     if (userId == null) {
       return null;
     }
 
-    final profile =
-        await fetchProfile(userId);
+    final profile = await fetchProfile(userId);
 
-    if (profile == null ||
-        !profile.isActive) {
+    if (profile == null || !profile.isActive) {
       await _client.auth.signOut(
         scope: SignOutScope.local,
       );
@@ -334,8 +329,7 @@ class SupabaseAuthService implements AuthService {
       return null;
     }
 
-    final claimed =
-        await _claimCurrentSession();
+    final claimed = await _claimCurrentSession();
 
     if (!claimed) {
       await _client.auth.signOut(
@@ -366,8 +360,7 @@ class SupabaseAuthService implements AuthService {
       res = await _client.auth.signUp(
         email: email.trim(),
         password: password,
-        emailRedirectTo:
-            _emailConfirmationRedirectUrl(),
+        emailRedirectTo: _emailConfirmationRedirectUrl(),
         data: {
           'first_name': firstName,
           'last_name': lastName,
@@ -391,8 +384,7 @@ class SupabaseAuthService implements AuthService {
     final profile = await fetchProfile(userId);
 
     if (res.session != null) {
-      final claimed =
-          await _claimCurrentSession();
+      final claimed = await _claimCurrentSession();
 
       if (!claimed) {
         await _rejectSecondLogin();
@@ -440,7 +432,9 @@ class SupabaseAuthService implements AuthService {
     return row == null
         ? null
         : _mapUser(
-            Map<String, dynamic>.from(row),
+            Map<String, dynamic>.from(
+              row,
+            ),
           );
   }
 
@@ -456,8 +450,7 @@ class SupabaseAuthService implements AuthService {
       return [];
     }
 
-    final roleNames =
-        roles.map(appRoleToString).toList();
+    final roleNames = roles.map(appRoleToString).toList();
 
     final rows = await _client
         .from(_table)
@@ -471,7 +464,9 @@ class SupabaseAuthService implements AuthService {
     return rows
         .map(
           (row) => _mapUser(
-            Map<String, dynamic>.from(row),
+            Map<String, dynamic>.from(
+              row,
+            ),
           ),
         )
         .toList();
@@ -508,9 +503,7 @@ class SupabaseAuthService implements AuthService {
         return a.isActive ? -1 : 1;
       }
 
-      final byFirst = a.firstName
-          .toLowerCase()
-          .compareTo(
+      final byFirst = a.firstName.toLowerCase().compareTo(
             b.firstName.toLowerCase(),
           );
 
@@ -518,14 +511,96 @@ class SupabaseAuthService implements AuthService {
         return byFirst;
       }
 
-      return a.lastName
-          .toLowerCase()
-          .compareTo(
+      return a.lastName.toLowerCase().compareTo(
             b.lastName.toLowerCase(),
           );
     });
 
     return staff;
+  }
+
+  // ==========================================================================
+  // MANAGER: CREATE STAFF ACCOUNT
+  // ==========================================================================
+
+  @override
+  Future<AppUser> createStaffAccount({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    String? contactNum,
+  }) async {
+    final session = _client.auth.currentSession;
+
+    if (session == null) {
+      throw Exception(
+        'You are not signed in.',
+      );
+    }
+
+    try {
+      final response = await _client.functions.invoke(
+        'create-staff-account',
+        headers: {
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
+        body: {
+          'firstName': firstName.trim(),
+          'lastName': lastName.trim(),
+          'email': email.trim().toLowerCase(),
+          'password': password,
+          'contactNum': contactNum?.trim() ?? '',
+        },
+      );
+
+      final data = response.data;
+
+      if (data is! Map) {
+        throw Exception(
+          'Could not create the Staff account.',
+        );
+      }
+
+      final responseData = Map<String, dynamic>.from(data);
+
+      final userData = responseData['user'];
+
+      if (userData is! Map) {
+        throw Exception(
+          responseData['error']?.toString() ??
+              'Could not create the Staff account.',
+        );
+      }
+
+      final staff = _mapUser(
+        Map<String, dynamic>.from(
+          userData,
+        ),
+      );
+
+      if (staff.role != AppRole.staff) {
+        throw Exception(
+          'The created account was not assigned the Staff role.',
+        );
+      }
+
+      DataChangeBus.instance.ping();
+
+      return staff;
+    } on FunctionException catch (e) {
+      final details = e.details;
+
+      if (details is Map && details['error'] != null) {
+        throw Exception(
+          details['error'].toString(),
+        );
+      }
+
+      throw Exception(
+        'Could not create the Staff account.',
+      );
+    }
   }
 
   // ==========================================================================
@@ -577,7 +652,9 @@ class SupabaseAuthService implements AuthService {
         .single();
 
     return _mapUser(
-      Map<String, dynamic>.from(row),
+      Map<String, dynamic>.from(
+        row,
+      ),
     );
   }
 
@@ -614,14 +691,11 @@ class SupabaseAuthService implements AuthService {
     // CURRENT AUTHENTICATED USER
     // ------------------------------------------------------------------------
 
-    final currentUser =
-        _client.auth.currentUser;
+    final currentUser = _client.auth.currentUser;
 
-    final currentSession =
-        _client.auth.currentSession;
+    final currentSession = _client.auth.currentSession;
 
-    if (currentUser == null ||
-        currentSession == null) {
+    if (currentUser == null || currentSession == null) {
       throw Exception(
         'You are not signed in.',
       );
@@ -643,8 +717,7 @@ class SupabaseAuthService implements AuthService {
 
     final email = currentUser.email;
 
-    if (email == null ||
-        email.trim().isEmpty) {
+    if (email == null || email.trim().isEmpty) {
       throw Exception(
         'No email address is associated with this account.',
       );
@@ -672,8 +745,7 @@ class SupabaseAuthService implements AuthService {
       );
     }
 
-    final previousSessionId =
-        _sessionIdFromAccessToken(
+    final previousSessionId = _sessionIdFromAccessToken(
       currentSession.accessToken,
     );
 
@@ -706,8 +778,7 @@ class SupabaseAuthService implements AuthService {
 
     // Re-authentication may create/rotate the Supabase session_id.
     // Move SIYAM's active-device lock from the old session to this new one.
-    final replaced =
-        await _replaceCurrentSession(
+    final replaced = await _replaceCurrentSession(
       previousSessionId,
     );
 

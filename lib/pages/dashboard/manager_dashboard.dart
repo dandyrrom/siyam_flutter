@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -67,8 +67,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   // ===========================================================================
 
   Future<void> _load({bool silent = false}) async {
-    final authController =
-        Provider.of<AuthController>(context, listen: false);
+    final authController = Provider.of<AuthController>(context, listen: false);
 
     if (!authController.isAuthenticated) {
       if (!silent && mounted) {
@@ -108,8 +107,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
               errorStr.contains('auth') ||
               errorStr.contains('permission denied') ||
               errorStr.contains('unauthorized')) {
-            _error =
-                'Your session may have expired. Please refresh the page.';
+            _error = 'Your session may have expired. Please refresh the page.';
           } else {
             _error = 'Could not load dashboard: $e';
           }
@@ -214,8 +212,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   // ===========================================================================
 
   Future<void> _openInventoryOverviewDialog() async {
-    if (_inventoryOverviewDialogOpen ||
-        _stats == null) {
+    if (_inventoryOverviewDialogOpen || _stats == null) {
       return;
     }
 
@@ -241,8 +238,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final authController =
-        Provider.of<AuthController>(context);
+    final authController = Provider.of<AuthController>(context);
 
     if (!authController.isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -265,8 +261,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
       );
     }
 
-    final displayName =
-        _getUserDisplayName(authController);
+    final displayName = _getUserDisplayName(authController);
 
     return RefreshIndicator(
       onRefresh: _refreshData,
@@ -282,10 +277,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
             Text(
               'Welcome, $displayName!',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: AppColors.foreground,
                   ),
@@ -295,15 +287,25 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
             Text(
               'Monitor sanctuary operations, inventory alerts, and records requiring attention.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.mutedForeground,
                   ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            if (_loading && _error == null) ...[
+              const ClipRRect(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(999),
+                ),
+                child: LinearProgressIndicator(
+                  minHeight: 3,
+                ),
+              ),
+              const SizedBox(height: 18),
+            ] else
+              const SizedBox(height: 4),
 
             // =================================================================
             // ERROR STATE
@@ -333,10 +335,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
               Text(
                 'Management Overview',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.foreground,
                     ),
@@ -348,51 +347,35 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                 cards: [
                   StatCard(
                     label: 'Total Animals',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.totalAnimals}',
+                    value: _loading ? '—' : '${_stats!.totalAnimals}',
                     icon: Icons.pets_outlined,
                     accent: AppColors.roleManager,
                     tooltip: 'Open animal records',
-                    onTap: _loading
-                        ? null
-                        : () => _goTo('/animal-records'),
+                    onTap: _loading ? null : () => _goTo('/animal-records'),
                   ),
                   StatCard(
                     label: 'Suppliers',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.totalSuppliers}',
+                    value: _loading ? '—' : '${_stats!.totalSuppliers}',
                     icon: Icons.local_shipping_outlined,
                     accent: AppColors.roleManager,
                     tooltip: 'Open suppliers',
-                    onTap: _loading
-                        ? null
-                        : () => _goTo('/suppliers'),
+                    onTap: _loading ? null : () => _goTo('/suppliers'),
                   ),
                   StatCard(
                     label: 'Pending Submissions',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.pendingSubmissions}',
+                    value: _loading ? '—' : '${_stats!.pendingSubmissions}',
                     icon: Icons.fact_check_outlined,
                     accent: AppColors.roleManager,
                     tooltip: 'Open donation submissions',
-                    onTap: _loading
-                        ? null
-                        : () => _goTo('/donations'),
+                    onTap: _loading ? null : () => _goTo('/donations'),
                   ),
                   StatCard(
                     label: 'Staff Accounts',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.staffAccounts}',
+                    value: _loading ? '—' : '${_stats!.staffAccounts}',
                     icon: Icons.badge_outlined,
                     accent: AppColors.roleManager,
                     tooltip: 'View Staff accounts',
-                    onTap: _loading
-                        ? null
-                        : _openStaffAccountsDialog,
+                    onTap: _loading ? null : _openStaffAccountsDialog,
                   ),
                 ],
               ),
@@ -405,10 +388,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
               Text(
                 'Inventory Status',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.foreground,
                     ),
@@ -420,39 +400,27 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                 cards: [
                   StatCard(
                     label: 'Total Inventory Items',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.totalItems}',
+                    value: _loading ? '—' : '${_stats!.totalItems}',
                     icon: Icons.inventory_2_outlined,
                     accent: AppColors.roleManager,
                     tooltip: 'View inventory overview',
-                    onTap: _loading
-                        ? null
-                        : _openInventoryOverviewDialog,
+                    onTap: _loading ? null : _openInventoryOverviewDialog,
                   ),
-          StatCard(
-  label: 'Zero Stock',
-  value: _loading
-      ? '—'
-      : '${_stats!.zeroStockCount}',
-  icon: Icons.remove_shopping_cart_outlined,
-  accent: AppColors.destructive,
-  tooltip: 'Open zero-stock notifications',
-  onTap: _loading
-      ? null
-      : () => _goTo('/notifications'),
-),
+                  StatCard(
+                    label: 'Zero Stock',
+                    value: _loading ? '—' : '${_stats!.zeroStockCount}',
+                    icon: Icons.remove_shopping_cart_outlined,
+                    accent: AppColors.destructive,
+                    tooltip: 'Open zero-stock notifications',
+                    onTap: _loading ? null : () => _goTo('/notifications'),
+                  ),
                   StatCard(
                     label: 'Low Stock',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.lowStockCount}',
+                    value: _loading ? '—' : '${_stats!.lowStockCount}',
                     icon: Icons.warning_amber_outlined,
                     accent: AppColors.warning,
                     tooltip: 'View low-stock items',
-                    onTap: _loading
-                        ? null
-                        : _scrollToReplenishment,
+                    onTap: _loading ? null : _scrollToReplenishment,
                   ),
 
                   // ===========================================================
@@ -461,15 +429,11 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
                   StatCard(
                     label: 'Expiry Alerts',
-                    value: _loading
-                        ? '—'
-                        : '${_stats!.expiringSoonCount}',
+                    value: _loading ? '—' : '${_stats!.expiringSoonCount}',
                     icon: Icons.event_busy_outlined,
                     accent: AppColors.warning,
                     tooltip: 'Open expiry notifications',
-                    onTap: _loading
-                        ? null
-                        : () => _goTo('/notifications'),
+                    onTap: _loading ? null : () => _goTo('/notifications'),
                   ),
                 ],
               ),
@@ -480,9 +444,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
               if (!_loading &&
                   _stats!.pendingSubmissions > 0 &&
-                  _stats!.zeroStockCount +
-                          _stats!.lowStockCount ==
-                      0) ...[
+                  _stats!.zeroStockCount + _stats!.lowStockCount == 0) ...[
                 const SizedBox(height: 12),
                 _InfoBanner(
                   icon: Icons.inbox_outlined,
@@ -504,10 +466,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                   children: [
                     Text(
                       'Replenishment List',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                     ),
@@ -516,8 +475,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
                       'Items requiring stock attention. This overview is read-only for Managers.',
                       style: TextStyle(
                         fontSize: 12.5,
-                        color:
-                            AppColors.mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -532,17 +490,34 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
               if (_loading)
                 const SizedBox(
-                  height: 120,
+                  height: 110,
                   child: Center(
-                    child: CircularProgressIndicator(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Loading inventory status...',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.mutedForeground,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               else
                 _ReplenishmentAlerts(
-                  zeroStockItems:
-                      _stats!.zeroStockItems,
-                  lowStockItems:
-                      _stats!.lowStockItems,
+                  zeroStockItems: _stats!.zeroStockItems,
+                  lowStockItems: _stats!.lowStockItems,
                 ),
             ],
           ],
@@ -567,18 +542,12 @@ class _InventoryOverviewDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
 
-    final dialogWidth =
-        screen.width < 560
-            ? screen.width - 72
-            : 470.0;
+    final dialogWidth = screen.width < 560 ? screen.width - 72 : 470.0;
 
     final itemsWithStock =
-        (stats.totalItems - stats.zeroStockCount)
-            .clamp(0, stats.totalItems);
+        (stats.totalItems - stats.zeroStockCount).clamp(0, stats.totalItems);
 
-    final stockAttention =
-        stats.zeroStockCount +
-            stats.lowStockCount;
+    final stockAttention = stats.zeroStockCount + stats.lowStockCount;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(
@@ -604,20 +573,17 @@ class _InventoryOverviewDialog extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.secondary,
-                  borderRadius:
-                      BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.visibility_outlined,
@@ -631,77 +597,53 @@ class _InventoryOverviewDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11.5,
                           height: 1.35,
-                          color:
-                              AppColors.foreground,
+                          color: AppColors.foreground,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
               _InventoryOverviewRow(
                 label: 'Total Inventory Items',
                 value: '${stats.totalItems}',
-                icon:
-                    Icons.inventory_2_outlined,
-                accent:
-                    AppColors.roleManager,
+                icon: Icons.inventory_2_outlined,
+                accent: AppColors.roleManager,
               ),
-
               const SizedBox(height: 8),
-
               _InventoryOverviewRow(
                 label: 'Items With Stock',
                 value: '$itemsWithStock',
-                icon:
-                    Icons.check_circle_outline,
+                icon: Icons.check_circle_outline,
                 accent: AppColors.sageGreen,
               ),
-
               const SizedBox(height: 8),
-
               _InventoryOverviewRow(
                 label: 'Low Stock',
                 value: '${stats.lowStockCount}',
-                icon:
-                    Icons.warning_amber_outlined,
+                icon: Icons.warning_amber_outlined,
                 accent: AppColors.warning,
               ),
-
               const SizedBox(height: 8),
-
               _InventoryOverviewRow(
                 label: 'Zero Stock',
-                value:
-                    '${stats.zeroStockCount}',
-                icon: Icons
-                    .remove_shopping_cart_outlined,
-                accent:
-                    AppColors.destructive,
+                value: '${stats.zeroStockCount}',
+                icon: Icons.remove_shopping_cart_outlined,
+                accent: AppColors.destructive,
               ),
-
               const SizedBox(height: 8),
-
               _InventoryOverviewRow(
-                label:
-                    'Items Requiring Stock Attention',
+                label: 'Items Requiring Stock Attention',
                 value: '$stockAttention',
-                icon:
-                    Icons.priority_high_rounded,
+                icon: Icons.priority_high_rounded,
                 accent: AppColors.warning,
               ),
-
               const SizedBox(height: 8),
-
               _InventoryOverviewRow(
                 label: 'Expiry Alerts',
-                value:
-                    '${stats.expiringSoonCount}',
-                icon:
-                    Icons.event_busy_outlined,
+                value: '${stats.expiringSoonCount}',
+                icon: Icons.event_busy_outlined,
                 accent: AppColors.warning,
               ),
             ],
@@ -724,8 +666,7 @@ class _InventoryOverviewDialog extends StatelessWidget {
 // INVENTORY OVERVIEW ROW
 // =============================================================================
 
-class _InventoryOverviewRow
-    extends StatelessWidget {
+class _InventoryOverviewRow extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
@@ -748,8 +689,7 @@ class _InventoryOverviewRow
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
@@ -761,10 +701,8 @@ class _InventoryOverviewRow
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color:
-                  accent.withValues(alpha: 0.10),
-              borderRadius:
-                  BorderRadius.circular(9),
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(
               icon,
@@ -772,22 +710,17 @@ class _InventoryOverviewRow
               color: accent,
             ),
           ),
-
           const SizedBox(width: 11),
-
           Expanded(
             child: Text(
               label,
               style: const TextStyle(
                 fontSize: 12.5,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           Text(
             value,
             style: TextStyle(
@@ -816,20 +749,17 @@ class _StaffAccountsDialog extends StatefulWidget {
   });
 
   @override
-  State<_StaffAccountsDialog> createState() =>
-      _StaffAccountsDialogState();
+  State<_StaffAccountsDialog> createState() => _StaffAccountsDialogState();
 }
 
-class _StaffAccountsDialogState
-    extends State<_StaffAccountsDialog> {
+class _StaffAccountsDialogState extends State<_StaffAccountsDialog> {
   List<AppUser> _staff = [];
 
   bool _loading = true;
   String? _error;
   String? _changingUserId;
 
-  final ScrollController _staffScrollController =
-      ScrollController();
+  final ScrollController _staffScrollController = ScrollController();
 
   @override
   void initState() {
@@ -844,9 +774,7 @@ class _StaffAccountsDialogState
   }
 
   String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst('Exception: ', '');
+    return error.toString().replaceFirst('Exception: ', '');
   }
 
   Future<void> _load() async {
@@ -856,8 +784,7 @@ class _StaffAccountsDialogState
     });
 
     try {
-      final staff =
-          await widget.service.fetchStaffAccounts();
+      final staff = await widget.service.fetchStaffAccounts();
 
       if (!mounted) return;
 
@@ -873,6 +800,43 @@ class _StaffAccountsDialogState
         _loading = false;
       });
     }
+  }
+
+  // Opens the Manager-only form for creating a real Staff account.
+  Future<void> _openAddStaffAccountDialog() async {
+    if (_changingUserId != null) {
+      return;
+    }
+
+    final created = await showDialog<AppUser>(
+      context: context,
+      builder: (dialogContext) {
+        return _AddStaffAccountDialog(
+          service: widget.service,
+        );
+      },
+    );
+
+    if (created == null || !mounted) {
+      return;
+    }
+
+    await _load();
+
+    if (!mounted) return;
+
+    widget.onAccountsChanged();
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '${created.fullName} Staff account created successfully.',
+          ),
+          backgroundColor: AppColors.sageGreen,
+        ),
+      );
   }
 
   Future<void> _changeAccountStatus(
@@ -892,9 +856,7 @@ class _StaffAccountsDialogState
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            willEnable
-                ? 'Enable Staff account?'
-                : 'Disable Staff account?',
+            willEnable ? 'Enable Staff account?' : 'Disable Staff account?',
           ),
           content: ConstrainedBox(
             constraints: const BoxConstraints(
@@ -919,9 +881,8 @@ class _StaffAccountsDialogState
                 Navigator.of(confirmContext).pop(true);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: willEnable
-                    ? AppColors.sageGreen
-                    : AppColors.destructive,
+                backgroundColor:
+                    willEnable ? AppColors.sageGreen : AppColors.destructive,
               ),
               child: Text(
                 willEnable ? 'Enable' : 'Disable',
@@ -932,8 +893,7 @@ class _StaffAccountsDialogState
       },
     );
 
-    if (confirmed != true ||
-        !mounted) {
+    if (confirmed != true || !mounted) {
       return;
     }
 
@@ -993,30 +953,22 @@ class _StaffAccountsDialogState
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
 
-    final compactRows =
-        screen.width < 520;
+    final compactRows = screen.width < 520;
 
-    final dialogWidth =
-        compactRows
-            ? screen.width - 32
-            : 600.0;
+    final dialogWidth = compactRows ? screen.width - 32 : 600.0;
 
-    final availableContentHeight =
-        screen.height - (compactRows ? 190 : 180);
+    final availableContentHeight = screen.height - (compactRows ? 190 : 180);
 
-    final dialogHeight =
-        availableContentHeight
-            .clamp(
-              compactRows ? 280.0 : 360.0,
-              compactRows ? 520.0 : 540.0,
-            )
-            .toDouble();
+    final dialogHeight = availableContentHeight
+        .clamp(
+          compactRows ? 280.0 : 360.0,
+          compactRows ? 520.0 : 540.0,
+        )
+        .toDouble();
 
-    final activeCount =
-        _staff.where((user) => user.isActive).length;
+    final activeCount = _staff.where((user) => user.isActive).length;
 
-    final disabledCount =
-        _staff.length - activeCount;
+    final disabledCount = _staff.length - activeCount;
 
     return AlertDialog(
       insetPadding: EdgeInsets.symmetric(
@@ -1053,8 +1005,7 @@ class _StaffAccountsDialogState
                       'Loading Staff accounts...',
                       style: TextStyle(
                         fontSize: 12.5,
-                        color:
-                            AppColors.mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1068,8 +1019,7 @@ class _StaffAccountsDialogState
                         const Icon(
                           Icons.error_outline,
                           size: 34,
-                          color:
-                              AppColors.destructive,
+                          color: AppColors.destructive,
                         ),
                         const SizedBox(height: 10),
                         Text(
@@ -1077,8 +1027,7 @@ class _StaffAccountsDialogState
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 12.5,
-                            color:
-                                AppColors.mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -1090,8 +1039,7 @@ class _StaffAccountsDialogState
                     ),
                   )
                 : Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Wrap(
                         spacing: 8,
@@ -1100,32 +1048,25 @@ class _StaffAccountsDialogState
                           _AccountCountBadge(
                             label: 'Active',
                             value: activeCount,
-                            color:
-                                AppColors.sageGreen,
+                            color: AppColors.sageGreen,
                           ),
                           _AccountCountBadge(
                             label: 'Disabled',
                             value: disabledCount,
-                            color:
-                                AppColors.destructive,
+                            color: AppColors.destructive,
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       const Text(
                         'Disable unused Staff accounts without removing their existing records.',
                         style: TextStyle(
                           fontSize: 11.5,
                           height: 1.35,
-                          color:
-                              AppColors.mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
                       Expanded(
                         child: Container(
                           width: double.infinity,
@@ -1137,8 +1078,7 @@ class _StaffAccountsDialogState
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.background,
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: AppColors.border,
                             ),
@@ -1148,56 +1088,35 @@ class _StaffAccountsDialogState
                                   child: Text(
                                     'No Staff accounts found.',
                                     style: TextStyle(
-                                      color: AppColors
-                                          .mutedForeground,
+                                      color: AppColors.mutedForeground,
                                     ),
                                   ),
                                 )
                               : Scrollbar(
-                                  controller:
-                                      _staffScrollController,
-                                  thumbVisibility:
-                                      !compactRows,
-                                  radius:
-                                      const Radius.circular(
+                                  controller: _staffScrollController,
+                                  thumbVisibility: !compactRows,
+                                  radius: const Radius.circular(
                                     999,
                                   ),
-                                  child:
-                                      ListView.separated(
-                                    controller:
-                                        _staffScrollController,
-                                    padding:
-                                        EdgeInsets.only(
-                                      right: compactRows
-                                          ? 4
-                                          : 12,
+                                  child: ListView.separated(
+                                    controller: _staffScrollController,
+                                    padding: EdgeInsets.only(
+                                      right: compactRows ? 4 : 12,
                                     ),
-                                    itemCount:
-                                        _staff.length,
-                                    separatorBuilder:
-                                        (_, __) =>
-                                            const SizedBox(
+                                    itemCount: _staff.length,
+                                    separatorBuilder: (_, __) => const SizedBox(
                                       height: 8,
                                     ),
-                                    itemBuilder:
-                                        (context, index) {
-                                      final staff =
-                                          _staff[index];
+                                    itemBuilder: (context, index) {
+                                      final staff = _staff[index];
 
                                       return _StaffAccountRow(
                                         staff: staff,
-                                        compact:
-                                            compactRows,
-                                        busy:
-                                            _changingUserId ==
-                                                staff.userId,
-                                        disabled:
-                                            _changingUserId !=
-                                                    null &&
-                                                _changingUserId !=
-                                                    staff.userId,
-                                        onToggle: () =>
-                                            _changeAccountStatus(
+                                        compact: compactRows,
+                                        busy: _changingUserId == staff.userId,
+                                        disabled: _changingUserId != null &&
+                                            _changingUserId != staff.userId,
+                                        onToggle: () => _changeAccountStatus(
                                           staff,
                                         ),
                                       );
@@ -1218,11 +1137,400 @@ class _StaffAccountsDialogState
               : null,
           child: const Text('Close'),
         ),
+        ElevatedButton.icon(
+          onPressed:
+              _changingUserId == null ? _openAddStaffAccountDialog : null,
+          icon: const Icon(
+            Icons.person_add_alt_1_outlined,
+            size: 17,
+          ),
+          label: const Text(
+            'Add Staff Account',
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.sageGreen,
+          ),
+        ),
       ],
     );
   }
 }
 
+// =============================================================================
+// ADD STAFF ACCOUNT DIALOG
+// =============================================================================
+
+class _AddStaffAccountDialog extends StatefulWidget {
+  final AuthService service;
+
+  const _AddStaffAccountDialog({
+    required this.service,
+  });
+
+  @override
+  State<_AddStaffAccountDialog> createState() => _AddStaffAccountDialogState();
+}
+
+class _AddStaffAccountDialogState extends State<_AddStaffAccountDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _contactController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _saving = false;
+  bool _hidePassword = true;
+  bool _hideConfirmPassword = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _contactController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  String _cleanError(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  String? _requiredValidator(
+    String? value,
+    String label,
+  ) {
+    if ((value ?? '').trim().isEmpty) {
+      return '$label is required.';
+    }
+
+    return null;
+  }
+
+  String? _emailValidator(String? value) {
+    final email = (value ?? '').trim();
+
+    if (email.isEmpty) {
+      return 'Email address is required.';
+    }
+
+    final valid = RegExp(
+      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    ).hasMatch(email);
+
+    if (!valid) {
+      return 'Enter a valid email address.';
+    }
+
+    return null;
+  }
+
+  String? _passwordValidator(String? value) {
+    final password = value ?? '';
+
+    if (password.isEmpty) {
+      return 'Temporary password is required.';
+    }
+
+    if (password.length < 8) {
+      return 'Use at least 8 characters.';
+    }
+
+    if (password.length > 72) {
+      return 'Password is too long.';
+    }
+
+    return null;
+  }
+
+  String? _confirmPasswordValidator(
+    String? value,
+  ) {
+    if ((value ?? '').isEmpty) {
+      return 'Please confirm the password.';
+    }
+
+    if (value != _passwordController.text) {
+      return 'Passwords do not match.';
+    }
+
+    return null;
+  }
+
+  // Creates the real Supabase Staff account through AuthService.
+  Future<void> _createAccount() async {
+    if (_saving) {
+      return;
+    }
+
+    final valid = _formKey.currentState?.validate() ?? false;
+
+    if (!valid) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final staff = await widget.service.createStaffAccount(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        contactNum: _contactController.text.trim().isEmpty
+            ? null
+            : _contactController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop(staff);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = _cleanError(e);
+        _saving = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+
+    final dialogWidth = screen.width < 560 ? screen.width - 40 : 500.0;
+
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 24,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: const Row(
+        children: [
+          Icon(
+            Icons.person_add_alt_1_outlined,
+            size: 21,
+            color: AppColors.roleManager,
+          ),
+          SizedBox(width: 9),
+          Expanded(
+            child: Text('Add Staff Account'),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: dialogWidth,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Create login credentials for a Staff member. '
+                  'The account will be active immediately.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _firstNameController,
+                        enabled: !_saving,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'First Name *',
+                        ),
+                        validator: (value) => _requiredValidator(
+                          value,
+                          'First name',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _lastNameController,
+                        enabled: !_saving,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Last Name *',
+                        ),
+                        validator: (value) => _requiredValidator(
+                          value,
+                          'Last name',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _emailController,
+                  enabled: !_saving,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address *',
+                  ),
+                  validator: _emailValidator,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _contactController,
+                  enabled: !_saving,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact Number (optional)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: 'Staff',
+                  enabled: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Role',
+                    helperText: 'Only Staff accounts can be created here.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _passwordController,
+                  enabled: !_saving,
+                  obscureText: _hidePassword,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Temporary Password *',
+                    suffixIcon: IconButton(
+                      tooltip:
+                          _hidePassword ? 'Show password' : 'Hide password',
+                      onPressed: _saving
+                          ? null
+                          : () {
+                              setState(() {
+                                _hidePassword = !_hidePassword;
+                              });
+                            },
+                      icon: Icon(
+                        _hidePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                    ),
+                  ),
+                  validator: _passwordValidator,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  enabled: !_saving,
+                  obscureText: _hideConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    if (!_saving) {
+                      _createAccount();
+                    }
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password *',
+                    suffixIcon: IconButton(
+                      tooltip: _hideConfirmPassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      onPressed: _saving
+                          ? null
+                          : () {
+                              setState(() {
+                                _hideConfirmPassword = !_hideConfirmPassword;
+                              });
+                            },
+                      icon: Icon(
+                        _hideConfirmPassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                    ),
+                  ),
+                  validator: _confirmPasswordValidator,
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.destructive.withValues(
+                        alpha: 0.08,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.destructive,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () {
+                  Navigator.of(context).pop();
+                },
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton.icon(
+          onPressed: _saving ? null : _createAccount,
+          icon: _saving
+              ? const SizedBox(
+                  width: 15,
+                  height: 15,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(
+                  Icons.person_add_alt_1_outlined,
+                  size: 17,
+                ),
+          label: Text(
+            _saving ? 'Creating...' : 'Create Account',
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.sageGreen,
+          ),
+        ),
+      ],
+    );
+  }
+}
 // =============================================================================
 // STAFF ACCOUNT ROW
 // =============================================================================
@@ -1244,36 +1552,30 @@ class _StaffAccountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = staff.isActive
-        ? AppColors.sageGreen
-        : AppColors.destructive;
+    final statusColor =
+        staff.isActive ? AppColors.sageGreen : AppColors.destructive;
 
-    final name = staff.fullName.trim().isEmpty
-        ? 'Unnamed Staff'
-        : staff.fullName.trim();
+    final name =
+        staff.fullName.trim().isEmpty ? 'Unnamed Staff' : staff.fullName.trim();
 
     final details = Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Flexible(
               child: Text(
                 name,
-                overflow:
-                    TextOverflow.ellipsis,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: 7,
                 vertical: 3,
               ),
@@ -1281,46 +1583,35 @@ class _StaffAccountRow extends StatelessWidget {
                 color: statusColor.withValues(
                   alpha: 0.10,
                 ),
-                borderRadius:
-                    BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                staff.isActive
-                    ? 'Active'
-                    : 'Disabled',
+                staff.isActive ? 'Active' : 'Disabled',
                 style: TextStyle(
                   fontSize: 10.5,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                   color: statusColor,
                 ),
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 3),
-
         Text(
           staff.email,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 11.5,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
-
-        if ((staff.contactNum ?? '')
-            .trim()
-            .isNotEmpty) ...[
+        if ((staff.contactNum ?? '').trim().isNotEmpty) ...[
           const SizedBox(height: 2),
           Text(
             staff.contactNum!,
             style: const TextStyle(
               fontSize: 11.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ],
@@ -1328,10 +1619,7 @@ class _StaffAccountRow extends StatelessWidget {
     );
 
     final action = OutlinedButton.icon(
-      onPressed:
-          disabled || busy
-              ? null
-              : onToggle,
+      onPressed: disabled || busy ? null : onToggle,
       icon: busy
           ? SizedBox(
               width: 14,
@@ -1355,9 +1643,8 @@ class _StaffAccountRow extends StatelessWidget {
                 : 'Enable',
       ),
       style: OutlinedButton.styleFrom(
-        foregroundColor: staff.isActive
-            ? AppColors.destructive
-            : AppColors.sageGreen,
+        foregroundColor:
+            staff.isActive ? AppColors.destructive : AppColors.sageGreen,
       ),
     );
 
@@ -1366,16 +1653,14 @@ class _StaffAccountRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: compact
           ? Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 details,
                 const SizedBox(height: 10),
@@ -1386,28 +1671,19 @@ class _StaffAccountRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 19,
-                  backgroundColor:
-                      AppColors.secondary,
-                  foregroundColor:
-                      AppColors.foreground,
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.foreground,
                   child: Text(
-                    staff.initials.isEmpty
-                        ? 'S'
-                        : staff.initials,
+                    staff.initials.isEmpty ? 'S' : staff.initials,
                     style: const TextStyle(
                       fontSize: 12,
-                      fontWeight:
-                          FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 11),
-
                 Expanded(child: details),
-
                 const SizedBox(width: 12),
-
                 action,
               ],
             ),
@@ -1666,8 +1942,7 @@ class _ReplenishmentItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final qty =
-        '${formatQty(item.stockQty)} ${item.unitAbbr}'.trim();
+    final qty = '${formatQty(item.stockQty)} ${item.unitAbbr}'.trim();
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -1753,8 +2028,7 @@ class _InfoBanner extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             icon,
