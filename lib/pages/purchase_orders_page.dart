@@ -1581,7 +1581,7 @@ class _ReplenishmentDesktopRow
               Expanded(
                 flex: 2,
                 child: Text(
-                  '${formatQty(row.averageDailyUsage)} $unit/day',
+                  '${row.averageDailyUsage.toStringAsFixed(2)} $unit/day',
                   overflow:
                       TextOverflow.ellipsis,
                 ),
@@ -1593,7 +1593,7 @@ class _ReplenishmentDesktopRow
                   message:
                       'Observed ${row.observationDays} day'
                       '${row.observationDays == 1 ? '' : 's'} • '
-                      '(${formatQty(row.averageDailyUsage)} × ${row.leadTimeDays} days) + '
+                      '(${row.averageDailyUsage.toStringAsFixed(2)} × ${row.leadTimeDays} days) + '
                       '${formatQty(row.safetyStockQty)} $unit safety stock',
                   child: Text(
                     _qty(
