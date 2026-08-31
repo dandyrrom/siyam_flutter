@@ -940,17 +940,22 @@ class _SummaryBar
           onTreatmentsTap,
     );
 
-    if (isMobile) {
-      return Column(
-        children: [
-          animals,
-          const SizedBox(
-            height: 10,
-          ),
-          treatments,
-        ],
-      );
-    }
+if (isMobile) {
+  return SizedBox(
+    width: double.infinity,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        animals,
+        const SizedBox(
+          height: 10,
+        ),
+        treatments,
+      ],
+    ),
+  );
+}
 
     return Row(
       children: [
@@ -1549,20 +1554,18 @@ class _AnimalMedicalCardState
           onTap: widget.onTap,
           hoverColor:
               Colors.transparent,
-          child:
-              AnimatedContainer(
-            duration:
-                const Duration(
-              milliseconds: 140,
-            ),
-            width:
-                double.infinity,
-            height:
-                double.infinity,
-            padding:
-                const EdgeInsets.all(
-              17,
-            ),
+  child:
+    AnimatedContainer(
+  duration:
+      const Duration(
+    milliseconds: 140,
+  ),
+  width:
+      double.infinity,
+  padding:
+      const EdgeInsets.all(
+    17,
+  ),
             decoration:
                 BoxDecoration(
               color: _hovering

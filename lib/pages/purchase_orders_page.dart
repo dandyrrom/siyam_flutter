@@ -1090,10 +1090,15 @@ class _SummaryCard
     required this.onTap,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 230,
+@override
+Widget build(BuildContext context) {
+  final isMobile =
+      MediaQuery.sizeOf(context).width < 600;
+
+  return SizedBox(
+    width: isMobile
+        ? double.infinity
+        : 230,
       child: Material(
         color: Colors.transparent,
         borderRadius:

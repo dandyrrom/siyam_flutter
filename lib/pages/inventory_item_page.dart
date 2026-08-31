@@ -46,21 +46,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   bool _notFound = false;
 
   // ===========================================================================
-  // CURRENT STOCK DISPLAY — OPTION A
-  // ===========================================================================
-  //
-  // For divisible inventory, the package/smaller unit is the authoritative
-  // usable stock shown to staff.
-  //
-  // Example:
-  // 5 bag × 10 kg = 50 kg
-  // Stock Out 20 kg
-  //
-  // Display:
-  // Current Stock = 30 kg
-  // Equivalent    = 3 bag
-  //
-  // We no longer present the old raw "5 bag" value as current stock.
+  // CURRENT STOCK DISPLAY
   // ===========================================================================
 
   bool _hasPackageBreakdown(InventoryItem item) {
@@ -70,21 +56,21 @@ class _InventoryItemPageState extends State<InventoryItemPage>
         item.packageUnitAbbr!.trim().isNotEmpty;
   }
 
-double _currentStockQty(InventoryItem item) {
-  return item.currentUsableStockQty;
-}
-
-String _currentStockUnit(InventoryItem item) {
-  return item.currentUsableStockUnit;
-}
-
-double? _purchaseUnitEquivalent(InventoryItem item) {
-  if (!item.hasPackageBreakdown) {
-    return null;
+  double _currentStockQty(InventoryItem item) {
+    return item.currentUsableStockQty;
   }
 
-  return item.currentPurchaseUnitEquivalent;
-}
+  String _currentStockUnit(InventoryItem item) {
+    return item.currentUsableStockUnit;
+  }
+
+  double? _purchaseUnitEquivalent(InventoryItem item) {
+    if (!item.hasPackageBreakdown) {
+      return null;
+    }
+
+    return item.currentPurchaseUnitEquivalent;
+  }
 
   String? _packageConversionLabel(InventoryItem item) {
     if (!_hasPackageBreakdown(item)) return null;
@@ -95,13 +81,6 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
 
   // ===========================================================================
   // STOCK LEVEL
-  // ===========================================================================
-  //
-  // Keep this page aligned with the Inventory list:
-  // - 0 usable stock -> Out of Stock
-  // - at/below Manager low-stock threshold -> Low Stock
-  // - above threshold but at/below ROP -> Needs Restock
-  // - above ROP -> In Stock
   // ===========================================================================
 
   StockLevel _stockLevelFor(InventoryItem item) {
@@ -340,21 +319,7 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
   }
 
   // ===========================================================================
-  // CONTEXT-AWARE BACK NAVIGATION
-  // ===========================================================================
-  //
-  // InventoryItemPage can be opened from different modules.
-  //
-  // Examples:
-  // - Inventory -> Item Details
-  // - Purchases & Replenishment -> Replenishment Item -> Item Details
-  //
-  // Using context.go('/inventory') hard-codes Inventory as the destination and
-  // replaces the current route stack. Instead, pop the route that opened this
-  // page so the user returns to the correct originating module.
-  //
-  // The fallback is only used if this page was opened directly (for example,
-  // by typing its URL into the browser) and there is no route to pop.
+  // BACK NAVIGATION
   // ===========================================================================
 
   bool get _openedFromPurchases {
@@ -381,7 +346,9 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
     if (_notFound || _item == null) {
@@ -397,7 +364,9 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
             const SizedBox(height: 12),
             const Text(
               'Item not found',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 12),
             TextButton(
@@ -411,72 +380,99 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
 
     final item = _item!;
     final stockLevel = _stockLevelFor(item);
+
     final (stockLevelLabel, stockLevelColor) =
         _stockLevelMeta(stockLevel);
 
-    // =========================================================================
-    // CURRENT STOCK VALUES
-    // =========================================================================
+    final currentStockQty =
+        _currentStockQty(item);
 
-    final currentStockQty = _currentStockQty(item);
-    final currentStockUnit = _currentStockUnit(item);
-    final equivalent = _purchaseUnitEquivalent(item);
-    final conversionLabel = _packageConversionLabel(item);
+    final currentStockUnit =
+        _currentStockUnit(item);
+
+    final equivalent =
+        _purchaseUnitEquivalent(item);
+
+    final conversionLabel =
+        _packageConversionLabel(item);
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 720),
+      constraints: const BoxConstraints(
+        maxWidth: 720,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
             onPressed: _goBack,
-            icon: const Icon(Icons.arrow_back, size: 16),
-            label: Text(_backLabel),
+            icon: const Icon(
+              Icons.arrow_back,
+              size: 16,
+            ),
+            label: Text(
+              _backLabel,
+            ),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.mutedForeground,
+              foregroundColor:
+                  AppColors.mutedForeground,
             ),
           ),
-          const SizedBox(height: 8),
+
+          const SizedBox(
+            height: 8,
+          ),
 
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
+                padding:
+                    const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: stockLevelColor.withValues(
+                  color: stockLevelColor
+                      .withValues(
                     alpha: 0.12,
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius:
+                      BorderRadius.circular(
+                    20,
+                  ),
                 ),
                 child: Text(
                   stockLevelLabel,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight:
+                        FontWeight.w700,
                     color: stockLevelColor,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 8,
+              ),
               Text(
                 item.itemName,
                 style: const TextStyle(
                   fontSize: 24,
-                  fontWeight: FontWeight.w800,
+                  fontWeight:
+                      FontWeight.w800,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(
+            height: 20,
+          ),
 
-          // =========================================================================
+          // ===============================================================
           // STOCK ACTIONS
-          // =========================================================================
+          // ===============================================================
 
           Row(
             children: [
@@ -490,82 +486,121 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
                   icon: const Icon(
                     Icons.arrow_upward,
                     size: 16,
-                    color: AppColors.roleManager,
+                    color:
+                        AppColors.roleManager,
                   ),
-                  label: const Text('Goods Received'),
+                  label: const Text(
+                    'Goods Received',
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(
+                width: 12,
+              ),
               Expanded(
                 child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.destructive,
+                  style:
+                      ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.destructive,
                   ),
-                  onPressed: _openStockOutDialog,
-                  icon: const Icon(Icons.arrow_downward, size: 16),
-                  label: const Text('Dispense'),
+                  onPressed:
+                      _openStockOutDialog,
+                  icon: const Icon(
+                    Icons.arrow_downward,
+                    size: 16,
+                  ),
+                  label: const Text(
+                    'Dispense',
+                  ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(
+            height: 24,
+          ),
 
-          // =========================================================================
+          // ===============================================================
           // ITEM DETAILS
-          // =========================================================================
+          // ===============================================================
 
           _FieldRow(
             label: 'Item ID',
             value: item.displayId,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 16,
+          ),
 
           _FieldRow(
             label: 'Name',
             value: item.itemName,
             onEdit: () => _editField(
               label: 'Name',
-              currentValue: item.itemName,
-              onSave: (v) => _service.updateDetails(
+              currentValue:
+                  item.itemName,
+              onSave: (v) =>
+                  _service.updateDetails(
                 itemId: item.itemId,
                 itemName: v,
               ),
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 16,
+          ),
 
           Row(
             children: [
               Expanded(
                 child: _FieldRow(
                   label: 'Category',
-                  value: item.itemCategory,
-                  onEdit: () => _editPickerField<PrimaryCategory>(
+                  value:
+                      item.itemCategory,
+                  onEdit: () =>
+                      _editPickerField<
+                          PrimaryCategory>(
                     label: 'Category',
-                    options: _primaryCategories,
-                    displayStringForOption: (c) => c.type,
-                    onSave: (c) => _service.updateDetails(
-                      itemId: item.itemId,
+                    options:
+                        _primaryCategories,
+                    displayStringForOption:
+                        (c) => c.type,
+                    onSave: (c) =>
+                        _service
+                            .updateDetails(
+                      itemId:
+                          item.itemId,
                       pCategoryId: c.id,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(
+                width: 16,
+              ),
               Expanded(
                 child: _FieldRow(
                   label: 'Purchase Unit',
                   value: item.itemUom,
-                  onEdit: () => _editPickerField<Unit>(
-                    label: 'Purchase Unit',
+                  onEdit: () =>
+                      _editPickerField<
+                          Unit>(
+                    label:
+                        'Purchase Unit',
                     options: _units,
-                    displayStringForOption: (u) => u.name,
-                    onSave: (u) => _service.updateDetails(
-                      itemId: item.itemId,
-                      purchaseUnitId: u.id,
+                    displayStringForOption:
+                        (u) => u.name,
+                    onSave: (u) =>
+                        _service
+                            .updateDetails(
+                      itemId:
+                          item.itemId,
+                      purchaseUnitId:
+                          u.id,
                     ),
                   ),
                 ),
@@ -573,101 +608,130 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
             ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 16,
+          ),
 
           Row(
             children: [
               Expanded(
                 child: _FieldRow(
                   label: 'Package Unit',
-                  value: item.packageUnitAbbr ?? '—',
+                  value:
+                      item.packageUnitAbbr ??
+                          '—',
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(
+                width: 16,
+              ),
               Expanded(
                 child: _FieldRow(
-                  label: 'Package Quantity',
-                  value: item.packageQuantity == null
-                      ? '—'
-                      : formatQty(item.packageQuantity!),
+                  label:
+                      'Package Quantity',
+                  value:
+                      item.packageQuantity ==
+                              null
+                          ? '—'
+                          : formatQty(
+                              item.packageQuantity!,
+                            ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 16,
+          ),
 
           _FieldRow(
             label: 'Dispense Unit',
-            value: item.dispenseUnitAbbr ?? '—',
+            value:
+                item.dispenseUnitAbbr ??
+                    '—',
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 16,
+          ),
 
-          // =========================================================================
+          // ===============================================================
           // STOCK COUNT MODE
-          // =========================================================================
-          //
-          // Kept because this is still part of the inventory configuration.
-          // It no longer controls which quantity is presented as current usable
-          // stock on this page.
-          // =========================================================================
+          // ===============================================================
 
-          if (item.packageUnitAbbr != null) ...[
+          if (item.packageUnitAbbr !=
+              null) ...[
             _FieldRow(
-              label: 'Stock Count Mode',
-              value: item.effectiveCountMode == StockCountMode.packageUnit
+              label:
+                  'Stock Count Mode',
+              value: item.effectiveCountMode ==
+                      StockCountMode
+                          .packageUnit
                   ? 'By package unit (${item.packageUnitAbbr})'
                   : 'By purchase unit (${item.purchaseUnitAbbr})',
-              onEdit: () => _editPickerField<StockCountMode>(
-                label: 'Stock Count Mode',
-                options: StockCountMode.values,
-                displayStringForOption: (m) {
-                  return m == StockCountMode.packageUnit
+              onEdit: () =>
+                  _editPickerField<
+                      StockCountMode>(
+                label:
+                    'Stock Count Mode',
+                options:
+                    StockCountMode.values,
+                displayStringForOption:
+                    (m) {
+                  return m ==
+                          StockCountMode
+                              .packageUnit
                       ? 'By package unit (${item.packageUnitAbbr})'
                       : 'By purchase unit (${item.purchaseUnitAbbr})';
                 },
-                onSave: (m) => _service.updateDetails(
+                onSave: (m) =>
+                    _service
+                        .updateDetails(
                   itemId: item.itemId,
                   stockCountMode: m,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(
+              height: 16,
+            ),
           ],
 
-          // =========================================================================
-          // CURRENT STOCK SUMMARY — OPTION A
-          // =========================================================================
-          //
-          // OLD:
-          // Containers on Hand             5 bag
-          // Loose Stock Added (lifetime)   0 kg
-          //
-          // NEW:
-          // Current Stock                  30 kg
-          // Equivalent                     3 bag
-          //
-          // This ensures package-unit stock-outs immediately make sense to staff.
-          // =========================================================================
+          // ===============================================================
+          // CURRENT STOCK
+          // ===============================================================
 
-          if (_hasPackageBreakdown(item))
+          if (_hasPackageBreakdown(
+            item,
+          ))
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _StockStatCard(
-                    label: 'Current Stock',
-                    qty: currentStockQty,
-                    unit: currentStockUnit,
+                  child:
+                      _StockStatCard(
+                    label:
+                        'Current Stock',
+                    qty:
+                        currentStockQty,
+                    unit:
+                        currentStockUnit,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(
+                  width: 16,
+                ),
                 Expanded(
-                  child: _StockStatCard(
-                    label: 'Equivalent',
-                    qty: equivalent ?? 0,
-                    unit: item.purchaseUnitAbbr,
+                  child:
+                      _StockStatCard(
+                    label:
+                        'Equivalent',
+                    qty:
+                        equivalent ?? 0,
+                    unit: item
+                        .purchaseUnitAbbr,
                   ),
                 ),
               ],
@@ -679,70 +743,98 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
               unit: currentStockUnit,
             ),
 
-          // =========================================================================
-          // PACKAGE CONVERSION
-          // =========================================================================
-
-          if (conversionLabel != null) ...[
-            const SizedBox(height: 8),
+          if (conversionLabel !=
+              null) ...[
+            const SizedBox(
+              height: 8,
+            ),
             Row(
               children: [
                 const Icon(
                   Icons.info_outline,
                   size: 14,
-                  color: AppColors.mutedForeground,
+                  color: AppColors
+                      .mutedForeground,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(
+                  width: 6,
+                ),
                 Text(
                   conversionLabel,
-                  style: const TextStyle(
+                  style:
+                      const TextStyle(
                     fontSize: 12,
-                    color: AppColors.mutedForeground,
+                    color: AppColors
+                        .mutedForeground,
                   ),
                 ),
               ],
             ),
           ],
 
-          const SizedBox(height: 24),
+          const SizedBox(
+            height: 24,
+          ),
 
-          // =========================================================================
+          // ===============================================================
           // STOCK HISTORY
-          // =========================================================================
+          // ===============================================================
 
           const Text(
             'Stock History',
             style: TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w700,
+              fontWeight:
+                  FontWeight.w700,
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 12,
+          ),
 
           if (_history.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+              padding:
+                  EdgeInsets.symmetric(
+                vertical: 8,
+              ),
               child: Text(
                 'No stock movements yet.',
                 style: TextStyle(
                   fontSize: 12.5,
-                  color: AppColors.mutedForeground,
+                  color: AppColors
+                      .mutedForeground,
                 ),
               ),
             )
           else
             Container(
-              decoration: BoxDecoration(
+              decoration:
+                  BoxDecoration(
                 color: AppColors.card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                borderRadius:
+                    BorderRadius.circular(
+                  12,
+                ),
+                border: Border.all(
+                  color:
+                      AppColors.border,
+                ),
               ),
               child: Column(
                 children: [
-                  for (var i = 0; i < _history.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _StockHistoryRow(movement: _history[i]),
+                  for (var i = 0;
+                      i < _history.length;
+                      i++) ...[
+                    if (i > 0)
+                      const Divider(
+                        height: 1,
+                      ),
+                    _StockHistoryRow(
+                      movement:
+                          _history[i],
+                    ),
                   ],
                 ],
               ),
@@ -753,6 +845,10 @@ double? _purchaseUnitEquivalent(InventoryItem item) {
   }
 }
 
+// =============================================================================
+// STOCK HISTORY ROW
+// =============================================================================
+
 class _StockHistoryRow extends StatelessWidget {
   final StockMovement movement;
 
@@ -762,42 +858,71 @@ class _StockHistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIn = movement.direction == StockDirection.stockIn;
-    final color = isIn ? AppColors.roleManager : AppColors.destructive;
+    final isLoggedTreatment =
+        movement.typeLabel ==
+            'Logged Treatment';
+
+    final isIn =
+        movement.direction ==
+            StockDirection.stockIn;
+
+    final color = isLoggedTreatment
+        ? AppColors.primary
+        : isIn
+            ? AppColors.roleManager
+            : AppColors.destructive;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
+      padding:
+          const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 12,
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Icon(
-            isIn ? Icons.arrow_upward : Icons.arrow_downward,
+            isLoggedTreatment
+                ? Icons
+                    .medical_services_outlined
+                : isIn
+                    ? Icons.arrow_upward
+                    : Icons.arrow_downward,
             size: 16,
             color: color,
           ),
-          const SizedBox(width: 10),
+
+          const SizedBox(
+            width: 10,
+          ),
 
           Expanded(
             flex: 3,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
                   movement.typeLabel,
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
+                    fontWeight:
+                        FontWeight.w600,
                     color: color,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(
+                  height: 2,
+                ),
                 Text(
-                  _formatDate(movement.date),
-                  style: const TextStyle(
+                  _formatDate(
+                    movement.date,
+                  ),
+                  style:
+                      const TextStyle(
                     fontSize: 12,
-                    color: AppColors.mutedForeground,
+                    color: AppColors
+                        .mutedForeground,
                   ),
                 ),
               ],
@@ -806,22 +931,43 @@ class _StockHistoryRow extends StatelessWidget {
 
           Expanded(
             flex: 2,
-            child: Text(
-              '${isIn ? '+' : '-'}${formatQty(movement.qty)} '
-              '${movement.unitAbbr}',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isLoggedTreatment
+                      ? '${formatQty(movement.qty)} ${movement.unitAbbr}'
+                      : '${isIn ? '+' : '-'}${formatQty(movement.qty)} '
+                          '${movement.unitAbbr}',
+                  style: TextStyle(
+                    fontWeight:
+                        FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                if (isLoggedTreatment)
+                  const Text(
+                    'No stock deduction',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: AppColors
+                          .mutedForeground,
+                    ),
+                  ),
+              ],
             ),
           ),
 
           Expanded(
             flex: 3,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment:
+                  CrossAxisAlignment.end,
               children: [
-                if (movement.treatmentId != null)
+                if (movement
+                        .treatmentId !=
+                    null)
                   InkWell(
                     onTap: () {
                       context.push(
@@ -829,22 +975,33 @@ class _StockHistoryRow extends StatelessWidget {
                       );
                     },
                     child: Text(
-                      movement.treatmentName ?? '',
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(
+                      movement
+                              .treatmentName ??
+                          '',
+                      textAlign:
+                          TextAlign.end,
+                      style:
+                          const TextStyle(
                         fontSize: 12.5,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.underline,
+                        color:
+                            AppColors.primary,
+                        fontWeight:
+                            FontWeight.w600,
+                        decoration:
+                            TextDecoration
+                                .underline,
                       ),
                     ),
                   ),
                 Text(
                   'by ${movement.recordedByName}',
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(
+                  textAlign:
+                      TextAlign.end,
+                  style:
+                      const TextStyle(
                     fontSize: 12,
-                    color: AppColors.mutedForeground,
+                    color: AppColors
+                        .mutedForeground,
                   ),
                 ),
               ],
@@ -855,6 +1012,10 @@ class _StockHistoryRow extends StatelessWidget {
     );
   }
 }
+
+// =============================================================================
+// DATE
+// =============================================================================
 
 const _monthAbbrev = [
   'Jan',
@@ -871,31 +1032,49 @@ const _monthAbbrev = [
   'Dec',
 ];
 
-String _formatDate(DateTime date) {
-  return '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';
+String _formatDate(
+  DateTime date,
+) {
+  return '${_monthAbbrev[date.month - 1]} '
+      '${date.day}, ${date.year}';
 }
+
+// =============================================================================
+// FIELD LABEL
+// =============================================================================
 
 class _FieldLabel extends StatelessWidget {
   final String text;
 
-  const _FieldLabel(this.text);
+  const _FieldLabel(
+    this.text,
+  );
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding:
+          const EdgeInsets.only(
+        bottom: 6,
+      ),
       child: Text(
         text.toUpperCase(),
         style: const TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w700,
+          fontWeight:
+              FontWeight.w700,
           letterSpacing: 0.8,
-          color: AppColors.mutedForeground,
+          color: AppColors
+              .mutedForeground,
         ),
       ),
     );
   }
 }
+
+// =============================================================================
+// FIELD ROW
+// =============================================================================
 
 class _FieldRow extends StatelessWidget {
   final String label;
@@ -911,19 +1090,28 @@ class _FieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
-        _FieldLabel(label),
+        _FieldLabel(
+          label,
+        ),
         Container(
-          padding: const EdgeInsets.symmetric(
+          padding:
+              const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 8,
           ),
-          decoration: BoxDecoration(
+          decoration:
+              BoxDecoration(
             color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius:
+                BorderRadius.circular(
+              12,
+            ),
             border: Border.all(
-              color: AppColors.border,
+              color:
+                  AppColors.border,
               width: 1.5,
             ),
           ),
@@ -932,7 +1120,10 @@ class _FieldRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   value,
-                  style: const TextStyle(fontSize: 14),
+                  style:
+                      const TextStyle(
+                    fontSize: 14,
+                  ),
                 ),
               ),
               if (onEdit != null)
@@ -940,7 +1131,8 @@ class _FieldRow extends StatelessWidget {
                   icon: const Icon(
                     Icons.edit_outlined,
                     size: 15,
-                    color: AppColors.mutedForeground,
+                    color: AppColors
+                        .mutedForeground,
                   ),
                   onPressed: onEdit,
                   splashRadius: 18,
@@ -952,6 +1144,10 @@ class _FieldRow extends StatelessWidget {
     );
   }
 }
+
+// =============================================================================
+// STOCK STAT CARD
+// =============================================================================
 
 class _StockStatCard extends StatelessWidget {
   final String label;
@@ -967,37 +1163,54 @@ class _StockStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
-        _FieldLabel(label),
+        _FieldLabel(
+          label,
+        ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(
+          padding:
+              const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
           ),
-          decoration: BoxDecoration(
+          decoration:
+              BoxDecoration(
             color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius:
+                BorderRadius.circular(
+              12,
+            ),
             border: Border.all(
-              color: AppColors.border,
+              color:
+                  AppColors.border,
               width: 1.5,
             ),
           ),
           child: Row(
             children: [
               Text(
-                formatQty(qty),
-                style: const TextStyle(
+                formatQty(
+                  qty,
+                ),
+                style:
+                    const TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontWeight:
+                      FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(
+                width: 6,
+              ),
               Text(
                 unit,
-                style: const TextStyle(
-                  color: AppColors.mutedForeground,
+                style:
+                    const TextStyle(
+                  color: AppColors
+                      .mutedForeground,
                 ),
               ),
             ],

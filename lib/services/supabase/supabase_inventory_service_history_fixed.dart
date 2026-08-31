@@ -35,17 +35,15 @@ import 'supabase_inventory_service.dart' as base;
 // =============================================================================
 
 class SupabaseInventoryService extends base.SupabaseInventoryService {
-  final SupabaseClient _historyClient =
-      Supabase.instance.client;
+  final SupabaseClient _historyClient = Supabase.instance.client;
 
   // ===========================================================================
   // DISPLAY HELPERS
   // ===========================================================================
 
   Future<Map<String, String>> _historyUserNameMap() async {
-    final rows = await _historyClient
-        .from('users')
-        .select('id, fname, lname');
+    final rows =
+        await _historyClient.from('users').select('id, fname, lname');
 
     return {
       for (final row in rows)
@@ -57,14 +55,12 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
   }
 
   Future<Map<String, String>> _historyUnitMap() async {
-    final rows = await _historyClient
-        .from('units')
-        .select('id, abbr_name');
+    final rows =
+        await _historyClient.from('units').select('id, abbr_name');
 
     return {
       for (final row in rows)
-        row['id'] as String:
-            (row['abbr_name'] as String?) ?? '',
+        row['id'] as String: (row['abbr_name'] as String?) ?? '',
     };
   }
 
@@ -111,21 +107,15 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
   ) async {
     final item = await fetchItem(itemId);
 
-    final purchaseUnitAbbr =
-        item?.purchaseUnitAbbr ?? '';
+    final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
 
-    final packageUnitAbbr =
-        item?.packageUnitAbbr ??
-        purchaseUnitAbbr;
+    final packageUnitAbbr = item?.packageUnitAbbr ?? purchaseUnitAbbr;
 
-    final users =
-        await _historyUserNameMap();
+    final users = await _historyUserNameMap();
 
-    final units =
-        await _historyUnitMap();
+    final units = await _historyUnitMap();
 
-    final movements =
-        <StockMovement>[];
+    final movements = <StockMovement>[];
 
     // =========================================================================
     // PURCHASE
@@ -140,40 +130,30 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
         .eq('itemid', itemId);
 
     for (final row in purchaseRows) {
-      final purchase =
-          row['purchase']
-              as Map<String, dynamic>?;
+      final purchase = row['purchase'] as Map<String, dynamic>?;
 
       if (purchase == null) {
         continue;
       }
 
       final qtyUnit = qtyUnitFromString(
-        (row['qty_unit'] as String?) ??
-            'purchase_unit',
+        (row['qty_unit'] as String?) ?? 'purchase_unit',
       );
 
       movements.add(
         StockMovement(
-          id:
-              '${purchase['id']}-$itemId',
+          id: '${purchase['id']}-$itemId',
           date: DateTime.parse(
-            purchase['receiveddate']
-                as String,
+            purchase['receiveddate'] as String,
           ),
-          direction:
-              StockDirection.stockIn,
-          qty:
-              _historyDouble(row['qty']),
-          unitAbbr:
-              qtyUnit == QtyUnit.packageUnit
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
-          typeLabel:
-              'Purchased',
+          direction: StockDirection.stockIn,
+          qty: _historyDouble(row['qty']),
+          unitAbbr: qtyUnit == QtyUnit.packageUnit
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
+          typeLabel: 'Purchased',
           recordedByName:
-              users[purchase['recordedby']] ??
-              'Unknown user',
+              users[purchase['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -191,40 +171,30 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
         .eq('itemid', itemId);
 
     for (final row in donationRows) {
-      final donation =
-          row['donation']
-              as Map<String, dynamic>?;
+      final donation = row['donation'] as Map<String, dynamic>?;
 
       if (donation == null) {
         continue;
       }
 
       final qtyUnit = qtyUnitFromString(
-        (row['qty_unit'] as String?) ??
-            'purchase_unit',
+        (row['qty_unit'] as String?) ?? 'purchase_unit',
       );
 
       movements.add(
         StockMovement(
-          id:
-              '${donation['id']}-$itemId',
+          id: '${donation['id']}-$itemId',
           date: DateTime.parse(
-            donation['receiveddate']
-                as String,
+            donation['receiveddate'] as String,
           ),
-          direction:
-              StockDirection.stockIn,
-          qty:
-              _historyDouble(row['qty']),
-          unitAbbr:
-              qtyUnit == QtyUnit.packageUnit
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
-          typeLabel:
-              'Donated',
+          direction: StockDirection.stockIn,
+          qty: _historyDouble(row['qty']),
+          unitAbbr: qtyUnit == QtyUnit.packageUnit
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
+          typeLabel: 'Donated',
           recordedByName:
-              users[donation['recordedby']] ??
-              'Unknown user',
+              users[donation['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -232,54 +202,88 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
     // =========================================================================
     // TREATMENT
     // =========================================================================
+    //
+    // A deductible treatment creates one or more TREATMENT rows in
+    // batch_transaction_log linked by treatmentitemid.
+    //
+    // A non-convertible treatment is still saved in Medical Records but does
+    // not reduce inventory. It is displayed as "Logged Treatment".
+    // =========================================================================
 
     final treatmentRows = await _historyClient
         .from('treatment_item')
         .select(
-          'treatid, dispensed_qty, dispense_unit, consumeddate, '
-          'recordedby, treatment(id, name)',
+          'treatmentitemid, treatid, dispensed_qty, dispense_unit, '
+          'consumeddate, recordedby, treatment(id, name)',
         )
         .eq('itemid', itemId);
 
-    for (final row in treatmentRows) {
-      final treatment =
-          row['treatment']
-              as Map<String, dynamic>?;
+    final treatmentItemIds = treatmentRows
+        .map(
+          (row) => row['treatmentitemid'] as String?,
+        )
+        .whereType<String>()
+        .toList();
 
-      final dispenseUnit =
-          row['dispense_unit']
-              as String?;
+    final deductedTreatmentItemIds = <String>{};
+
+    if (treatmentItemIds.isNotEmpty) {
+      final transactionRows = await _historyClient
+          .from('batch_transaction_log')
+          .select('treatmentitemid')
+          .eq('txntype', 'TREATMENT')
+          .inFilter(
+            'treatmentitemid',
+            treatmentItemIds,
+          );
+
+      for (final transaction in transactionRows) {
+        final treatmentItemId =
+            transaction['treatmentitemid'] as String?;
+
+        if (treatmentItemId != null) {
+          deductedTreatmentItemIds.add(
+            treatmentItemId,
+          );
+        }
+      }
+    }
+
+    for (final row in treatmentRows) {
+      final treatmentItemId =
+          row['treatmentitemid'] as String?;
+
+      // A linked TREATMENT transaction means actual stock was deducted.
+      // Otherwise the medication was only logged clinically.
+      final affectsStock = treatmentItemId != null &&
+          deductedTreatmentItemIds.contains(
+            treatmentItemId,
+          );
+
+      final treatment = row['treatment'] as Map<String, dynamic>?;
+
+      final dispenseUnit = row['dispense_unit'] as String?;
 
       movements.add(
         StockMovement(
-          id:
-              '${row['treatid']}-$itemId',
+          id: treatmentItemId ?? '${row['treatid']}-$itemId',
           date: DateTime.parse(
-            row['consumeddate']
-                as String,
+            row['consumeddate'] as String,
           ),
-          direction:
-              StockDirection.stockOut,
-          qty:
-              _historyDouble(
+          direction: StockDirection.stockOut,
+          qty: _historyDouble(
             row['dispensed_qty'],
           ),
-          unitAbbr:
-              (dispenseUnit == null
-                      ? null
-                      : units[dispenseUnit]) ??
-                  purchaseUnitAbbr,
-          typeLabel:
-              'Treatment',
-          treatmentId:
-              row['treatid'] as String?,
+          unitAbbr: (dispenseUnit == null ? null : units[dispenseUnit]) ??
+              purchaseUnitAbbr,
+          typeLabel: affectsStock
+              ? 'Treatment'
+              : 'Logged Treatment',
+          treatmentId: row['treatid'] as String?,
           treatmentName:
-              treatment?['name']
-                      as String? ??
-                  'Unknown treatment',
+              treatment?['name'] as String? ?? 'Unknown treatment',
           recordedByName:
-              users[row['recordedby']] ??
-              'Unknown user',
+              users[row['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -297,42 +301,33 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
 
     for (final row in stockOutRows) {
       final qtyUnit = qtyUnitFromString(
-        (row['qtyunit'] as String?) ??
-            'purchase_unit',
+        (row['qtyunit'] as String?) ?? 'purchase_unit',
       );
 
       movements.add(
         StockMovement(
-          id:
-              row['id'] as String,
+          id: row['id'] as String,
           date: DateTime.parse(
-            row['recordeddate']
-                as String,
+            row['recordeddate'] as String,
           ),
-          direction:
-              StockDirection.stockOut,
-          qty:
-              _historyDouble(row['qty']),
-          unitAbbr:
-              qtyUnit == QtyUnit.packageUnit
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
-          typeLabel:
-              _historyStockOutReasonLabel(
+          direction: StockDirection.stockOut,
+          qty: _historyDouble(row['qty']),
+          unitAbbr: qtyUnit == QtyUnit.packageUnit
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
+          typeLabel: _historyStockOutReasonLabel(
             stockOutReasonFromString(
               row['reason'] as String,
             ),
           ),
           recordedByName:
-              users[row['recordedby']] ??
-              'Unknown user',
+              users[row['recordedby']] ?? 'Unknown user',
         ),
       );
     }
 
     movements.sort(
-      (a, b) =>
-          b.date.compareTo(a.date),
+      (a, b) => b.date.compareTo(a.date),
     );
 
     return movements;

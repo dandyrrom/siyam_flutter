@@ -2328,6 +2328,11 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
 
     final needsRestock = selectedItem?.stockLevel == StockLevel.needsRestock;
 
+    // Non-convertible treatment units are recorded medically but do not
+    // automatically reduce inventory.
+    final loggedOnly =
+        selectedItem != null && !selectedItem.stockOutIsDeductible;
+
     return Padding(
       padding: const EdgeInsets.only(
         top: 8,
@@ -2444,7 +2449,7 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: isLowStock || needsRestock
+                  color: loggedOnly || isLowStock || needsRestock
                       ? AppColors.warning.withValues(
                           alpha: 0.08,
                         )
@@ -2455,7 +2460,7 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
                     10,
                   ),
                   border: Border.all(
-                    color: isLowStock || needsRestock
+                    color: loggedOnly || isLowStock || needsRestock
                         ? AppColors.warning.withValues(
                             alpha: 0.25,
                           )
@@ -2466,11 +2471,11 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
-                      isLowStock || needsRestock
+                      loggedOnly || isLowStock || needsRestock
                           ? Icons.warning_amber_rounded
                           : Icons.inventory_2_outlined,
                       size: 17,
-                      color: isLowStock || needsRestock
+                      color: loggedOnly || isLowStock || needsRestock
                           ? AppColors.warning
                           : AppColors.mutedForeground,
                     ),
@@ -2493,14 +2498,18 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
                             height: 3,
                           ),
                           Text(
-                            isLowStock
-                                ? 'Low stock — use only the amount needed.'
-                                : needsRestock
-                                    ? 'Stock is getting low.'
-                                    : 'Available for treatment.',
+                            loggedOnly
+                                ? 'Logged for treatment only. This dosage unit cannot be '
+                                    'converted to the inventory unit, so stock will not be '
+                                    'automatically deducted.'
+                                : isLowStock
+                                    ? 'Low stock — use only the amount needed.'
+                                    : needsRestock
+                                        ? 'Stock is getting low.'
+                                        : 'Available for treatment.',
                             style: TextStyle(
                               fontSize: 11.5,
-                              color: isLowStock || needsRestock
+                              color: loggedOnly || isLowStock || needsRestock
                                   ? AppColors.warning
                                   : AppColors.mutedForeground,
                             ),
@@ -2508,7 +2517,7 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
                         ],
                       ),
                     ),
-                    if (isLowStock || needsRestock) ...[
+                    if (loggedOnly || isLowStock || needsRestock) ...[
                       const SizedBox(
                         width: 8,
                       ),
@@ -2526,7 +2535,11 @@ class _TreatmentItemDraftCardState extends State<_TreatmentItemDraftCard> {
                           ),
                         ),
                         child: Text(
-                          isLowStock ? 'LOW STOCK' : 'RESTOCK SOON',
+                          loggedOnly
+                              ? 'LOGGED ONLY'
+                              : isLowStock
+                                  ? 'LOW STOCK'
+                                  : 'RESTOCK SOON',
                           style: const TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w800,
