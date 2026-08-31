@@ -472,18 +472,6 @@ class _RegisterPageState
                           height: 8,
                         ),
 
-                        const Text(
-                          'Public registration is for donors. Staff accounts are managed internally by DAS.',
-                          textAlign:
-                              TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            height: 1.4,
-                            color: AppColors
-                                .deepBrown,
-                          ),
-                        ),
-
                         const SizedBox(
                           height: 30,
                         ),
