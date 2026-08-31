@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="980"
+     viewBox="0 0 1560 980" role="img">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7D6D"/>
+    </marker>
+  </defs>
+  <rect x="0.0" y="0.0" width="1560.0" height="980.0" rx="0" ry="0" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0"/>
+  <rect x="0.0" y="0.0" width="1560.0" height="64.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <rect x="0.0" y="0.0" width="8.0" height="64.0" rx="0" ry="0" fill="#93B873" stroke="#93B873" stroke-width="0"/>
+  <text x="24.0" y="28.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" fill="#3E2723">Level of Explosion — Data stores</text>
+  <text x="24.0" y="50.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">Tables from updated_db.md, grouped the way the modules use them. No fabricated fields.</text>
+  <rect x="0.0" y="944.0" width="1560.0" height="36.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <text x="24.0" y="966.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">SIYAM — Animal Sanctuary Management System. Drawn from current modules, services, and updated_db.md.</text>
+  <rect x="50.0" y="110.0" width="280.0" height="200.0" rx="14" ry="14" fill="#FFFFFF" stroke="#5A6E4E" stroke-width="1.6"/>
+  <rect x="50.0" y="110.0" width="280.0" height="40.0" rx="14" ry="14" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <rect x="50.0" y="136.0" width="280.0" height="16.0" rx="0" ry="0" fill="#E9F1E2" stroke="#E9F1E2" stroke-width="0"/>
+  <text x="190.0" y="136.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Identity</text>
+  <text x="190.0" y="213.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">USER</text>
+  <text x="190.0" y="235.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">role: manager / staff / donor</text>
+  <rect x="350.0" y="110.0" width="380.0" height="200.0" rx="14" ry="14" fill="#FFFFFF" stroke="#2D82C4" stroke-width="1.6"/>
+  <rect x="350.0" y="110.0" width="380.0" height="40.0" rx="14" ry="14" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <rect x="350.0" y="136.0" width="380.0" height="16.0" rx="0" ry="0" fill="#E6F1F8" stroke="#E6F1F8" stroke-width="0"/>
+  <text x="540.0" y="136.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Catalog</text>
+  <text x="540.0" y="191.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">PRIMARY_CATEGORY</text>
+  <text x="540.0" y="213.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">SUBCATEGORY</text>
+  <text x="540.0" y="235.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">UNITS</text>
+  <text x="540.0" y="257.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">requires_expiry on category / subcategory</text>
+  <rect x="750.0" y="110.0" width="360.0" height="200.0" rx="14" ry="14" fill="#FFFFFF" stroke="#C97C1F" stroke-width="1.6"/>
+  <rect x="750.0" y="110.0" width="360.0" height="40.0" rx="14" ry="14" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <rect x="750.0" y="136.0" width="360.0" height="16.0" rx="0" ry="0" fill="#FBEFD4" stroke="#FBEFD4" stroke-width="0"/>
+  <text x="930.0" y="136.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Inventory core</text>
+  <text x="930.0" y="202.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">ITEM (dual pools)</text>
+  <text x="930.0" y="224.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">SYSTEM_SETTINGS</text>
+  <text x="930.0" y="246.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">STOCK_OUT</text>
+  <rect x="1130.0" y="110.0" width="380.0" height="200.0" rx="14" ry="14" fill="#FFFFFF" stroke="#5A6E4E" stroke-width="1.6"/>
+  <rect x="1130.0" y="110.0" width="380.0" height="40.0" rx="14" ry="14" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <rect x="1130.0" y="136.0" width="380.0" height="16.0" rx="0" ry="0" fill="#E9F1E2" stroke="#E9F1E2" stroke-width="0"/>
+  <text x="1320.0" y="136.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Animals &amp; medical</text>
+  <text x="1320.0" y="202.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">PET</text>
+  <text x="1320.0" y="224.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">TREATMENT</text>
+  <text x="1320.0" y="246.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">TREATMENT_ITEM</text>
+  <rect x="50.0" y="350.0" width="480.0" height="210.0" rx="14" ry="14" fill="#FFFFFF" stroke="#2D82C4" stroke-width="1.6"/>
+  <rect x="50.0" y="350.0" width="480.0" height="40.0" rx="14" ry="14" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <rect x="50.0" y="376.0" width="480.0" height="16.0" rx="0" ry="0" fill="#E6F1F8" stroke="#E6F1F8" stroke-width="0"/>
+  <text x="290.0" y="376.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Procurement</text>
+  <text x="290.0" y="442.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">SUPPLIER</text>
+  <text x="290.0" y="464.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">PURCHASE</text>
+  <text x="290.0" y="486.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">PURCHASE_ITEM (FEFO batch + cost)</text>
+  <rect x="560.0" y="350.0" width="500.0" height="210.0" rx="14" ry="14" fill="#FFFFFF" stroke="#C97C1F" stroke-width="1.6"/>
+  <rect x="560.0" y="350.0" width="500.0" height="40.0" rx="14" ry="14" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <rect x="560.0" y="376.0" width="500.0" height="16.0" rx="0" ry="0" fill="#FBEFD4" stroke="#FBEFD4" stroke-width="0"/>
+  <text x="810.0" y="376.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Donations</text>
+  <text x="810.0" y="442.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">SUBMISSION</text>
+  <text x="810.0" y="464.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">DONATION</text>
+  <text x="810.0" y="486.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">DONATION_ITEM (FEFO batch, no cost)</text>
+  <rect x="1090.0" y="350.0" width="420.0" height="210.0" rx="14" ry="14" fill="#FFFFFF" stroke="#7A756E" stroke-width="1.6"/>
+  <rect x="1090.0" y="350.0" width="420.0" height="40.0" rx="14" ry="14" fill="#FFFFFF" stroke="#7A756E" stroke-width="1.6"/>
+  <rect x="1090.0" y="376.0" width="420.0" height="16.0" rx="0" ry="0" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="1300.0" y="376.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Implemented in services, not listed in updated_db.md</text>
+  <text x="1300.0" y="442.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">audit_log (read by AuditService)</text>
+  <text x="1300.0" y="464.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">item_rop_settings (ROP overrides)</text>
+  <text x="1300.0" y="486.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">ROP columns on system_settings</text>
+  <rect x="50.0" y="600.0" width="1460.0" height="280.0" rx="10" ry="10" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1.6"/>
+  <text x="780.0" y="723.8" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">FEFO identity is the stock-in row itself (PURCHASE_ITEM / DONATION_ITEM). There is no separate stock_batches table in updated_db.md.</text>
+  <text x="780.0" y="737.2" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">ITEM.total_purchase_stocks vs total_package_stocks is the dual-pool model. total_package_stock_ins records loose package-unit stock-in.</text>
+  <text x="780.0" y="750.8" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">SUBMISSION.donorid is required (logged-in donor). DONATION.donorid is optional (walk-in may have no account).</text>
+  <text x="780.0" y="764.2" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">Do not treat siyam_db_wo_rls.md or schema.md as current. CLAUDE.md names updated_db.md as the schema source of truth.</text>
+</svg>
