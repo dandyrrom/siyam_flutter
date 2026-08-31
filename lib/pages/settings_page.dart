@@ -401,11 +401,8 @@ class _SettingsPageState
           // INVENTORY ALERTS + ROP DEFAULTS
           // ===================================================================
 
-          ConstrainedBox(
-            constraints:
-                const BoxConstraints(
-              maxWidth: 700,
-            ),
+          SizedBox(
+            width: double.infinity,
             child: _loading
                 ? const Center(
                     child:
@@ -441,7 +438,7 @@ class _SettingsPageState
                             double.infinity,
                         padding:
                             const EdgeInsets
-                                .all(20),
+                                .all(24),
                         decoration:
                             BoxDecoration(
                           color:
@@ -810,6 +807,13 @@ class _SettingsPageState
 
           const SizedBox(height: 32),
 
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 900,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           // ===================================================================
           // ITEM-SPECIFIC ROP OVERRIDES
           // ===================================================================
@@ -894,6 +898,9 @@ class _SettingsPageState
           const _UnitManagementSection(),
 
           const SizedBox(height: 40),
+              ],
+            ),
+          ),
         ],
       ),
     );

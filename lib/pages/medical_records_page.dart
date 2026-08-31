@@ -1066,13 +1066,16 @@ class _SummaryItem
                         .mutedForeground,
                   ),
                 ),
-                if (helper !=
-                    null) ...[
-                  const SizedBox(
-                    height: 2,
-                  ),
-                  Text(
-                    helper!,
+                const SizedBox(
+                  height: 2,
+                ),
+                Visibility(
+                  visible: helper != null,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: Text(
+                    helper ?? 'View latest treatments',
                     style:
                         TextStyle(
                       fontSize: 10.5,
@@ -1090,7 +1093,7 @@ class _SummaryItem
                               .primary,
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
