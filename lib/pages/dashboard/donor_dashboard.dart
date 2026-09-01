@@ -160,7 +160,7 @@ class _DonorDashboardState extends State<DonorDashboard>
 
       case SubmissionStatus.rejected:
         return (
-          'Not Accepted',
+          'Declined',
           AppColors.destructive,
         );
     }

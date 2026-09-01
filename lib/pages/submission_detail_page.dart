@@ -216,7 +216,7 @@ void onExternalDataChanged() {
       case SubmissionStatus.approved:
         return ('Approved', AppColors.primary);
       case SubmissionStatus.rejected:
-        return ('Rejected', AppColors.destructive);
+        return ('Declined', AppColors.destructive);
       case SubmissionStatus.received:
         return ('Received', AppColors.primary);
       case SubmissionStatus.stocked:
@@ -231,9 +231,9 @@ void onExternalDataChanged() {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title:
-            Text('Reject donation from ${_submission!.donorName}?'),
+            Text('Decline donation from ${_submission!.donorName}?'),
         content: const Text(
-            'The donor will no longer be able to have this submission stocked in.'),
+            'This donation submission will be declined and cannot proceed further.'),
         actions: [
           TextButton(
               onPressed: () =>
@@ -244,7 +244,7 @@ void onExternalDataChanged() {
                 backgroundColor: AppColors.destructive),
             onPressed: () =>
                 Navigator.of(context).pop(true),
-            child: const Text('Reject'),
+            child: const Text('Decline'),
           ),
         ],
       ),
@@ -379,7 +379,7 @@ void onExternalDataChanged() {
                 side:
                     const BorderSide(color: AppColors.destructive),
               ),
-              child: const Text('Reject'),
+              child: const Text('Decline'),
             ),
             const SizedBox(width: 8),
             ElevatedButton(
@@ -446,9 +446,9 @@ void onExternalDataChanged() {
         return const _InfoPanel(
           icon: Icons.cancel_outlined,
           color: AppColors.destructive,
-          title: 'Donation rejected',
+          title: 'Donation declined',
           description:
-              'This submission was rejected and cannot proceed further.',
+              'This submission was declined and cannot proceed further.',
         );
     }
   }
@@ -1054,7 +1054,7 @@ class _StatusStepper extends StatelessWidget {
             ),
             SizedBox(width: 8),
             Text(
-              'Submitted, then rejected',
+              'Submitted, then declined',
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
