@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
@@ -14,11 +15,7 @@ import '../../state/data_bus.dart';
 // ============================================================================
 // DASHBOARD IMAGE
 // ============================================================================
-//
-// Replace this with your actual shelter/animal image.
-//
-// Make sure the image is declared inside pubspec.yaml.
-//
+
 const String _dashboardAnimalImage =
     'assets/donor_dashboard_animals.jpg';
 
@@ -32,15 +29,12 @@ class DonorDashboard extends StatefulWidget {
 
 class _DonorDashboardState extends State<DonorDashboard>
     with DataBusRefreshMixin<DonorDashboard> {
-  // Existing donor dashboard statistics.
   final DashboardService _dashboardService =
       DashboardService();
 
-  // Existing donation service used for recent donation activity.
   final DonationService _donationService =
       DonationService();
 
-  // Existing impact service used for recent donor impact.
   final ImpactService _impactService =
       ImpactService();
 
@@ -51,31 +45,34 @@ class _DonorDashboardState extends State<DonorDashboard>
   List<ReplenishmentAlert> _currentNeeds = [];
 
   bool _loading = true;
+  bool _loadInProgress = false;
+
   String? _error;
 
   @override
   void initState() {
     super.initState();
-
-    // Loads all dashboard information when the donor opens the page.
     _load();
   }
 
   @override
   void onExternalDataChanged() {
-    // Refreshes the dashboard whenever donation/inventory data changes.
     _load(silent: true);
   }
 
   Future<void> _load({
     bool silent = false,
   }) async {
+    if (_loadInProgress) return;
+
     final donorId =
         context.read<AuthController>().profile?.userId;
 
     if (donorId == null) return;
 
-    if (!silent) {
+    _loadInProgress = true;
+
+    if (!silent && !_loading) {
       setState(() {
         _loading = true;
         _error = null;
@@ -83,8 +80,6 @@ class _DonorDashboardState extends State<DonorDashboard>
     }
 
     try {
-      // Loads the existing dashboard stats, donation history,
-      // and donor impact data at the same time.
       final results = await Future.wait<Object?>([
         _dashboardService.fetchDonorStats(
           donorId,
@@ -95,8 +90,7 @@ class _DonorDashboardState extends State<DonorDashboard>
         _impactService.fetchDonorImpact(
           donorId,
         ),
-        _dashboardService
-            .fetchReplenishmentAlerts(),
+        _dashboardService.fetchReplenishmentAlerts(),
       ]);
 
       if (!mounted) return;
@@ -115,6 +109,7 @@ class _DonorDashboardState extends State<DonorDashboard>
             results[3] as List<ReplenishmentAlert>;
 
         _loading = false;
+        _error = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -123,13 +118,19 @@ class _DonorDashboardState extends State<DonorDashboard>
         setState(() {
           _error =
               'Could not load your dashboard: $e';
+
           _loading = false;
         });
       }
+    } finally {
+      _loadInProgress = false;
     }
   }
 
-  // Returns donor-friendly status labels.
+  // ==========================================================================
+  // STATUS
+  // ==========================================================================
+
   (String, Color) _statusMeta(
     SubmissionStatus status,
   ) {
@@ -166,7 +167,10 @@ class _DonorDashboardState extends State<DonorDashboard>
     }
   }
 
-  // Gets the most recent donation submissions.
+  // ==========================================================================
+  // RECENT SUBMISSIONS
+  // ==========================================================================
+
   List<DonationSubmission> get _recentSubmissions {
     final list =
         List<DonationSubmission>.from(
@@ -181,7 +185,10 @@ class _DonorDashboardState extends State<DonorDashboard>
     return list.take(3).toList();
   }
 
-  // Gets meaningful donor-facing impact events.
+  // ==========================================================================
+  // RECENT IMPACT
+  // ==========================================================================
+
   List<_RecentImpactEntry> get _recentImpact {
     final entries =
         <_RecentImpactEntry>[];
@@ -216,8 +223,21 @@ class _DonorDashboardState extends State<DonorDashboard>
     return entries.take(2).toList();
   }
 
+  // ==========================================================================
+  // BUILD
+  // ==========================================================================
+
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const SizedBox(
+        height: 320,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     if (_error != null) {
       return _DashboardError(
         message: _error!,
@@ -236,19 +256,13 @@ class _DonorDashboardState extends State<DonorDashboard>
               );
 
     final totalDonations =
-        _loading
-            ? '—'
-            : '${_stats?.totalDonations ?? 0}';
+        '${_stats?.totalDonations ?? 0}';
 
     final itemsDonated =
-        _loading
-            ? '—'
-            : '${_stats?.itemsDonated ?? 0}';
+        '${_stats?.itemsDonated ?? 0}';
 
     final pendingSubmissions =
-        _loading
-            ? '—'
-            : '${_stats?.pendingSubmissions ?? 0}';
+        '${_stats?.pendingSubmissions ?? 0}';
 
     final recentSubmissions =
         _recentSubmissions;
@@ -256,6 +270,7 @@ class _DonorDashboardState extends State<DonorDashboard>
     final recentImpact =
         _recentImpact;
 
+    // Only the first 3 are displayed on the dashboard.
     final currentNeeds =
         _currentNeeds.take(3).toList();
 
@@ -266,6 +281,7 @@ class _DonorDashboardState extends State<DonorDashboard>
         // ============================================================
         // PAGE HEADER
         // ============================================================
+
         const Text(
           'Welcome Back',
           style: TextStyle(
@@ -287,8 +303,9 @@ class _DonorDashboardState extends State<DonorDashboard>
         const SizedBox(height: 22),
 
         // ============================================================
-        // MAIN HERO / SUPPORT CARD
+        // HERO
         // ============================================================
+
         LayoutBuilder(
           builder: (
             context,
@@ -312,7 +329,7 @@ class _DonorDashboardState extends State<DonorDashboard>
               clipBehavior: Clip.antiAlias,
               child: compact
                   ? _HeroMobileLayout(
-                      loading: _loading,
+                      loading: false,
                       totalDonations:
                           totalDonations,
                       itemsDonated:
@@ -323,7 +340,7 @@ class _DonorDashboardState extends State<DonorDashboard>
                           lastDonationLabel,
                     )
                   : _HeroDesktopLayout(
-                      loading: _loading,
+                      loading: false,
                       totalDonations:
                           totalDonations,
                       itemsDonated:
@@ -340,8 +357,9 @@ class _DonorDashboardState extends State<DonorDashboard>
         const SizedBox(height: 22),
 
         // ============================================================
-        // CURRENT NEEDS + RECENT IMPACT
+        // CURRENT NEEDS + IMPACT
         // ============================================================
+
         LayoutBuilder(
           builder: (
             context,
@@ -354,9 +372,15 @@ class _DonorDashboardState extends State<DonorDashboard>
               return Column(
                 children: [
                   _CurrentNeedsCard(
-                    loading: _loading,
                     alerts:
                         currentNeeds,
+                    totalNeeds:
+                        _currentNeeds.length,
+                    onTap: () {
+                      context.push(
+                        '/donate?from=currently-needed',
+                      );
+                    },
                   ),
 
                   const SizedBox(
@@ -364,40 +388,47 @@ class _DonorDashboardState extends State<DonorDashboard>
                   ),
 
                   _RecentImpactCard(
-                    loading: _loading,
+                    loading: false,
                     impacts:
                         recentImpact,
                   ),
                 ],
               );
             }
-return IntrinsicHeight(
-  child: Row(
-    crossAxisAlignment:
-        CrossAxisAlignment.stretch,
-    children: [
-      Expanded(
-        child:
-            _CurrentNeedsCard(
-          loading: _loading,
-          alerts:
-              currentNeeds,
-        ),
-      ),
 
-      const SizedBox(width: 16),
+            return Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child:
+                      _CurrentNeedsCard(
+                    alerts:
+                        currentNeeds,
+                    totalNeeds:
+                        _currentNeeds.length,
+                    onTap: () {
+                      context.push(
+                        '/donate?from=currently-needed',
+                      );
+                    },
+                  ),
+                ),
 
-      Expanded(
-        child:
-            _RecentImpactCard(
-          loading: _loading,
-          impacts:
-              recentImpact,
-        ),
-      ),
-    ],
-  ),
-);
+                const SizedBox(
+                  width: 16,
+                ),
+
+                Expanded(
+                  child:
+                      _RecentImpactCard(
+                    loading: false,
+                    impacts:
+                        recentImpact,
+                  ),
+                ),
+              ],
+            );
           },
         ),
 
@@ -406,8 +437,9 @@ return IntrinsicHeight(
         // ============================================================
         // RECENT DONATION ACTIVITY
         // ============================================================
+
         _RecentActivityCard(
-          loading: _loading,
+          loading: false,
           submissions:
               recentSubmissions,
           statusMeta: _statusMeta,
@@ -447,9 +479,6 @@ class _HeroDesktopLayout
         crossAxisAlignment:
             CrossAxisAlignment.stretch,
         children: [
-          // ==========================================================
-          // LEFT
-          // ==========================================================
           Expanded(
             flex: 11,
             child: Padding(
@@ -501,7 +530,8 @@ class _HeroDesktopLayout
                       ),
 
                       const SizedBox(
-                          width: 12),
+                        width: 12,
+                      ),
 
                       Expanded(
                         child:
@@ -540,7 +570,8 @@ class _HeroDesktopLayout
                       ),
 
                       const SizedBox(
-                          width: 12),
+                        width: 12,
+                      ),
 
                       Expanded(
                         child:
@@ -554,7 +585,8 @@ class _HeroDesktopLayout
                           accent: AppColors
                               .roleDonor,
                           loading: loading,
-                          compactValue: true,
+                          compactValue:
+                              true,
                         ),
                       ),
                     ],
@@ -564,9 +596,6 @@ class _HeroDesktopLayout
             ),
           ),
 
-          // ==========================================================
-          // RIGHT
-          // ==========================================================
           const Expanded(
             flex: 9,
             child:
@@ -611,7 +640,9 @@ class _HeroMobileLayout
 
         Padding(
           padding:
-              const EdgeInsets.all(16),
+              const EdgeInsets.all(
+            16,
+          ),
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
@@ -663,7 +694,8 @@ class _HeroMobileLayout
                         ),
 
                         const SizedBox(
-                            height: 10),
+                          height: 10,
+                        ),
 
                         _MetricCard(
                           label:
@@ -678,7 +710,8 @@ class _HeroMobileLayout
                         ),
 
                         const SizedBox(
-                            height: 10),
+                          height: 10,
+                        ),
 
                         _MetricCard(
                           label:
@@ -693,7 +726,8 @@ class _HeroMobileLayout
                         ),
 
                         const SizedBox(
-                            height: 10),
+                          height: 10,
+                        ),
 
                         _MetricCard(
                           label:
@@ -705,7 +739,8 @@ class _HeroMobileLayout
                           accent: AppColors
                               .roleDonor,
                           loading: loading,
-                          compactValue: true,
+                          compactValue:
+                              true,
                         ),
                       ],
                     );
@@ -729,12 +764,14 @@ class _HeroMobileLayout
                                       .roleDonor,
                               loading:
                                   loading,
-                              mobile: true,
+                              mobile:
+                                  true,
                             ),
                           ),
 
                           const SizedBox(
-                              width: 10),
+                            width: 10,
+                          ),
 
                           Expanded(
                             child:
@@ -750,14 +787,16 @@ class _HeroMobileLayout
                                       .primary,
                               loading:
                                   loading,
-                              mobile: true,
+                              mobile:
+                                  true,
                             ),
                           ),
                         ],
                       ),
 
                       const SizedBox(
-                          height: 10),
+                        height: 10,
+                      ),
 
                       Row(
                         children: [
@@ -775,12 +814,14 @@ class _HeroMobileLayout
                                       .warning,
                               loading:
                                   loading,
-                              mobile: true,
+                              mobile:
+                                  true,
                             ),
                           ),
 
                           const SizedBox(
-                              width: 10),
+                            width: 10,
+                          ),
 
                           Expanded(
                             child:
@@ -798,7 +839,8 @@ class _HeroMobileLayout
                                   loading,
                               compactValue:
                                   true,
-                              mobile: true,
+                              mobile:
+                                  true,
                             ),
                           ),
                         ],
@@ -879,10 +921,13 @@ class _MetricCardState
                 )
               : AppColors.card,
           borderRadius:
-              BorderRadius.circular(14),
+              BorderRadius.circular(
+            14,
+          ),
           border: Border.all(
             color: _hovering
-                ? widget.accent.withValues(
+                ? widget.accent
+                    .withValues(
                     alpha: 0.42,
                   )
                 : AppColors.border,
@@ -909,7 +954,8 @@ class _MetricCardState
                 widget.icon,
                 size:
                     widget.mobile ? 18 : 20,
-                color: widget.accent,
+                color:
+                    widget.accent,
               ),
             ),
 
@@ -938,7 +984,8 @@ class _MetricCardState
                               .ellipsis,
                       style: TextStyle(
                         fontSize:
-                            widget.compactValue
+                            widget
+                                    .compactValue
                                 ? widget.mobile
                                     ? 12.5
                                     : 14
@@ -952,7 +999,9 @@ class _MetricCardState
                       ),
                     ),
 
-                  const SizedBox(height: 2),
+                  const SizedBox(
+                    height: 2,
+                  ),
 
                   Text(
                     widget.label,
@@ -981,137 +1030,167 @@ class _MetricCardState
 // ============================================================================
 // CURRENT NEEDS
 // ============================================================================
-//
-// Uses the same live replenishment list as the Staff Dashboard/Ordering flow.
-// Only the top three items are shown here, with donor-friendly wording.
-// Technical ROP details stay on the Staff/Manager side.
-// ============================================================================
 
 class _CurrentNeedsCard
     extends StatelessWidget {
-  final bool loading;
-  final List<ReplenishmentAlert>
-      alerts;
+  final List<ReplenishmentAlert> alerts;
+  final int totalNeeds;
+  final VoidCallback onTap;
 
   const _CurrentNeedsCard({
-    required this.loading,
     required this.alerts,
+    required this.totalNeeds,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding:
-          const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    final canOpen =
+        totalNeeds > 0;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap:
+            canOpen ? onTap : null,
         borderRadius:
-            BorderRadius.circular(16),
-        border:
-            Border.all(
-          color: AppColors.border,
+            BorderRadius.circular(
+          16,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              _SectionIcon(
-                icon: Icons
-                    .priority_high_rounded,
-                color:
-                    AppColors.warning,
-              ),
-
-              SizedBox(width: 10),
-
-              Expanded(
-                child: Text(
-                  'Currently Needed',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+        child: Container(
+          width: double.infinity,
+          padding:
+              const EdgeInsets.all(
+            18,
           ),
-
-          const SizedBox(height: 16),
-
-          if (loading)
-            const Padding(
-              padding:
-                  EdgeInsets.symmetric(
-                vertical: 24,
-              ),
-              child: Center(
-                child:
-                    CircularProgressIndicator(),
-              ),
-            )
-          else if (alerts.isEmpty)
-            Container(
-              width: double.infinity,
-              padding:
-                  const EdgeInsets.all(
-                16,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primary
-                    .withValues(
-                  alpha: 0.045,
-                ),
-                borderRadius:
-                    BorderRadius.circular(
-                  12,
-                ),
-              ),
-              child: const Column(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius:
+                BorderRadius.circular(
+              16,
+            ),
+            border: Border.all(
+              color: AppColors.border,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Icon(
-                    Icons
-                        .check_circle_outline,
-                    size: 26,
+                  const _SectionIcon(
+                    icon: Icons
+                        .priority_high_rounded,
                     color:
-                        AppColors.primary,
+                        AppColors.warning,
                   ),
 
-                  SizedBox(height: 8),
+                  const SizedBox(
+                    width: 10,
+                  ),
 
-                  Text(
-                    'Supply needs are currently covered',
-                    textAlign:
-                        TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          FontWeight.w600,
+                  const Expanded(
+                    child: Text(
+                      'Currently Needed',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight:
+                            FontWeight
+                                .w700,
+                      ),
                     ),
                   ),
 
-                  SizedBox(height: 3),
-
-                  Text(
-                    'New priority items will appear here when the shelter needs support.',
-                    textAlign:
-                        TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.8,
+                  if (canOpen)
+                    const Icon(
+                      Icons
+                          .chevron_right,
+                      size: 21,
                       color: AppColors
                           .mutedForeground,
                     ),
-                  ),
                 ],
               ),
-            )
-          else
-            Column(
-              children: [
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              if (alerts.isEmpty)
+                Container(
+                  width:
+                      double.infinity,
+                  padding:
+                      const EdgeInsets
+                          .all(
+                    16,
+                  ),
+                  decoration:
+                      BoxDecoration(
+                    color: AppColors
+                        .primary
+                        .withValues(
+                      alpha:
+                          0.045,
+                    ),
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      12,
+                    ),
+                  ),
+                  child:
+                      const Column(
+                    children: [
+                      Icon(
+                        Icons
+                            .check_circle_outline,
+                        size: 26,
+                        color: AppColors
+                            .primary,
+                      ),
+
+                      SizedBox(
+                        height: 8,
+                      ),
+
+                      Text(
+                        'Supply needs are currently covered',
+                        textAlign:
+                            TextAlign
+                                .center,
+                        style:
+                            TextStyle(
+                          fontSize:
+                              13,
+                          fontWeight:
+                              FontWeight
+                                  .w600,
+                        ),
+                      ),
+
+                      SizedBox(
+                        height: 3,
+                      ),
+
+                      Text(
+                        'New priority items will appear here when the shelter needs support.',
+                        textAlign:
+                            TextAlign
+                                .center,
+                        style:
+                            TextStyle(
+                          fontSize:
+                              11.8,
+                          color: AppColors
+                              .mutedForeground,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
                 for (var i = 0;
                     i < alerts.length;
                     i++) ...[
@@ -1125,9 +1204,44 @@ class _CurrentNeedsCard
                         alerts[i],
                   ),
                 ],
+
+                const SizedBox(
+                  height: 14,
+                ),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        totalNeeds > 3
+                            ? 'View all $totalNeeds needed items'
+                            : 'View needed items',
+                        style:
+                            const TextStyle(
+                          fontSize:
+                              11.5,
+                          fontWeight:
+                              FontWeight
+                                  .w600,
+                          color: AppColors
+                              .roleDonor,
+                        ),
+                      ),
+                    ),
+
+                    const Icon(
+                      Icons
+                          .arrow_forward,
+                      size: 15,
+                      color: AppColors
+                          .roleDonor,
+                    ),
+                  ],
+                ),
               ],
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1143,8 +1257,12 @@ class _CurrentNeedRow
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) =
-        _needMeta(alert.priority);
+    final (
+      label,
+      color,
+    ) = _needMeta(
+      alert.priority,
+    );
 
     return Row(
       crossAxisAlignment:
@@ -1159,11 +1277,14 @@ class _CurrentNeedRow
           ),
           decoration: BoxDecoration(
             color: color,
-            shape: BoxShape.circle,
+            shape:
+                BoxShape.circle,
           ),
         ),
 
-        const SizedBox(width: 10),
+        const SizedBox(
+          width: 10,
+        ),
 
         Expanded(
           child: Column(
@@ -1173,21 +1294,27 @@ class _CurrentNeedRow
               Text(
                 alert.itemName,
                 overflow:
-                    TextOverflow.ellipsis,
-                style: const TextStyle(
+                    TextOverflow
+                        .ellipsis,
+                style:
+                    const TextStyle(
                   fontSize: 12.8,
                   fontWeight:
-                      FontWeight.w600,
+                      FontWeight
+                          .w600,
                 ),
               ),
 
-              const SizedBox(height: 2),
+              const SizedBox(
+                height: 2,
+              ),
 
               Text(
                 alert.stockQty <= 0
                     ? 'Currently out of stock'
                     : '${_formatQty(alert.stockQty)} ${alert.unitAbbr} remaining',
-                style: const TextStyle(
+                style:
+                    const TextStyle(
                   fontSize: 11.2,
                   color: AppColors
                       .mutedForeground,
@@ -1197,11 +1324,14 @@ class _CurrentNeedRow
           ),
         ),
 
-        const SizedBox(width: 10),
+        const SizedBox(
+          width: 10,
+        ),
 
         Container(
           padding:
-              const EdgeInsets.symmetric(
+              const EdgeInsets
+                  .symmetric(
             horizontal: 8,
             vertical: 4,
           ),
@@ -1229,48 +1359,6 @@ class _CurrentNeedRow
   }
 }
 
-(String, Color) _needMeta(
-  ReplenishmentPriority priority,
-) {
-  switch (priority) {
-    case ReplenishmentPriority.critical:
-      return (
-        'Urgent',
-        AppColors.stockOut,
-      );
-
-    case ReplenishmentPriority.high:
-      return (
-        'Running Low',
-        AppColors.stockLow,
-      );
-
-    case ReplenishmentPriority.medium:
-      return (
-        'Needed Soon',
-        AppColors.stockNeedsRestock,
-      );
-  }
-}
-
-String _formatQty(double value) {
-  if (value ==
-      value.roundToDouble()) {
-    return value.toInt().toString();
-  }
-
-  return value
-      .toStringAsFixed(2)
-      .replaceFirst(
-        RegExp(r'0+$'),
-        '',
-      )
-      .replaceFirst(
-        RegExp(r'\.$'),
-        '',
-      );
-}
-
 // ============================================================================
 // RECENT IMPACT
 // ============================================================================
@@ -1278,6 +1366,7 @@ String _formatQty(double value) {
 class _RecentImpactCard
     extends StatelessWidget {
   final bool loading;
+
   final List<_RecentImpactEntry>
       impacts;
 
@@ -1291,13 +1380,16 @@ class _RecentImpactCard
     return Container(
       width: double.infinity,
       padding:
-          const EdgeInsets.all(18),
+          const EdgeInsets.all(
+        18,
+      ),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius:
-            BorderRadius.circular(16),
-        border:
-            Border.all(
+            BorderRadius.circular(
+          16,
+        ),
+        border: Border.all(
           color: AppColors.border,
         ),
       ),
@@ -1314,7 +1406,9 @@ class _RecentImpactCard
                     AppColors.primary,
               ),
 
-              SizedBox(width: 10),
+              SizedBox(
+                width: 10,
+              ),
 
               Expanded(
                 child: Text(
@@ -1322,14 +1416,17 @@ class _RecentImpactCard
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight:
-                        FontWeight.w700,
+                        FontWeight
+                            .w700,
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(
+            height: 30,
+          ),
 
           if (loading)
             const Padding(
@@ -1398,16 +1495,21 @@ class _ImpactPreview
               alpha: 0.10,
             ),
             borderRadius:
-                BorderRadius.circular(9),
+                BorderRadius.circular(
+              9,
+            ),
           ),
           child: const Icon(
             Icons.favorite,
             size: 17,
-            color: AppColors.primary,
+            color:
+                AppColors.primary,
           ),
         ),
 
-        const SizedBox(width: 10),
+        const SizedBox(
+          width: 10,
+        ),
 
         Expanded(
           child: Column(
@@ -1416,31 +1518,38 @@ class _ImpactPreview
             children: [
               Text(
                 '${impact.itemName} made an impact',
-                style: const TextStyle(
+                style:
+                    const TextStyle(
                   fontSize: 12.8,
                   fontWeight:
-                      FontWeight.w600,
+                      FontWeight
+                          .w600,
                 ),
               ),
 
-              const SizedBox(height: 3),
+              const SizedBox(
+                height: 3,
+              ),
 
-              Text(
+              const Text(
                 'Your donated item was put to use in the shelter.',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   color: AppColors
                       .mutedForeground,
                 ),
               ),
 
-              const SizedBox(height: 4),
+              const SizedBox(
+                height: 4,
+              ),
 
               Text(
                 _formatDate(
                   impact.date,
                 ),
-                style: const TextStyle(
+                style:
+                    const TextStyle(
                   fontSize: 10.8,
                   color: AppColors
                       .mutedForeground,
@@ -1484,9 +1593,10 @@ class _RecentActivityCard
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius:
-            BorderRadius.circular(16),
-        border:
-            Border.all(
+            BorderRadius.circular(
+          16,
+        ),
+        border: Border.all(
           color: AppColors.border,
         ),
       ),
@@ -1511,21 +1621,26 @@ class _RecentActivityCard
                       .roleDonor,
                 ),
 
-                SizedBox(width: 10),
+                SizedBox(
+                  width: 10,
+                ),
 
                 Text(
                   'Recent Donation Activity',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight:
-                        FontWeight.w700,
+                        FontWeight
+                            .w700,
                   ),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 1),
+          const Divider(
+            height: 1,
+          ),
 
           if (loading)
             const Padding(
@@ -1541,8 +1656,11 @@ class _RecentActivityCard
           else if (submissions.isEmpty)
             const Padding(
               padding:
-                  EdgeInsets.all(20),
-              child: _SimpleEmptyState(
+                  EdgeInsets.all(
+                20,
+              ),
+              child:
+                  _SimpleEmptyState(
                 icon: Icons
                     .volunteer_activism_outlined,
                 title:
@@ -1585,8 +1703,10 @@ class _ActivityRow
     extends StatelessWidget {
   final DonationSubmission submission;
 
-  final (String, Color)
-      statusMeta;
+  final (
+    String,
+    Color
+  ) statusMeta;
 
   const _ActivityRow({
     required this.submission,
@@ -1595,8 +1715,10 @@ class _ActivityRow
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) =
-        statusMeta;
+    final (
+      label,
+      color,
+    ) = statusMeta;
 
     return Padding(
       padding:
@@ -1627,7 +1749,9 @@ class _ActivityRow
             ),
           ),
 
-          const SizedBox(width: 11),
+          const SizedBox(
+            width: 11,
+          ),
 
           Expanded(
             child: Column(
@@ -1639,14 +1763,17 @@ class _ActivityRow
                   overflow:
                       TextOverflow
                           .ellipsis,
-                  style: const TextStyle(
+                  style:
+                      const TextStyle(
                     fontSize: 12.8,
                     fontWeight:
-                        FontWeight.w600,
+                        FontWeight
+                            .w600,
                   ),
                 ),
 
-                if (submission.schedDate !=
+                if (submission
+                        .schedDate !=
                     null) ...[
                   const SizedBox(
                     height: 2,
@@ -1666,7 +1793,9 @@ class _ActivityRow
             ),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(
+            width: 10,
+          ),
 
           Container(
             padding:
@@ -1761,7 +1890,8 @@ class _AnimalImagePanel
                   ],
                 ),
               ),
-              child: const Column(
+              child:
+                  const Column(
                 mainAxisSize:
                     MainAxisSize.min,
                 crossAxisAlignment:
@@ -1769,23 +1899,28 @@ class _AnimalImagePanel
                 children: [
                   Text(
                     'Every donation counts.',
-                    style: TextStyle(
+                    style:
+                        TextStyle(
                       fontSize: 15,
                       fontWeight:
-                          FontWeight.w700,
+                          FontWeight
+                              .w700,
                       color:
                           Colors.white,
                     ),
                   ),
 
-                  SizedBox(height: 3),
+                  SizedBox(
+                    height: 3,
+                  ),
 
                   Text(
                     'Thank you for helping us care for animals in need.',
-                    style: TextStyle(
+                    style:
+                        TextStyle(
                       fontSize: 12,
-                      color:
-                          Colors.white70,
+                      color: Colors
+                          .white70,
                     ),
                   ),
                 ],
@@ -1809,7 +1944,8 @@ class _AnimalImageFallback
           .withValues(
         alpha: 0.08,
       ),
-      alignment: Alignment.center,
+      alignment:
+          Alignment.center,
       child: Column(
         mainAxisSize:
             MainAxisSize.min,
@@ -1817,12 +1953,15 @@ class _AnimalImageFallback
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.roleDonor
+            decoration:
+                BoxDecoration(
+              color: AppColors
+                  .roleDonor
                   .withValues(
                 alpha: 0.12,
               ),
-              shape: BoxShape.circle,
+              shape:
+                  BoxShape.circle,
             ),
             child: const Icon(
               Icons.pets_outlined,
@@ -1832,7 +1971,9 @@ class _AnimalImageFallback
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(
+            height: 10,
+          ),
 
           const Text(
             'Dumaguete Animal Sanctuary',
@@ -1874,7 +2015,9 @@ class _SectionIcon
           alpha: 0.09,
         ),
         borderRadius:
-            BorderRadius.circular(9),
+            BorderRadius.circular(
+          9,
+        ),
       ),
       child: Icon(
         icon,
@@ -1905,30 +2048,36 @@ class _SimpleEmptyState
           Icon(
             icon,
             size: 28,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors
+                .mutedForeground,
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
 
           Text(
             title,
             textAlign:
                 TextAlign.center,
-            style: const TextStyle(
+            style:
+                const TextStyle(
               fontSize: 12.8,
               fontWeight:
                   FontWeight.w600,
             ),
           ),
 
-          const SizedBox(height: 3),
+          const SizedBox(
+            height: 3,
+          ),
 
           Text(
             message,
             textAlign:
                 TextAlign.center,
-            style: const TextStyle(
+            style:
+                const TextStyle(
               fontSize: 11.5,
               color: AppColors
                   .mutedForeground,
@@ -1955,13 +2104,16 @@ class _DashboardError
     return Container(
       width: double.infinity,
       padding:
-          const EdgeInsets.all(20),
+          const EdgeInsets.all(
+        20,
+      ),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius:
-            BorderRadius.circular(16),
-        border:
-            Border.all(
+            BorderRadius.circular(
+          16,
+        ),
+        border: Border.all(
           color: AppColors.border,
         ),
       ),
@@ -1970,29 +2122,37 @@ class _DashboardError
           const Icon(
             Icons.error_outline,
             size: 30,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors
+                .mutedForeground,
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(
+            height: 10,
+          ),
 
           Text(
             message,
             textAlign:
                 TextAlign.center,
-            style: const TextStyle(
+            style:
+                const TextStyle(
               fontSize: 13,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors
+                  .mutedForeground,
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 12,
+          ),
 
           OutlinedButton(
-            onPressed: onRetry,
+            onPressed:
+                onRetry,
             child:
-                const Text('Retry'),
+                const Text(
+              'Retry',
+            ),
           ),
         ],
       ),
@@ -2023,7 +2183,8 @@ IconData _activityIcon(
 ) {
   switch (status) {
     case SubmissionStatus.pending:
-      return Icons.schedule_outlined;
+      return Icons
+          .schedule_outlined;
 
     case SubmissionStatus.approved:
       return Icons
@@ -2034,11 +2195,63 @@ IconData _activityIcon(
           .local_shipping_outlined;
 
     case SubmissionStatus.stocked:
-      return Icons.done_all_outlined;
+      return Icons
+          .done_all_outlined;
 
     case SubmissionStatus.rejected:
-      return Icons.cancel_outlined;
+      return Icons
+          .cancel_outlined;
   }
+}
+
+// ============================================================================
+// CURRENT NEED HELPERS
+// ============================================================================
+
+(String, Color) _needMeta(
+  ReplenishmentPriority priority,
+) {
+  switch (priority) {
+    case ReplenishmentPriority.critical:
+      return (
+        'Urgent',
+        AppColors.stockOut,
+      );
+
+    case ReplenishmentPriority.high:
+      return (
+        'Running Low',
+        AppColors.stockLow,
+      );
+
+    case ReplenishmentPriority.medium:
+      return (
+        'Needed Soon',
+        AppColors.stockNeedsRestock,
+      );
+  }
+}
+
+String _formatQty(
+  double value,
+) {
+  if (value ==
+      value.roundToDouble()) {
+    return value
+        .toInt()
+        .toString();
+  }
+
+  return value
+      .toStringAsFixed(2)
+      .replaceFirst(
+        RegExp(r'0+$'),
+        '',
+      )
+      .replaceFirst(
+        RegExp(r'\.$'),
+        '',
+      );
 }
 
 // ============================================================================
@@ -2060,5 +2273,7 @@ const _monthAbbrev = [
   'Dec',
 ];
 
-String _formatDate(DateTime date) =>
+String _formatDate(
+  DateTime date,
+) =>
     '${_monthAbbrev[date.month - 1]} ${date.day}, ${date.year}';

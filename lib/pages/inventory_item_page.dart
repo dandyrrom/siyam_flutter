@@ -935,17 +935,17 @@ class _StockHistoryRow extends StatelessWidget {
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
-                Text(
-                  isLoggedTreatment
-                      ? '${formatQty(movement.qty)} ${movement.unitAbbr}'
-                      : '${isIn ? '+' : '-'}${formatQty(movement.qty)} '
-                          '${movement.unitAbbr}',
-                  style: TextStyle(
-                    fontWeight:
-                        FontWeight.w600,
-                    color: color,
-                  ),
-                ),
+            Text(
+  isLoggedTreatment
+      ? '${formatQty(movement.qty)} ${movement.unitAbbr}'
+      : isIn
+          ? '+${formatQty(movement.qty)} ${movement.unitAbbr}'
+          : 'Dispensed ${formatQty(movement.qty)} ${movement.unitAbbr}',
+  style: TextStyle(
+    fontWeight: FontWeight.w600,
+    color: color,
+  ),
+),
                 if (isLoggedTreatment)
                   const Text(
                     'No stock deduction',
