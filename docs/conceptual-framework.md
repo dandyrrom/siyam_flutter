@@ -72,6 +72,11 @@ ROP entities are used by services but are not fully listed in `updated_db.md`.
 
 ---
 
+## Related diagram
+
+Proposed System BPMN swim-lane (roles × operating loop):
+[`docs/system-diagrams/`](system-diagrams/README.md).
+
 ## Sources used for this update
 
 - Runtime modules: `lib/routing/nav_config.dart`, role dashboards, Inventory, Medical, Ordering, Donations, Reports, Audit, Settings, donor portal
