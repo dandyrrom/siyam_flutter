@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1580" height="860"
+     viewBox="0 0 1580 860" role="img">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7D6D"/>
+    </marker>
+  </defs>
+  <rect x="0.0" y="0.0" width="1580.0" height="860.0" rx="0" ry="0" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0"/>
+  <rect x="0.0" y="0.0" width="1580.0" height="64.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <rect x="0.0" y="0.0" width="8.0" height="64.0" rx="0" ry="0" fill="#93B873" stroke="#93B873" stroke-width="0"/>
+  <text x="24.0" y="28.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" fill="#3E2723">Level of Explosion — 6.0 Donations &amp; Donor Portal</text>
+  <text x="24.0" y="50.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">Drop-off submissions, walk-in stock-in, donor history, and FIFO impact.</text>
+  <rect x="0.0" y="824.0" width="1580.0" height="36.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <text x="24.0" y="846.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">SIYAM — Animal Sanctuary Management System. Drawn from current modules, services, and updated_db.md.</text>
+  <line x1="766.0" y1="184.0" x2="766.0" y2="244.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="121.0" y1="244.0" x2="1406.0" y2="244.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="121.0" y1="244.0" x2="121.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="341.0" y1="244.0" x2="341.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="556.0" y1="244.0" x2="556.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="771.0" y1="244.0" x2="771.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="986.0" y1="244.0" x2="986.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="1191.0" y1="244.0" x2="1191.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="1406.0" y1="244.0" x2="1406.0" y2="304.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <rect x="656.0" y="120.0" width="220.0" height="64.0" rx="10" ry="10" fill="#FFFFFF" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="766.0" y="156.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.0 Donations</text>
+  <rect x="16.0" y="304.0" width="210.0" height="78.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="121.0" y="332.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.1 Submit drop-off</text>
+  <text x="121.0" y="347.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Donor: schedule, notes,</text>
+  <text x="121.0" y="362.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">proof</text>
+  <rect x="236.0" y="304.0" width="210.0" height="78.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="341.0" y="332.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.2 Review</text>
+  <text x="341.0" y="347.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">pending → approved |</text>
+  <text x="341.0" y="362.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">rejected</text>
+  <rect x="456.0" y="304.0" width="200.0" height="78.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="556.0" y="339.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.3 Items received</text>
+  <text x="556.0" y="354.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">physical arrival date</text>
+  <rect x="666.0" y="304.0" width="210.0" height="78.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="771.0" y="332.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.4 Stock in donated</text>
+  <text x="771.0" y="347.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">creates DONATION +</text>
+  <text x="771.0" y="362.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">batches</text>
+  <rect x="886.0" y="304.0" width="200.0" height="78.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="986.0" y="339.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.5 Walk-in donation</text>
+  <text x="986.0" y="354.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">no submission required</text>
+  <rect x="1096.0" y="304.0" width="190.0" height="78.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="1191.0" y="339.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.6 History</text>
+  <text x="1191.0" y="354.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Donor donation list</text>
+  <rect x="1296.0" y="304.0" width="220.0" height="78.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="1406.0" y="332.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.7 Impact</text>
+  <text x="1406.0" y="347.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">FIFO used / discarded /</text>
+  <text x="1406.0" y="362.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">remaining</text>
+  <rect x="60.0" y="520.0" width="1460.0" height="250.0" rx="10" ry="10" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1.6"/>
+  <text x="790.0" y="628.8" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">Submission flow: pending → approved → received → stocked. Rejected is terminal and only from pending.</text>
+  <text x="790.0" y="642.2" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">Walk-in / drop-off on DONATION is descriptive. donorid, donor_name, and subid are independently optional.</text>
+  <text x="790.0" y="655.8" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">Impact replays purchase_item / donation_item / treatment_item / stock_out oldest-batch-first. It is not a stored ITEM statistic.</text>
+  <text x="790.0" y="669.2" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">Donor notifications (approved, received, impact) are derived from this same data — there is no separate notification table.</text>
+</svg>

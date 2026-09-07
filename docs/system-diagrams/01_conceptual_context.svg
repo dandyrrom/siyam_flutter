@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="920"
+     viewBox="0 0 1480 920" role="img">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7D6D"/>
+    </marker>
+  </defs>
+  <rect x="0.0" y="0.0" width="1480.0" height="920.0" rx="0" ry="0" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0"/>
+  <rect x="0.0" y="0.0" width="1480.0" height="64.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <rect x="0.0" y="0.0" width="8.0" height="64.0" rx="0" ry="0" fill="#93B873" stroke="#93B873" stroke-width="0"/>
+  <text x="24.0" y="28.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" fill="#3E2723">Conceptual Diagram — System Context</text>
+  <text x="24.0" y="50.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">What SIYAM is, who uses it, and which external systems it talks to.</text>
+  <rect x="0.0" y="884.0" width="1480.0" height="36.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <text x="24.0" y="906.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">SIYAM — Animal Sanctuary Management System. Drawn from current modules, services, and updated_db.md.</text>
+  <rect x="90.0" y="110.0" width="240.0" height="70.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="210.0" y="141.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Manager</text>
+  <text x="210.0" y="156.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Sanctuary oversight</text>
+  <rect x="390.0" y="110.0" width="240.0" height="70.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="510.0" y="141.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Staff</text>
+  <text x="510.0" y="156.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Day-to-day operations</text>
+  <rect x="690.0" y="110.0" width="240.0" height="70.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="810.0" y="141.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Donor</text>
+  <text x="810.0" y="156.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Give supplies &amp; track impact</text>
+  <rect x="990.0" y="110.0" width="240.0" height="70.0" rx="10" ry="10" fill="#FFFFFF" stroke="#7A756E" stroke-width="1.6"/>
+  <text x="1110.0" y="134.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Suppliers</text>
+  <text x="1110.0" y="149.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Recorded vendors, not login</text>
+  <text x="1110.0" y="164.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">users</text>
+  <rect x="280.0" y="300.0" width="700.0" height="250.0" rx="18" ry="18" fill="#FFFFFF" stroke="#5A6E4E" stroke-width="2.2"/>
+  <rect x="280.0" y="300.0" width="700.0" height="46.0" rx="0" ry="0" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="0"/>
+  <rect x="280.0" y="300.0" width="700.0" height="46.0" rx="18" ry="18" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="2.2"/>
+  <rect x="280.0" y="328.0" width="700.0" height="18.0" rx="0" ry="0" fill="#E9F1E2" stroke="#E9F1E2" stroke-width="0"/>
+  <text x="630.0" y="330.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" font-style="normal" fill="#3E2723">0.0  SIYAM</text>
+  <text x="630.0" y="372.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" font-style="normal" fill="#5A6E4E">Animal Sanctuary Management System</text>
+  <text x="630.0" y="416.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">Role-based Flutter web app for sanctuary operations:</text>
+  <text x="630.0" y="434.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">animal records, inventory, medical treatments, purchasing,</text>
+  <text x="630.0" y="452.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" font-style="normal" fill="#3E2723">donations, replenishment advice, reports, and audit.</text>
+  <rect x="330.0" y="490.0" width="190.0" height="40.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="425.0" y="514.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Manager portal</text>
+  <rect x="535.0" y="490.0" width="190.0" height="40.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="630.0" y="514.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Staff portal</text>
+  <rect x="740.0" y="490.0" width="190.0" height="40.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="835.0" y="514.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Donor portal</text>
+  <rect x="180.0" y="680.0" width="300.0" height="80.0" rx="10" ry="10" fill="#FFFFFF" stroke="#7A756E" stroke-width="1.6"/>
+  <text x="330.0" y="716.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Mock backend</text>
+  <text x="330.0" y="731.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">In-memory data for local/dev</text>
+  <rect x="560.0" y="680.0" width="360.0" height="80.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="740.0" y="716.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Supabase backend</text>
+  <text x="740.0" y="731.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">GoTrue auth + Postgres + RLS</text>
+  <rect x="990.0" y="680.0" width="300.0" height="80.0" rx="10" ry="10" fill="#FFFFFF" stroke="#7A756E" stroke-width="1.6"/>
+  <text x="1140.0" y="716.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">Static web host</text>
+  <text x="1140.0" y="731.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Flutter web build (e.g. Vercel)</text>
+  <line x1="210.0" y1="180.0" x2="430.0" y2="300.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="230.0" y="223.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="300.0" y="235.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">oversight / settings</text>
+  <line x1="510.0" y1="180.0" x2="590.0" y2="300.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="475.0" y="223.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="545.0" y="235.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">stock / treatments</text>
+  <line x1="810.0" y1="180.0" x2="760.0" y2="300.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="730.0" y="223.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="800.0" y="235.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">submissions / impact</text>
+  <line x1="1110.0" y1="180.0" x2="900.0" y2="360.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+  <rect x="990.0" y="259.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="1060.0" y="271.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">vendor records only</text>
+  <line x1="480.0" y1="550.0" x2="330.0" y2="680.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="310.0" y="611.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="380.0" y="623.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">USE_MOCK=true</text>
+  <line x1="630.0" y1="550.0" x2="740.0" y2="680.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <rect x="650.0" y="611.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="720.0" y="623.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">USE_MOCK=false</text>
+  <line x1="900.0" y1="430.0" x2="1140.0" y2="680.0" stroke="#6B7D6D" stroke-width="1.4" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+  <rect x="1010.0" y="531.0" width="140.0" height="16.0" rx="3" ry="3" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0"/>
+  <text x="1080.0" y="543.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="500" font-style="normal" fill="#7A756E">serves the UI</text>
+  <text x="1180.0" y="300.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" font-style="normal" fill="#7A756E">Legend</text>
+  <rect x="1180.0" y="314.0" width="18.0" height="14.0" rx="3" ry="3" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.2"/>
+  <text x="1206.0" y="325.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">Manager-facing</text>
+  <rect x="1180.0" y="336.0" width="18.0" height="14.0" rx="3" ry="3" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.2"/>
+  <text x="1206.0" y="347.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">Staff / backend</text>
+  <rect x="1180.0" y="358.0" width="18.0" height="14.0" rx="3" ry="3" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.2"/>
+  <text x="1206.0" y="369.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">Donor-facing</text>
+  <rect x="1180.0" y="380.0" width="18.0" height="14.0" rx="3" ry="3" fill="#FFFFFF" stroke="#7A756E" stroke-width="1.2"/>
+  <text x="1206.0" y="391.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">External / supporting</text>
+</svg>

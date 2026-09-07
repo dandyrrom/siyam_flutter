@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="800"
+     viewBox="0 0 1480 800" role="img">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7D6D"/>
+    </marker>
+  </defs>
+  <rect x="0.0" y="0.0" width="1480.0" height="800.0" rx="0" ry="0" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0"/>
+  <rect x="0.0" y="0.0" width="1480.0" height="64.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <rect x="0.0" y="0.0" width="8.0" height="64.0" rx="0" ry="0" fill="#93B873" stroke="#93B873" stroke-width="0"/>
+  <text x="24.0" y="28.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" fill="#3E2723">Level of Explosion — 5.0 Procurement</text>
+  <text x="24.0" y="50.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">Suppliers plus the Staff Ordering module (replenishment + purchase history).</text>
+  <rect x="0.0" y="764.0" width="1480.0" height="36.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <text x="24.0" y="786.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">SIYAM — Animal Sanctuary Management System. Drawn from current modules, services, and updated_db.md.</text>
+  <line x1="668.0" y1="174.0" x2="668.0" y2="219.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="307.0" y1="219.0" x2="907.0" y2="219.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="307.0" y1="219.0" x2="307.0" y2="264.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="907.0" y1="219.0" x2="907.0" y2="264.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="307.0" y1="334.0" x2="307.0" y2="379.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="190.0" y1="379.0" x2="429.0" y2="379.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="190.0" y1="379.0" x2="190.0" y2="424.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="429.0" y1="379.0" x2="429.0" y2="424.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="907.0" y1="334.0" x2="907.0" y2="379.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="673.0" y1="379.0" x2="1151.0" y2="379.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="673.0" y1="379.0" x2="673.0" y2="424.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="917.0" y1="379.0" x2="917.0" y2="424.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="1151.0" y1="379.0" x2="1151.0" y2="424.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <rect x="558.0" y="110.0" width="220.0" height="64.0" rx="10" ry="10" fill="#FFFFFF" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="668.0" y="146.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.0 Procurement</text>
+  <rect x="207.0" y="264.0" width="200.0" height="70.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="307.0" y="295.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.1 Suppliers</text>
+  <text x="307.0" y="310.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Manager CRUD</text>
+  <rect x="80.0" y="424.0" width="220.0" height="78.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="190.0" y="452.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.1.1 Create / update /</text>
+  <text x="190.0" y="467.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">delete</text>
+  <text x="190.0" y="482.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">name, contacts, address</text>
+  <rect x="324.0" y="424.0" width="210.0" height="78.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="429.0" y="459.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.1.2 Supplier purchases</text>
+  <text x="429.0" y="474.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">history for that vendor</text>
+  <rect x="807.0" y="264.0" width="200.0" height="70.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="907.0" y="295.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.2 Ordering</text>
+  <text x="907.0" y="310.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Staff</text>
+  <rect x="558.0" y="424.0" width="230.0" height="78.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="673.0" y="452.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.2.1 Replenishment</text>
+  <text x="673.0" y="467.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">ADU, lead time, safety</text>
+  <text x="673.0" y="482.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">stock, ROP</text>
+  <rect x="812.0" y="424.0" width="210.0" height="78.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="917.0" y="459.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.2.2 Purchase history</text>
+  <text x="917.0" y="474.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">existing PURCHASE records</text>
+  <rect x="1046.0" y="424.0" width="210.0" height="78.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="1151.0" y="452.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.2.3 Record purchase</text>
+  <text x="1151.0" y="467.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">stock-in via add-item</text>
+  <text x="1151.0" y="482.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">flow</text>
+  <rect x="80.0" y="610.0" width="1320.0" height="110.0" rx="10" ry="10" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1.6"/>
+  <text x="740.0" y="661.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" font-style="normal" fill="#3E2723">ROP = ceil(ADU × lead time + safety stock). An item appears when ROP &gt; 0 and current purchase-unit stock ≤ ROP.</text>
+  <text x="740.0" y="676.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#3E2723">SIYAM only recommends replenishment. It does not automatically create a purchase record from ROP.</text>
+</svg>

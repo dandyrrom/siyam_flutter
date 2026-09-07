@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="760"
+     viewBox="0 0 1560 760" role="img">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7D6D"/>
+    </marker>
+  </defs>
+  <rect x="0.0" y="0.0" width="1560.0" height="760.0" rx="0" ry="0" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0"/>
+  <rect x="0.0" y="0.0" width="1560.0" height="64.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <rect x="0.0" y="0.0" width="8.0" height="64.0" rx="0" ry="0" fill="#93B873" stroke="#93B873" stroke-width="0"/>
+  <text x="24.0" y="28.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" fill="#3E2723">Top-Level Diagram — Functional Explosion of 0.0 SIYAM</text>
+  <text x="24.0" y="50.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">First decomposition of the whole system into the modules that actually exist in the app.</text>
+  <rect x="0.0" y="724.0" width="1560.0" height="36.0" rx="0" ry="0" fill="#FFFFFF" stroke="#C5D6B8" stroke-width="1"/>
+  <text x="24.0" y="746.0" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#7A756E">SIYAM — Animal Sanctuary Management System. Drawn from current modules, services, and updated_db.md.</text>
+  <line x1="746.0" y1="190.0" x2="746.0" y2="250.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="134.0" y1="250.0" x2="1358.0" y2="250.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="134.0" y1="250.0" x2="134.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="338.0" y1="250.0" x2="338.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="542.0" y1="250.0" x2="542.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="746.0" y1="250.0" x2="746.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="950.0" y1="250.0" x2="950.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="1154.0" y1="250.0" x2="1154.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <line x1="1358.0" y1="250.0" x2="1358.0" y2="310.0" stroke="#6B7D6D" stroke-width="1.4"/>
+  <rect x="616.0" y="120.0" width="260.0" height="70.0" rx="10" ry="10" fill="#FFFFFF" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="746.0" y="151.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">0.0 SIYAM</text>
+  <text x="746.0" y="166.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Animal Sanctuary Management</text>
+  <rect x="40.0" y="310.0" width="188.0" height="62.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="134.0" y="337.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">1.0 Access &amp; Identity</text>
+  <text x="134.0" y="352.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Login, roles, profile</text>
+  <rect x="244.0" y="307.5" width="188.0" height="67.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="338.0" y="330.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">2.0 Dashboards</text>
+  <text x="338.0" y="345.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Manager / Staff /</text>
+  <text x="338.0" y="360.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Donor</text>
+  <rect x="448.0" y="310.0" width="188.0" height="62.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="542.0" y="337.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">3.0 Animal &amp; Medical</text>
+  <text x="542.0" y="352.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Pets and treatments</text>
+  <rect x="652.0" y="310.0" width="188.0" height="62.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="746.0" y="337.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">4.0 Inventory Control</text>
+  <text x="746.0" y="352.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Stock in, out, FEFO</text>
+  <rect x="856.0" y="307.5" width="188.0" height="67.0" rx="10" ry="10" fill="#E6F1F8" stroke="#2D82C4" stroke-width="1.6"/>
+  <text x="950.0" y="330.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">5.0 Procurement</text>
+  <text x="950.0" y="345.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Suppliers, ROP,</text>
+  <text x="950.0" y="360.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">purchases</text>
+  <rect x="1060.0" y="310.0" width="188.0" height="62.0" rx="10" ry="10" fill="#FBEFD4" stroke="#C97C1F" stroke-width="1.6"/>
+  <text x="1154.0" y="337.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">6.0 Donations</text>
+  <text x="1154.0" y="352.5" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Submissions and impact</text>
+  <rect x="1264.0" y="307.5" width="188.0" height="67.0" rx="10" ry="10" fill="#E9F1E2" stroke="#5A6E4E" stroke-width="1.6"/>
+  <text x="1358.0" y="330.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" fill="#3E2723">7.0 Oversight</text>
+  <text x="1358.0" y="345.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">Reports, audit,</text>
+  <text x="1358.0" y="360.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" font-style="normal" fill="#3E2723">settings</text>
+  <text x="780.0" y="430.0" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" font-style="normal" fill="#7A756E">Each 1.0–7.0 box is exploded on the following Level of Explosion diagrams.</text>
+</svg>
