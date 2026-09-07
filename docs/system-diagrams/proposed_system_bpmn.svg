@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2870" height="1010"
+     viewBox="0 0 2870 1010" role="img"
+     aria-label="SIYAM Proposed System BPMN swim-lane diagram">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2a24"/>
+    </marker>
+    <marker id="arrow-msg" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+<text x="1435.0" y="42" fill="#1f2a24" font-size="26" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">SIYAM — Proposed System Diagram (BPMN Swim-Lane)</text>
+<text x="1435.0" y="72" fill="#5c6b63" font-size="14" font-weight="500" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Business Process Model and Notation · Dumaguete Animal Sanctuary operating loop</text>
+<rect x="150" y="110" width="2680" height="780" rx="0" ry="0" fill="#f4f7f5" stroke="#1f2a24" stroke-width="2.2" opacity="1"/>
+<rect x="150" y="110" width="46" height="780" rx="0" ry="0" fill="#dfe8e2" stroke="#1f2a24" stroke-width="2.2" opacity="1"/>
+<text x="180" y="500.0" fill="#1f2a24" font-size="15" font-weight="800" text-anchor="middle" transform="rotate(-90 180 500.0)" font-family="Segoe UI, Helvetica, Arial, sans-serif">SIYAM Pool</text>
+<rect x="196" y="110" width="2634" height="195" rx="0" ry="0" fill="#e8f2ec" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<rect x="196" y="110" width="120" height="195" rx="0" ry="0" fill="#ffffff" stroke="#2f6b4f" stroke-width="1.5" opacity="1"/>
+<text x="256" y="207.5" fill="#2f6b4f" font-size="14" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Donor</text>
+<rect x="196" y="305" width="2634" height="195" rx="0" ry="0" fill="#e7eef8" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<rect x="196" y="305" width="120" height="195" rx="0" ry="0" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.5" opacity="1"/>
+<text x="256" y="402.5" fill="#2f5f8a" font-size="14" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Manager</text>
+<line x1="196" y1="305" x2="2830" y2="305" stroke="#7a8a82" stroke-width="1"/>
+<rect x="196" y="500" width="2634" height="195" rx="0" ry="0" fill="#f8efe6" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<rect x="196" y="500" width="120" height="195" rx="0" ry="0" fill="#ffffff" stroke="#9a5b24" stroke-width="1.5" opacity="1"/>
+<text x="256" y="597.5" fill="#9a5b24" font-size="14" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Staff</text>
+<line x1="196" y1="500" x2="2830" y2="500" stroke="#7a8a82" stroke-width="1"/>
+<rect x="196" y="695" width="2634" height="195" rx="0" ry="0" fill="#eef1f3" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<rect x="196" y="695" width="120" height="195" rx="0" ry="0" fill="#ffffff" stroke="#4a5560" stroke-width="1.5" opacity="1"/>
+<text x="256" y="785.5" fill="#4a5560" font-size="14" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">SIYAM</text>
+<text x="256" y="799.5" fill="#4a5560" font-size="14" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">System</text>
+<line x1="196" y1="695" x2="2830" y2="695" stroke="#7a8a82" stroke-width="1"/>
+<rect x="386" y="82" width="300" height="24" rx="6" ry="6" fill="#ffffff" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<text x="536.0" y="99" fill="#5c6b63" font-size="12" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">1. Access</text>
+<rect x="706" y="82" width="720" height="24" rx="6" ry="6" fill="#ffffff" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<text x="1066.0" y="99" fill="#5c6b63" font-size="12" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">2. Donation Intake</text>
+<rect x="1456" y="82" width="430" height="24" rx="6" ry="6" fill="#ffffff" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<text x="1671.0" y="99" fill="#5c6b63" font-size="12" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">3. Inventory Receipt</text>
+<rect x="1906" y="82" width="360" height="24" rx="6" ry="6" fill="#ffffff" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<text x="2086.0" y="99" fill="#5c6b63" font-size="12" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">4. Clinical / Usage</text>
+<rect x="2286" y="82" width="280" height="24" rx="6" ry="6" fill="#ffffff" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<text x="2426.0" y="99" fill="#5c6b63" font-size="12" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">5. Replenish</text>
+<rect x="2586" y="82" width="280" height="24" rx="6" ry="6" fill="#ffffff" stroke="#7a8a82" stroke-width="1" opacity="1"/>
+<text x="2726.0" y="99" fill="#5c6b63" font-size="12" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">6. Oversight</text>
+<circle cx="230" cy="167.5" r="16" fill="#d9f0e3" stroke="#2f6b4f" stroke-width="2.2"/>
+<text x="230" y="199.5" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Start</text>
+<rect x="270" y="137.5" width="130" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f6b4f" stroke-width="1.7" opacity="1"/>
+<text x="335.0" y="160.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Register / sign</text>
+<text x="335.0" y="174.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">in</text>
+<rect x="270" y="373.5" width="130" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="335.0" y="396.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Sign in as</text>
+<text x="335.0" y="410.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Manager</text>
+<rect x="270" y="568.5" width="130" height="58" rx="10" ry="10" fill="#ffffff" stroke="#9a5b24" stroke-width="1.7" opacity="1"/>
+<text x="335.0" y="598.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Sign in as Staff</text>
+<rect x="430" y="763.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="505.0" y="786.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Authenticate &amp;</text>
+<text x="505.0" y="800.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">gate by role</text>
+<line x1="246" y1="167.5" x2="270" y2="167.5" stroke="#1f2a24" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 400 166.5 C 440 166.5, 430 752.5, 430 782.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 400 402.5 C 450 402.5, 400 772.5, 430 792.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 400 597.5 C 440 597.5, 410 802.5, 430 807.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<rect x="620" y="137.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f6b4f" stroke-width="1.7" opacity="1"/>
+<text x="695.0" y="160.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Submit donation</text>
+<text x="695.0" y="174.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">form + proof</text>
+<path d="M 400 167.5 L 620.0 167.5" fill="none" stroke="#2f6b4f" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="620" y="763.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="695.0" y="779.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Create</text>
+<text x="695.0" y="793.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">submission</text>
+<text x="695.0" y="807.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">(pending)</text>
+<path d="M 695.0 195.5 L 695.0 763.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<rect x="820" y="373.5" width="140" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="890.0" y="396.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Review pending</text>
+<text x="890.0" y="410.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">submission</text>
+<path d="M 770 792.5 C 780 792.5, 780 402.5, 820 402.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<polygon points="1020,380.5 1042,402.5 1020,424.5 998,402.5" fill="#fff8e8" stroke="#2f5f8a" stroke-width="1.8"/>
+<text x="1020" y="406.5" fill="#2f5f8a" font-size="12" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">X</text>
+<text x="1020" y="372.5" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Decision</text>
+<line x1="960" y1="402.5" x2="998" y2="402.5" stroke="#2f5f8a" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1080" y="332.5" width="130" height="52" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="1145.0" y="352.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Approve</text>
+<text x="1145.0" y="366.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">submission</text>
+<rect x="1080" y="422.5" width="130" height="52" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="1145.0" y="442.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Decline</text>
+<text x="1145.0" y="456.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">submission</text>
+<path d="M 1040 394.5 L 1040 384.5 L 1080 384.5" fill="none" stroke="#2f5f8a" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="1055" y="347.5" fill="#2f5f8a" font-size="11" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">yes</text>
+<path d="M 1040 410.5 L 1040 474.5 L 1080 474.5" fill="none" stroke="#2f5f8a" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="1055" y="457.5" fill="#2f5f8a" font-size="11" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">no</text>
+<rect x="1260" y="763.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="1335.0" y="779.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Update status</text>
+<text x="1335.0" y="793.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">approved /</text>
+<text x="1335.0" y="807.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">rejected</text>
+<path d="M 1210 358.5 C 1220 358.5, 1220 782.5, 1260 787.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 1210 448.5 C 1230 448.5, 1230 807.5, 1260 802.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<circle cx="1460" cy="257.5" r="16" fill="#f0d9d9" stroke="#2f6b4f" stroke-width="2.2"/>
+<circle cx="1460" cy="257.5" r="10" fill="#f0d9d9" stroke="#2f6b4f" stroke-width="3.2"/>
+<text x="1460" y="291.5" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Rejected end</text>
+<path d="M 1335.0 763.5 C 1460 712.5, 1460 287.5, 1460 273.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<text x="1380" y="227.5" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">if rejected</text>
+<rect x="1260" y="137.5" width="140" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f6b4f" stroke-width="1.7" opacity="1"/>
+<text x="1330.0" y="160.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Await approval /</text>
+<text x="1330.0" y="174.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">drop-off</text>
+<path d="M 770 167.5 L 1260.0 167.5" fill="none" stroke="#2f6b4f" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1450" y="332.5" width="140" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="1520.0" y="355.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Confirm items</text>
+<text x="1520.0" y="369.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">received</text>
+<path d="M 1210 358.5 L 1450 358.5" fill="none" stroke="#2f5f8a" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1640" y="332.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="1715.0" y="355.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Stock in donated</text>
+<text x="1715.0" y="369.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">items</text>
+<line x1="1590" y1="362.5" x2="1640" y2="362.5" stroke="#2f5f8a" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1640" y="527.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#9a5b24" stroke-width="1.7" opacity="1"/>
+<text x="1715.0" y="550.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Stock in</text>
+<text x="1715.0" y="564.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">purchased goods</text>
+<path d="M 400 597.5 C 900 597.5, 1400 557.5, 1640 557.5" fill="none" stroke="#9a5b24" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="1180" y="542.5" fill="#9a5b24" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">purchase path</text>
+<rect x="1640" y="763.5" width="170" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="1725.0" y="779.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Create batches</text>
+<text x="1725.0" y="793.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">(FEFO) + grow</text>
+<text x="1725.0" y="807.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">dual-pool stock</text>
+<path d="M 1715.0 390.5 L 1715.0 763.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 1715.0 585.5 L 1715.0 763.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 1410 792.5 L 1640.0 792.5" fill="none" stroke="#4a5560" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="1850" y="722.5" width="140" height="52" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="1920.0" y="742.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Mark submission</text>
+<text x="1920.0" y="756.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">stocked</text>
+<line x1="1810" y1="747.5" x2="1850" y2="747.5" stroke="#4a5560" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1850" y="527.5" width="140" height="52" rx="10" ry="10" fill="#ffffff" stroke="#9a5b24" stroke-width="1.7" opacity="1"/>
+<text x="1920.0" y="547.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Record medical</text>
+<text x="1920.0" y="561.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">treatment</text>
+<rect x="1850" y="607.5" width="140" height="52" rx="10" ry="10" fill="#ffffff" stroke="#9a5b24" stroke-width="1.7" opacity="1"/>
+<text x="1920.0" y="627.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Stock out</text>
+<text x="1920.0" y="641.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">waste/expired/adjust</text>
+<polygon points="1780,575.5 1802,597.5 1780,619.5 1758,597.5" fill="#fff8e8" stroke="#9a5b24" stroke-width="1.8"/>
+<text x="1780" y="601.5" fill="#9a5b24" font-size="12" font-weight="800" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">X</text>
+<text x="1780" y="567.5" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Use stock</text>
+<path d="M 1790 557.5 L 1758 557.5 L 1758 597.5" fill="none" stroke="#9a5b24" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 1810 792.5 C 1760 792.5, 1720 637.5, 1760 615.5" fill="none" stroke="#6b7280" stroke-width="1.3" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 1800 587.5 L 1800 579.5 L 1850 579.5" fill="none" stroke="#9a5b24" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 1800 607.5 L 1800 659.5 L 1850 659.5" fill="none" stroke="#9a5b24" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="2040" y="763.5" width="160" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="2120.0" y="779.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">FEFO deduct /</text>
+<text x="2120.0" y="793.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">write stock_out</text>
+<text x="2120.0" y="807.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">+ FIFO impact</text>
+<path d="M 1990 553.5 C 2000 553.5, 2000 782.5, 2040 787.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 1990 633.5 C 2010 633.5, 2010 807.5, 2040 802.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<rect x="2240" y="763.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="2315.0" y="786.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Compute ADU +</text>
+<text x="2315.0" y="800.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">ROP suggestions</text>
+<line x1="2200" y1="792.5" x2="2240" y2="792.5" stroke="#4a5560" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="2240" y="568.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#9a5b24" stroke-width="1.7" opacity="1"/>
+<text x="2315.0" y="591.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Review Ordering</text>
+<text x="2315.0" y="605.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">replenishment</text>
+<path d="M 2315.0 763.5 L 2315.0 626.5" fill="none" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 2315.0 626.5 C 2240 667.5, 1700 672.5, 1715 626.5" fill="none" stroke="#9a5b24" stroke-width="1.4" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+<text x="1960" y="685.5" fill="#9a5b24" font-size="11" font-weight="700" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">manual purchase stock-in (no auto-PO)</text>
+<rect x="2240" y="373.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="2315.0" y="396.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Configure</text>
+<text x="2315.0" y="410.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">thresholds &amp; ROP</text>
+<path d="M 2315.0 431.5 L 2315.0 763.5" fill="none" stroke="#6b7280" stroke-width="1.3" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<rect x="2460" y="137.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#2f6b4f" stroke-width="1.7" opacity="1"/>
+<text x="2535.0" y="160.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">View donation</text>
+<text x="2535.0" y="174.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">impact</text>
+<path d="M 1400 167.5 C 2000 167.5, 2300 167.5, 2460 167.5" fill="none" stroke="#2f6b4f" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="2460" y="332.5" width="150" height="52" rx="10" ry="10" fill="#ffffff" stroke="#2f5f8a" stroke-width="1.7" opacity="1"/>
+<text x="2535.0" y="352.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Review usage /</text>
+<text x="2535.0" y="366.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">ROP / audit</text>
+<rect x="2460" y="527.5" width="150" height="52" rx="10" ry="10" fill="#ffffff" stroke="#9a5b24" stroke-width="1.7" opacity="1"/>
+<text x="2535.0" y="547.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">View usage + My</text>
+<text x="2535.0" y="561.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Activity</text>
+<rect x="2460" y="763.5" width="150" height="58" rx="10" ry="10" fill="#ffffff" stroke="#4a5560" stroke-width="1.7" opacity="1"/>
+<text x="2535.0" y="786.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Raise alerts +</text>
+<text x="2535.0" y="800.5" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">serve reports</text>
+<line x1="2390" y1="792.5" x2="2460" y2="792.5" stroke="#4a5560" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 2200 772.5 C 2400 712.5, 2400 207.5, 2460 187.5" fill="none" stroke="#6b7280" stroke-width="1.3" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 2535.0 763.5 L 2535.0 428.5" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<path d="M 2565.0 763.5 L 2565.0 579.5" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<circle cx="2680" cy="792.5" r="16" fill="#f0d9d9" stroke="#4a5560" stroke-width="2.2"/>
+<circle cx="2680" cy="792.5" r="10" fill="#f0d9d9" stroke="#4a5560" stroke-width="3.2"/>
+<text x="2680" y="826.5" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Operational end</text>
+<line x1="2610" y1="792.5" x2="2664" y2="792.5" stroke="#4a5560" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="210" y="926" fill="#1f2a24" font-size="13" font-weight="800" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif">Legend</text>
+<rect x="290" y="906" width="70" height="28" rx="8" ry="8" fill="#ffffff" stroke="#1f2a24" stroke-width="1.2" opacity="1"/>
+<text x="325" y="926" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Task</text>
+<polygon points="410,906 424,920 410,934 396,920" fill="#fff8e8" stroke="#1f2a24" stroke-width="1.8"/>
+<text x="410" y="954" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">XOR</text>
+<circle cx="480" cy="920" r="10" fill="#d9f0e3" stroke="#2f6b4f" stroke-width="2"/>
+<text x="480" y="954" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Start</text>
+<circle cx="540" cy="920" r="10" fill="#f0d9d9" stroke="#4a5560" stroke-width="2"/>
+<circle cx="540" cy="920" r="6" fill="#f0d9d9" stroke="#4a5560" stroke-width="2.5"/>
+<text x="540" y="954" fill="#5c6b63" font-size="11" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">End</text>
+<line x1="590" y1="920" x2="670" y2="920" stroke="#1f2a24" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="710" y="926" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Sequence flow</text>
+<line x1="830" y1="920" x2="910" y2="920" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arrow-msg)"/>
+<text x="970" y="926" fill="#1f2a24" font-size="12" font-weight="600" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Message / data flow</text>
+<text x="1190" y="926" fill="#5c6b63" font-size="12" font-weight="600" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif">Supplier = external data only (no login lane) · ROP recommends only (no auto-PO)</text>
+<text x="1190" y="948" fill="#5c6b63" font-size="12" font-weight="600" text-anchor="start" font-family="Segoe UI, Helvetica, Arial, sans-serif">Submission statuses: pending → approved → received → stocked · rejected from pending</text>
+</svg>
