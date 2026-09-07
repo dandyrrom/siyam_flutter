@@ -514,7 +514,7 @@ class _StaffReportsPageState extends State<StaffReportsPage>
                   Icons.delete_outline,
               value:
                   '${report.lossEvents}',
-              label: 'Loss Records',
+              label: 'Expiry/Waste Records',
               helper:
                   'Times stock expired or was wasted',
               selected:

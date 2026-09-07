@@ -373,11 +373,11 @@ class _InventoryPageState extends State<InventoryPage>
       case _SortOption.nameDesc:
         return ('Name (Z–A)', Icons.arrow_downward);
 
-      case _SortOption.stockAsc:
-        return ('Stock (Low–High)', Icons.arrow_upward);
+     case _SortOption.stockAsc:
+  return ('Quantity-on-Hand (Low–High)', Icons.arrow_upward);
 
-      case _SortOption.stockDesc:
-        return ('Stock (High–Low)', Icons.arrow_downward);
+case _SortOption.stockDesc:
+  return ('Quantity-on-Hand (High–Low)', Icons.arrow_downward);
     }
   }
 
@@ -1171,7 +1171,7 @@ if (_loading) {
                         SizedBox(width: 16),
                         Expanded(
                           flex: 2,
-                          child: _HeaderCell('Stock'),
+                          child: _HeaderCell('Quantity-on-Hand'),
                         ),
                         SizedBox(width: 16),
                         Expanded(

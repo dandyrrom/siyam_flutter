@@ -1440,7 +1440,7 @@ class _ReplenishmentHeader
           Expanded(
             flex: 2,
             child:
-                _HeaderCell('Current'),
+                _HeaderCell('Quantity on hand'),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -1451,7 +1451,7 @@ class _ReplenishmentHeader
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child: _HeaderCell('ADU'),
+            child: _HeaderCell('Average Daily Use')
           ),
           SizedBox(width: 12),
           Expanded(
@@ -1753,7 +1753,7 @@ class _ReplenishmentMobileRow
                         '${row.observationDays} day${row.observationDays == 1 ? '' : 's'}',
                   ),
                   _MiniMetric(
-                    label: 'ADU',
+                    label: 'Average Daily Use',
                     value:
                         '${formatQty(row.averageDailyUsage)} $unit/day',
                   ),

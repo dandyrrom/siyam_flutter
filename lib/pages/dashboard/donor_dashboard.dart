@@ -1205,39 +1205,6 @@ class _CurrentNeedsCard
                   ),
                 ],
 
-                const SizedBox(
-                  height: 14,
-                ),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        totalNeeds > 3
-                            ? 'View all $totalNeeds needed items'
-                            : 'View needed items',
-                        style:
-                            const TextStyle(
-                          fontSize:
-                              11.5,
-                          fontWeight:
-                              FontWeight
-                                  .w600,
-                          color: AppColors
-                              .roleDonor,
-                        ),
-                      ),
-                    ),
-
-                    const Icon(
-                      Icons
-                          .arrow_forward,
-                      size: 15,
-                      color: AppColors
-                          .roleDonor,
-                    ),
-                  ],
-                ),
               ],
             ],
           ),
