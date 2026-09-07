@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -95,6 +96,12 @@ class _DonatePageState extends State<DonatePage> {
             .uri
             .queryParameters['from'] ==
         'currently-needed';
+  }
+
+  bool get _cameraAvailable {
+    return !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
   }
 
   // ==========================================================================
@@ -439,32 +446,65 @@ class _DonatePageState extends State<DonatePage> {
   // IMAGE PICKER
   // ==========================================================================
 
-  Future<void> _pickProofImage() async {
-    final picked =
-        await _imagePicker.pickImage(
-      source:
-          ImageSource.gallery,
-      imageQuality: 85,
-    );
+  Future<void> _pickProofImageFromSource(
+    ImageSource source,
+  ) async {
+    try {
+      final picked =
+          await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
 
-    if (picked == null) {
-      return;
+      if (picked == null) {
+        return;
+      }
+
+      final bytes =
+          await picked.readAsBytes();
+
+      if (!mounted) return;
+
+      setState(() {
+        _proofImage = picked;
+
+        _proofImageBytes =
+            bytes;
+
+        _proofImageError =
+            false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            source == ImageSource.camera
+                ? 'Could not open the camera. Please try again.'
+                : 'Could not choose a photo. Please try again.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickProofImage() {
+    return _pickProofImageFromSource(
+      ImageSource.gallery,
+    );
+  }
+
+  Future<void> _takeProofPhoto() {
+    if (!_cameraAvailable) {
+      return Future<void>.value();
     }
 
-    final bytes =
-        await picked.readAsBytes();
-
-    if (!mounted) return;
-
-    setState(() {
-      _proofImage = picked;
-
-      _proofImageBytes =
-          bytes;
-
-      _proofImageError =
-          false;
-    });
+    return _pickProofImageFromSource(
+      ImageSource.camera,
+    );
   }
 
   // ==========================================================================
@@ -964,18 +1004,86 @@ class _DonatePageState extends State<DonatePage> {
             // DONATION PHOTO
             // ================================================================
 
-            const _FieldTitle(
+            _FieldTitle(
               icon: Icons
                   .photo_camera_outlined,
               title:
                   'Donation Photo',
               helper:
-                  'Upload a clear photo of the items.',
+                  _cameraAvailable
+                      ? 'Take a photo or choose one from your gallery.'
+                      : 'Upload a clear photo of the items.',
             ),
 
             const SizedBox(
               height: 9,
             ),
+
+            if (_cameraAvailable) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _submitting
+                              ? null
+                              : _takeProofPhoto,
+                      icon: const Icon(
+                        Icons
+                            .photo_camera_outlined,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'Camera',
+                      ),
+                      style:
+                          OutlinedButton
+                              .styleFrom(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    width: 10,
+                  ),
+
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _submitting
+                              ? null
+                              : _pickProofImage,
+                      icon: const Icon(
+                        Icons
+                            .photo_library_outlined,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'Gallery',
+                      ),
+                      style:
+                          OutlinedButton
+                              .styleFrom(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(
+                height: 10,
+              ),
+            ],
 
             InkWell(
               borderRadius:
