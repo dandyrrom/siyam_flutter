@@ -8,6 +8,7 @@ import '../services/dashboard_service.dart';
 import '../services/donor_notification_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/donor_notification_alerts.dart';
 import '../widgets/notification_alerts.dart';
 
@@ -56,10 +57,18 @@ class _NotificationsPageState
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance
-        .addPostFrameCallback(
-      (_) => _load(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cached = PageSnapshotCache.instance.peek<ManagerDashboardStats>(
+        PageSnapshotCache.managerStats,
+      );
+      if (cached != null && _showsInventoryAlerts) {
+        setState(() {
+          _stats = cached;
+          _loading = false;
+        });
+      }
+      _load(silent: cached != null);
+    });
   }
 
   @override

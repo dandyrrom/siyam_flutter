@@ -4,6 +4,7 @@ import '../../core/app_colors.dart';
 import '../../models/monthly_usage_report.dart';
 import '../../services/report_service.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../../widgets/page_loading.dart';
 // =============================================================================
 // STAFF REPORTS - WBS 6.1 MONTHLY USAGE REPORT
@@ -85,7 +86,16 @@ class _StaffReportsPageState extends State<StaffReportsPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cached = PageSnapshotCache.instance.peek<MonthlyUsageReport>(
+      'reports.usage.${_selectedMonth.year}-${_selectedMonth.month}',
+    );
+    if (cached != null) {
+      _report = cached;
+      _loading = false;
+    }
+
+    _load(silent: cached != null);
   }
 
   @override

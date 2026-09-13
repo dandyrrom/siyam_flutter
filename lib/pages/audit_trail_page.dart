@@ -7,6 +7,7 @@ import '../models/audit_entry.dart';
 import '../services/audit_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/page_loading.dart';
 // =============================================================================
@@ -96,7 +97,25 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final user = context.read<AuthController>().profile;
+      final key = user?.role == AppRole.staff
+          ? '${PageSnapshotCache.auditStaffPrefix}${user!.userId}'
+          : PageSnapshotCache.auditManager;
+      final cached = PageSnapshotCache.instance.peekList<AuditEntry>(key);
+
+      if (cached != null) {
+        setState(() {
+          _entries = cached;
+          _loading = false;
+        });
+      }
+
+      _load(silent: cached != null);
+    });
   }
 
   @override
@@ -371,7 +390,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
   @override
   Widget build(BuildContext context) {
- if (_loading) {
+ if (_loading && _entries.isEmpty) {
   return const PageLoading(
     message: 'Loading audit trail',
   );

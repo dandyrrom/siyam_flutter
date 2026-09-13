@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/donation.dart';
 import '../../models/qty_unit.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../donation_service.dart';
 import '../inventory_service.dart';
 
@@ -120,6 +121,19 @@ class SupabaseDonationService implements DonationService {
   @override
   Future<List<DonationSubmission>> fetchSubmissions({
     String? donorId,
+  }) {
+    final key = donorId == null
+        ? PageSnapshotCache.submissions
+        : '${PageSnapshotCache.donorSubmissionsPrefix}$donorId';
+
+    return PageSnapshotCache.instance.coalesce(
+      key,
+      () => _loadSubmissions(donorId: donorId),
+    );
+  }
+
+  Future<List<DonationSubmission>> _loadSubmissions({
+    String? donorId,
   }) async {
     final users =
         await _userNameMap();
@@ -160,7 +174,21 @@ class SupabaseDonationService implements DonationService {
   @override
   Future<DonationSubmission?> fetchSubmission(
     String subId,
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      'donations.submission.$subId',
+      () => _loadSubmission(subId),
+    );
+  }
+
+  Future<DonationSubmission?> _loadSubmission(
+    String subId,
   ) async {
+    final cached = PageSnapshotCache.instance.submissionById(subId);
+    if (cached != null) {
+      return cached;
+    }
+
     final row =
         await _client
             .from(
@@ -595,6 +623,15 @@ class SupabaseDonationService implements DonationService {
   @override
   Future<List<DonationLineItem>> fetchReceivedItems(
     String subId,
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      'donations.received.$subId',
+      () => _loadReceivedItems(subId),
+    );
+  }
+
+  Future<List<DonationLineItem>> _loadReceivedItems(
+    String subId,
   ) async {
     final donation =
         await _client
@@ -663,7 +700,15 @@ class SupabaseDonationService implements DonationService {
 
   @override
   Future<List<DonationSubmission>>
-      fetchLinkableSubmissions() async {
+      fetchLinkableSubmissions() {
+    return PageSnapshotCache.instance.coalesce(
+      'donations.linkable',
+      _loadLinkableSubmissions,
+    );
+  }
+
+  Future<List<DonationSubmission>>
+      _loadLinkableSubmissions() async {
     final subs =
         await fetchSubmissions();
 

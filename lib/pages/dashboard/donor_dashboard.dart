@@ -11,6 +11,7 @@ import '../../services/donation_service.dart';
 import '../../services/impact_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 
 // ============================================================================
 // DASHBOARD IMAGE
@@ -47,6 +48,37 @@ class _DonorDashboardState extends State<DonorDashboard>
   @override
   void initState() {
     super.initState();
+
+    final donorId =
+        context.read<AuthController>().profile?.userId;
+    if (donorId != null) {
+      final stats = PageSnapshotCache.instance.peek<DonorDashboardStats>(
+        '${PageSnapshotCache.donorStatsPrefix}$donorId',
+      );
+      final submissions = PageSnapshotCache.instance
+          .peekList<DonationSubmission>(
+        '${PageSnapshotCache.donorSubmissionsPrefix}$donorId',
+      );
+      final impact = PageSnapshotCache.instance
+          .peekList<DonationImpactLine>(
+        '${PageSnapshotCache.donorImpactPrefix}$donorId',
+      );
+
+      if (stats != null) {
+        _stats = stats;
+        _loading = false;
+      }
+      if (submissions != null) {
+        _submissions = submissions;
+      }
+      if (impact != null) {
+        _impactLines = impact;
+      }
+
+      _load(silent: stats != null);
+      return;
+    }
+
     _load();
   }
 
@@ -225,7 +257,7 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _stats == null) {
       return const SizedBox(
         height: 320,
         child: Center(

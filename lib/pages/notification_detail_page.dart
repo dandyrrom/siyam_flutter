@@ -12,6 +12,7 @@ import '../services/inventory_service.dart';
 import '../services/replenishment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/notification_alerts.dart';
 
 class NotificationDetailPage
@@ -70,7 +71,16 @@ class _NotificationDetailPageState
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final item = cache.itemById(widget.itemId);
+    if (item != null) {
+      _item = item;
+      _replenishment = cache.replenishmentByItemId(widget.itemId);
+      _loading = false;
+    }
+
+    _load(silent: item != null);
   }
 
   @override
@@ -88,14 +98,27 @@ class _NotificationDetailPageState
     }
 
     try {
+      final cache = PageSnapshotCache.instance;
+      final seededItem = _item ?? cache.itemById(widget.itemId);
+      final cachedStats = cache.peek<ManagerDashboardStats>(
+        PageSnapshotCache.managerStats,
+      );
+      final cachedRop = cache.peekList<ReplenishmentItem>(
+        PageSnapshotCache.replenishment,
+      );
+
       final results = await Future.wait<Object?>([
-        _inventoryService.fetchItem(
-          widget.itemId,
-        ),
-        _dashboardService
-            .fetchManagerStats(),
-        _replenishmentService
-            .fetchReplenishmentItems(),
+        seededItem != null
+            ? Future<InventoryItem?>.value(seededItem)
+            : _inventoryService.fetchItem(
+                widget.itemId,
+              ),
+        cachedStats != null
+            ? Future<ManagerDashboardStats>.value(cachedStats)
+            : _dashboardService.fetchManagerStats(),
+        cachedRop != null
+            ? Future<List<ReplenishmentItem>>.value(cachedRop)
+            : _replenishmentService.fetchReplenishmentItems(),
       ]);
 
       if (!mounted) return;
@@ -193,7 +216,7 @@ class _NotificationDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _item == null) {
       return const Center(
         child: CircularProgressIndicator(),
       );

@@ -4,6 +4,7 @@ import '../../models/primary_category.dart';
 import '../../models/subcategory.dart';
 import '../../models/unit.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../catalog_service.dart';
 
 /// Supabase-backed catalog lookups: public.primary_category / subcategory /
@@ -31,16 +32,32 @@ class SupabaseCatalogService implements CatalogService {
       );
 
   @override
-  Future<List<PrimaryCategory>> fetchPrimaryCategories() async {
-    final rows = await _client
-        .from('primary_category')
-        .select('id, type, requires_expiry')
-        .order('type');
-    return rows.map((r) => _mapPrimary(r)).toList();
+  Future<List<PrimaryCategory>> fetchPrimaryCategories() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.primaryCategories,
+      () async {
+        final rows = await _client
+            .from('primary_category')
+            .select('id, type, requires_expiry')
+            .order('type');
+        return rows.map((r) => _mapPrimary(r)).toList();
+      },
+    );
   }
 
   @override
-  Future<List<Subcategory>> fetchSubcategories([String? pCategoryId]) async {
+  Future<List<Subcategory>> fetchSubcategories([String? pCategoryId]) {
+    if (pCategoryId != null) {
+      return _loadSubcategories(pCategoryId);
+    }
+
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.subcategories,
+      () => _loadSubcategories(null),
+    );
+  }
+
+  Future<List<Subcategory>> _loadSubcategories(String? pCategoryId) async {
     var query =
         _client.from('subcategory').select('id, p_category, type, requires_expiry');
     if (pCategoryId != null) {
@@ -51,10 +68,17 @@ class SupabaseCatalogService implements CatalogService {
   }
 
   @override
-  Future<List<Unit>> fetchUnits() async {
-    final rows =
-        await _client.from('units').select('id, name, abbr_name').order('name');
-    return rows.map((r) => _mapUnit(r)).toList();
+  Future<List<Unit>> fetchUnits() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.units,
+      () async {
+        final rows = await _client
+            .from('units')
+            .select('id, name, abbr_name')
+            .order('name');
+        return rows.map((r) => _mapUnit(r)).toList();
+      },
+    );
   }
 
   @override

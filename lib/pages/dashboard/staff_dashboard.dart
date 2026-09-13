@@ -25,6 +25,10 @@ class _StaffDashboardState extends State<StaffDashboard>
   final DashboardService _service = DashboardService();
   final FollowUpService _followUpService = FollowUpService();
 
+  static StaffDashboardStats? _lastStats;
+  static List<ReplenishmentAlert> _lastReplenishment = [];
+  static List<MedicalFollowUpReminder> _lastFollowUps = [];
+
   StaffDashboardStats? _stats;
   List<ReplenishmentAlert> _replenishment = [];
   List<MedicalFollowUpReminder> _followUps = [];
@@ -39,7 +43,15 @@ class _StaffDashboardState extends State<StaffDashboard>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    if (_lastStats != null) {
+      _stats = _lastStats;
+      _replenishment = _lastReplenishment;
+      _followUps = _lastFollowUps;
+      _loading = false;
+    }
+
+    _load(silent: _stats != null);
   }
 
   @override
@@ -126,6 +138,9 @@ class _StaffDashboardState extends State<StaffDashboard>
         _stats = results[0] as StaffDashboardStats;
         _replenishment = results[1] as List<ReplenishmentAlert>;
         _followUps = followUpResult.reminders;
+        _lastStats = _stats;
+        _lastReplenishment = _replenishment;
+        _lastFollowUps = _followUps;
 
         _loading = false;
         _error = followUpResult.warning;

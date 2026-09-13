@@ -4,6 +4,7 @@ import '../../models/inventory_item.dart';
 import '../../models/pet.dart';
 import '../../models/treatment.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../inventory_service.dart';
 import '../treatment_service.dart';
 
@@ -143,7 +144,14 @@ class SupabaseTreatmentService implements TreatmentService {
 
   // Fetches all treatments and attaches the latest occurrence + schedule data.
   @override
-  Future<List<TreatmentRecord>> fetchTreatments() async {
+  Future<List<TreatmentRecord>> fetchTreatments() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.treatments,
+      _loadTreatments,
+    );
+  }
+
+  Future<List<TreatmentRecord>> _loadTreatments() async {
     final results = await Future.wait<Object?>([
       _userNameMap(),
       _client.from('treatment').select(
@@ -248,18 +256,31 @@ class SupabaseTreatmentService implements TreatmentService {
   @override
   Future<List<TreatmentOccurrence>> fetchOccurrences(
     String treatId,
-  ) async {
-    final users = await _userNameMap();
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      'treatments.occurrences.$treatId',
+      () => _loadOccurrences(treatId),
+    );
+  }
 
-    final rows = await _client
-        .from('treatment_occurrence')
-        .select(
-          'occurrenceid, treatid, administereddate, administeredby, '
-          'recordedby, recordeddate, notes, isfollowup, scheduleddate',
-        )
-        .eq('treatid', treatId)
-        .order('administereddate', ascending: false)
-        .order('recordeddate', ascending: false);
+  Future<List<TreatmentOccurrence>> _loadOccurrences(
+    String treatId,
+  ) async {
+    final lookups = await Future.wait<Object?>([
+      _userNameMap(),
+      _client
+          .from('treatment_occurrence')
+          .select(
+            'occurrenceid, treatid, administereddate, administeredby, '
+            'recordedby, recordeddate, notes, isfollowup, scheduleddate',
+          )
+          .eq('treatid', treatId)
+          .order('administereddate', ascending: false)
+          .order('recordeddate', ascending: false),
+    ]);
+
+    final users = lookups[0] as Map<String, String>;
+    final rows = lookups[1] as List<dynamic>;
 
     return [
       for (final raw in rows)
@@ -290,6 +311,15 @@ class SupabaseTreatmentService implements TreatmentService {
   // Fetches all inventory items used under one treatment series.
   @override
   Future<List<TreatmentItemUsed>> fetchItemsUsed(
+    String treatId,
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      'treatments.itemsUsed.$treatId',
+      () => _loadItemsUsed(treatId),
+    );
+  }
+
+  Future<List<TreatmentItemUsed>> _loadItemsUsed(
     String treatId,
   ) async {
     final usersFuture = _userNameMap();

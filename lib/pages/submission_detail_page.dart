@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/donation_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 
 /// Staff-only detail view for a single donor submission (public.submission):
 /// full donor + submission details, plus the status flow -- Reject/Approve
@@ -47,7 +48,19 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final cached = cache.submissionById(widget.subId);
+    if (cached != null) {
+      _submission = cached;
+      _receivedItems = cache.peekList<DonationLineItem>(
+            'donations.received.${widget.subId}',
+          ) ??
+          [];
+      _loading = false;
+    }
+
+    _load(silent: cached != null);
   }
 
 @override
@@ -68,7 +81,9 @@ void onExternalDataChanged() {
     }
 
     try {
-      final submission =
+      final cache = PageSnapshotCache.instance;
+      final seeded = _submission ?? cache.submissionById(widget.subId);
+      final submission = seeded ??
           await _donationService.fetchSubmission(widget.subId);
 
       if (submission == null) {
@@ -455,7 +470,7 @@ void onExternalDataChanged() {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _submission == null) {
       return const Center(
           child: CircularProgressIndicator());
     }

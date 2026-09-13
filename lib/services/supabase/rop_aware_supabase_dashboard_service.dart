@@ -1,4 +1,5 @@
 import '../../models/replenishment_item.dart' as rop;
+import '../../state/page_snapshot_cache.dart';
 import '../dashboard_service.dart';
 import '../replenishment_service.dart';
 import 'supabase_dashboard_service.dart' as legacy;
@@ -49,7 +50,14 @@ class SupabaseDashboardService implements DashboardService {
   }
 
   @override
-  Future<ManagerDashboardStats> fetchManagerStats() async {
+  Future<ManagerDashboardStats> fetchManagerStats() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.managerStats,
+      _loadManagerStats,
+    );
+  }
+
+  Future<ManagerDashboardStats> _loadManagerStats() async {
     final results = await Future.wait<Object?>([
       _base.fetchManagerStats(),
       _fetchRopRows(),
@@ -140,9 +148,16 @@ class SupabaseDashboardService implements DashboardService {
   }
 
   @override
-  Future<StaffDashboardStats> fetchStaffStats() async {
+  Future<StaffDashboardStats> fetchStaffStats() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.staffStats,
+      _loadStaffStats,
+    );
+  }
+
+  Future<StaffDashboardStats> _loadStaffStats() async {
     final results = await Future.wait<Object?>([
-      _base.fetchStaffStats(),
+      _base.fetchStaffOperationalStats(),
       _fetchRopRows(),
     ]);
 

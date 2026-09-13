@@ -6,6 +6,7 @@ import '../../models/stock_out.dart';
 import '../../services/impact_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../../widgets/page_loading.dart';
 /// Donor-facing page for showing donation acknowledgments and impact updates.
 ///
@@ -43,7 +44,21 @@ class _ImpactsPageState extends State<ImpactsPage>
   void initState() {
     super.initState();
 
-    // Loads the logged-in donor's donation impact records when the page opens.
+    final donorId =
+        context.read<AuthController>().profile?.userId;
+    if (donorId != null) {
+      final cached = PageSnapshotCache.instance
+          .peekList<DonationImpactLine>(
+        '${PageSnapshotCache.donorImpactPrefix}$donorId',
+      );
+      if (cached != null) {
+        _lines = cached;
+        _loading = false;
+      }
+      _load(silent: cached != null);
+      return;
+    }
+
     _load();
   }
 
@@ -163,7 +178,7 @@ class _ImpactsPageState extends State<ImpactsPage>
 
   @override
   Widget build(BuildContext context) {
-if (_loading) {
+if (_loading && _lines.isEmpty) {
   return const PageLoading(
     message: 'Loading your donation impacts',
   );

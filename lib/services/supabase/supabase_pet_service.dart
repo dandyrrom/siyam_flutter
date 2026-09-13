@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/pet.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../pet_service.dart';
 
 // ============================================================================
@@ -144,7 +145,14 @@ class SupabasePetService implements PetService {
   // ==========================================================================
 
   @override
-  Future<List<Pet>> fetchPets() async {
+  Future<List<Pet>> fetchPets() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.pets,
+      _loadPets,
+    );
+  }
+
+  Future<List<Pet>> _loadPets() async {
     final rows = await _client
         .from('pet')
         .select(_columns)

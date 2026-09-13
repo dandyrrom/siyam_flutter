@@ -5,6 +5,7 @@ import '../core/validators.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/page_loading.dart';
@@ -60,7 +61,25 @@ class _SuppliersPageState extends State<SuppliersPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cachedSuppliers =
+        PageSnapshotCache.instance.peekList<Supplier>(
+      PageSnapshotCache.suppliers,
+    );
+    final cachedOrders =
+        PageSnapshotCache.instance.peekList<PurchaseOrder>(
+      PageSnapshotCache.purchaseOrders,
+    );
+
+    if (cachedSuppliers != null) {
+      _suppliers = cachedSuppliers;
+      _loading = false;
+    }
+    if (cachedOrders != null) {
+      _allOrders = cachedOrders;
+    }
+
+    _load(silent: cachedSuppliers != null);
   }
 
   @override
@@ -1130,7 +1149,7 @@ class _SuppliersPageState extends State<SuppliersPage>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-  if (_loading) {
+  if (_loading && _suppliers.isEmpty) {
   return const PageLoading(
     message: 'Loading suppliers',
   );

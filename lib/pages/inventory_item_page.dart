@@ -14,6 +14,7 @@ import '../services/inventory_service.dart';
 import '../services/replenishment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/search_select_field.dart';
 import '../widgets/stock_out_dialog.dart';
 
@@ -119,7 +120,24 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final item = cache.itemById(widget.itemId);
+    if (item != null) {
+      _item = item;
+      _replenishment = cache.replenishmentByItemId(widget.itemId);
+      _primaryCategories =
+          cache.peekList<PrimaryCategory>(PageSnapshotCache.primaryCategories) ??
+              [];
+      _units = cache.peekList<Unit>(PageSnapshotCache.units) ?? [];
+      _history = cache.peekList<StockMovement>(
+            'inventory.history.${widget.itemId}',
+          ) ??
+          [];
+      _loading = false;
+    }
+
+    _load(silent: item != null);
   }
 
   @override
@@ -134,12 +152,35 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     }
 
     try {
+      final cache = PageSnapshotCache.instance;
+      final seededItem = _item ?? cache.itemById(widget.itemId);
+      final cachedCategories = cache.peekList<PrimaryCategory>(
+        PageSnapshotCache.primaryCategories,
+      );
+      final cachedUnits = cache.peekList<Unit>(PageSnapshotCache.units);
+      final cachedRop = cache.peekList<ReplenishmentItem>(
+        PageSnapshotCache.replenishment,
+      );
+      final cachedHistory = cache.peekList<StockMovement>(
+        'inventory.history.${widget.itemId}',
+      );
+
       final results = await Future.wait([
-        _service.fetchItem(widget.itemId),
-        _service.fetchStockHistory(widget.itemId),
-        _catalogService.fetchPrimaryCategories(),
-        _catalogService.fetchUnits(),
-        _replenishmentService.fetchReplenishmentItems(),
+        seededItem != null
+            ? Future<InventoryItem?>.value(seededItem)
+            : _service.fetchItem(widget.itemId),
+        cachedHistory != null
+            ? Future<List<StockMovement>>.value(cachedHistory)
+            : _service.fetchStockHistory(widget.itemId),
+        cachedCategories != null
+            ? Future<List<PrimaryCategory>>.value(cachedCategories)
+            : _catalogService.fetchPrimaryCategories(),
+        cachedUnits != null
+            ? Future<List<Unit>>.value(cachedUnits)
+            : _catalogService.fetchUnits(),
+        cachedRop != null
+            ? Future<List<ReplenishmentItem>>.value(cachedRop)
+            : _replenishmentService.fetchReplenishmentItems(),
       ]);
 
       if (!mounted) return;
@@ -168,6 +209,18 @@ class _InventoryItemPageState extends State<InventoryItemPage>
         _notFound = item == null;
         _loading = false;
       });
+
+      if (cachedHistory == null && item != null) {
+        return;
+      }
+
+      if (silent && cachedHistory != null) {
+        final history = await _service.fetchStockHistory(widget.itemId);
+        if (!mounted) return;
+        setState(() {
+          _history = history;
+        });
+      }
     } catch (_) {
       if (!mounted) return;
 
@@ -345,7 +398,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _item == null) {
       return const Center(
         child: CircularProgressIndicator(),
       );

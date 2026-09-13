@@ -1,8 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../models/inventory_item.dart';
 import '../../models/qty_unit.dart';
 import '../../models/stock_movement.dart';
 import '../../models/stock_out.dart';
+import '../../state/page_snapshot_cache.dart';
 import 'supabase_inventory_service.dart' as base;
 
 // =============================================================================
@@ -104,30 +106,69 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
   @override
   Future<List<StockMovement>> fetchStockHistory(
     String itemId,
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      'inventory.history.$itemId',
+      () => _loadStockHistory(itemId),
+    );
+  }
+
+  Future<List<StockMovement>> _loadStockHistory(
+    String itemId,
   ) async {
-    final item = await fetchItem(itemId);
+    final cachedItem = PageSnapshotCache.instance.itemById(itemId);
+
+    final lookups = await Future.wait<Object?>([
+      cachedItem != null
+          ? Future<InventoryItem?>.value(cachedItem)
+          : fetchItem(itemId),
+      _historyUserNameMap(),
+      _historyUnitMap(),
+      _historyClient
+          .from('purchase_item')
+          .select(
+            'qty, qty_unit, purchaseid, '
+            'purchase(id, receiveddate, recordedby)',
+          )
+          .eq('itemid', itemId),
+      _historyClient
+          .from('donation_item')
+          .select(
+            'qty, qty_unit, dntid, '
+            'donation(id, receiveddate, recordedby)',
+          )
+          .eq('itemid', itemId),
+      _historyClient
+          .from('treatment_item')
+          .select(
+            'treatmentitemid, treatid, dispensed_qty, dispense_unit, '
+            'consumeddate, recordedby, treatment(id, name)',
+          )
+          .eq('itemid', itemId),
+      _historyClient
+          .from('stock_out')
+          .select(
+            'id, qty, qtyunit, reason, recordeddate, recordedby',
+          )
+          .eq('itemid', itemId),
+    ]);
+
+    final item = lookups[0] as InventoryItem?;
+    final users = lookups[1] as Map<String, String>;
+    final units = lookups[2] as Map<String, String>;
+    final purchaseRows = lookups[3] as List<dynamic>;
+    final donationRows = lookups[4] as List<dynamic>;
+    final treatmentRows = lookups[5] as List<dynamic>;
+    final stockOutRows = lookups[6] as List<dynamic>;
 
     final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
-
     final packageUnitAbbr = item?.packageUnitAbbr ?? purchaseUnitAbbr;
-
-    final users = await _historyUserNameMap();
-
-    final units = await _historyUnitMap();
 
     final movements = <StockMovement>[];
 
     // =========================================================================
     // PURCHASE
     // =========================================================================
-
-    final purchaseRows = await _historyClient
-        .from('purchase_item')
-        .select(
-          'qty, qty_unit, purchaseid, '
-          'purchase(id, receiveddate, recordedby)',
-        )
-        .eq('itemid', itemId);
 
     for (final row in purchaseRows) {
       final purchase = row['purchase'] as Map<String, dynamic>?;
@@ -161,14 +202,6 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
     // =========================================================================
     // DONATION
     // =========================================================================
-
-    final donationRows = await _historyClient
-        .from('donation_item')
-        .select(
-          'qty, qty_unit, dntid, '
-          'donation(id, receiveddate, recordedby)',
-        )
-        .eq('itemid', itemId);
 
     for (final row in donationRows) {
       final donation = row['donation'] as Map<String, dynamic>?;
@@ -209,14 +242,6 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
     // A non-convertible treatment is still saved in Medical Records but does
     // not reduce inventory. It is displayed as "Logged Treatment".
     // =========================================================================
-
-    final treatmentRows = await _historyClient
-        .from('treatment_item')
-        .select(
-          'treatmentitemid, treatid, dispensed_qty, dispense_unit, '
-          'consumeddate, recordedby, treatment(id, name)',
-        )
-        .eq('itemid', itemId);
 
     final treatmentItemIds = treatmentRows
         .map(
@@ -291,13 +316,6 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
     // =========================================================================
     // DISPENSE: WASTE / EXPIRED / ADJUSTMENT
     // =========================================================================
-
-    final stockOutRows = await _historyClient
-        .from('stock_out')
-        .select(
-          'id, qty, qtyunit, reason, recordeddate, recordedby',
-        )
-        .eq('itemid', itemId);
 
     for (final row in stockOutRows) {
       final qtyUnit = qtyUnitFromString(

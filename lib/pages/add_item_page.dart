@@ -17,6 +17,7 @@ import '../services/inventory_service.dart';
 import '../services/supplier_service.dart';
 import '../state/app_operation_controller.dart';
 import '../state/auth_state.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 
@@ -235,7 +236,35 @@ class _AddItemPageState extends State<AddItemPage> {
       _procurementType = 'purchased';
     }
 
-    _load();
+    final cache = PageSnapshotCache.instance;
+    final cachedItems = cache.peekList<InventoryItem>(PageSnapshotCache.items);
+    if (cachedItems != null) {
+      _items = cachedItems;
+      _suppliers =
+          cache.peekList<Supplier>(PageSnapshotCache.suppliers) ?? [];
+      _primaryCategories = cache.peekList<PrimaryCategory>(
+            PageSnapshotCache.primaryCategories,
+          ) ??
+          [];
+      _subcategories =
+          cache.peekList<Subcategory>(PageSnapshotCache.subcategories) ?? [];
+      _units = cache.peekList<Unit>(PageSnapshotCache.units) ?? [];
+      if (widget.itemId != null) {
+        final locked = cache.itemById(widget.itemId!);
+        if (locked != null) {
+          final firstLine = _StockInLineItem();
+          firstLine.lockedItem = locked;
+          firstLine.matchedExistingItem = locked;
+          firstLine.nameCtrl.text = locked.itemName;
+          _lines.add(firstLine);
+        }
+      }
+      if (_lines.isEmpty) {
+        _lines.add(_StockInLineItem());
+      }
+      _loading = false;
+    }
+    _load(silent: cachedItems != null);
   }
 
   @override
@@ -250,21 +279,43 @@ class _AddItemPageState extends State<AddItemPage> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
+      final cache = PageSnapshotCache.instance;
+      final cachedItems = cache.peekList<InventoryItem>(PageSnapshotCache.items);
+      final cachedSuppliers = cache.peekList<Supplier>(PageSnapshotCache.suppliers);
+      final cachedCategories = cache.peekList<PrimaryCategory>(
+        PageSnapshotCache.primaryCategories,
+      );
+      final cachedSubcategories =
+          cache.peekList<Subcategory>(PageSnapshotCache.subcategories);
+      final cachedUnits = cache.peekList<Unit>(PageSnapshotCache.units);
+
       final results = await Future.wait([
-        _inventoryService.fetchItems(),
-        _supplierService.fetchSuppliers(),
+        cachedItems != null
+            ? Future<List<InventoryItem>>.value(cachedItems)
+            : _inventoryService.fetchItems(),
+        cachedSuppliers != null
+            ? Future<List<Supplier>>.value(cachedSuppliers)
+            : _supplierService.fetchSuppliers(),
         _authService.fetchUsersByRole([AppRole.staff]),
         _donationService.fetchLinkableSubmissions(),
-        _catalogService.fetchPrimaryCategories(),
-        _catalogService.fetchSubcategories(),
-        _catalogService.fetchUnits(),
+        cachedCategories != null
+            ? Future<List<PrimaryCategory>>.value(cachedCategories)
+            : _catalogService.fetchPrimaryCategories(),
+        cachedSubcategories != null
+            ? Future<List<Subcategory>>.value(cachedSubcategories)
+            : _catalogService.fetchSubcategories(),
+        cachedUnits != null
+            ? Future<List<Unit>>.value(cachedUnits)
+            : _catalogService.fetchUnits(),
       ]);
 
       if (!mounted) return;
@@ -947,7 +998,7 @@ class _AddItemPageState extends State<AddItemPage> {
   Widget build(
     BuildContext context,
   ) {
-    if (_loading) {
+    if (_loading && _items.isEmpty) {
       return const Center(
         child:
             CircularProgressIndicator(),

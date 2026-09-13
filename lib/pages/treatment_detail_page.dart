@@ -9,6 +9,7 @@ import '../services/inventory_service.dart';
 import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/search_select_field.dart';
 
 /// Full detail page for one treatment record, mirroring the structure of
@@ -38,7 +39,21 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final record = cache.treatmentById(widget.treatId);
+    final items = cache.peekList<InventoryItem>(PageSnapshotCache.items);
+    if (record != null) {
+      _record = record;
+      _items = items ?? [];
+      _itemsUsed = cache.peekList<TreatmentItemUsed>(
+            'treatments.itemsUsed.${widget.treatId}',
+          ) ??
+          [];
+      _loading = false;
+    }
+
+    _load(silent: record != null);
   }
 
   @override
@@ -52,11 +67,30 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
       });
     }
     try {
-      final treatments = await _service.fetchTreatments();
-      final record = treatments
-          .where((t) => t.treatId == widget.treatId)
-          .cast<TreatmentRecord?>()
-          .firstWhere((t) => t != null, orElse: () => null);
+      final cache = PageSnapshotCache.instance;
+      final seededRecord = _record ?? cache.treatmentById(widget.treatId);
+      final cachedItems = cache.peekList<InventoryItem>(PageSnapshotCache.items);
+      final cachedUsed = cache.peekList<TreatmentItemUsed>(
+        'treatments.itemsUsed.${widget.treatId}',
+      );
+
+      final results = await Future.wait([
+        seededRecord != null
+            ? Future<TreatmentRecord?>.value(seededRecord)
+            : _service.fetchTreatments().then((treatments) {
+                for (final row in treatments) {
+                  if (row.treatId == widget.treatId) return row;
+                }
+                return null;
+              }),
+        cachedUsed != null
+            ? Future<List<TreatmentItemUsed>>.value(cachedUsed)
+            : _service.fetchItemsUsed(widget.treatId),
+        cachedItems != null
+            ? Future<List<InventoryItem>>.value(cachedItems)
+            : _inventoryService.fetchItems(),
+      ]);
+      final record = results[0] as TreatmentRecord?;
       if (record == null) {
         if (!mounted) return;
         setState(() {
@@ -65,15 +99,11 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
         });
         return;
       }
-      final results = await Future.wait([
-        _service.fetchItemsUsed(widget.treatId),
-        _inventoryService.fetchItems(),
-      ]);
       if (!mounted) return;
       setState(() {
         _record = record;
-        _itemsUsed = results[0] as List<TreatmentItemUsed>;
-        _items = results[1] as List<InventoryItem>;
+        _itemsUsed = results[1] as List<TreatmentItemUsed>;
+        _items = results[2] as List<InventoryItem>;
         _loading = false;
       });
     } catch (_) {
@@ -136,7 +166,7 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _record == null) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_notFound || _record == null) {

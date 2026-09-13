@@ -10,6 +10,7 @@ import '../services/inventory_service.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
 
@@ -120,7 +121,26 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final pets = cache.peekList<Pet>(PageSnapshotCache.pets);
+    final items = cache.peekList<InventoryItem>(PageSnapshotCache.items);
+    if (pets != null) {
+      _pets = pets
+          .where(
+            (pet) =>
+                pet.status != PetStatus.adopted &&
+                pet.status != PetStatus.deceased,
+          )
+          .toList();
+      _items = items ?? [];
+      _existingTreatments =
+          cache.peekList<TreatmentRecord>(PageSnapshotCache.treatments) ??
+              [];
+      _loading = false;
+    }
+
+    _load(silent: pets != null);
   }
 
   @override
@@ -289,11 +309,13 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
   // LOAD
   // ===========================================================================
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     final currentUser = context.read<AuthController>().profile;
 
@@ -805,7 +827,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
   Widget build(
     BuildContext context,
   ) {
-    if (_loading) {
+    if (_loading && _pets.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(),
       );

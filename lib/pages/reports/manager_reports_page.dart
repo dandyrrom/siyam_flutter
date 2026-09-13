@@ -7,6 +7,7 @@ import '../../models/replenishment_item.dart';
 import '../../services/replenishment_service.dart';
 import '../../services/report_service.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../../widgets/app_dropdown.dart';
 import '../../widgets/page_loading.dart';
 // =============================================================================
@@ -103,7 +104,24 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cachedUsage = PageSnapshotCache.instance.peek<MonthlyUsageReport>(
+      'reports.usage.${_selectedMonth.year}-${_selectedMonth.month}',
+    );
+    final cachedRop =
+        PageSnapshotCache.instance.peekList<ReplenishmentItem>(
+      PageSnapshotCache.replenishment,
+    );
+
+    if (cachedUsage != null) {
+      _monthlyUsage = cachedUsage;
+      _loading = false;
+    }
+    if (cachedRop != null) {
+      _ropRows = cachedRop;
+    }
+
+    _load(silent: cachedUsage != null);
   }
 
   @override

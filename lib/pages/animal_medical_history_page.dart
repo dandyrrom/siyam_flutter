@@ -10,6 +10,7 @@ import '../services/inventory_service.dart';
 import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/search_select_field.dart';
 
 // ============================================================================
@@ -57,7 +58,34 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final records = cache.treatmentsForPet(widget.petId);
+    final inventory = cache.peekList<InventoryItem>(PageSnapshotCache.items);
+
+    if (records.isNotEmpty) {
+      records.sort((a, b) {
+        final dateCompare = b.recDate.compareTo(a.recDate);
+        if (dateCompare != 0) return dateCompare;
+        return b.loggedDate.compareTo(a.loggedDate);
+      });
+      _records = records;
+      _selectedTreatment = records.first;
+      _occurrences = cache.peekList<TreatmentOccurrence>(
+            'treatments.occurrences.${records.first.treatId}',
+          ) ??
+          [];
+      _itemsUsed = cache.peekList<TreatmentItemUsed>(
+            'treatments.itemsUsed.${records.first.treatId}',
+          ) ??
+          [];
+      _loading = false;
+    }
+    if (inventory != null) {
+      _inventoryItems = inventory;
+    }
+
+    _load(silent: records.isNotEmpty);
   }
 
   @override
@@ -87,21 +115,25 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
     }
 
     try {
-      // Start both requests together.
-      final treatmentsFuture = _treatmentService.fetchTreatments();
+      final cache = PageSnapshotCache.instance;
+      final cachedTreatments =
+          cache.peekList<TreatmentRecord>(PageSnapshotCache.treatments);
+      final cachedInventory =
+          cache.peekList<InventoryItem>(PageSnapshotCache.items);
 
+      final treatmentsFuture = _treatmentService.fetchTreatments();
       final inventoryFuture = _inventoryService.fetchItems();
 
-      final treatments = await treatmentsFuture;
+      final treatments = cachedTreatments ?? await treatmentsFuture;
 
-      List<InventoryItem> inventoryItems = [];
+      List<InventoryItem> inventoryItems = cachedInventory ?? [];
 
-      try {
-        inventoryItems = await inventoryFuture;
-      } catch (_) {
-        // Medical history can still be displayed even if
-        // inventory items temporarily fail to load.
-        inventoryItems = [];
+      if (cachedInventory == null) {
+        try {
+          inventoryItems = await inventoryFuture;
+        } catch (_) {
+          inventoryItems = [];
+        }
       }
 
       final records = treatments
@@ -151,9 +183,32 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
               orElse: () => records.first,
             );
 
-      List<TreatmentOccurrence> selectedOccurrences = [];
-      List<TreatmentItemUsed> selectedItems = [];
+      final cachedOccurrences = cache.peekList<TreatmentOccurrence>(
+        'treatments.occurrences.${selected.treatId}',
+      );
+      final cachedItemsUsed = cache.peekList<TreatmentItemUsed>(
+        'treatments.itemsUsed.${selected.treatId}',
+      );
 
+      if (!mounted) return;
+
+      setState(() {
+        _records = records;
+        _inventoryItems = inventoryItems;
+        _selectedTreatment = selected;
+        if (cachedOccurrences != null) {
+          _occurrences = cachedOccurrences;
+        }
+        if (cachedItemsUsed != null) {
+          _itemsUsed = cachedItemsUsed;
+        }
+        _loading = false;
+        _error = null;
+      });
+
+      List<TreatmentOccurrence> selectedOccurrences =
+          cachedOccurrences ?? [];
+      List<TreatmentItemUsed> selectedItems = cachedItemsUsed ?? [];
       String? detailError;
 
       try {
@@ -171,19 +226,12 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
       if (!mounted) return;
 
       setState(() {
-        _records = records;
-        _inventoryItems = inventoryItems;
-
-        _selectedTreatment = selected;
-
-        _occurrences = selectedOccurrences;
-        _itemsUsed = selectedItems;
-
-        _detailError = detailError;
-
-        _loading = false;
+        if (_selectedTreatment?.treatId == selected.treatId) {
+          _occurrences = selectedOccurrences;
+          _itemsUsed = selectedItems;
+          _detailError = detailError;
+        }
         _detailLoading = false;
-        _error = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -645,7 +693,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
   Widget build(
     BuildContext context,
   ) {
-    if (_loading) {
+    if (_loading && _records.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(),
       );

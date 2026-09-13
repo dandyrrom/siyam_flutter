@@ -29,26 +29,16 @@ class _MobileDrawerState
   bool _loggingOut = false;
 Future<void> _openRoute(
   String path,
-  String label,
+  String _,
 ) async {
   if (AppOperationController.instance.isBusy) {
     return;
   }
 
-  await AppOperationController.instance.run<void>(
-    message: 'Opening $label...',
-    action: () async {
-      if (!mounted) return;
+  if (!mounted) return;
 
-      // Close the drawer first.
-      Navigator.of(context).pop();
-
-      // Then perform one navigation.
-      context.go(path);
-
-      await WidgetsBinding.instance.endOfFrame;
-    },
-  );
+  Navigator.of(context).pop();
+  context.go(path);
 }
   // =========================================================================
   // MOBILE LOGOUT

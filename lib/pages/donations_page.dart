@@ -5,6 +5,7 @@ import '../core/app_colors.dart';
 import '../models/donation.dart';
 import '../services/donation_service.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/hoverable_row.dart';
 import '../widgets/page_loading.dart';
@@ -33,8 +34,14 @@ class _DonationsPageState extends State<DonationsPage>
   void initState() {
     super.initState();
 
-    // Loads all donation submissions when the page first opens.
-    _load();
+    final cached = PageSnapshotCache.instance
+        .peekList<DonationSubmission>(PageSnapshotCache.submissions);
+    if (cached != null) {
+      _submissions = cached;
+      _loading = false;
+    }
+
+    _load(silent: cached != null);
   }
 
   @override
@@ -132,7 +139,7 @@ class _DonationsPageState extends State<DonationsPage>
 
   @override
   Widget build(BuildContext context) {
-  if (_loading) {
+  if (_loading && _submissions.isEmpty) {
   return const PageLoading(
     message: 'Loading donations',
   );

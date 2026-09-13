@@ -31,24 +31,15 @@ class _SideNavState
 
   Future<void> _openRoute(
     String path,
-    String label,
+    String _,
   ) async {
     if (AppOperationController.instance.isBusy) {
       return;
     }
 
-    await AppOperationController.instance.run<void>(
-      message: 'Opening $label...',
-      action: () async {
-        if (!mounted) return;
+    if (!mounted) return;
 
-        context.go(path);
-
-        // Give GoRouter one frame to mount the destination before allowing
-        // another navigation action.
-        await WidgetsBinding.instance.endOfFrame;
-      },
-    );
+    context.go(path);
   }
 
   // =========================================================================

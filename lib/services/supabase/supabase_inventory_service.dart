@@ -4,7 +4,9 @@ import '../../models/inventory_item.dart';
 import '../../models/qty_unit.dart';
 import '../../models/stock_movement.dart';
 import '../../models/stock_out.dart';
+import '../../state/catalog_snapshot_cache.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../inventory_service.dart';
 
 // ============================================================================
@@ -509,54 +511,46 @@ class SupabaseInventoryService implements InventoryService {
   // ==========================================================================
 
   @override
-  Future<List<InventoryItem>> fetchItems() async {
-    final pcats = await _map(
-      'primary_category',
-      'type',
-    );
+  Future<List<InventoryItem>> fetchItems() {
+    return CatalogSnapshotCache.instance.itemsOrFetch(_loadItemsFromBackend);
+  }
 
-    final scats = await _map(
-      'subcategory',
-      'type',
-    );
+  Future<List<InventoryItem>> _loadItemsFromBackend() async {
+    final lookups = await Future.wait<Object?>([
+      _map('primary_category', 'type'),
+      _map('subcategory', 'type'),
+      _map('units', 'abbr_name'),
+      _itemIdsIn('purchase_item'),
+      _itemIdsIn('donation_item'),
+      _client.from('item').select(_itemColumns).order('name'),
+    ]);
 
-    final units = await _map(
-      'units',
-      'abbr_name',
-    );
-
-    final purchasedItemIds = await _itemIdsIn('purchase_item');
-
-    final donatedItemIds = await _itemIdsIn('donation_item');
-
-    final rows = await _client.from('item').select(_itemColumns).order('name');
+    final pcats = lookups[0] as Map<String, String>;
+    final scats = lookups[1] as Map<String, String>;
+    final units = lookups[2] as Map<String, String>;
+    final purchasedItemIds = lookups[3] as Set<String>;
+    final donatedItemIds = lookups[4] as Set<String>;
+    final rows = lookups[5] as List<dynamic>;
 
     final packageQuantityByItem = <String, double?>{
       for (final row in rows)
         row['id'] as String: _toDouble(row['package_quantity']),
     };
 
-    final lifetimeStockOutTotals = await _stockOutTotalsInPurchaseUnits(
-      packageQuantityByItem,
-    );
+    final extras = await Future.wait<Object?>([
+      _stockOutTotalsInPurchaseUnits(packageQuantityByItem),
+      _qtySumByItem('treatment_item', 'dispensed_qty'),
+      _fetchBatchStockSummaries(packageQuantityByItem),
+    ]);
 
-    final lifetimeTreatmentTotals = await _qtySumByItem(
-      'treatment_item',
-      'dispensed_qty',
-    );
-
-    // ========================================================================
-    // BATCH STOCK + EXPIRY SUMMARY
-    // ========================================================================
-
-    final batchStockSummaries = await _fetchBatchStockSummaries(
-      packageQuantityByItem,
-    );
+    final lifetimeStockOutTotals = extras[0] as Map<String, double>;
+    final lifetimeTreatmentTotals = extras[1] as Map<String, double>;
+    final batchStockSummaries = extras[2] as Map<String, _BatchStockSummary>;
 
     return rows
         .map(
           (r) => _mapItem(
-            r,
+            Map<String, dynamic>.from(r as Map),
             pcats: pcats,
             scats: scats,
             units: units,
@@ -577,7 +571,19 @@ class SupabaseInventoryService implements InventoryService {
   @override
   Future<InventoryItem?> fetchItem(
     String itemId,
-  ) async {
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      'inventory.item.$itemId',
+      () => _loadItem(itemId),
+    );
+  }
+
+  Future<InventoryItem?> _loadItem(String itemId) async {
+    final cached = PageSnapshotCache.instance.itemById(itemId);
+    if (cached != null) {
+      return cached;
+    }
+
     final row = await _client
         .from('item')
         .select(_itemColumns)
@@ -588,39 +594,27 @@ class SupabaseInventoryService implements InventoryService {
       return null;
     }
 
-    final pcats = await _map(
-      'primary_category',
-      'type',
-    );
-
-    final scats = await _map(
-      'subcategory',
-      'type',
-    );
-
-    final units = await _map(
-      'units',
-      'abbr_name',
-    );
-
-    final hasPurchaseHistory = (await _client
-            .from('purchase_item')
-            .select('itemid')
-            .eq('itemid', itemId))
-        .isNotEmpty;
-
-    final hasDonationHistory = (await _client
-            .from('donation_item')
-            .select('itemid')
-            .eq('itemid', itemId))
-        .isNotEmpty;
-
-    final stockOutRows = await _client
-        .from('stock_out')
-        .select('qty, qtyunit')
-        .eq('itemid', itemId);
-
     final packageQuantity = _toDouble(row['package_quantity']);
+
+    final extras = await Future.wait<Object?>([
+      _map('primary_category', 'type'),
+      _map('subcategory', 'type'),
+      _map('units', 'abbr_name'),
+      _client.from('purchase_item').select('itemid').eq('itemid', itemId),
+      _client.from('donation_item').select('itemid').eq('itemid', itemId),
+      _client.from('stock_out').select('qty, qtyunit').eq('itemid', itemId),
+      _client.from('treatment_item').select('dispensed_qty').eq('itemid', itemId),
+      _fetchBatchStockSummaryForItem(itemId, packageQuantity),
+    ]);
+
+    final pcats = extras[0] as Map<String, String>;
+    final scats = extras[1] as Map<String, String>;
+    final units = extras[2] as Map<String, String>;
+    final purchaseRows = extras[3] as List<dynamic>;
+    final donationRows = extras[4] as List<dynamic>;
+    final stockOutRows = extras[5] as List<dynamic>;
+    final treatmentRows = extras[6] as List<dynamic>;
+    final batchSummary = extras[7] as _BatchStockSummary;
 
     double lifetimeStockOutQty = 0;
 
@@ -640,28 +634,10 @@ class SupabaseInventoryService implements InventoryService {
       }
     }
 
-    final treatmentRows = await _client
-        .from('treatment_item')
-        .select('dispensed_qty')
-        .eq('itemid', itemId);
-
     final lifetimeTreatmentQty = treatmentRows.fold<double>(
       0,
       (sum, treatment) =>
-          sum +
-          (_toDouble(
-                treatment['dispensed_qty'],
-              ) ??
-              0),
-    );
-
-    // ========================================================================
-    // BATCH STOCK + EXPIRY FOR ONE ITEM
-    // ========================================================================
-
-    final batchSummary = await _fetchBatchStockSummaryForItem(
-      itemId,
-      packageQuantity,
+          sum + (_toDouble(treatment['dispensed_qty']) ?? 0),
     );
 
     return _mapItem(
@@ -669,8 +645,8 @@ class SupabaseInventoryService implements InventoryService {
       pcats: pcats,
       scats: scats,
       units: units,
-      purchasedItemIds: hasPurchaseHistory ? {itemId} : {},
-      donatedItemIds: hasDonationHistory ? {itemId} : {},
+      purchasedItemIds: purchaseRows.isNotEmpty ? {itemId} : {},
+      donatedItemIds: donationRows.isNotEmpty ? {itemId} : {},
       lifetimeStockOutTotals: {
         itemId: lifetimeStockOutQty,
       },

@@ -7,6 +7,7 @@ import '../models/item_rop_settings.dart';
 import '../models/qty_unit.dart';
 import '../models/replenishment_item.dart';
 import '../models/system_settings.dart';
+import '../state/catalog_snapshot_cache.dart';
 import 'inventory_service.dart';
 import 'settings_service.dart';
 import 'supabase/supabase_rop_service.dart';
@@ -365,7 +366,17 @@ class ReplenishmentService {
   // FETCH CALCULATED REPLENISHMENT LIST
   // ===========================================================================
 
-  Future<List<ReplenishmentItem>> fetchReplenishmentItems() async {
+  Future<List<ReplenishmentItem>> fetchReplenishmentItems({
+    List<InventoryItem>? items,
+  }) {
+    return CatalogSnapshotCache.instance.replenishmentOrFetch(
+      () => _computeReplenishmentItems(existingItems: items),
+    );
+  }
+
+  Future<List<ReplenishmentItem>> _computeReplenishmentItems({
+    List<InventoryItem>? existingItems,
+  }) async {
     final now = DateTime.now();
 
     // Includes today + previous 29 calendar days.
@@ -378,7 +389,9 @@ class ReplenishmentService {
     );
 
     final results = await Future.wait<Object?>([
-      _inventoryService.fetchItems(),
+      existingItems != null
+          ? Future<List<InventoryItem>>.value(existingItems)
+          : _inventoryService.fetchItems(),
       _settingsService.fetchSettings(),
       _ropService.fetchOverrides(),
 

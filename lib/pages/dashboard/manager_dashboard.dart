@@ -40,6 +40,8 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
   final GlobalKey _replenishmentKey = GlobalKey();
 
+  static ManagerDashboardStats? _lastStats;
+
   ManagerDashboardStats? _stats;
   bool _loading = true;
   String? _error;
@@ -54,8 +56,13 @@ class _ManagerDashboardState extends State<ManagerDashboard>
   void initState() {
     super.initState();
 
+    if (_lastStats != null) {
+      _stats = _lastStats;
+      _loading = false;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _load(),
+      (_) => _load(silent: _stats != null),
     );
   }
 
@@ -93,6 +100,7 @@ class _ManagerDashboardState extends State<ManagerDashboard>
 
       setState(() {
         _stats = stats;
+        _lastStats = stats;
         _loading = false;
       });
     } catch (e) {

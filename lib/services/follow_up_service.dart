@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../state/page_snapshot_cache.dart';
+
 // ============================================================================
 // MEDICAL FOLLOW-UP REMINDERS
 // ============================================================================
@@ -85,6 +87,15 @@ class FollowUpService {
   // There is deliberately no timer/stream here. The caller refreshes through
   // the app's existing DataChangeBus and normal page loads.
   Future<List<MedicalFollowUpReminder>> fetchActionableReminders({
+    DateTime? now,
+  }) {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.followUps,
+      () => _loadActionableReminders(now: now),
+    );
+  }
+
+  Future<List<MedicalFollowUpReminder>> _loadActionableReminders({
     DateTime? now,
   }) async {
     final current = now ?? DateTime.now();

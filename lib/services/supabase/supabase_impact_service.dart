@@ -4,6 +4,7 @@ import '../../models/donation_impact.dart';
 import '../../models/inventory_item.dart';
 import '../../models/pet.dart';
 import '../../models/stock_out.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../impact_service.dart';
 import '../inventory_service.dart';
 
@@ -38,7 +39,14 @@ class SupabaseImpactService implements ImpactService {
   }
 
   @override
-  Future<List<DonationImpactLine>> fetchDonorImpact(String donorId) async {
+  Future<List<DonationImpactLine>> fetchDonorImpact(String donorId) {
+    return PageSnapshotCache.instance.coalesce(
+      '${PageSnapshotCache.donorImpactPrefix}$donorId',
+      () => _loadDonorImpact(donorId),
+    );
+  }
+
+  Future<List<DonationImpactLine>> _loadDonorImpact(String donorId) async {
     // ============================================================
     // Get every donation belonging to this donor
     // ============================================================

@@ -7,11 +7,12 @@ import '../models/inventory_item.dart';
 import '../models/replenishment_item.dart';
 import '../services/inventory_service.dart';
 import '../services/replenishment_service.dart';
-import '../state/app_operation_controller.dart';
 import '../state/auth_state.dart';
+import '../state/catalog_snapshot_cache.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/hoverable_row.dart';
+import '../widgets/page_loading.dart';
 import '../widgets/stock_out_dialog.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -158,7 +159,23 @@ class _InventoryPageState extends State<InventoryPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = CatalogSnapshotCache.instance;
+    final cachedItems = cache.items;
+    final cachedRop = cache.replenishment;
+
+    if (cachedItems != null) {
+      _items = cachedItems;
+      _loading = false;
+
+      if (cachedRop != null) {
+        _replenishmentByItemId = {
+          for (final row in cachedRop) row.item.itemId: row,
+        };
+      }
+    }
+
+    _load(silent: cachedItems != null);
   }
 
   @override
@@ -219,23 +236,10 @@ class _InventoryPageState extends State<InventoryPage>
     }
 
     try {
-      Future<List<Object?>> fetchInventory() {
-        return Future.wait<Object?>([
-          _service.fetchItems(),
-          _replenishmentService.fetchReplenishmentItems(),
-        ]);
-      }
-
-      // Normal page loads use the global interaction guard so users cannot
-      // repeatedly navigate/click while Inventory is still being prepared.
-      //
-      // Background DataBus refreshes remain silent and do NOT block the app.
-      final results = silent
-          ? await fetchInventory()
-          : await AppOperationController.instance.run<List<Object?>>(
-              message: 'Loading inventory...',
-              action: fetchInventory,
-            );
+      final results = await Future.wait<Object?>([
+        _service.fetchItems(),
+        _replenishmentService.fetchReplenishmentItems(),
+      ]);
 
       if (!mounted || requestId != _loadRequestId) {
         return;
@@ -762,9 +766,11 @@ case _SortOption.stockDesc:
     final isMobile =
         MediaQuery.of(context).size.width < 600;
 
-if (_loading) {
-  return const SizedBox.shrink();
-}
+    if (_loading && _items.isEmpty) {
+      return const PageLoading(
+        message: 'Loading inventory',
+      );
+    }
 
     if (_error != null) {
       return Center(

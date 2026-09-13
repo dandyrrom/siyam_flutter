@@ -5,6 +5,7 @@ import '../core/app_colors.dart';
 import '../models/supplier.dart';
 import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 
 // =============================================================================
 // PURCHASE TRANSACTION DETAIL
@@ -43,7 +44,19 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cache = PageSnapshotCache.instance;
+    final cached = cache.purchaseOrderById(widget.purId);
+    if (cached != null) {
+      _order = cached;
+      _items = cache.peekList<OrderLineItem>(
+            'purchase.orderItems.${widget.purId}',
+          ) ??
+          [];
+      _loading = false;
+    }
+
+    _load(silent: cached != null);
   }
 
   @override
@@ -61,14 +74,24 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
     }
 
     try {
+      final cache = PageSnapshotCache.instance;
+      final seededOrder = _order ?? cache.purchaseOrderById(widget.purId);
+      final cachedItems = cache.peekList<OrderLineItem>(
+        'purchase.orderItems.${widget.purId}',
+      );
+
       final results =
           await Future.wait<Object?>([
-        _service.fetchPurchaseOrder(
-          widget.purId,
-        ),
-        _service.fetchOrderItems(
-          widget.purId,
-        ),
+        seededOrder != null
+            ? Future<PurchaseOrder?>.value(seededOrder)
+            : _service.fetchPurchaseOrder(
+                widget.purId,
+              ),
+        cachedItems != null
+            ? Future<List<OrderLineItem>>.value(cachedItems)
+            : _service.fetchOrderItems(
+                widget.purId,
+              ),
       ]);
 
       if (!mounted) return;
@@ -98,7 +121,7 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _order == null) {
       return const Center(
         child: CircularProgressIndicator(),
       );

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/qty_unit.dart';
 import '../../models/supplier.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../inventory_service.dart';
 import '../supplier_service.dart';
 
@@ -153,7 +154,14 @@ class SupabaseSupplierService implements SupplierService {
   // ==========================================================================
 
   @override
-  Future<List<Supplier>> fetchSuppliers() async {
+  Future<List<Supplier>> fetchSuppliers() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.suppliers,
+      _loadSuppliers,
+    );
+  }
+
+  Future<List<Supplier>> _loadSuppliers() async {
     final rows = await _client
         .from('supplier')
         .select('id, name, contactnum, contacttel, address')
@@ -248,15 +256,28 @@ class SupabaseSupplierService implements SupplierService {
   // ==========================================================================
 
   @override
-  Future<List<PurchaseOrder>> fetchAllPurchaseOrders() async {
-    final users = await _userNameMap();
+  Future<List<PurchaseOrder>> fetchAllPurchaseOrders() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.purchaseOrders,
+      _loadAllPurchaseOrders,
+    );
+  }
 
-    final rows = await _client
-        .from('purchase')
-        .select(_orderColumns)
-        .order('receiveddate', ascending: false);
+  Future<List<PurchaseOrder>> _loadAllPurchaseOrders() async {
+    final results = await Future.wait<Object?>([
+      _userNameMap(),
+      _client
+          .from('purchase')
+          .select(_orderColumns)
+          .order('receiveddate', ascending: false),
+    ]);
 
-    return rows.map((r) => _mapOrder(r, users)).toList();
+    final users = results[0] as Map<String, String>;
+    final rows = results[1] as List<dynamic>;
+
+    return rows
+        .map((r) => _mapOrder(Map<String, dynamic>.from(r as Map), users))
+        .toList();
   }
 
   // ==========================================================================
@@ -283,17 +304,28 @@ class SupabaseSupplierService implements SupplierService {
   // ==========================================================================
 
   @override
-  Future<PurchaseOrder?> fetchPurchaseOrder(String purId) async {
-    final row = await _client
-        .from('purchase')
-        .select(_orderColumns)
-        .eq('id', purId)
-        .maybeSingle();
+  Future<PurchaseOrder?> fetchPurchaseOrder(String purId) {
+    return PageSnapshotCache.instance.coalesce(
+      'purchase.order.$purId',
+      () => _loadPurchaseOrder(purId),
+    );
+  }
 
+  Future<PurchaseOrder?> _loadPurchaseOrder(String purId) async {
+    final cached = PageSnapshotCache.instance.purchaseOrderById(purId);
+    if (cached != null) {
+      return cached;
+    }
+
+    final results = await Future.wait<Object?>([
+      _client.from('purchase').select(_orderColumns).eq('id', purId).maybeSingle(),
+      _userNameMap(),
+    ]);
+
+    final row = results[0] as Map<String, dynamic>?;
     if (row == null) return null;
 
-    final users = await _userNameMap();
-
+    final users = results[1] as Map<String, String>;
     return _mapOrder(row, users);
   }
 
@@ -302,7 +334,14 @@ class SupabaseSupplierService implements SupplierService {
   // ==========================================================================
 
   @override
-  Future<List<OrderLineItem>> fetchOrderItems(String purId) async {
+  Future<List<OrderLineItem>> fetchOrderItems(String purId) {
+    return PageSnapshotCache.instance.coalesce(
+      'purchase.orderItems.$purId',
+      () => _loadOrderItems(purId),
+    );
+  }
+
+  Future<List<OrderLineItem>> _loadOrderItems(String purId) async {
     final units = await _unitAbbrMap();
 
     final rows = await _client

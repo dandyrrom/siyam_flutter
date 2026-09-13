@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/inventory_item.dart';
 import '../models/monthly_usage_report.dart';
 import '../models/qty_unit.dart';
+import '../state/page_snapshot_cache.dart';
 import 'inventory_service.dart';
 
 class ReportService {
@@ -81,6 +82,21 @@ class ReportService {
   }
 
   Future<MonthlyUsageReport> fetchMonthlyUsage(
+    DateTime selectedMonth,
+  ) {
+    final monthStart = DateTime(
+      selectedMonth.year,
+      selectedMonth.month,
+      1,
+    );
+
+    return PageSnapshotCache.instance.coalesce(
+      'reports.usage.${monthStart.year}-${monthStart.month}',
+      () => _loadMonthlyUsage(monthStart),
+    );
+  }
+
+  Future<MonthlyUsageReport> _loadMonthlyUsage(
     DateTime selectedMonth,
   ) async {
     final monthStart = DateTime(

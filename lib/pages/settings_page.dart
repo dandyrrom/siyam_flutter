@@ -10,6 +10,8 @@ import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
 import '../services/replenishment_service.dart';
 import '../services/settings_service.dart';
+import '../state/page_snapshot_cache.dart';
+import '../models/system_settings.dart';
 import '../services/supabase/supabase_rop_service.dart';
 
 // =============================================================================
@@ -78,7 +80,14 @@ class _SettingsPageState
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cached = PageSnapshotCache.instance.peek<SystemSettings>(
+      PageSnapshotCache.settings,
+    );
+    if (cached != null) {
+      _loading = false;
+    }
+    _load(silent: cached != null);
   }
 
   // Disposes the Settings page text controllers.
@@ -96,11 +105,13 @@ class _SettingsPageState
   // ===========================================================================
 
   // Loads the current system settings from the settings service.
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final settings =
@@ -947,7 +958,19 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   @override
   void initState() {
     super.initState();
-    _load();
+    final cachedItems = PageSnapshotCache.instance.peekList<InventoryItem>(
+      PageSnapshotCache.items,
+    );
+    if (cachedItems != null) {
+      _items = List<InventoryItem>.from(cachedItems)
+        ..sort(
+          (a, b) => a.itemName.toLowerCase().compareTo(
+                b.itemName.toLowerCase(),
+              ),
+        );
+      _loading = false;
+    }
+    _load(silent: cachedItems != null);
   }
 
   // ===========================================================================
@@ -955,11 +978,13 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // ===========================================================================
 
   // Loads inventory items and their item-specific ROP overrides.
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final results = await Future.wait([
@@ -1170,7 +1195,7 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
   // Builds the compact ROP overrides section.
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading && _items.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
@@ -2748,15 +2773,29 @@ class _CategoryManagementSectionState
   @override
   void initState() {
     super.initState();
-    _load();
+    final cache = PageSnapshotCache.instance;
+    final cachedPrimary = cache.peekList<PrimaryCategory>(
+      PageSnapshotCache.primaryCategories,
+    );
+    final cachedSub = cache.peekList<Subcategory>(
+      PageSnapshotCache.subcategories,
+    );
+    if (cachedPrimary != null) {
+      _primaryCategories = cachedPrimary;
+      _subcategories = cachedSub ?? [];
+      _loading = false;
+    }
+    _load(silent: cachedPrimary != null);
   }
 
   // Loads primary categories and subcategories.
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final results =
@@ -3283,7 +3322,7 @@ class _CategoryManagementSectionState
   Widget build(
     BuildContext context,
   ) {
-    if (_loading) {
+    if (_loading && _primaryCategories.isEmpty) {
       return const Center(
         child:
             CircularProgressIndicator(),
@@ -4029,7 +4068,14 @@ class _UnitManagementSectionState
   @override
   void initState() {
     super.initState();
-    _load();
+    final cachedUnits = PageSnapshotCache.instance.peekList<Unit>(
+      PageSnapshotCache.units,
+    );
+    if (cachedUnits != null) {
+      _units = cachedUnits;
+      _loading = false;
+    }
+    _load(silent: cachedUnits != null);
   }
 
   // Disposes the unit filter controller.
@@ -4040,11 +4086,13 @@ class _UnitManagementSectionState
   }
 
   // Loads all configured inventory units.
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final units =
@@ -4161,7 +4209,7 @@ class _UnitManagementSectionState
   Widget build(
     BuildContext context,
   ) {
-    if (_loading) {
+    if (_loading && _units.isEmpty) {
       return const Center(
         child:
             CircularProgressIndicator(),

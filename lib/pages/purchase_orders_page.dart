@@ -8,6 +8,7 @@ import '../models/supplier.dart';
 import '../services/replenishment_service.dart';
 import '../services/supplier_service.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/page_loading.dart';
 // =============================================================================
 // ORDERING
@@ -78,7 +79,25 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cachedOrders =
+        PageSnapshotCache.instance.peekList<PurchaseOrder>(
+      PageSnapshotCache.purchaseOrders,
+    );
+    final cachedRop =
+        PageSnapshotCache.instance.peekList<ReplenishmentItem>(
+      PageSnapshotCache.replenishment,
+    );
+
+    if (cachedOrders != null) {
+      _orders = cachedOrders;
+      _loading = false;
+    }
+    if (cachedRop != null) {
+      _replenishment = cachedRop;
+    }
+
+    _load(silent: cachedOrders != null);
   }
 
   @override
@@ -363,7 +382,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
 
   @override
   Widget build(BuildContext context) {
-if (_loading) {
+if (_loading && _orders.isEmpty) {
   return const PageLoading(
     message: 'Loading purchase orders',
   );

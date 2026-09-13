@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../mock/mock_database.dart';
 import '../models/system_settings.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import 'backend.dart';
 
 /// Data-access interface for the single app-wide settings row.
@@ -152,7 +153,14 @@ class SupabaseSettingsService implements SettingsService {
   // ===========================================================================
 
   @override
-  Future<SystemSettings> fetchSettings() async {
+  Future<SystemSettings> fetchSettings() {
+    return PageSnapshotCache.instance.coalesce(
+      PageSnapshotCache.settings,
+      _loadSettings,
+    );
+  }
+
+  Future<SystemSettings> _loadSettings() async {
     final row = await _client
         .from('system_settings')
         .select(_columns)

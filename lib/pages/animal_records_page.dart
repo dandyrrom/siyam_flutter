@@ -7,6 +7,7 @@ import '../models/treatment.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/page_loading.dart';
@@ -44,7 +45,24 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cachedPets = PageSnapshotCache.instance.peekList<Pet>(
+      PageSnapshotCache.pets,
+    );
+    final cachedTreatments =
+        PageSnapshotCache.instance.peekList<TreatmentRecord>(
+      PageSnapshotCache.treatments,
+    );
+
+    if (cachedPets != null) {
+      _pets = cachedPets;
+      _loading = false;
+    }
+    if (cachedTreatments != null) {
+      _treatments = cachedTreatments;
+    }
+
+    _load(silent: cachedPets != null);
   }
 
   @override
@@ -75,18 +93,17 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     }
 
     try {
-      final pets = await _service.fetchPets();
+      final petsFuture = _service.fetchPets();
+      final treatmentsFuture = Future<List<TreatmentRecord>>(() async {
+        try {
+          return await _treatmentService.fetchTreatments();
+        } catch (_) {
+          return <TreatmentRecord>[];
+        }
+      });
 
-      List<TreatmentRecord> treatments = [];
-
-      try {
-        treatments = await _treatmentService.fetchTreatments();
-      } catch (_) {
-        // LATEST TREATMENT FALLBACK:
-        // Animal Records remains usable even if treatment summary data
-        // cannot be loaded for the current role/session.
-        treatments = [];
-      }
+      final pets = await petsFuture;
+      final treatments = await treatmentsFuture;
 
       if (!mounted) return;
 
@@ -1385,7 +1402,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     final isMobile =
         MediaQuery.sizeOf(context).width < 600;
 
-  if (_loading) {
+  if (_loading && _pets.isEmpty) {
   return const PageLoading(
     message: 'Loading animal records',
   );

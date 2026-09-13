@@ -10,7 +10,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/app_colors.dart';
 import '../../services/dashboard_service.dart';
 import '../../services/donation_service.dart';
+import '../../models/replenishment_item.dart' as rop;
 import '../../state/auth_state.dart';
+import '../../state/page_snapshot_cache.dart';
 
 class DonatePage extends StatefulWidget {
   const DonatePage({super.key});
@@ -77,6 +79,29 @@ class _DonatePageState extends State<DonatePage> {
   void initState() {
     super.initState();
 
+    final rows = PageSnapshotCache.instance.peekList<rop.ReplenishmentItem>(
+      PageSnapshotCache.replenishment,
+    );
+    if (rows != null) {
+      _currentNeeds = [
+        for (final row in rows)
+          ReplenishmentAlert(
+            itemId: row.item.itemId,
+            itemName: row.item.itemName,
+            stockQty: row.currentStockPurchaseUnits,
+            unitAbbr: row.item.purchaseUnitAbbr,
+            priority: switch (row.priority) {
+              rop.ReplenishmentPriority.critical =>
+                ReplenishmentPriority.critical,
+              rop.ReplenishmentPriority.high => ReplenishmentPriority.high,
+              rop.ReplenishmentPriority.medium =>
+                ReplenishmentPriority.medium,
+            },
+          ),
+      ];
+      _needsLoading = false;
+    }
+
     _loadCurrentNeeds();
   }
 
@@ -113,7 +138,7 @@ class _DonatePageState extends State<DonatePage> {
 
     _needsLoadInProgress = true;
 
-    if (mounted) {
+    if (mounted && _currentNeeds.isEmpty) {
       setState(() {
         _needsLoading = true;
         _needsError = null;

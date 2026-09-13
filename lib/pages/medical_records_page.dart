@@ -7,6 +7,7 @@ import '../models/treatment.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/data_bus.dart';
+import '../state/page_snapshot_cache.dart';
 import '../widgets/page_loading.dart';
 // =============================================================================
 // MEDICAL RECORDS
@@ -55,7 +56,24 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
   @override
   void initState() {
     super.initState();
-    _load();
+
+    final cachedTreatments =
+        PageSnapshotCache.instance.peekList<TreatmentRecord>(
+      PageSnapshotCache.treatments,
+    );
+    final cachedPets = PageSnapshotCache.instance.peekList<Pet>(
+      PageSnapshotCache.pets,
+    );
+
+    if (cachedTreatments != null) {
+      _treatments = cachedTreatments;
+      _loading = false;
+    }
+    if (cachedPets != null) {
+      _pets = cachedPets;
+    }
+
+    _load(silent: cachedTreatments != null);
   }
 
   @override
@@ -579,7 +597,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
 
   @override
   Widget build(BuildContext context) {
-if (_loading) {
+if (_loading && _treatments.isEmpty) {
   return const PageLoading(
     message: 'Loading medical records...',
   );

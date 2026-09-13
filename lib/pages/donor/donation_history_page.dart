@@ -7,6 +7,7 @@ import '../../models/donation.dart';
 import '../../services/donation_service.dart';
 import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../../widgets/page_loading.dart';
 // Controls the donor-friendly history filters shown at the top of the page.
 enum _DonationHistoryFilter {
@@ -38,7 +39,21 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
   void initState() {
     super.initState();
 
-    // Loads the logged-in donor's submissions when the page opens.
+    final donorId =
+        context.read<AuthController>().profile?.userId;
+    if (donorId != null) {
+      final cached = PageSnapshotCache.instance
+          .peekList<DonationSubmission>(
+        '${PageSnapshotCache.donorSubmissionsPrefix}$donorId',
+      );
+      if (cached != null) {
+        _submissions = cached;
+        _loading = false;
+      }
+      _load(silent: cached != null);
+      return;
+    }
+
     _load();
   }
 
@@ -655,7 +670,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
     final bool isMobile =
         MediaQuery.of(context).size.width < 600;
 
-  if (_loading) {
+  if (_loading && _submissions.isEmpty) {
   return const PageLoading(
     message: 'Loading your donation history',
   );

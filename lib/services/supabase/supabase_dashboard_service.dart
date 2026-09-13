@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/inventory_item.dart';
+import '../../models/system_settings.dart';
+import '../../state/page_snapshot_cache.dart';
 import '../dashboard_service.dart';
 import '../expiry_alerts.dart';
 import '../settings_service.dart';
@@ -17,9 +19,8 @@ import '../settings_service.dart';
 class SupabaseDashboardService implements DashboardService {
   final SupabaseClient _client = Supabase.instance.client;
 
-  Future<int> _count(String table) async {
-    final rows = await _client.from(table).select('id');
-    return rows.length;
+  Future<int> _count(String table) {
+    return _client.from(table).count(CountOption.exact);
   }
 
   Future<Map<String, String>> _unitAbbrMap() async {
@@ -104,18 +105,22 @@ class SupabaseDashboardService implements DashboardService {
         List<DashboardStockAlert> low,
         List<DashboardStockAlert> needsRestock,
       })> _fetchStockAlerts() async {
-    final units = await _unitAbbrMap();
+    final alertLookups = await Future.wait<Object?>([
+      _unitAbbrMap(),
+      _client.from('item').select(
+        'id, name, total_purchase_stocks, total_package_stocks, '
+        'package_quantity, purchase_unit, package_unit',
+      ),
+      // Load all batches, including zero/depleted rows, so merely having batch
+      // history is enough to switch the item away from legacy aggregate fallback.
+      _client.from('inventory_batch').select(
+        'itemid, qtyavailable, qtyunit, status, expirydate',
+      ),
+    ]);
 
-    final itemRows = await _client.from('item').select(
-      'id, name, total_purchase_stocks, total_package_stocks, '
-      'package_quantity, purchase_unit, package_unit',
-    );
-
-    // Load all batches, including zero/depleted rows, so merely having batch
-    // history is enough to switch the item away from legacy aggregate fallback.
-    final rawBatchRows = await _client.from('inventory_batch').select(
-      'itemid, qtyavailable, qtyunit, status, expirydate',
-    );
+    final units = alertLookups[0] as Map<String, String>;
+    final itemRows = alertLookups[1] as List<dynamic>;
+    final rawBatchRows = alertLookups[2] as List<dynamic>;
 
     final batchesByItem =
         <String, List<Map<String, dynamic>>>{};
@@ -282,24 +287,26 @@ class SupabaseDashboardService implements DashboardService {
   Future<List<ExpiryAlert>> _fetchExpiryAlerts(
     int warningDays,
   ) async {
-    final units = await _unitAbbrMap();
+    final expiryLookups = await Future.wait<Object?>([
+      _unitAbbrMap(),
+      _client.from('item').select(
+        'id, name, purchase_unit, package_unit, package_quantity',
+      ),
+      _client.from('inventory_batch').select(
+        'itemid, expirydate, qtyavailable, qtyunit, status',
+      ),
+    ]);
 
-    final rawItemRows = await _client.from('item').select(
-      'id, name, purchase_unit, package_unit, package_quantity',
-    );
+    final units = expiryLookups[0] as Map<String, String>;
+    final rawItemRows = expiryLookups[1] as List<dynamic>;
+    final rawBatchRows = expiryLookups[2] as List<dynamic>;
 
     final itemsById =
         <String, Map<String, dynamic>>{
       for (final raw in rawItemRows)
         raw['id'] as String:
-            Map<String, dynamic>.from(raw),
+            Map<String, dynamic>.from(raw as Map),
     };
-
-    final rawBatchRows = await _client
-        .from('inventory_batch')
-        .select(
-          'itemid, expirydate, qtyavailable, qtyunit, status',
-        );
 
     final today = _todayOnly();
     final cutoff =
@@ -491,28 +498,29 @@ class SupabaseDashboardService implements DashboardService {
 
   @override
   Future<ManagerDashboardStats> fetchManagerStats() async {
-    final pets = await _count('pet');
-    final suppliers = await _count('supplier');
+    final results = await Future.wait<Object?>([
+      _count('pet'),
+      _count('supplier'),
+      _client.from('submission').select('id').eq('status', 'pending'),
+      _client.from('users').select('id').eq('role', 'staff'),
+      _count('item'),
+      _fetchStockAlerts(),
+      SettingsService().fetchSettings(),
+    ]);
 
-    final pending = await _client
-        .from('submission')
-        .select('id')
-        .eq('status', 'pending');
+    final pets = results[0] as int;
+    final suppliers = results[1] as int;
+    final pending = results[2] as List<dynamic>;
+    final staff = results[3] as List<dynamic>;
+    final totalItems = results[4] as int;
+    final alerts = results[5] as ({
+      List<DashboardStockAlert> zero,
+      List<DashboardStockAlert> low,
+      List<DashboardStockAlert> needsRestock,
+    });
+    final settings = results[6] as SystemSettings;
 
-    final staff = await _client
-        .from('users')
-        .select('id')
-        .eq('role', 'staff');
-
-    final totalItems = await _count('item');
-
-    final alerts = await _fetchStockAlerts();
-
-    final settings =
-        await SettingsService().fetchSettings();
-
-    final expiryAlerts =
-        await _fetchExpiryAlerts(
+    final expiryAlerts = await _fetchExpiryAlerts(
       settings.expirationWarningDays,
     );
 
@@ -598,13 +606,32 @@ class SupabaseDashboardService implements DashboardService {
         d.isAfter(priorStart) &&
         !d.isAfter(start);
 
-    final purchaseRows = await _client
-        .from('purchase')
-        .select('id, suppid, receiveddate')
-        .gte(
-          'receiveddate',
-          priorStart.toUtc().toIso8601String(),
-        );
+    List<Map<String, dynamic>> asMaps(Object? raw) {
+      return (raw as List)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
+    }
+
+    final periodIso = priorStart.toUtc().toIso8601String();
+    final periodRows = await Future.wait<Object?>([
+      _client
+          .from('purchase')
+          .select('id, suppid, receiveddate')
+          .gte('receiveddate', periodIso),
+      _client.from('purchase_item').select('purchaseid, qty'),
+      _client
+          .from('treatment')
+          .select('id, petid, recordedby, recordeddate')
+          .gte('recordeddate', periodIso),
+      _client.from('treatment_item').select('treatid'),
+      _client
+          .from('donation')
+          .select('id, donorid, donor_name, receiveddate')
+          .gte('receiveddate', periodIso),
+      _client.from('donation_item').select('dntid, qty'),
+    ]);
+
+    final purchaseRows = asMaps(periodRows[0]);
 
     final purchasesCur = purchaseRows
         .where(
@@ -626,10 +653,7 @@ class SupabaseDashboardService implements DashboardService {
         )
         .toList();
 
-    final purchaseItemRows =
-        await _client
-            .from('purchase_item')
-            .select('purchaseid, qty');
+    final purchaseItemRows = asMaps(periodRows[1]);
 
     double itemsReceivedFor(
       List<Map<String, dynamic>> list,
@@ -660,15 +684,7 @@ class SupabaseDashboardService implements DashboardService {
           .length;
     }
 
-    final treatmentRows = await _client
-        .from('treatment')
-        .select(
-          'id, petid, recordedby, recordeddate',
-        )
-        .gte(
-          'recordeddate',
-          priorStart.toUtc().toIso8601String(),
-        );
+    final treatmentRows = asMaps(periodRows[2]);
 
     final treatmentsCur = treatmentRows
         .where(
@@ -708,10 +724,7 @@ class SupabaseDashboardService implements DashboardService {
           .length;
     }
 
-    final treatmentItemRows =
-        await _client
-            .from('treatment_item')
-            .select('treatid');
+    final treatmentItemRows = asMaps(periodRows[3]);
 
     int itemsDispensedFor(
       List<Map<String, dynamic>> list,
@@ -729,15 +742,7 @@ class SupabaseDashboardService implements DashboardService {
           .length;
     }
 
-    final donationRows = await _client
-        .from('donation')
-        .select(
-          'id, donorid, donor_name, receiveddate',
-        )
-        .gte(
-          'receiveddate',
-          priorStart.toUtc().toIso8601String(),
-        );
+    final donationRows = asMaps(periodRows[4]);
 
     final donationsCur = donationRows
         .where(
@@ -759,10 +764,7 @@ class SupabaseDashboardService implements DashboardService {
         )
         .toList();
 
-    final donationItemRows =
-        await _client
-            .from('donation_item')
-            .select('dntid, qty');
+    final donationItemRows = asMaps(periodRows[5]);
 
     double donationTotal(String donationId) {
       var total = 0.0;
@@ -877,103 +879,91 @@ class SupabaseDashboardService implements DashboardService {
   // ==========================================================================
 
   @override
-  Future<StaffDashboardStats> fetchStaffStats() async {
-    final alerts =
-        await fetchReplenishmentAlerts();
+  Future<StaffDashboardStats> fetchStaffStats() {
+    return _loadStaffStats(includeThresholdAlerts: true);
+  }
+
+  /// Same staff dashboard numbers, without the unused threshold-alert pass.
+  /// The ROP adapter replaces those counts from ReplenishmentService.
+  Future<StaffDashboardStats> fetchStaffOperationalStats() {
+    return _loadStaffStats(includeThresholdAlerts: false);
+  }
+
+  Future<StaffDashboardStats> _loadStaffStats({
+    required bool includeThresholdAlerts,
+  }) async {
+    final results = await Future.wait<Object?>([
+      includeThresholdAlerts
+          ? fetchReplenishmentAlerts()
+          : Future<List<ReplenishmentAlert>>.value(const []),
+      _client.from('pet').select('id').eq('status', 'under_treatment'),
+      _client
+          .from('submission')
+          .select('id, drop_off_sched')
+          .eq('status', 'pending'),
+      _client
+          .from('purchase')
+          .select('receiveddate')
+          .order('receiveddate', ascending: false)
+          .limit(1)
+          .maybeSingle(),
+      _count('item'),
+      _periodStats(7),
+      _periodStats(30),
+    ]);
+
+    final alerts = results[0] as List<ReplenishmentAlert>;
+    final underTreatment = results[1] as List<dynamic>;
+    final pendingRows = results[2] as List<dynamic>;
+    final mostRecentRow = results[3] as Map<String, dynamic>?;
+    final totalItems = results[4] as int;
+    final week = results[5] as DashboardPeriodStats;
+    final month = results[6] as DashboardPeriodStats;
 
     final outOfStockCount = alerts
-        .where(
-          (a) =>
-              a.priority ==
-              ReplenishmentPriority.critical,
-        )
+        .where((a) => a.priority == ReplenishmentPriority.critical)
         .length;
-
     final lowStockCount = alerts
-        .where(
-          (a) =>
-              a.priority ==
-              ReplenishmentPriority.high,
-        )
+        .where((a) => a.priority == ReplenishmentPriority.high)
         .length;
-
     final needsRestockCount = alerts
-        .where(
-          (a) =>
-              a.priority ==
-              ReplenishmentPriority.medium,
-        )
+        .where((a) => a.priority == ReplenishmentPriority.medium)
         .length;
-
-    final underTreatment = await _client
-        .from('pet')
-        .select('id')
-        .eq(
-          'status',
-          'under_treatment',
-        );
-
-    final pendingRows = await _client
-        .from('submission')
-        .select('id, drop_off_sched')
-        .eq('status', 'pending');
 
     final now = DateTime.now();
-
     var pendingScheduled = 0;
     var pendingOverdue = 0;
     var pendingUnscheduled = 0;
 
     for (final row in pendingRows) {
-      final raw =
-          row['drop_off_sched'] as String?;
+      final raw = row['drop_off_sched'] as String?;
 
       if (raw == null) {
         pendingUnscheduled++;
-      } else if (DateTime.parse(raw)
-          .isBefore(now)) {
+      } else if (DateTime.parse(raw).isBefore(now)) {
         pendingOverdue++;
       } else {
         pendingScheduled++;
       }
     }
 
-    final mostRecentRow = await _client
-        .from('purchase')
-        .select('receiveddate')
-        .order(
-          'receiveddate',
-          ascending: false,
-        )
-        .limit(1)
-        .maybeSingle();
-
-    final mostRecentDeliveryDate =
-        mostRecentRow == null
-            ? null
-            : DateTime.parse(
-                mostRecentRow['receiveddate']
-                    as String,
-              );
+    final mostRecentDeliveryDate = mostRecentRow == null
+        ? null
+        : DateTime.parse(mostRecentRow['receiveddate'] as String);
 
     return StaffDashboardStats(
-      totalItems: await _count('item'),
+      totalItems: totalItems,
       outOfStockCount: outOfStockCount,
       lowStockCount: lowStockCount,
       needsRestockCount: needsRestockCount,
-      animalsUnderTreatment:
-          underTreatment.length,
-      pendingSubmissions:
-          pendingRows.length,
-      pendingScheduled:
-          pendingScheduled,
+      animalsUnderTreatment: underTreatment.length,
+      pendingSubmissions: pendingRows.length,
+      pendingScheduled: pendingScheduled,
       pendingOverdue: pendingOverdue,
-      pendingUnscheduled:
-          pendingUnscheduled,
-      mostRecentDeliveryDate:
-          mostRecentDeliveryDate,
-      week: await _periodStats(7),
-      month: await _periodStats(30),
+      pendingUnscheduled: pendingUnscheduled,
+      mostRecentDeliveryDate: mostRecentDeliveryDate,
+      week: week,
+      month: month,
     );
   }
 
@@ -984,25 +974,36 @@ class SupabaseDashboardService implements DashboardService {
   @override
   Future<DonorDashboardStats> fetchDonorStats(
     String donorId,
-  ) async {
-    final donations = await _client
-        .from('donation')
-        .select('id, receiveddate')
-        .eq('donorid', donorId)
-        .order(
-          'receiveddate',
-          ascending: false,
-        );
+  ) {
+    return PageSnapshotCache.instance.coalesce(
+      '${PageSnapshotCache.donorStatsPrefix}$donorId',
+      () => _loadDonorStats(donorId),
+    );
+  }
 
-    final itemRows = await _client
-        .from('donation_item')
-        .select(
-          'qty, donation!inner(donorid)',
-        )
-        .eq(
-          'donation.donorid',
-          donorId,
-        );
+  Future<DonorDashboardStats> _loadDonorStats(
+    String donorId,
+  ) async {
+    final results = await Future.wait<Object?>([
+      _client
+          .from('donation')
+          .select('id, receiveddate')
+          .eq('donorid', donorId)
+          .order('receiveddate', ascending: false),
+      _client
+          .from('donation_item')
+          .select('qty, donation!inner(donorid)')
+          .eq('donation.donorid', donorId),
+      _client
+          .from('submission')
+          .select('id')
+          .eq('donorid', donorId)
+          .eq('status', 'pending'),
+    ]);
+
+    final donations = results[0] as List<dynamic>;
+    final itemRows = results[1] as List<dynamic>;
+    final pending = results[2] as List<dynamic>;
 
     var itemsDonated = 0;
 
@@ -1013,12 +1014,6 @@ class SupabaseDashboardService implements DashboardService {
                   0)
               .round();
     }
-
-    final pending = await _client
-        .from('submission')
-        .select('id')
-        .eq('donorid', donorId)
-        .eq('status', 'pending');
 
     return DonorDashboardStats(
       totalDonations: donations.length,

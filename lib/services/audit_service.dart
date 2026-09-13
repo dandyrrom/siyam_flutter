@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/audit_entry.dart';
+import '../state/page_snapshot_cache.dart';
 
 // =============================================================================
 // AUDIT SERVICE
@@ -24,6 +25,28 @@ class AuditService {
       Supabase.instance.client;
 
   Future<List<AuditEntry>> fetchEntries({
+    int limit = 500,
+    String? actorUserId,
+    List<String>? modules,
+    bool includeChangeDetails = true,
+  }) {
+    final actor = actorUserId?.trim();
+    final key = (actor == null || actor.isEmpty)
+        ? PageSnapshotCache.auditManager
+        : '${PageSnapshotCache.auditStaffPrefix}$actor';
+
+    return PageSnapshotCache.instance.coalesce(
+      key,
+      () => _loadEntries(
+        limit: limit,
+        actorUserId: actorUserId,
+        modules: modules,
+        includeChangeDetails: includeChangeDetails,
+      ),
+    );
+  }
+
+  Future<List<AuditEntry>> _loadEntries({
     int limit = 500,
     String? actorUserId,
     List<String>? modules,

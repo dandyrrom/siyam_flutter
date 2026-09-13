@@ -6,6 +6,7 @@ import '../mock/mock_database.dart';
 import '../models/inventory_item.dart';
 import '../services/expiry_alerts.dart';
 import '../services/inventory_service.dart';
+import '../state/catalog_snapshot_cache.dart';
 import '../state/data_bus.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/hoverable_row.dart';
@@ -87,7 +88,29 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
   @override
   void initState() {
     super.initState();
-    _load();
+    final cachedItems = CatalogSnapshotCache.instance.items;
+    if (cachedItems != null) {
+      _rows = _rowsFromItems(cachedItems);
+      _loading = false;
+    }
+    _load(silent: cachedItems != null);
+  }
+
+  List<_ReplenishmentRow> _rowsFromItems(List<InventoryItem> items) {
+    final threshold = lowStockPurchaseUnitThreshold;
+    final db = MockDatabase.instance;
+    final rows = <_ReplenishmentRow>[];
+    for (final item in items) {
+      final priority = _priorityFor(item.stockLevel);
+      if (priority == null) continue;
+      rows.add(_ReplenishmentRow(
+        item: item,
+        priority: priority,
+        qtyToBuy: math.max(0.0, threshold - item.stockQty),
+        nearestExpiry: nearestBatchExpiry(db, item.itemId),
+      ));
+    }
+    return rows;
   }
 
   @override
@@ -120,20 +143,7 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
     }
     try {
       final items = await _service.fetchItems();
-      final threshold = lowStockPurchaseUnitThreshold;
-      final db = MockDatabase.instance;
-
-      final rows = <_ReplenishmentRow>[];
-      for (final item in items) {
-        final priority = _priorityFor(item.stockLevel);
-        if (priority == null) continue;
-        rows.add(_ReplenishmentRow(
-          item: item,
-          priority: priority,
-          qtyToBuy: math.max(0.0, threshold - item.stockQty),
-          nearestExpiry: nearestBatchExpiry(db, item.itemId),
-        ));
-      }
+      final rows = _rowsFromItems(items);
 
       if (!mounted) return;
       setState(() {
@@ -198,7 +208,7 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 600;
 
-    if (_loading) {
+    if (_loading && _rows.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
