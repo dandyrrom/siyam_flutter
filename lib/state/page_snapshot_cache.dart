@@ -7,10 +7,11 @@ import '../models/treatment.dart';
 
 /// App-wide last-known snapshots and in-flight fetch coalescing.
 ///
-/// This does not add live updates between users. It only:
-/// - reuses one in-flight request when several screens ask for the same data;
-/// - keeps the last successful result so a revisited tab can paint immediately
-///   while a background refresh runs.
+/// Used to:
+/// - reuse one in-flight request when several screens ask for the same data;
+/// - keep the last successful result so a revisited tab can paint immediately
+///   while a background refresh runs;
+/// - drop stale snapshots when another session changes the same data.
 class PageSnapshotCache {
   PageSnapshotCache._();
 
@@ -46,6 +47,7 @@ class PageSnapshotCache {
 
   final Map<String, Object?> _snapshots = {};
   final Map<String, Future<dynamic>> _inFlight = {};
+  int _generation = 0;
 
   T? peek<T>(String key) {
     final value = _snapshots[key];
@@ -69,6 +71,16 @@ class PageSnapshotCache {
 
   void put<T>(String key, T value) {
     _snapshots[key] = value;
+  }
+
+  void invalidateAll() {
+    _generation++;
+    _snapshots.clear();
+  }
+
+  void invalidateMatching(bool Function(String key) test) {
+    _generation++;
+    _snapshots.removeWhere((key, _) => test(key));
   }
 
   InventoryItem? itemById(String itemId) {
@@ -160,8 +172,11 @@ class PageSnapshotCache {
       return existing as Future<T>;
     }
 
+    final generation = _generation;
     final future = loader().then((value) {
-      _snapshots[key] = value;
+      if (generation == _generation) {
+        _snapshots[key] = value;
+      }
       return value;
     }).whenComplete(() {
       _inFlight.remove(key);

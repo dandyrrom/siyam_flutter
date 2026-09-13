@@ -17,6 +17,7 @@ import '../services/inventory_service.dart';
 import '../services/supplier_service.dart';
 import '../state/app_operation_controller.dart';
 import '../state/auth_state.dart';
+import '../state/data_bus.dart';
 import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
@@ -170,7 +171,8 @@ class AddItemPage extends StatefulWidget {
       _AddItemPageState();
 }
 
-class _AddItemPageState extends State<AddItemPage> {
+class _AddItemPageState extends State<AddItemPage>
+    with DataBusRefreshMixin<AddItemPage> {
   final InventoryService _inventoryService =
       InventoryService();
 
@@ -265,6 +267,15 @@ class _AddItemPageState extends State<AddItemPage> {
       _loading = false;
     }
     _load(silent: cachedItems != null);
+  }
+
+  @override
+  void onExternalDataChanged() {
+    if (_saving) {
+      return;
+    }
+
+    _refreshLookups();
   }
 
   @override
@@ -412,6 +423,67 @@ class _AddItemPageState extends State<AddItemPage> {
 
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _refreshLookups() async {
+    try {
+      final results = await Future.wait([
+        _inventoryService.fetchItems(),
+        _supplierService.fetchSuppliers(),
+        _authService.fetchUsersByRole([AppRole.staff]),
+        _donationService.fetchLinkableSubmissions(),
+        _catalogService.fetchPrimaryCategories(),
+        _catalogService.fetchSubcategories(),
+        _catalogService.fetchUnits(),
+      ]);
+
+      if (!mounted) return;
+
+      final items = results[0] as List<InventoryItem>;
+
+      setState(() {
+        _items = items;
+        _suppliers = results[1] as List<Supplier>;
+        _receivers = results[2] as List<AppUser>;
+        _linkableSubmissions = results[3] as List<DonationSubmission>;
+        _primaryCategories = results[4] as List<PrimaryCategory>;
+        _subcategories = results[5] as List<Subcategory>;
+        _units = results[6] as List<Unit>;
+
+        for (final line in _lines) {
+          final lockedId = line.lockedItem?.itemId;
+          if (lockedId != null) {
+            for (final item in items) {
+              if (item.itemId == lockedId) {
+                line.lockedItem = item;
+                break;
+              }
+            }
+          }
+
+          final matchedId = line.matchedExistingItem?.itemId;
+          if (matchedId != null) {
+            for (final item in items) {
+              if (item.itemId == matchedId) {
+                line.matchedExistingItem = item;
+                break;
+              }
+            }
+          }
+        }
+
+        if (_selectedSupplier != null) {
+          for (final supplier in _suppliers) {
+            if (supplier.suppId == _selectedSupplier!.suppId) {
+              _selectedSupplier = supplier;
+              break;
+            }
+          }
+        }
+      });
+    } catch (_) {
+      // Keep the in-progress form if a background lookup refresh fails.
     }
   }
 

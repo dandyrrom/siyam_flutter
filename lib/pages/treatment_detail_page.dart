@@ -57,9 +57,9 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
   }
 
   @override
-  void onExternalDataChanged() => _load(silent: true);
+  void onExternalDataChanged() => _load(silent: true, forceRefresh: true);
 
-  Future<void> _load({bool silent = false}) async {
+  Future<void> _load({bool silent = false, bool forceRefresh = false}) async {
     if (!silent) {
       setState(() {
         _loading = true;
@@ -68,11 +68,17 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
     }
     try {
       final cache = PageSnapshotCache.instance;
-      final seededRecord = _record ?? cache.treatmentById(widget.treatId);
-      final cachedItems = cache.peekList<InventoryItem>(PageSnapshotCache.items);
-      final cachedUsed = cache.peekList<TreatmentItemUsed>(
-        'treatments.itemsUsed.${widget.treatId}',
-      );
+      final seededRecord = forceRefresh
+          ? null
+          : _record ?? cache.treatmentById(widget.treatId);
+      final cachedItems = forceRefresh
+          ? null
+          : cache.peekList<InventoryItem>(PageSnapshotCache.items);
+      final cachedUsed = forceRefresh
+          ? null
+          : cache.peekList<TreatmentItemUsed>(
+              'treatments.itemsUsed.${widget.treatId}',
+            );
 
       final results = await Future.wait([
         seededRecord != null

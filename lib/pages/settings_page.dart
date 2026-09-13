@@ -10,6 +10,7 @@ import '../services/catalog_service.dart';
 import '../services/inventory_service.dart';
 import '../services/replenishment_service.dart';
 import '../services/settings_service.dart';
+import '../state/data_bus.dart';
 import '../state/page_snapshot_cache.dart';
 import '../models/system_settings.dart';
 import '../services/supabase/supabase_rop_service.dart';
@@ -38,7 +39,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState
-    extends State<SettingsPage> {
+    extends State<SettingsPage>
+    with DataBusRefreshMixin<SettingsPage> {
   final SettingsService _service =
       SettingsService();
 
@@ -88,6 +90,15 @@ class _SettingsPageState
       _loading = false;
     }
     _load(silent: cached != null);
+  }
+
+  @override
+  void onExternalDataChanged() {
+    if (_saving) {
+      return;
+    }
+
+    _load(silent: true);
   }
 
   // Disposes the Settings page text controllers.
@@ -942,7 +953,8 @@ class _RopOverridesSection extends StatefulWidget {
       _RopOverridesSectionState();
 }
 
-class _RopOverridesSectionState extends State<_RopOverridesSection> {
+class _RopOverridesSectionState extends State<_RopOverridesSection>
+    with DataBusRefreshMixin<_RopOverridesSection> {
   static const int _previewLimit = 5;
 
   final InventoryService _inventoryService = InventoryService();
@@ -971,6 +983,11 @@ class _RopOverridesSectionState extends State<_RopOverridesSection> {
       _loading = false;
     }
     _load(silent: cachedItems != null);
+  }
+
+  @override
+  void onExternalDataChanged() {
+    _load(silent: true);
   }
 
   // ===========================================================================
@@ -2739,7 +2756,8 @@ class _CategoryManagementSection
 
 class _CategoryManagementSectionState
     extends State<
-        _CategoryManagementSection> {
+        _CategoryManagementSection>
+    with DataBusRefreshMixin<_CategoryManagementSection> {
   final CatalogService
       _catalogService =
       CatalogService();
@@ -2786,6 +2804,15 @@ class _CategoryManagementSectionState
       _loading = false;
     }
     _load(silent: cachedPrimary != null);
+  }
+
+  @override
+  void onExternalDataChanged() {
+    if (_hasPendingChanges || _savingChanges) {
+      return;
+    }
+
+    _load(silent: true);
   }
 
   // Loads primary categories and subcategories.
@@ -4050,7 +4077,8 @@ class _UnitManagementSection
 
 class _UnitManagementSectionState
     extends State<
-        _UnitManagementSection> {
+        _UnitManagementSection>
+    with DataBusRefreshMixin<_UnitManagementSection> {
   final CatalogService
       _catalogService =
       CatalogService();
@@ -4076,6 +4104,11 @@ class _UnitManagementSectionState
       _loading = false;
     }
     _load(silent: cachedUnits != null);
+  }
+
+  @override
+  void onExternalDataChanged() {
+    _load(silent: true);
   }
 
   // Disposes the unit filter controller.

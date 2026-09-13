@@ -61,10 +61,11 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
 
   @override
   void onExternalDataChanged() =>
-      _load(silent: true);
+      _load(silent: true, forceRefresh: true);
 
   Future<void> _load({
     bool silent = false,
+    bool forceRefresh = false,
   }) async {
     if (!silent) {
       setState(() {
@@ -75,10 +76,14 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seededOrder = _order ?? cache.purchaseOrderById(widget.purId);
-      final cachedItems = cache.peekList<OrderLineItem>(
-        'purchase.orderItems.${widget.purId}',
-      );
+      final seededOrder = forceRefresh
+          ? null
+          : _order ?? cache.purchaseOrderById(widget.purId);
+      final cachedItems = forceRefresh
+          ? null
+          : cache.peekList<OrderLineItem>(
+              'purchase.orderItems.${widget.purId}',
+            );
 
       final results =
           await Future.wait<Object?>([

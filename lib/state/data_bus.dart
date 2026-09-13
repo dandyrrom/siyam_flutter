@@ -1,8 +1,11 @@
 import 'package:flutter/widgets.dart';
 
+import 'page_snapshot_cache.dart';
+
 /// App-wide "something changed" signal.
 ///
-/// Service methods call [ping] after a successful write. Pages that mix in
+/// Service methods call [ping] after a successful write. Remote changes from
+/// other users also ping through [AppRealtimeSync]. Pages that mix in
 /// [DataBusRefreshMixin] refresh after the current Flutter frame finishes.
 ///
 /// Important:
@@ -14,7 +17,10 @@ class DataChangeBus extends ChangeNotifier {
 
   static final DataChangeBus instance = DataChangeBus._();
 
-  void ping() => notifyListeners();
+  void ping() {
+    PageSnapshotCache.instance.invalidateAll();
+    notifyListeners();
+  }
 }
 
 /// Mix this into pages/widgets that should silently refresh when shared data

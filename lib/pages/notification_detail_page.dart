@@ -85,11 +85,12 @@ class _NotificationDetailPageState
 
   @override
   void onExternalDataChanged() {
-    _load(silent: true);
+    _load(silent: true, forceRefresh: true);
   }
 
   Future<void> _load({
     bool silent = false,
+    bool forceRefresh = false,
   }) async {
     if (!silent) {
       setState(() {
@@ -99,13 +100,19 @@ class _NotificationDetailPageState
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seededItem = _item ?? cache.itemById(widget.itemId);
-      final cachedStats = cache.peek<ManagerDashboardStats>(
-        PageSnapshotCache.managerStats,
-      );
-      final cachedRop = cache.peekList<ReplenishmentItem>(
-        PageSnapshotCache.replenishment,
-      );
+      final seededItem = forceRefresh
+          ? null
+          : _item ?? cache.itemById(widget.itemId);
+      final cachedStats = forceRefresh
+          ? null
+          : cache.peek<ManagerDashboardStats>(
+              PageSnapshotCache.managerStats,
+            );
+      final cachedRop = forceRefresh
+          ? null
+          : cache.peekList<ReplenishmentItem>(
+              PageSnapshotCache.replenishment,
+            );
 
       final results = await Future.wait<Object?>([
         seededItem != null

@@ -97,7 +97,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
       return;
     }
 
-    _load(silent: true);
+    _load(silent: true, forceRefresh: true);
   }
 
   // ==========================================================================
@@ -106,6 +106,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
 
   Future<void> _load({
     bool silent = false,
+    bool forceRefresh = false,
   }) async {
     if (!silent) {
       setState(() {
@@ -116,10 +117,12 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
 
     try {
       final cache = PageSnapshotCache.instance;
-      final cachedTreatments =
-          cache.peekList<TreatmentRecord>(PageSnapshotCache.treatments);
-      final cachedInventory =
-          cache.peekList<InventoryItem>(PageSnapshotCache.items);
+      final cachedTreatments = forceRefresh
+          ? null
+          : cache.peekList<TreatmentRecord>(PageSnapshotCache.treatments);
+      final cachedInventory = forceRefresh
+          ? null
+          : cache.peekList<InventoryItem>(PageSnapshotCache.items);
 
       final treatmentsFuture = _treatmentService.fetchTreatments();
       final inventoryFuture = _inventoryService.fetchItems();

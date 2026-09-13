@@ -10,6 +10,7 @@ import '../services/inventory_service.dart';
 import '../services/pet_service.dart';
 import '../services/treatment_service.dart';
 import '../state/auth_state.dart';
+import '../state/data_bus.dart';
 import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/search_select_field.dart';
@@ -67,7 +68,8 @@ class _TreatmentItemDraft {
 // PAGE STATE
 // =============================================================================
 
-class _AddTreatmentPageState extends State<AddTreatmentPage> {
+class _AddTreatmentPageState extends State<AddTreatmentPage>
+    with DataBusRefreshMixin<AddTreatmentPage> {
   final TreatmentService _treatmentService = TreatmentService();
 
   final PetService _petService = PetService();
@@ -141,6 +143,15 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
     }
 
     _load(silent: pets != null);
+  }
+
+  @override
+  void onExternalDataChanged() {
+    if (_saving) {
+      return;
+    }
+
+    _refreshLookups();
   }
 
   @override
@@ -474,6 +485,72 @@ class _AddTreatmentPageState extends State<AddTreatmentPage> {
 
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _refreshLookups() async {
+    try {
+      final petsFuture = _petService.fetchPets();
+      final itemsFuture = _inventoryService.fetchItems();
+      final treatmentsFuture = _treatmentService.fetchTreatments();
+
+      final pets = await petsFuture;
+      final eligiblePets = pets
+          .where(
+            (pet) =>
+                pet.status != PetStatus.adopted &&
+                pet.status != PetStatus.deceased,
+          )
+          .toList()
+        ..sort(
+          (a, b) => a.petName.toLowerCase().compareTo(
+                b.petName.toLowerCase(),
+              ),
+        );
+
+      final items = await itemsFuture;
+
+      List<TreatmentRecord> existingTreatments = [];
+      try {
+        existingTreatments = await treatmentsFuture;
+      } catch (_) {
+        existingTreatments = _existingTreatments;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _pets = eligiblePets;
+        _items = items;
+        _existingTreatments = existingTreatments;
+
+        if (_selectedPet != null) {
+          Pet? updated;
+          for (final pet in eligiblePets) {
+            if (pet.petId == _selectedPet!.petId) {
+              updated = pet;
+              break;
+            }
+          }
+          _selectedPet = updated;
+          if (updated != null) {
+            _petCtrl.text = updated.petName;
+          }
+        }
+
+        for (final draft in _itemDrafts) {
+          final itemId = draft.item?.itemId;
+          if (itemId == null) continue;
+          for (final item in items) {
+            if (item.itemId == itemId) {
+              draft.item = item;
+              break;
+            }
+          }
+        }
+      });
+    } catch (_) {
+      // Keep the in-progress form if a background lookup refresh fails.
     }
   }
 

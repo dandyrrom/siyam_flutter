@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../services/backend.dart';
+import 'realtime_sync.dart';
 
 // ============================================================================
 // AUTH STATUS
@@ -97,6 +99,19 @@ class AuthController extends ChangeNotifier {
         newStatus;
 
     _routerRefresh.value++;
+    _syncRealtime();
+  }
+
+  void _syncRealtime() {
+    if (kUseMock) {
+      return;
+    }
+
+    if (isAuthenticated) {
+      AppRealtimeSync.instance.start();
+    } else {
+      AppRealtimeSync.instance.stop();
+    }
   }
 
   // ==========================================================================
@@ -434,6 +449,8 @@ class AuthController extends ChangeNotifier {
 
       status =
           AuthStatus.unauthenticated;
+
+      _syncRealtime();
 
       isBusy =
           false;

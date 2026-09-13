@@ -69,10 +69,10 @@ void onExternalDataChanged() {
     return;
   }
 
-  _load(silent: true);
+  _load(silent: true, forceRefresh: true);
 }
 
-  Future<void> _load({bool silent = false}) async {
+  Future<void> _load({bool silent = false, bool forceRefresh = false}) async {
     if (!silent) {
       setState(() {
         _loading = true;
@@ -82,7 +82,9 @@ void onExternalDataChanged() {
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seeded = _submission ?? cache.submissionById(widget.subId);
+      final seeded = forceRefresh
+          ? null
+          : _submission ?? cache.submissionById(widget.subId);
       final submission = seeded ??
           await _donationService.fetchSubmission(widget.subId);
 

@@ -141,9 +141,9 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   }
 
   @override
-  void onExternalDataChanged() => _load(silent: true);
+  void onExternalDataChanged() => _load(silent: true, forceRefresh: true);
 
-  Future<void> _load({bool silent = false}) async {
+  Future<void> _load({bool silent = false, bool forceRefresh = false}) async {
     if (!silent) {
       setState(() {
         _loading = true;
@@ -153,17 +153,27 @@ class _InventoryItemPageState extends State<InventoryItemPage>
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seededItem = _item ?? cache.itemById(widget.itemId);
-      final cachedCategories = cache.peekList<PrimaryCategory>(
-        PageSnapshotCache.primaryCategories,
-      );
-      final cachedUnits = cache.peekList<Unit>(PageSnapshotCache.units);
-      final cachedRop = cache.peekList<ReplenishmentItem>(
-        PageSnapshotCache.replenishment,
-      );
-      final cachedHistory = cache.peekList<StockMovement>(
-        'inventory.history.${widget.itemId}',
-      );
+      final seededItem = forceRefresh
+          ? null
+          : _item ?? cache.itemById(widget.itemId);
+      final cachedCategories = forceRefresh
+          ? null
+          : cache.peekList<PrimaryCategory>(
+              PageSnapshotCache.primaryCategories,
+            );
+      final cachedUnits = forceRefresh
+          ? null
+          : cache.peekList<Unit>(PageSnapshotCache.units);
+      final cachedRop = forceRefresh
+          ? null
+          : cache.peekList<ReplenishmentItem>(
+              PageSnapshotCache.replenishment,
+            );
+      final cachedHistory = forceRefresh
+          ? null
+          : cache.peekList<StockMovement>(
+              'inventory.history.${widget.itemId}',
+            );
 
       final results = await Future.wait([
         seededItem != null

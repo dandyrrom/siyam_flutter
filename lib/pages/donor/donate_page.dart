@@ -12,6 +12,7 @@ import '../../services/dashboard_service.dart';
 import '../../services/donation_service.dart';
 import '../../models/replenishment_item.dart' as rop;
 import '../../state/auth_state.dart';
+import '../../state/data_bus.dart';
 import '../../state/page_snapshot_cache.dart';
 
 class DonatePage extends StatefulWidget {
@@ -22,7 +23,8 @@ class DonatePage extends StatefulWidget {
       _DonatePageState();
 }
 
-class _DonatePageState extends State<DonatePage> {
+class _DonatePageState extends State<DonatePage>
+    with DataBusRefreshMixin<DonatePage> {
   // ==========================================================================
   // SERVICES
   // ==========================================================================
@@ -102,6 +104,11 @@ class _DonatePageState extends State<DonatePage> {
       _needsLoading = false;
     }
 
+    _loadCurrentNeeds();
+  }
+
+  @override
+  void onExternalDataChanged() {
     _loadCurrentNeeds();
   }
 
