@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -67,6 +68,14 @@ class _RegisterPageState
     _watchBlur(_phoneFocus, 'phone');
     _watchBlur(_passwordFocus, 'password');
     _watchBlur(_confirmFocus, 'confirm');
+
+    // Flutter's EditableText silently no-ops copy/cut while obscureText is
+    // true, so Ctrl/Cmd+C leaves the previous clipboard contents in place.
+    // Handle copy ourselves from the real controller text.
+    _passwordFocus.onKeyEvent = (node, event) =>
+        _handleObscuredFieldCopyKeyEvent(event, _password);
+    _confirmFocus.onKeyEvent = (node, event) =>
+        _handleObscuredFieldCopyKeyEvent(event, _confirm);
   }
 
   void _watchBlur(
@@ -80,6 +89,78 @@ class _RegisterPageState
         });
       }
     });
+  }
+
+  KeyEventResult _handleObscuredFieldCopyKeyEvent(
+    KeyEvent event,
+    TextEditingController controller,
+  ) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final isCopyChord =
+        event.logicalKey == LogicalKeyboardKey.keyC &&
+            (HardwareKeyboard.instance.isControlPressed ||
+                HardwareKeyboard.instance.isMetaPressed);
+
+    if (!isCopyChord) {
+      return KeyEventResult.ignored;
+    }
+
+    final selection = controller.selection;
+    if (!selection.isValid || selection.isCollapsed) {
+      return KeyEventResult.ignored;
+    }
+
+    final selected = selection.textInside(controller.text);
+    if (selected.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+
+    Clipboard.setData(ClipboardData(text: selected));
+    return KeyEventResult.handled;
+  }
+
+  /// Restores Copy in the selection toolbar while the field is obscured.
+  Widget _passwordContextMenuBuilder(
+    BuildContext context,
+    EditableTextState editableTextState,
+  ) {
+    final value = editableTextState.textEditingValue;
+    final selection = value.selection;
+    final hasSelection =
+        selection.isValid && !selection.isCollapsed;
+
+    final items = List<ContextMenuButtonItem>.from(
+      editableTextState.contextMenuButtonItems,
+    );
+
+    final hasCopy = items.any(
+      (item) => item.type == ContextMenuButtonType.copy,
+    );
+
+    if (hasSelection && !hasCopy) {
+      items.insert(
+        0,
+        ContextMenuButtonItem(
+          type: ContextMenuButtonType.copy,
+          onPressed: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: selection.textInside(value.text),
+              ),
+            );
+            ContextMenuController.removeAny();
+          },
+        ),
+      );
+    }
+
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: editableTextState.contextMenuAnchors,
+      buttonItems: items,
+    );
   }
 
   @override
@@ -693,10 +774,8 @@ class _RegisterPageState
                                 autocorrect: false,
                                 enableSuggestions:
                                     false,
-                                onChanged:
-                                    (_) {
-                                  setState(() {});
-                                },
+                                contextMenuBuilder:
+                                    _passwordContextMenuBuilder,
                                 decoration:
                                     _decoration(
                                   hintText:
@@ -740,17 +819,30 @@ class _RegisterPageState
                                 height: 10,
                               ),
 
-                              _PasswordRequirements(
-                                hasMinLength:
-                                    _hasMinLength,
-                                hasUppercase:
-                                    _hasUppercase,
-                                hasLowercase:
-                                    _hasLowercase,
-                                hasNumber:
-                                    _hasNumber,
-                                hasSymbol:
-                                    _hasSymbol,
+                              // Rebuild only the checklist — not the whole
+                              // form — when the password changes. Full-page
+                              // setState on every keystroke made fields sticky
+                              // on web.
+                              ListenableBuilder(
+                                listenable:
+                                    _password,
+                                builder: (
+                                  context,
+                                  _,
+                                ) {
+                                  return _PasswordRequirements(
+                                    hasMinLength:
+                                        _hasMinLength,
+                                    hasUppercase:
+                                        _hasUppercase,
+                                    hasLowercase:
+                                        _hasLowercase,
+                                    hasNumber:
+                                        _hasNumber,
+                                    hasSymbol:
+                                        _hasSymbol,
+                                  );
+                                },
                               ),
 
                               const SizedBox(
@@ -781,6 +873,8 @@ class _RegisterPageState
                                 autocorrect: false,
                                 enableSuggestions:
                                     false,
+                                contextMenuBuilder:
+                                    _passwordContextMenuBuilder,
                                 decoration:
                                     _decoration(
                                   hintText:
