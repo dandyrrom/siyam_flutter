@@ -3,6 +3,8 @@
 Branch baseline: `realtime_and_updates` (`07cb534`)  
 Scope: Manager / Staff (FINAL-100 tab only)
 
+**Folder:** [SIYAM-User Manual](https://drive.google.com/drive/folders/1J_uATp0vRfL3mRSSB7ySm3Dj0MxKgjX1)
+
 ## 1. Exact-format copy of the full User Manual
 (all tabs, figures, layout, and styling preserved)
 
