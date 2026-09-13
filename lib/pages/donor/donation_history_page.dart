@@ -672,7 +672,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
   if (_loading && _submissions.isEmpty) {
   return const PageLoading(
-    message: 'Loading your donation history',
+    message: 'Loading your donation records',
   );
 }
 
@@ -879,7 +879,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                     child:
                         _DonationFilterCard(
                       label:
-                          'All Donations',
+                          'All Donation Attempts',
                       description:
                           'Your complete history',
                       value:
@@ -978,7 +978,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                 Expanded(
                   child:
                       _DonationFilterCard(
-                    label: 'All Donations',
+                    label: 'All Donation Attempts',
                     description:
                         'Your complete history',
                     value:
@@ -1081,7 +1081,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
           children: [
             const Expanded(
               child: Text(
-                'Donation History',
+                'Donation Records',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -1209,7 +1209,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Choose another category to view the rest of your donation history.',
+                    'Choose another category to view the rest of your donation records.',
                     textAlign:
                         TextAlign.center,
                     style: TextStyle(
@@ -1226,7 +1226,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                           .all,
                     ),
                     child: const Text(
-                      'View all donations',
+                      'View all donation attempts',
                     ),
                   ),
                 ],

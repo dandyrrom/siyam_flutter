@@ -61,6 +61,8 @@ class _DonatePageState extends State<DonatePage>
 
   bool _proofImageError = false;
 
+  bool _schedDateError = false;
+
   // ==========================================================================
   // CURRENTLY NEEDED ITEMS
   // ==========================================================================
@@ -471,6 +473,7 @@ class _DonatePageState extends State<DonatePage>
 
     setState(() {
       _schedDate = picked;
+      _schedDateError = false;
     });
   }
 
@@ -597,6 +600,30 @@ class _DonatePageState extends State<DonatePage>
       return;
     }
 
+    if (_schedDate == null) {
+      setState(() {
+        _schedDateError = true;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please select your preferred drop-off date before submitting.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    if (_schedDateError) {
+      setState(() {
+        _schedDateError = false;
+      });
+    }
+
     if (_proofImage == null) {
       setState(() {
         _proofImageError =
@@ -630,6 +657,16 @@ class _DonatePageState extends State<DonatePage>
             ?.userId;
 
     if (donorId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not submit your donation request. Please sign in again and try again.',
+          ),
+        ),
+      );
+
       return;
     }
 
@@ -680,12 +717,16 @@ class _DonatePageState extends State<DonatePage>
     } catch (e) {
       if (!mounted) return;
 
+      debugPrint(
+        'Donation submission failed: $e',
+      );
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            'Could not submit donation: $e',
+            'Could not submit your donation request. Please check your connection and try again.',
           ),
         ),
       );
@@ -984,19 +1025,23 @@ class _DonatePageState extends State<DonatePage>
               child:
                   InputDecorator(
                 decoration:
-                    const InputDecoration(
+                    InputDecoration(
                   prefixIcon:
-                      Icon(
+                      const Icon(
                     Icons
                         .event_outlined,
                     size: 19,
                   ),
                   suffixIcon:
-                      Icon(
+                      const Icon(
                     Icons
                         .expand_more,
                     size: 20,
                   ),
+                  errorText:
+                      _schedDateError
+                          ? 'Preferred drop-off date is required.'
+                          : null,
                 ),
                 child: Text(
                   _schedDate ==

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/app_colors.dart';
 import '../../models/donation.dart';
@@ -42,6 +43,7 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   bool _loading = true;
   bool _loadInProgress = false;
+  bool _isReturningVisitor = false;
 
   String? _error;
 
@@ -52,6 +54,8 @@ class _DonorDashboardState extends State<DonorDashboard>
     final donorId =
         context.read<AuthController>().profile?.userId;
     if (donorId != null) {
+      _loadVisitState(donorId);
+
       final stats = PageSnapshotCache.instance.peek<DonorDashboardStats>(
         '${PageSnapshotCache.donorStatsPrefix}$donorId',
       );
@@ -80,6 +84,33 @@ class _DonorDashboardState extends State<DonorDashboard>
     }
 
     _load();
+  }
+
+  Future<void> _loadVisitState(
+    String donorId,
+  ) async {
+    final preferences =
+        await SharedPreferences.getInstance();
+
+    final visitKey =
+        'siyam_donor_visited_$donorId';
+
+    final hasVisited =
+        preferences.getBool(visitKey) ?? false;
+
+    if (!hasVisited) {
+      await preferences.setBool(
+        visitKey,
+        true,
+      );
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isReturningVisitor =
+          hasVisited;
+    });
   }
 
   @override
@@ -301,9 +332,11 @@ class _DonorDashboardState extends State<DonorDashboard>
         // PAGE HEADER
         // ============================================================
 
-        const Text(
-          'Welcome Back',
-          style: TextStyle(
+        Text(
+          _isReturningVisitor
+              ? 'Welcome Back'
+              : 'Welcome',
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
           ),

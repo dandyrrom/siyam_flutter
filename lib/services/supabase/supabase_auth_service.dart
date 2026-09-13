@@ -64,6 +64,44 @@ class SupabaseAuthService implements AuthService {
   }
 
   // ==========================================================================
+  // CURRENT DEVICE LABEL
+  // ==========================================================================
+
+  String _currentDeviceLabel() {
+    if (kIsWeb) {
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.windows:
+          return 'Web Browser on Windows';
+        case TargetPlatform.macOS:
+          return 'Web Browser on macOS';
+        case TargetPlatform.linux:
+          return 'Web Browser on Linux';
+        case TargetPlatform.android:
+          return 'Web Browser on Android';
+        case TargetPlatform.iOS:
+          return 'Web Browser on iOS';
+        case TargetPlatform.fuchsia:
+          return 'Web Browser';
+      }
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'Android Device';
+      case TargetPlatform.iOS:
+        return 'iOS Device';
+      case TargetPlatform.windows:
+        return 'Windows Device';
+      case TargetPlatform.macOS:
+        return 'macOS Device';
+      case TargetPlatform.linux:
+        return 'Linux Device';
+      case TargetPlatform.fuchsia:
+        return 'Device';
+    }
+  }
+
+  // ==========================================================================
   // SINGLE-DEVICE SESSION HELPERS
   // ==========================================================================
   //
@@ -83,6 +121,41 @@ class SupabaseAuthService implements AuthService {
     );
 
     return result == true;
+  }
+
+  Future<void> _saveCurrentSessionDevice() async {
+    if (_client.auth.currentSession == null) {
+      return;
+    }
+
+    try {
+      await _client.rpc(
+        'set_current_session_device',
+        params: {
+          'p_device_label': _currentDeviceLabel(),
+        },
+      );
+    } catch (_) {
+      // Device labeling should not break an otherwise valid login.
+    }
+  }
+
+  Future<String?> _getActiveSessionDevice() async {
+    try {
+      final result = await _client.rpc(
+        'get_active_session_device',
+      );
+
+      final device = result?.toString().trim();
+
+      if (device == null || device.isEmpty) {
+        return null;
+      }
+
+      return device;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -165,11 +238,20 @@ class SupabaseAuthService implements AuthService {
   }
 
   Future<Never> _rejectSecondLogin() async {
+    final activeDevice = await _getActiveSessionDevice();
+
     // Explicitly sign out ONLY the newly-created local session.
     // The already-active browser/device must remain signed in.
     await _client.auth.signOut(
       scope: SignOutScope.local,
     );
+
+    if (activeDevice != null) {
+      throw Exception(
+        'This account is currently signed in on $activeDevice. '
+        'Please log out from that device before signing in here.',
+      );
+    }
 
     throw Exception(
       'This account is currently signed in on another device. '
@@ -267,6 +349,8 @@ class SupabaseAuthService implements AuthService {
       await _rejectSecondLogin();
     }
 
+    await _saveCurrentSessionDevice();
+
     return profile;
   }
 
@@ -338,6 +422,8 @@ class SupabaseAuthService implements AuthService {
 
       return null;
     }
+
+    await _saveCurrentSessionDevice();
 
     return profile;
   }
