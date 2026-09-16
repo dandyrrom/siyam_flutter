@@ -1,0 +1,15 @@
+{
+  "name": "SIYAM Flutter Web",
+  "snapshot": "snapshot-20260825-bff8e7bd-bb48-4994-be36-a2f029c687ee",
+  "install": "export PATH=\"/opt/flutter/bin:$PATH\" && flutter pub get",
+  "terminals": [
+    {
+      "name": "web-dev-server",
+      "command": "export PATH=\"/opt/flutter/bin:$PATH\" && flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080 --dart-define=USE_MOCK=true",
+      "description": "Flutter web dev server on http://localhost:8080 using the in-memory mock backend (no secrets). Seeded logins (password123): manager@siyam.test, staff@siyam.test, donor@siyam.test."
+    }
+  ],
+  "ports": [
+    { "name": "web", "port": 8080 }
+  ]
+}
