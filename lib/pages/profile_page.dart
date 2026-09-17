@@ -586,6 +586,17 @@ class _ProfileTabState
     });
   }
 
+  String? _validateName(
+    String? value,
+  ) {
+    if (value == null ||
+        value.trim().isEmpty) {
+      return 'Required';
+    }
+
+    return null;
+  }
+
   // Saves the editable profile fields.
   Future<void> _save() async {
     if (!_formKey.currentState!
@@ -663,6 +674,8 @@ class _ProfileTabState
                         Icons.person_outline,
                     controller:
                         _firstName,
+                    validator:
+                        _validateName,
                   ),
 
                   const SizedBox(height: 14),
@@ -673,6 +686,8 @@ class _ProfileTabState
                         Icons.person_outline,
                     controller:
                         _lastName,
+                    validator:
+                        _validateName,
                   ),
                 ],
               )
@@ -690,6 +705,8 @@ class _ProfileTabState
                           .person_outline,
                       controller:
                           _firstName,
+                      validator:
+                          _validateName,
                     ),
                   ),
 
@@ -704,6 +721,8 @@ class _ProfileTabState
                           .person_outline,
                       controller:
                           _lastName,
+                      validator:
+                          _validateName,
                     ),
                   ),
                 ],
@@ -737,8 +756,11 @@ class _ProfileTabState
                         phoneInputFormatters,
                     hintText:
                         '09XXXXXXXXX',
-                    validator:
-                        validatePhoneNumber,
+                    validator: (value) =>
+                        validatePhoneNumber(
+                      value,
+                      required: true,
+                    ),
                   ),
                 ],
               )
@@ -777,8 +799,11 @@ class _ProfileTabState
                           phoneInputFormatters,
                       hintText:
                           '09XXXXXXXXX',
-                      validator:
-                          validatePhoneNumber,
+                      validator: (value) =>
+                          validatePhoneNumber(
+                        value,
+                        required: true,
+                      ),
                     ),
                   ),
                 ],
