@@ -4,7 +4,7 @@
 
 ## 6.1 Summary
 
-This capstone project developed SIYAM, a cross-platform shelter inventory and audit management system for Dumaguete Animal Sanctuary (DAS). The system supports three registered roles-Manager, Staff, and Donor-and covers the sanctuary's core operations: inventory and stock movement, purchase and replenishment ordering, animal records, medical treatments linked to supply use, donation intake and history, alerts and notifications, reporting, audit trail, and a donor-facing portal with impact information.
+This capstone project developed SIYAM, a cross-platform shelter inventory and audit management system for Dumaguete Animal Sanctuary (DAS). The system supports three registered roles - Manager, Staff, and Donor - and covers the sanctuary's core operations: inventory and stock movement, purchase and replenishment ordering, animal records, medical treatments linked to supply use, donation intake and history, alerts and notifications, reporting, audit trail, and a donor-facing portal with impact information.
 
 SIYAM was built with Flutter and Dart as a single codebase. It runs primarily as a Flutter Web application and also targets Android. Backend services use Supabase for authentication and cloud database storage, with the production web build deployed on Vercel. The implemented modules replace manual logbook tracking with role-based digital workflows suited to daily sanctuary work and donor engagement.
 
