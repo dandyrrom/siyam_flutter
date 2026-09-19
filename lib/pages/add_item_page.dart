@@ -1982,6 +1982,10 @@ class _ItemDetailsBlock
                   child:
                       SearchSelectField<
                           Subcategory>(
+                    key: ValueKey(
+                      line.selectedPCategory?.id ??
+                          'all_subcategories',
+                    ),
                     labelText:
                         'Subcategory (optional)',
                     controller:

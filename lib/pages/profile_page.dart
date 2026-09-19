@@ -756,11 +756,8 @@ class _ProfileTabState
                         phoneInputFormatters,
                     hintText:
                         '09XXXXXXXXX',
-                    validator: (value) =>
-                        validatePhoneNumber(
-                      value,
-                      required: true,
-                    ),
+                    validator:
+                        validatePhoneNumber,
                   ),
                 ],
               )
@@ -799,11 +796,8 @@ class _ProfileTabState
                           phoneInputFormatters,
                       hintText:
                           '09XXXXXXXXX',
-                      validator: (value) =>
-                          validatePhoneNumber(
-                        value,
-                        required: true,
-                      ),
+                      validator:
+                          validatePhoneNumber,
                     ),
                   ),
                 ],
