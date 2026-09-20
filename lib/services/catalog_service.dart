@@ -22,7 +22,11 @@ abstract interface class CatalogService {
     required String type,
   });
   Future<Unit> createUnit({required String name, required String abbrName});
-  Future<Unit> renameUnit({required String id, required String name, required String abbrName});
+  Future<Unit> renameUnit({
+    required String id,
+    required String name,
+    required String abbrName,
+  });
 
   /// Throws if any item still references this unit as its purchase, package,
   /// or dispense unit -- reassign/remove those first.
@@ -43,8 +47,14 @@ abstract interface class CatalogService {
     required bool? requiresExpiry,
   });
 
-  Future<PrimaryCategory> renamePrimaryCategory({required String id, required String type});
-  Future<Subcategory> renameSubcategory({required String id, required String type});
+  Future<PrimaryCategory> renamePrimaryCategory({
+    required String id,
+    required String type,
+  });
+  Future<Subcategory> renameSubcategory({
+    required String id,
+    required String type,
+  });
 
   /// Throws if any subcategory still exists under this primary category, or
   /// any item still references it directly -- reassign/remove those first.
@@ -53,6 +63,17 @@ abstract interface class CatalogService {
   /// Throws if any item still references this subcategory -- reassign/
   /// remove those first.
   Future<void> deleteSubcategory(String id);
+}
+
+/// Thrown when a category, subcategory, unit name, or unit abbreviation
+/// already exists.
+class CatalogDuplicateException implements Exception {
+  final String message;
+
+  const CatalogDuplicateException(this.message);
+
+  @override
+  String toString() => message;
 }
 
 /// Thrown by [CatalogService.deletePrimaryCategory]/[deleteSubcategory] when
@@ -106,8 +127,22 @@ class MockCatalogService implements CatalogService {
 
   @override
   Future<PrimaryCategory> createPrimaryCategory(String type) async {
-    final category =
-        PrimaryCategory(id: newMockId('pcat'), type: type, requiresExpiry: false);
+    final cleanType = type.trim();
+    final duplicate = _db.primaryCategories.any(
+      (c) => c.type.trim().toLowerCase() == cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A category named "$cleanType" already exists.',
+      );
+    }
+
+    final category = PrimaryCategory(
+      id: newMockId('pcat'),
+      type: cleanType,
+      requiresExpiry: false,
+    );
     _db.primaryCategories.add(category);
     DataChangeBus.instance.ping();
     return category;
@@ -118,8 +153,24 @@ class MockCatalogService implements CatalogService {
     required String pCategoryId,
     required String type,
   }) async {
-    final subcategory =
-        Subcategory(id: newMockId('scat'), pCategoryId: pCategoryId, type: type);
+    final cleanType = type.trim();
+    final duplicate = _db.subcategories.any(
+      (s) =>
+          s.pCategoryId == pCategoryId &&
+          s.type.trim().toLowerCase() == cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A subcategory named "$cleanType" already exists in this category.',
+      );
+    }
+
+    final subcategory = Subcategory(
+      id: newMockId('scat'),
+      pCategoryId: pCategoryId,
+      type: cleanType,
+    );
     _db.subcategories.add(subcategory);
     DataChangeBus.instance.ping();
     return subcategory;
@@ -163,8 +214,38 @@ class MockCatalogService implements CatalogService {
   }
 
   @override
-  Future<Unit> createUnit({required String name, required String abbrName}) async {
-    final unit = Unit(id: newMockId('unit'), name: name, abbrName: abbrName);
+  Future<Unit> createUnit({
+    required String name,
+    required String abbrName,
+  }) async {
+    final cleanName = name.trim();
+    final cleanAbbr = abbrName.trim();
+
+    final duplicateName = _db.units.any(
+      (u) => u.name.trim().toLowerCase() == cleanName.toLowerCase(),
+    );
+
+    if (duplicateName) {
+      throw CatalogDuplicateException(
+        'A unit named "$cleanName" already exists.',
+      );
+    }
+
+    final duplicateAbbr = _db.units.any(
+      (u) => u.abbrName.trim().toLowerCase() == cleanAbbr.toLowerCase(),
+    );
+
+    if (duplicateAbbr) {
+      throw CatalogDuplicateException(
+        'The unit abbreviation "$cleanAbbr" is already in use.',
+      );
+    }
+
+    final unit = Unit(
+      id: newMockId('unit'),
+      name: cleanName,
+      abbrName: cleanAbbr,
+    );
     _db.units.add(unit);
     DataChangeBus.instance.ping();
     return unit;
@@ -178,7 +259,39 @@ class MockCatalogService implements CatalogService {
   }) async {
     final index = _db.units.indexWhere((u) => u.id == id);
     if (index == -1) throw Exception('Unit not found');
-    final updated = Unit(id: id, name: name, abbrName: abbrName);
+
+    final cleanName = name.trim();
+    final cleanAbbr = abbrName.trim();
+
+    final duplicateName = _db.units.any(
+      (u) =>
+          u.id != id &&
+          u.name.trim().toLowerCase() == cleanName.toLowerCase(),
+    );
+
+    if (duplicateName) {
+      throw CatalogDuplicateException(
+        'A unit named "$cleanName" already exists.',
+      );
+    }
+
+    final duplicateAbbr = _db.units.any(
+      (u) =>
+          u.id != id &&
+          u.abbrName.trim().toLowerCase() == cleanAbbr.toLowerCase(),
+    );
+
+    if (duplicateAbbr) {
+      throw CatalogDuplicateException(
+        'The unit abbreviation "$cleanAbbr" is already in use.',
+      );
+    }
+
+    final updated = Unit(
+      id: id,
+      name: cleanName,
+      abbrName: cleanAbbr,
+    );
     _db.units[index] = updated;
     DataChangeBus.instance.ping();
     return updated;
@@ -189,8 +302,12 @@ class MockCatalogService implements CatalogService {
     final index = _db.units.indexWhere((u) => u.id == id);
     if (index == -1) throw Exception('Unit not found');
     final blockingItems = _db.items
-        .where((i) =>
-            i.purchaseUnitId == id || i.packageUnitId == id || i.dispenseUnitId == id)
+        .where(
+          (i) =>
+              i.purchaseUnitId == id ||
+              i.packageUnitId == id ||
+              i.dispenseUnitId == id,
+        )
         .map((i) => i.name)
         .toList();
     if (blockingItems.isNotEmpty) {
@@ -210,23 +327,58 @@ class MockCatalogService implements CatalogService {
   }) async {
     final index = _db.primaryCategories.indexWhere((c) => c.id == id);
     if (index == -1) throw Exception('Primary category not found');
+
+    final cleanType = type.trim();
+    final duplicate = _db.primaryCategories.any(
+      (c) =>
+          c.id != id &&
+          c.type.trim().toLowerCase() == cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A category named "$cleanType" already exists.',
+      );
+    }
+
     final current = _db.primaryCategories[index];
-    final updated =
-        PrimaryCategory(id: current.id, type: type, requiresExpiry: current.requiresExpiry);
+    final updated = PrimaryCategory(
+      id: current.id,
+      type: cleanType,
+      requiresExpiry: current.requiresExpiry,
+    );
     _db.primaryCategories[index] = updated;
     DataChangeBus.instance.ping();
     return updated;
   }
 
   @override
-  Future<Subcategory> renameSubcategory({required String id, required String type}) async {
+  Future<Subcategory> renameSubcategory({
+    required String id,
+    required String type,
+  }) async {
     final index = _db.subcategories.indexWhere((s) => s.id == id);
     if (index == -1) throw Exception('Subcategory not found');
+
     final current = _db.subcategories[index];
+    final cleanType = type.trim();
+    final duplicate = _db.subcategories.any(
+      (s) =>
+          s.id != id &&
+          s.pCategoryId == current.pCategoryId &&
+          s.type.trim().toLowerCase() == cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A subcategory named "$cleanType" already exists in this category.',
+      );
+    }
+
     final updated = Subcategory(
       id: current.id,
       pCategoryId: current.pCategoryId,
-      type: type,
+      type: cleanType,
       requiresExpiry: current.requiresExpiry,
     );
     _db.subcategories[index] = updated;
@@ -238,8 +390,10 @@ class MockCatalogService implements CatalogService {
   Future<void> deletePrimaryCategory(String id) async {
     final index = _db.primaryCategories.indexWhere((c) => c.id == id);
     if (index == -1) throw Exception('Primary category not found');
-    final blockingSubs =
-        _db.subcategories.where((s) => s.pCategoryId == id).map((s) => s.type).toList();
+    final blockingSubs = _db.subcategories
+        .where((s) => s.pCategoryId == id)
+        .map((s) => s.type)
+        .toList();
     final blockingItems =
         _db.items.where((i) => i.pCategoryId == id).map((i) => i.name).toList();
     if (blockingSubs.isNotEmpty || blockingItems.isNotEmpty) {

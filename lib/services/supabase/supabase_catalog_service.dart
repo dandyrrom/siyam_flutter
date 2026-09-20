@@ -83,9 +83,27 @@ class SupabaseCatalogService implements CatalogService {
 
   @override
   Future<PrimaryCategory> createPrimaryCategory(String type) async {
+    final cleanType = type.trim();
+
+    final existing = await _client
+        .from('primary_category')
+        .select('id, type');
+
+    final duplicate = existing.any(
+      (row) =>
+          ((row['type'] as String?) ?? '').trim().toLowerCase() ==
+          cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A category named "$cleanType" already exists.',
+      );
+    }
+
     final row = await _client
         .from('primary_category')
-        .insert({'type': type})
+        .insert({'type': cleanType})
         .select('id, type, requires_expiry')
         .single();
     DataChangeBus.instance.ping();
@@ -97,9 +115,31 @@ class SupabaseCatalogService implements CatalogService {
     required String pCategoryId,
     required String type,
   }) async {
+    final cleanType = type.trim();
+
+    final existing = await _client
+        .from('subcategory')
+        .select('id, p_category, type')
+        .eq('p_category', pCategoryId);
+
+    final duplicate = existing.any(
+      (row) =>
+          ((row['type'] as String?) ?? '').trim().toLowerCase() ==
+          cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A subcategory named "$cleanType" already exists in this category.',
+      );
+    }
+
     final row = await _client
         .from('subcategory')
-        .insert({'p_category': pCategoryId, 'type': type})
+        .insert({
+          'p_category': pCategoryId,
+          'type': cleanType,
+        })
         .select('id, p_category, type, requires_expiry')
         .single();
     DataChangeBus.instance.ping();
@@ -107,10 +147,47 @@ class SupabaseCatalogService implements CatalogService {
   }
 
   @override
-  Future<Unit> createUnit({required String name, required String abbrName}) async {
+  Future<Unit> createUnit({
+    required String name,
+    required String abbrName,
+  }) async {
+    final cleanName = name.trim();
+    final cleanAbbr = abbrName.trim();
+
+    final existing = await _client
+        .from('units')
+        .select('id, name, abbr_name');
+
+    final duplicateName = existing.any(
+      (row) =>
+          ((row['name'] as String?) ?? '').trim().toLowerCase() ==
+          cleanName.toLowerCase(),
+    );
+
+    if (duplicateName) {
+      throw CatalogDuplicateException(
+        'A unit named "$cleanName" already exists.',
+      );
+    }
+
+    final duplicateAbbr = existing.any(
+      (row) =>
+          ((row['abbr_name'] as String?) ?? '').trim().toLowerCase() ==
+          cleanAbbr.toLowerCase(),
+    );
+
+    if (duplicateAbbr) {
+      throw CatalogDuplicateException(
+        'The unit abbreviation "$cleanAbbr" is already in use.',
+      );
+    }
+
     final row = await _client
         .from('units')
-        .insert({'name': name, 'abbr_name': abbrName})
+        .insert({
+          'name': cleanName,
+          'abbr_name': cleanAbbr,
+        })
         .select('id, name, abbr_name')
         .single();
     DataChangeBus.instance.ping();
@@ -123,9 +200,45 @@ class SupabaseCatalogService implements CatalogService {
     required String name,
     required String abbrName,
   }) async {
+    final cleanName = name.trim();
+    final cleanAbbr = abbrName.trim();
+
+    final existing = await _client
+        .from('units')
+        .select('id, name, abbr_name');
+
+    final duplicateName = existing.any(
+      (row) =>
+          row['id'] != id &&
+          ((row['name'] as String?) ?? '').trim().toLowerCase() ==
+              cleanName.toLowerCase(),
+    );
+
+    if (duplicateName) {
+      throw CatalogDuplicateException(
+        'A unit named "$cleanName" already exists.',
+      );
+    }
+
+    final duplicateAbbr = existing.any(
+      (row) =>
+          row['id'] != id &&
+          ((row['abbr_name'] as String?) ?? '').trim().toLowerCase() ==
+              cleanAbbr.toLowerCase(),
+    );
+
+    if (duplicateAbbr) {
+      throw CatalogDuplicateException(
+        'The unit abbreviation "$cleanAbbr" is already in use.',
+      );
+    }
+
     final row = await _client
         .from('units')
-        .update({'name': name, 'abbr_name': abbrName})
+        .update({
+          'name': cleanName,
+          'abbr_name': cleanAbbr,
+        })
         .eq('id', id)
         .select('id, name, abbr_name')
         .single();
@@ -178,9 +291,28 @@ class SupabaseCatalogService implements CatalogService {
     required String id,
     required String type,
   }) async {
+    final cleanType = type.trim();
+
+    final existing = await _client
+        .from('primary_category')
+        .select('id, type');
+
+    final duplicate = existing.any(
+      (row) =>
+          row['id'] != id &&
+          ((row['type'] as String?) ?? '').trim().toLowerCase() ==
+              cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A category named "$cleanType" already exists.',
+      );
+    }
+
     final row = await _client
         .from('primary_category')
-        .update({'type': type})
+        .update({'type': cleanType})
         .eq('id', id)
         .select('id, type, requires_expiry')
         .single();
@@ -189,10 +321,40 @@ class SupabaseCatalogService implements CatalogService {
   }
 
   @override
-  Future<Subcategory> renameSubcategory({required String id, required String type}) async {
+  Future<Subcategory> renameSubcategory({
+    required String id,
+    required String type,
+  }) async {
+    final current = await _client
+        .from('subcategory')
+        .select('p_category')
+        .eq('id', id)
+        .single();
+
+    final pCategoryId = current['p_category'] as String;
+    final cleanType = type.trim();
+
+    final existing = await _client
+        .from('subcategory')
+        .select('id, p_category, type')
+        .eq('p_category', pCategoryId);
+
+    final duplicate = existing.any(
+      (row) =>
+          row['id'] != id &&
+          ((row['type'] as String?) ?? '').trim().toLowerCase() ==
+              cleanType.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw CatalogDuplicateException(
+        'A subcategory named "$cleanType" already exists in this category.',
+      );
+    }
+
     final row = await _client
         .from('subcategory')
-        .update({'type': type})
+        .update({'type': cleanType})
         .eq('id', id)
         .select('id, p_category, type, requires_expiry')
         .single();

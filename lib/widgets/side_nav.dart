@@ -446,8 +446,13 @@ class _SideNavState
           ),
         ),
       ),
-      child: Column(
-        children: [
+      child: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: Column(
+          children: [
           // =================================================================
           // LOGO
           // =================================================================
@@ -883,6 +888,7 @@ class _SideNavState
             ),
           ),
         ],
+      ),
       ),
     );
   }
