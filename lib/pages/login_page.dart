@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../core/app_colors.dart';
 import '../core/validators.dart';
 import '../models/app_user.dart';
+import '../services/backend.dart';
 import '../state/auth_state.dart';
 import '../widgets/public_nav_bar.dart';
 
@@ -66,6 +69,29 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
     }
+  }
+
+  Future<void> _openForgotPassword() async {
+    final success = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _ForgotPasswordDialog(
+        initialEmail: _emailController.text.trim(),
+      ),
+    );
+
+    if (!mounted || success != true) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Password updated successfully. You can now sign in.',
+        ),
+        backgroundColor: AppColors.sageGreen,
+      ),
+    );
   }
 
   @override
@@ -133,6 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                         onSubmit: _handleSubmit,
                         isBusy: auth.isBusy,
                         errorMessage: auth.errorMessage,
+                        onForgotPasswordTap: _openForgotPassword,
                         onRegisterTap: () => context.go('/register'),
                       ),
                     ],
@@ -156,6 +183,7 @@ class _SignInForm extends StatelessWidget {
   final VoidCallback onSubmit;
   final bool isBusy;
   final String? errorMessage;
+  final VoidCallback onForgotPasswordTap;
   final VoidCallback onRegisterTap;
 
   const _SignInForm({
@@ -167,6 +195,7 @@ class _SignInForm extends StatelessWidget {
     required this.onSubmit,
     required this.isBusy,
     required this.errorMessage,
+    required this.onForgotPasswordTap,
     required this.onRegisterTap,
   });
 
@@ -225,6 +254,28 @@ class _SignInForm extends StatelessWidget {
             validator: (v) =>
                 (v == null || v.isEmpty) ? 'Password is required' : null,
             onFieldSubmitted: (_) => onSubmit(),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: isBusy ? null : onForgotPasswordTap,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.sageGreen,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 4,
+                ),
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Forgot Password?',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: 8),
@@ -313,6 +364,480 @@ class _SignInForm extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// =============================================================================
+// FORGOT PASSWORD DIALOG
+// =============================================================================
+
+class _ForgotPasswordDialog extends StatefulWidget {
+  final String initialEmail;
+
+  const _ForgotPasswordDialog({
+    required this.initialEmail,
+  });
+
+  @override
+  State<_ForgotPasswordDialog> createState() =>
+      _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState
+    extends State<_ForgotPasswordDialog> {
+  final _emailFormKey = GlobalKey<FormState>();
+  final _resetFormKey = GlobalKey<FormState>();
+
+  late final TextEditingController _emailController =
+      TextEditingController(
+    text: widget.initialEmail,
+  );
+
+  final _codeController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _codeSent = false;
+  bool _busy = false;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _codeController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendCode() async {
+    if (_busy ||
+        !_emailFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (kUseMock) {
+      setState(() {
+        _error =
+            'Password recovery is only available when SIYAM is connected to Supabase.';
+      });
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      await Supabase.instance.client.auth
+          .resetPasswordForEmail(
+        _emailController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _codeSent = true;
+      });
+    } on AuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _error =
+            'Could not send the recovery code. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    if (_busy ||
+        !_resetFormKey.currentState!.validate()) {
+      return;
+    }
+
+    if (kUseMock) {
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      final response =
+          await Supabase.instance.client.auth
+              .verifyOTP(
+        email: _emailController.text.trim(),
+        token: _codeController.text.trim(),
+        type: OtpType.recovery,
+      );
+
+      if (response.session == null ||
+          response.user == null) {
+        throw const AuthException(
+          'Invalid or expired recovery code.',
+        );
+      }
+
+      await Supabase.instance.client.auth
+          .updateUser(
+        UserAttributes(
+          password:
+              _newPasswordController.text,
+        ),
+      );
+
+      await Supabase.instance.client.auth
+          .signOut(
+        scope: SignOutScope.local,
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop(true);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _error =
+            'Could not reset the password. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  String? _validateCode(
+    String? value,
+  ) {
+    if (value == null ||
+        value.trim().isEmpty) {
+      return 'Recovery code is required';
+    }
+
+    return null;
+  }
+
+  String? _validateConfirmPassword(
+    String? value,
+  ) {
+    if (value == null ||
+        value.isEmpty) {
+      return 'Please confirm your password';
+    }
+
+    if (value !=
+        _newPasswordController.text) {
+      return 'Passwords do not match';
+    }
+
+    return null;
+  }
+
+  InputDecoration _decoration({
+    required String labelText,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor:
+          AppColors.catGray.withValues(
+        alpha: 0.20,
+      ),
+      border:
+          OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    return AlertDialog(
+      shape:
+          RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(
+          20,
+        ),
+      ),
+      title: const Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back',
+            style: TextStyle(
+              fontWeight:
+                  FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Reset your password',
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight:
+                  FontWeight.w400,
+              color:
+                  AppColors.mutedForeground,
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child:
+            SingleChildScrollView(
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Form(
+                key: _emailFormKey,
+                child:
+                    TextFormField(
+                  controller:
+                      _emailController,
+                  readOnly:
+                      _codeSent,
+                  keyboardType:
+                      TextInputType
+                          .emailAddress,
+                  decoration:
+                      _decoration(
+                    labelText:
+                        'Email address',
+                  ),
+                  validator:
+                      validateEmail,
+                  onFieldSubmitted:
+                      (_) =>
+                          _codeSent
+                              ? null
+                              : _sendCode(),
+                ),
+              ),
+
+              if (!_codeSent) ...[
+                const SizedBox(
+                  height: 12,
+                ),
+                const Text(
+                  'Enter your email address and SIYAM will send a recovery code to your email.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors
+                        .mutedForeground,
+                  ),
+                ),
+              ],
+
+              if (_codeSent) ...[
+                const SizedBox(
+                  height: 12,
+                ),
+                Text(
+                  'A recovery code was sent to ${_emailController.text.trim()}. Enter the code and your new password below.',
+                  style:
+                      const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors
+                        .mutedForeground,
+                  ),
+                ),
+                const SizedBox(
+                  height: 16,
+                ),
+                Form(
+                  key: _resetFormKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller:
+                            _codeController,
+                        keyboardType:
+                            TextInputType
+                                .number,
+                        decoration:
+                            _decoration(
+                          labelText:
+                              'Recovery code',
+                        ),
+                        validator:
+                            _validateCode,
+                      ),
+                      const SizedBox(
+                        height: 12,
+                      ),
+                      TextFormField(
+                        controller:
+                            _newPasswordController,
+                        obscureText:
+                            _obscureNewPassword,
+                        decoration:
+                            _decoration(
+                          labelText:
+                              'New password',
+                          suffixIcon:
+                              IconButton(
+                            onPressed:
+                                () =>
+                                    setState(
+                              () =>
+                                  _obscureNewPassword =
+                                      !_obscureNewPassword,
+                            ),
+                            icon: Icon(
+                              _obscureNewPassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
+                        ),
+                        validator:
+                            validatePassword,
+                      ),
+                      const SizedBox(
+                        height: 12,
+                      ),
+                      TextFormField(
+                        controller:
+                            _confirmPasswordController,
+                        obscureText:
+                            _obscureConfirmPassword,
+                        decoration:
+                            _decoration(
+                          labelText:
+                              'Confirm new password',
+                          suffixIcon:
+                              IconButton(
+                            onPressed:
+                                () =>
+                                    setState(
+                              () =>
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword,
+                            ),
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
+                        ),
+                        validator:
+                            _validateConfirmPassword,
+                        onFieldSubmitted:
+                            (_) =>
+                                _resetPassword(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              if (_error !=
+                  null) ...[
+                const SizedBox(
+                  height: 12,
+                ),
+                Text(
+                  _error!,
+                  style:
+                      const TextStyle(
+                    color:
+                        AppColors.coralRed,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed:
+              _busy
+                  ? null
+                  : () =>
+                      Navigator.of(
+                        context,
+                      ).pop(false),
+          child:
+              const Text(
+            'Cancel',
+          ),
+        ),
+        ElevatedButton(
+          onPressed:
+              _busy
+                  ? null
+                  : _codeSent
+                      ? _resetPassword
+                      : _sendCode,
+          style:
+              ElevatedButton.styleFrom(
+            backgroundColor:
+                AppColors.sageGreen,
+            foregroundColor:
+                Colors.white,
+          ),
+          child: _busy
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color:
+                        Colors.white,
+                  ),
+                )
+              : Text(
+                  _codeSent
+                      ? 'Reset Password'
+                      : 'Send Code',
+                ),
+        ),
+      ],
     );
   }
 }

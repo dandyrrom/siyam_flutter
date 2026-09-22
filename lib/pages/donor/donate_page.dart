@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -953,6 +954,224 @@ class _DonatePageState extends State<DonatePage>
   }
 
   // ==========================================================================
+  // DROP-OFF LOCATION CARD
+  // ==========================================================================
+
+  Widget _buildDropOffLocationCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(
+        16,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+        border: Border.all(
+          color:
+              AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              SizedBox(
+                width: 34,
+                height: 34,
+                child: DecoratedBox(
+                  decoration:
+                      BoxDecoration(
+                    color: Color(
+                      0x147C9A68,
+                    ),
+                    borderRadius:
+                        BorderRadius.all(
+                      Radius.circular(
+                        9,
+                      ),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons
+                        .location_on_outlined,
+                    size: 18,
+                    color:
+                        AppColors.roleDonor,
+                  ),
+                ),
+              ),
+
+              SizedBox(
+                width: 9,
+              ),
+
+              Expanded(
+                child: Text(
+                  'Drop-off Location',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          const Text(
+            'Dumaguete Animal Sanctuary',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight:
+                  FontWeight.w700,
+            ),
+          ),
+
+          const SizedBox(
+            height: 4,
+          ),
+
+          const Text(
+            'Cantil-e–Isugan Road, Purok Maabi Abihon, Upper Cantil-e / Isugan, Bacong, Negros Oriental, Philippines',
+            style: TextStyle(
+              fontSize: 11.5,
+              height: 1.35,
+              color: AppColors
+                  .mutedForeground,
+            ),
+          ),
+
+          const SizedBox(
+            height: 12,
+          ),
+
+          const Divider(
+            height: 1,
+          ),
+
+          const SizedBox(
+            height: 12,
+          ),
+
+          Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons
+                    .my_location_outlined,
+                size: 16,
+                color:
+                    AppColors.roleDonor,
+              ),
+
+              const SizedBox(
+                width: 8,
+              ),
+
+              const Expanded(
+                child: Text(
+                  'Coordinates: 9.32241, 123.300601',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    color: AppColors
+                        .mutedForeground,
+                  ),
+                ),
+              ),
+
+              IconButton(
+                tooltip:
+                    'Copy coordinates',
+                visualDensity:
+                    VisualDensity.compact,
+                onPressed:
+                    () async {
+                  await Clipboard.setData(
+                    const ClipboardData(
+                      text:
+                          '9.32241, 123.300601',
+                    ),
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Coordinates copied. You can paste them into Google Maps.',
+                      ),
+                      duration:
+                          Duration(
+                        seconds: 2,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons
+                      .content_copy_outlined,
+                  size: 16,
+                  color:
+                      AppColors.roleDonor,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          const Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons
+                    .directions_outlined,
+                size: 16,
+                color:
+                    AppColors.roleDonor,
+              ),
+
+              SizedBox(
+                width: 8,
+              ),
+
+              Expanded(
+                child: Text(
+                  'From Bacong, head toward Valencia. Before the Bria / Lumina Homes development, turn onto the small rough road toward Cantil-e. The sanctuary is about 300 meters along on the right, marked by a big blue gate.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    color: AppColors
+                        .mutedForeground,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================================
   // DONATION FORM
   // ==========================================================================
 
@@ -1704,6 +1923,12 @@ class _DonatePageState extends State<DonatePage>
               height: 16,
             ),
 
+            _buildDropOffLocationCard(),
+
+            const SizedBox(
+              height: 16,
+            ),
+
             _buildDonationForm(
               true,
             ),
@@ -1730,8 +1955,17 @@ class _DonatePageState extends State<DonatePage>
 
                 SizedBox(
                   width: 300,
-                  child:
+                  child: Column(
+                    children: [
                       _buildCurrentlyNeededCard(),
+
+                      const SizedBox(
+                        height: 16,
+                      ),
+
+                      _buildDropOffLocationCard(),
+                    ],
+                  ),
                 ),
               ],
             ),

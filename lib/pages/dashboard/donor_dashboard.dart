@@ -455,13 +455,63 @@ class _DonorDashboardState extends State<DonorDashboard>
         const SizedBox(height: 22),
 
         // ============================================================
-        // RECENT DONATION ACTIVITY
+        // RECENT DONATION ACTIVITY + ABOUT DAS
         // ============================================================
 
-        _RecentActivityCard(
-          loading: false,
-          submissions: recentSubmissions,
-          statusMeta: _statusMeta,
+        LayoutBuilder(
+          builder: (
+            context,
+            constraints,
+          ) {
+            final compact =
+                constraints.maxWidth < 760;
+
+            if (compact) {
+              return Column(
+                children: [
+                  _RecentActivityCard(
+                    loading: false,
+                    submissions:
+                        recentSubmissions,
+                    statusMeta:
+                        _statusMeta,
+                  ),
+
+                  const SizedBox(
+                    height: 16,
+                  ),
+
+                  const _AboutDasCard(),
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child:
+                      _RecentActivityCard(
+                    loading: false,
+                    submissions:
+                        recentSubmissions,
+                    statusMeta:
+                        _statusMeta,
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 16,
+                ),
+
+                const Expanded(
+                  child:
+                      _AboutDasCard(),
+                ),
+              ],
+            );
+          },
         ),
 
         const SizedBox(height: 24),
@@ -1496,6 +1546,239 @@ class _ActivityRow extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: color,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// ABOUT DAS
+// ============================================================================
+
+class _AboutDasCard extends StatelessWidget {
+  const _AboutDasCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(
+        18,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(
+          16,
+        ),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              _SectionIcon(
+                icon: Icons.pets_outlined,
+                color: AppColors.roleDonor,
+              ),
+
+              SizedBox(
+                width: 10,
+              ),
+
+              Expanded(
+                child: Text(
+                  'About DAS',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 16,
+          ),
+
+          Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(
+                  12,
+                ),
+                child: Image.asset(
+                  'assets/das-no-bg.png',
+                  width: 58,
+                  height: 58,
+                  fit: BoxFit.contain,
+                  errorBuilder: (
+                    context,
+                    error,
+                    stackTrace,
+                  ) {
+                    return Container(
+                      width: 58,
+                      height: 58,
+                      alignment:
+                          Alignment.center,
+                      decoration:
+                          BoxDecoration(
+                        color: AppColors
+                            .roleDonor
+                            .withValues(
+                          alpha: 0.08,
+                        ),
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          12,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons
+                            .pets_outlined,
+                        color: AppColors
+                            .roleDonor,
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(
+                width: 12,
+              ),
+
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    Text(
+                      'Dumaguete Animal Sanctuary',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight:
+                            FontWeight
+                                .w700,
+                      ),
+                    ),
+
+                    SizedBox(
+                      height: 4,
+                    ),
+
+                    Text(
+                      'Nonprofit animal sanctuary • Founded June 2019',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.35,
+                        color: AppColors
+                            .mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: 14,
+          ),
+
+          const Text(
+            'Dumaguete Animal Sanctuary (DAS) was founded by Christine Askew and her husband, Robie Bernardo. The sanctuary rescues stray, abandoned, and sick animals from Dumaguete and surrounding areas, rehabilitates them, and helps provide them with new homes.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.5,
+              color:
+                  AppColors.foreground,
+            ),
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          const Text(
+            'A growing number of rescued animals are cared for by the sanctuary’s dedicated full-time staff.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.5,
+              color: AppColors
+                  .mutedForeground,
+            ),
+          ),
+
+          const SizedBox(
+            height: 16,
+          ),
+
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.roleDonor
+                  .withValues(
+                alpha: 0.05,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                12,
+              ),
+              border: Border.all(
+                color: AppColors.roleDonor
+                    .withValues(
+                  alpha: 0.14,
+                ),
+              ),
+            ),
+            child: const Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons
+                      .location_on_outlined,
+                  size: 17,
+                  color:
+                      AppColors.roleDonor,
+                ),
+
+                SizedBox(
+                  width: 8,
+                ),
+
+                Expanded(
+                  child: Text(
+                    'Isugan Boundary Road, Cantil-e, Dumaguete City, Negros Oriental, Philippines',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.35,
+                      color: AppColors
+                          .mutedForeground,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
