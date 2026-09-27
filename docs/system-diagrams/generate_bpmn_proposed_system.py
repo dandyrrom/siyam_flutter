@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Generate SIYAM Proposed System BPMN (swim-lane) diagram as SVG."""
+"""Generate SIYAM Proposed System BPMN (swim-lane) diagram as SVG.
+
+Grounded in origin/main sanctuary operating loop:
+Donor / Manager / Staff / SIYAM System lanes.
+"""
 
 from __future__ import annotations
 
@@ -73,12 +77,11 @@ class Svg:
         stroke: str | None = None,
         sw: float = 1.2,
         r: float = 0,
-        opacity: float = 1,
     ) -> None:
         st = f' stroke="{stroke}" stroke-width="{sw}"' if stroke else ""
         self.add(
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" ry="{r}" '
-            f'fill="{fill}"{st} opacity="{opacity}"/>'
+            f'fill="{fill}"{st}/>'
         )
 
     def circle(
@@ -105,12 +108,12 @@ class Svg:
         weight: str = "500",
         fill: str = INK,
         anchor: str = "middle",
-        family: str = "Segoe UI, Helvetica, Arial, sans-serif",
     ) -> None:
         self.add(
             f'<text x="{x}" y="{y}" fill="{fill}" font-size="{size}" '
             f'font-weight="{weight}" text-anchor="{anchor}" '
-            f'font-family="{family}">{esc(content)}</text>'
+            f'font-family="Segoe UI, Helvetica, Arial, sans-serif">'
+            f"{esc(content)}</text>"
         )
 
     def multiline(
@@ -160,12 +163,11 @@ class Svg:
         sw: float = 1.6,
         dashed: bool = False,
         marker_end: str | None = "url(#arrow)",
-        fill: str = "none",
     ) -> None:
         dash = ' stroke-dasharray="6 5"' if dashed else ""
         me = f' marker-end="{marker_end}"' if marker_end else ""
         self.add(
-            f'<path d="{d}" fill="{fill}" stroke="{stroke}" '
+            f'<path d="{d}" fill="none" stroke="{stroke}" '
             f'stroke-width="{sw}"{dash}{me}/>'
         )
 
@@ -177,9 +179,7 @@ class Svg:
         fill: str,
         stroke: str,
     ) -> None:
-        pts = (
-            f"{cx},{cy - s} {cx + s},{cy} {cx},{cy + s} {cx - s},{cy}"
-        )
+        pts = f"{cx},{cy - s} {cx + s},{cy} {cx},{cy + s} {cx - s},{cy}"
         self.add(
             f'<polygon points="{pts}" fill="{fill}" stroke="{stroke}" '
             f'stroke-width="1.8"/>'
@@ -215,20 +215,15 @@ def task(
     h: float,
     label: str,
     stroke: str,
+    wrap_w: int = 16,
 ) -> tuple[float, float, float, float]:
-    """Draw BPMN task; return (cx, cy, right, mid_y)."""
+    """Draw BPMN task; return (cx, cy, right_x, mid_y)."""
     svg.rect(x, y, w, h, TASK_FILL, stroke, sw=1.7, r=10)
-    svg.multiline(x + w / 2, y + h / 2 + 1, wrap(label, 16), size=12)
+    svg.multiline(x + w / 2, y + h / 2 + 1, wrap(label, wrap_w), size=12)
     return x + w / 2, y + h / 2, x + w, y + h / 2
 
 
-def gateway(
-    svg: Svg,
-    cx: float,
-    cy: float,
-    label: str,
-    stroke: str,
-) -> None:
+def gateway(svg: Svg, cx: float, cy: float, label: str, stroke: str) -> None:
     svg.diamond(cx, cy, 22, GW_FILL, stroke)
     svg.text(cx, cy + 4, "X", size=12, weight="800", fill=stroke)
     if label:
@@ -247,43 +242,40 @@ def end_event(svg: Svg, cx: float, cy: float, label: str, stroke: str) -> None:
 
 
 def build() -> str:
-    # Geometry
     left_gutter = 150
     top = 110
-    lane_h = 195
+    lane_h = 210
     lanes = [
         ("Donor", DONOR, DONOR_STROKE),
         ("Manager", MANAGER, MANAGER_STROKE),
         ("Staff", STAFF, STAFF_STROKE),
         ("SIYAM System", SYSTEM, SYSTEM_STROKE),
     ]
-    pool_w = 2680
+    pool_w = 3020
     pool_h = lane_h * len(lanes)
     width = left_gutter + pool_w + 40
-    height = top + pool_h + 120
+    height = top + pool_h + 140
 
     svg = Svg(width, height)
 
-    # Title
     svg.text(
         width / 2,
-        42,
+        40,
         "SIYAM — Proposed System Diagram (BPMN Swim-Lane)",
         size=26,
         weight="800",
     )
     svg.text(
         width / 2,
-        72,
-        "Business Process Model and Notation · Dumaguete Animal Sanctuary operating loop",
+        68,
+        "Business Process Model and Notation · sanctuary operating loop "
+        "(aligned to current main)",
         size=14,
         weight="500",
         fill=MUTED,
     )
 
-    # Pool
-    svg.rect(left_gutter, top, pool_w, pool_h, POOL, INK, sw=2.2, r=0)
-    # Vertical lane label strip
+    svg.rect(left_gutter, top, pool_w, pool_h, POOL, INK, sw=2.2)
     svg.rect(left_gutter, top, 46, pool_h, "#dfe8e2", INK, sw=2.2)
     svg.add(
         f'<text x="{left_gutter + 30}" y="{top + pool_h / 2}" fill="{INK}" '
@@ -296,7 +288,6 @@ def build() -> str:
     for i, (name, fill, stroke) in enumerate(lanes):
         y = top + i * lane_h
         svg.rect(left_gutter + 46, y, pool_w - 46, lane_h, fill, LINE, sw=1)
-        # lane header
         svg.rect(left_gutter + 46, y, 120, lane_h, WHITE, stroke, sw=1.5)
         svg.multiline(
             left_gutter + 106,
@@ -318,14 +309,13 @@ def build() -> str:
             )
         lane_mids[name] = y + lane_h / 2
 
-    # Phase banners across pool
     phases = [
-        (190, 300, "1. Access"),
-        (510, 720, "2. Donation Intake"),
-        (1260, 430, "3. Inventory Receipt"),
-        (1710, 360, "4. Clinical / Usage"),
-        (2090, 280, "5. Replenish"),
-        (2390, 280, "6. Oversight"),
+        (190, 360, "1. Access"),
+        (570, 780, "2. Donation Intake"),
+        (1370, 420, "3. Inventory Receipt"),
+        (1810, 360, "4. Clinical / Usage"),
+        (2190, 320, "5. Replenish"),
+        (2530, 320, "6. Oversight"),
     ]
     for x, w, label in phases:
         svg.rect(
@@ -347,77 +337,140 @@ def build() -> str:
             fill=MUTED,
         )
 
-    # Coordinates helpers
     donor_y = lane_mids["Donor"]
     mgr_y = lane_mids["Manager"]
     staff_y = lane_mids["Staff"]
     sys_y = lane_mids["SIYAM System"]
 
-    # ---- Phase 1: Access ----
-    start_event(svg, 230, donor_y - 40, "Start")
-    # Donor login/register
-    d_login = task(svg, 270, donor_y - 70, 130, 58, "Register / sign in", DONOR_STROKE)
-    m_login = task(svg, 270, mgr_y - 29, 130, 58, "Sign in as Manager", MANAGER_STROKE)
-    s_login = task(svg, 270, staff_y - 29, 130, 58, "Sign in as Staff", STAFF_STROKE)
+    # ---- 1. Access ----
+    start_event(svg, 230, donor_y - 50, "Start")
+
+    d_login = task(
+        svg, 270, donor_y - 85, 130, 52, "Register / sign in", DONOR_STROKE
+    )
+    d_forgot = task(
+        svg,
+        270,
+        donor_y + 10,
+        130,
+        52,
+        "Forgot Password? reset via email",
+        DONOR_STROKE,
+    )
+    m_login = task(
+        svg, 270, mgr_y - 70, 130, 52, "Sign in as Manager", MANAGER_STROKE
+    )
+    m_staff_acct = task(
+        svg,
+        420,
+        mgr_y + 10,
+        150,
+        52,
+        "Create / enable / disable Staff",
+        MANAGER_STROKE,
+    )
+    s_login = task(
+        svg, 270, staff_y - 26, 130, 52, "Sign in as Staff", STAFF_STROKE
+    )
     sys_auth = task(
         svg,
-        430,
-        sys_y - 29,
-        150,
-        58,
-        "Authenticate & gate by role",
+        440,
+        sys_y - 26,
+        160,
+        52,
+        "Authenticate & gate routes by role",
         SYSTEM_STROKE,
     )
-    svg.line(246, donor_y - 40, 270, donor_y - 40)
-    # message flows to system
+
+    svg.line(246, donor_y - 50, 270, donor_y - 50)
     svg.path(
-        f"M {d_login[2]} {d_login[3]} C {d_login[2] + 40} {d_login[3]}, "
-        f"{430} {sys_y - 40}, 430 {sys_y - 10}",
+        f"M {d_login[0]} {d_login[3] + 26} L {d_login[0]} {d_forgot[1]}",
+        stroke=DONOR_STROKE,
+        sw=1.3,
+    )
+    svg.path(
+        f"M {m_login[2]} {m_login[3]} L {m_staff_acct[0] - 75} {m_login[3]} "
+        f"L {m_staff_acct[0] - 75} {m_staff_acct[3]} L {m_staff_acct[0] - 75}",
+        stroke=MANAGER_STROKE,
+        sw=1.3,
+    )
+    # auth message flows
+    svg.path(
+        f"M {d_login[2]} {d_login[3]} C {400} {d_login[3]}, {400} {sys_y - 20}, "
+        f"440 {sys_y - 10}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
     svg.path(
-        f"M {m_login[2]} {m_login[3]} C {m_login[2] + 50} {m_login[3]}, "
-        f"{400} {sys_y - 20}, 430 {sys_y}",
+        f"M {d_forgot[2]} {d_forgot[3]} C {410} {d_forgot[3]}, {410} {sys_y + 10}, "
+        f"440 {sys_y + 8}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
+        sw=1.3,
     )
     svg.path(
-        f"M {s_login[2]} {s_login[3]} C {s_login[2] + 40} {s_login[3]}, "
-        f"{410} {sys_y + 10}, 430 {sys_y + 15}",
+        f"M {m_login[2]} {m_login[3]} C {390} {m_login[3]}, {390} {sys_y - 5}, "
+        f"440 {sys_y}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
+        sw=1.3,
+    )
+    svg.path(
+        f"M {m_staff_acct[0]} {m_staff_acct[3] + 26} L {m_staff_acct[0]} {sys_y - 26}",
+        stroke=MSG,
+        dashed=True,
+        marker_end="url(#arrow-msg)",
+        sw=1.3,
+    )
+    svg.path(
+        f"M {s_login[2]} {s_login[3]} C {400} {s_login[3]}, {400} {sys_y + 18}, "
+        f"440 {sys_y + 16}",
+        stroke=MSG,
+        dashed=True,
+        marker_end="url(#arrow-msg)",
+        sw=1.3,
     )
 
-    # ---- Phase 2: Donation Intake ----
+    # ---- 2. Donation Intake ----
+    # Currently Needed bridges Replenish signals into Donate
+    d_needed = task(
+        svg,
+        660,
+        donor_y - 85,
+        145,
+        52,
+        "View Currently Needed",
+        DONOR_STROKE,
+    )
     d_submit = task(
         svg,
-        620,
-        donor_y - 70,
+        840,
+        donor_y - 85,
         150,
-        58,
-        "Submit donation form + proof",
+        52,
+        "Submit donation + drop-off + proof",
         DONOR_STROKE,
     )
     svg.path(
-        f"M {d_login[2]} {donor_y - 40} L {d_submit[0] - 75} {donor_y - 40}",
+        f"M {d_login[2]} {donor_y - 50} L {d_needed[0] - 72} {donor_y - 50}",
         stroke=DONOR_STROKE,
     )
+    svg.line(d_needed[2], donor_y - 50, 840, donor_y - 50, stroke=DONOR_STROKE)
 
     sys_pending = task(
         svg,
-        620,
-        sys_y - 29,
+        840,
+        sys_y - 26,
         150,
-        58,
+        52,
         "Create submission (pending)",
         SYSTEM_STROKE,
     )
     svg.path(
-        f"M {d_submit[0]} {d_submit[3] + 29} L {d_submit[0]} {sys_pending[1] - 29}",
+        f"M {d_submit[0]} {d_submit[3] + 26} L {d_submit[0]} {sys_pending[1]}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
@@ -425,152 +478,168 @@ def build() -> str:
 
     m_review = task(
         svg,
-        820,
-        mgr_y - 29,
+        1030,
+        mgr_y - 70,
         140,
-        58,
+        52,
         "Review pending submission",
         MANAGER_STROKE,
     )
     svg.path(
-        f"M {sys_pending[2]} {sys_y} C {780} {sys_y}, {780} {mgr_y}, {820} {mgr_y}",
+        f"M {sys_pending[2]} {sys_y} C {1000} {sys_y}, {1000} {mgr_y - 40}, "
+        f"1030 {mgr_y - 40}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
 
-    gateway(svg, 1020, mgr_y, "Decision", MANAGER_STROKE)
-    svg.line(m_review[2], mgr_y, 998, mgr_y, stroke=MANAGER_STROKE)
+    gateway(svg, 1230, mgr_y - 40, "Decision", MANAGER_STROKE)
+    svg.line(m_review[2], mgr_y - 40, 1208, mgr_y - 40, stroke=MANAGER_STROKE)
 
     m_approve = task(
-        svg,
-        1080,
-        mgr_y - 70,
-        130,
-        52,
-        "Approve submission",
-        MANAGER_STROKE,
+        svg, 1290, mgr_y - 95, 125, 48, "Approve submission", MANAGER_STROKE
     )
     m_reject = task(
+        svg, 1290, mgr_y + 5, 125, 48, "Decline submission", MANAGER_STROKE
+    )
+    svg.path(
+        f"M 1250 {mgr_y - 50} L 1250 {m_approve[1] + 24} L 1290 {m_approve[1] + 24}",
+        stroke=MANAGER_STROKE,
+    )
+    svg.text(1268, mgr_y - 78, "yes", size=11, weight="700", fill=MANAGER_STROKE)
+    svg.path(
+        f"M 1250 {mgr_y - 30} L 1250 {m_reject[1] + 24} L 1290 {m_reject[1] + 24}",
+        stroke=MANAGER_STROKE,
+    )
+    svg.text(1268, mgr_y + 40, "no", size=11, weight="700", fill=MANAGER_STROKE)
+
+    # Walk-in bypass (Manager Add Donation)
+    m_walkin = task(
         svg,
-        1080,
-        mgr_y + 20,
-        130,
-        52,
-        "Decline submission",
+        1030,
+        mgr_y + 55,
+        150,
+        48,
+        "Record walk-in donation (Add Donation)",
         MANAGER_STROKE,
+        wrap_w=18,
     )
     svg.path(
-        f"M 1040 {mgr_y - 8} L 1040 {m_approve[1] + 26} L 1080 {m_approve[1] + 26}",
+        f"M {m_login[2]} {mgr_y - 40} C {700} {mgr_y - 40}, {900} {mgr_y + 80}, "
+        f"1030 {mgr_y + 79}",
         stroke=MANAGER_STROKE,
+        sw=1.3,
+        dashed=True,
     )
-    svg.text(1055, mgr_y - 55, "yes", size=11, weight="700", fill=MANAGER_STROKE)
-    svg.path(
-        f"M 1040 {mgr_y + 8} L 1040 {m_reject[1] + 26} L 1080 {m_reject[1] + 26}",
-        stroke=MANAGER_STROKE,
+    svg.text(
+        860,
+        mgr_y + 95,
+        "bypass submission",
+        size=11,
+        weight="600",
+        fill=MANAGER_STROKE,
     )
-    svg.text(1055, mgr_y + 55, "no", size=11, weight="700", fill=MANAGER_STROKE)
 
     sys_status = task(
         svg,
-        1260,
-        sys_y - 29,
-        150,
-        58,
+        1460,
+        sys_y - 26,
+        155,
+        52,
         "Update status approved / rejected",
         SYSTEM_STROKE,
     )
     svg.path(
-        f"M {m_approve[2]} {m_approve[3]} C {1220} {m_approve[3]}, "
-        f"{1220} {sys_y - 10}, 1260 {sys_y - 5}",
+        f"M {m_approve[2]} {m_approve[3]} C {1420} {m_approve[3]}, "
+        f"{1420} {sys_y - 8}, 1460 {sys_y - 5}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
     svg.path(
-        f"M {m_reject[2]} {m_reject[3]} C {1230} {m_reject[3]}, "
-        f"{1230} {sys_y + 15}, 1260 {sys_y + 10}",
+        f"M {m_reject[2]} {m_reject[3]} C {1430} {m_reject[3]}, "
+        f"{1430} {sys_y + 12}, 1460 {sys_y + 10}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
 
-    end_event(svg, 1460, donor_y + 50, "Rejected end", DONOR_STROKE)
+    end_event(svg, 1660, donor_y + 55, "Rejected end", DONOR_STROKE)
     svg.path(
-        f"M {sys_status[0]} {sys_y - 29} C {1460} {sys_y - 80}, "
-        f"{1460} {donor_y + 80}, 1460 {donor_y + 66}",
+        f"M {sys_status[0]} {sys_y - 26} C {1660} {sys_y - 90}, "
+        f"{1660} {donor_y + 90}, 1660 {donor_y + 71}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
-    svg.text(
-        1380,
-        donor_y + 20,
-        "if rejected",
-        size=11,
-        weight="600",
-        fill=MUTED,
-    )
+    svg.text(1585, donor_y + 25, "if rejected", size=11, weight="600", fill=MUTED)
 
     d_wait = task(
         svg,
-        1260,
-        donor_y - 70,
+        1460,
+        donor_y - 85,
         140,
-        58,
+        52,
         "Await approval / drop-off",
         DONOR_STROKE,
     )
     svg.path(
-        f"M {d_submit[2]} {donor_y - 40} L {d_wait[0] - 70} {donor_y - 40}",
+        f"M {d_submit[2]} {donor_y - 50} L {d_wait[0] - 70} {donor_y - 50}",
         stroke=DONOR_STROKE,
     )
 
     m_receive = task(
         svg,
-        1450,
-        mgr_y - 70,
+        1460,
+        mgr_y - 95,
         140,
-        58,
+        52,
         "Confirm items received",
         MANAGER_STROKE,
     )
     svg.path(
-        f"M {m_approve[2]} {m_approve[3]} L {1450} {m_approve[3]}",
+        f"M {m_approve[2]} {m_approve[3]} L {1460} {m_approve[3]}",
         stroke=MANAGER_STROKE,
     )
 
-    # ---- Phase 3: Inventory Receipt ----
+    # ---- 3. Inventory Receipt ----
     m_stock_don = task(
         svg,
-        1640,
-        mgr_y - 70,
+        1660,
+        mgr_y - 95,
         150,
-        58,
+        52,
         "Stock in donated items",
         MANAGER_STROKE,
     )
-    svg.line(m_receive[2], mgr_y - 40, 1640, mgr_y - 40, stroke=MANAGER_STROKE)
+    svg.line(m_receive[2], mgr_y - 70, 1660, mgr_y - 70, stroke=MANAGER_STROKE)
+    # walk-in also reaches donated stock-in
+    svg.path(
+        f"M {m_walkin[2]} {m_walkin[3]} C {1600} {m_walkin[3]}, "
+        f"{1600} {mgr_y - 70}, 1660 {mgr_y - 70}",
+        stroke=MANAGER_STROKE,
+        sw=1.3,
+        dashed=True,
+    )
 
     s_stock_buy = task(
         svg,
-        1640,
+        1660,
         staff_y - 70,
         150,
-        58,
+        52,
         "Stock in purchased goods",
         STAFF_STROKE,
     )
-    # Staff can also start purchase path after login
     svg.path(
-        f"M {s_login[2]} {staff_y} C {900} {staff_y}, {1400} {staff_y - 40}, "
-        f"1640 {staff_y - 40}",
+        f"M {s_login[2]} {staff_y} C {1000} {staff_y}, {1400} {staff_y - 40}, "
+        f"1660 {staff_y - 40}",
         stroke=STAFF_STROKE,
         sw=1.4,
     )
     svg.text(
-        1180,
-        staff_y - 55,
+        1200,
+        staff_y - 58,
         "purchase path",
         size=11,
         weight="600",
@@ -579,148 +648,169 @@ def build() -> str:
 
     sys_stock = task(
         svg,
-        1640,
-        sys_y - 29,
-        170,
-        58,
-        "Create batches (FEFO) + grow dual-pool stock",
+        1660,
+        sys_y - 26,
+        175,
+        52,
+        "Create FEFO batches + grow dual-pool stock",
         SYSTEM_STROKE,
+        wrap_w=20,
     )
     svg.path(
-        f"M {m_stock_don[0]} {m_stock_don[3] + 29} L {m_stock_don[0]} {sys_y - 29}",
+        f"M {m_stock_don[0]} {m_stock_don[3] + 26} L {m_stock_don[0]} {sys_y - 26}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
     svg.path(
-        f"M {s_stock_buy[0]} {s_stock_buy[3] + 29} L {s_stock_buy[0]} {sys_y - 29}",
+        f"M {s_stock_buy[0]} {s_stock_buy[3] + 26} L {s_stock_buy[0]} {sys_y - 26}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
     svg.path(
-        f"M {sys_status[2]} {sys_y} L {sys_stock[0] - 85} {sys_y}",
+        f"M {sys_status[2]} {sys_y} L {sys_stock[0] - 87} {sys_y}",
         stroke=SYSTEM_STROKE,
         sw=1.4,
     )
 
     sys_stocked = task(
         svg,
-        1850,
-        sys_y - 70,
+        1880,
+        sys_y - 80,
         140,
-        52,
+        48,
         "Mark submission stocked",
         SYSTEM_STROKE,
     )
-    svg.line(sys_stock[2], sys_y - 45, 1850, sys_y - 45, stroke=SYSTEM_STROKE)
+    svg.line(sys_stock[2], sys_y - 50, 1880, sys_y - 50, stroke=SYSTEM_STROKE)
 
-    # ---- Phase 4: Clinical / Usage ----
-    s_treat = task(
-        svg,
-        1850,
-        staff_y - 70,
-        140,
-        52,
-        "Record medical treatment",
-        STAFF_STROKE,
-    )
-    s_out = task(
-        svg,
-        1850,
-        staff_y + 10,
-        140,
-        52,
-        "Stock out waste/expired/adjust",
-        STAFF_STROKE,
-    )
-    gateway(svg, 1780, staff_y, "Use stock", STAFF_STROKE)
+    # ---- 4. Clinical / Usage ----
+    gateway(svg, 1860, staff_y, "Use stock", STAFF_STROKE)
     svg.path(
-        f"M {s_stock_buy[2]} {staff_y - 40} L {1758} {staff_y - 40} "
-        f"L 1758 {staff_y}",
+        f"M {s_stock_buy[2]} {staff_y - 40} L 1838 {staff_y - 40} L 1838 {staff_y}",
         stroke=STAFF_STROKE,
     )
-    # also from donated stock available
     svg.path(
-        f"M {sys_stock[2]} {sys_y} C {1760} {sys_y}, {1720} {staff_y + 40}, "
-        f"1760 {staff_y + 18}",
+        f"M {sys_stock[2]} {sys_y} C {1840} {sys_y}, {1800} {staff_y + 40}, "
+        f"1840 {staff_y + 18}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
         sw=1.3,
     )
+
+    s_treat = task(
+        svg,
+        1930,
+        staff_y - 80,
+        145,
+        48,
+        "Record medical treatment",
+        STAFF_STROKE,
+    )
+    s_out = task(
+        svg,
+        1930,
+        staff_y + 20,
+        145,
+        48,
+        "Stock out waste / expired / adjustment",
+        STAFF_STROKE,
+        wrap_w=18,
+    )
     svg.path(
-        f"M 1800 {staff_y - 10} L 1800 {s_treat[1] + 26} L 1850 {s_treat[1] + 26}",
+        f"M 1880 {staff_y - 12} L 1880 {s_treat[1] + 24} L 1930 {s_treat[1] + 24}",
         stroke=STAFF_STROKE,
     )
     svg.path(
-        f"M 1800 {staff_y + 10} L 1800 {s_out[1] + 26} L 1850 {s_out[1] + 26}",
+        f"M 1880 {staff_y + 12} L 1880 {s_out[1] + 24} L 1930 {s_out[1] + 24}",
         stroke=STAFF_STROKE,
     )
 
     sys_deduct = task(
         svg,
-        2040,
-        sys_y - 29,
-        160,
-        58,
+        2120,
+        sys_y - 26,
+        165,
+        52,
         "FEFO deduct / write stock_out + FIFO impact",
         SYSTEM_STROKE,
+        wrap_w=20,
     )
     svg.path(
-        f"M {s_treat[2]} {s_treat[3]} C {2000} {s_treat[3]}, "
-        f"{2000} {sys_y - 10}, 2040 {sys_y - 5}",
+        f"M {s_treat[2]} {s_treat[3]} C {2080} {s_treat[3]}, "
+        f"{2080} {sys_y - 8}, 2120 {sys_y - 5}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
     svg.path(
-        f"M {s_out[2]} {s_out[3]} C {2010} {s_out[3]}, "
-        f"{2010} {sys_y + 15}, 2040 {sys_y + 10}",
+        f"M {s_out[2]} {s_out[3]} C {2090} {s_out[3]}, "
+        f"{2090} {sys_y + 12}, 2120 {sys_y + 10}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
 
-    # ---- Phase 5: Replenish ----
+    # ---- 5. Replenish ----
     sys_rop = task(
         svg,
-        2240,
-        sys_y - 29,
-        150,
-        58,
-        "Compute ADU + ROP suggestions",
+        2340,
+        sys_y - 26,
+        165,
+        52,
+        "Compute Average Daily Use + ROP suggestions",
         SYSTEM_STROKE,
+        wrap_w=20,
     )
-    svg.line(sys_deduct[2], sys_y, 2240, sys_y, stroke=SYSTEM_STROKE)
+    svg.line(sys_deduct[2], sys_y, 2340, sys_y, stroke=SYSTEM_STROKE)
 
     s_order = task(
         svg,
-        2240,
-        staff_y - 29,
-        150,
-        58,
+        2340,
+        staff_y - 26,
+        165,
+        52,
         "Review Ordering replenishment",
         STAFF_STROKE,
+        wrap_w=18,
     )
     svg.path(
-        f"M {sys_rop[0]} {sys_y - 29} L {sys_rop[0]} {staff_y + 29}",
+        f"M {sys_rop[0]} {sys_y - 26} L {sys_rop[0]} {staff_y + 26}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
     )
 
-    # loop back note to purchase stock-in
+    # Currently Needed is fed by ROP/replenishment alerts
     svg.path(
-        f"M {s_order[0]} {staff_y + 29} C {2240} {staff_y + 70}, "
-        f"{1700} {staff_y + 75}, 1715 {staff_y + 29}",
+        f"M {sys_rop[0]} {sys_y - 26} C {2340} {sys_y - 120}, "
+        f"{780} {sys_y - 130}, {d_needed[0]} {donor_y + 26}",
+        stroke=MSG,
+        dashed=True,
+        marker_end="url(#arrow-msg)",
+        sw=1.2,
+    )
+    svg.text(
+        1500,
+        top + 18,
+        "replenishment alerts → Currently Needed",
+        size=11,
+        weight="700",
+        fill=MSG,
+    )
+
+    svg.path(
+        f"M {s_order[0]} {staff_y + 26} C {2340} {staff_y + 80}, "
+        f"{1720} {staff_y + 85}, 1735 {staff_y + 26}",
         stroke=STAFF_STROKE,
         sw=1.4,
         dashed=True,
     )
     svg.text(
-        1960,
-        staff_y + 88,
+        2000,
+        staff_y + 98,
         "manual purchase stock-in (no auto-PO)",
         size=11,
         weight="700",
@@ -729,95 +819,99 @@ def build() -> str:
 
     m_cfg = task(
         svg,
-        2240,
-        mgr_y - 29,
-        150,
-        58,
+        2340,
+        mgr_y - 26,
+        165,
+        52,
         "Configure thresholds & ROP",
         MANAGER_STROKE,
+        wrap_w=18,
     )
     svg.path(
-        f"M {m_cfg[0]} {mgr_y + 29} L {m_cfg[0]} {sys_rop[1] - 29}",
+        f"M {m_cfg[0]} {mgr_y + 26} L {m_cfg[0]} {sys_rop[1]}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
         sw=1.3,
     )
 
-    # ---- Phase 6: Oversight & Impact ----
+    # ---- 6. Oversight ----
     d_impact = task(
         svg,
-        2460,
-        donor_y - 70,
+        2580,
+        donor_y - 85,
         150,
-        58,
+        52,
         "View donation impact",
         DONOR_STROKE,
     )
     svg.path(
-        f"M {d_wait[2]} {donor_y - 40} C {2000} {donor_y - 40}, "
-        f"{2300} {donor_y - 40}, 2460 {donor_y - 40}",
+        f"M {d_wait[2]} {donor_y - 50} C {2100} {donor_y - 50}, "
+        f"{2400} {donor_y - 50}, 2580 {donor_y - 50}",
         stroke=DONOR_STROKE,
         sw=1.4,
     )
 
     m_report = task(
         svg,
-        2460,
+        2580,
         mgr_y - 70,
         150,
-        52,
-        "Review usage / ROP / audit",
+        48,
+        "Review usage / ROP Status / audit",
         MANAGER_STROKE,
+        wrap_w=18,
     )
     s_report = task(
         svg,
-        2460,
+        2580,
         staff_y - 70,
         150,
-        52,
+        48,
         "View usage + My Activity",
         STAFF_STROKE,
     )
     sys_alert = task(
         svg,
-        2460,
-        sys_y - 29,
+        2580,
+        sys_y - 26,
         150,
-        58,
+        52,
         "Raise alerts + serve reports",
         SYSTEM_STROKE,
     )
-    svg.line(sys_rop[2], sys_y, 2460, sys_y, stroke=SYSTEM_STROKE)
+    svg.line(sys_rop[2], sys_y, 2580, sys_y, stroke=SYSTEM_STROKE)
     svg.path(
-        f"M {sys_deduct[2]} {sys_y - 20} C {2400} {sys_y - 80}, "
-        f"{2400} {donor_y}, 2460 {donor_y - 20}",
+        f"M {sys_deduct[2]} {sys_y - 20} C {2520} {sys_y - 90}, "
+        f"{2520} {donor_y}, 2580 {donor_y - 20}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
         sw=1.3,
     )
     svg.path(
-        f"M {sys_alert[0]} {sys_y - 29} L {sys_alert[0]} {mgr_y + 26}",
+        f"M {sys_alert[0]} {sys_y - 26} L {sys_alert[0]} {mgr_y + 22}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
         sw=1.2,
     )
     svg.path(
-        f"M {sys_alert[0] + 30} {sys_y - 29} L {sys_alert[0] + 30} {staff_y - 18}",
+        f"M {sys_alert[0] + 30} {sys_y - 26} L {sys_alert[0] + 30} {staff_y - 22}",
         stroke=MSG,
         dashed=True,
         marker_end="url(#arrow-msg)",
         sw=1.2,
     )
 
-    end_event(svg, 2680, sys_y, "Operational end", SYSTEM_STROKE)
-    svg.line(sys_alert[2], sys_y, 2664, sys_y, stroke=SYSTEM_STROKE)
+    end_event(svg, 2820, sys_y, "Operational end", SYSTEM_STROKE)
+    svg.line(sys_alert[2], sys_y, 2804, sys_y, stroke=SYSTEM_STROKE)
 
     # Legend
-    ly = top + pool_h + 28
-    svg.text(left_gutter + 60, ly + 8, "Legend", size=13, weight="800", anchor="start")
+    ly = top + pool_h + 34
+    svg.text(
+        left_gutter + 60, ly + 8, "Legend", size=13, weight="800", anchor="start"
+    )
     svg.rect(left_gutter + 140, ly - 12, 70, 28, TASK_FILL, INK, r=8)
     svg.text(left_gutter + 175, ly + 8, "Task", size=12, weight="600")
     svg.diamond(left_gutter + 260, ly + 2, 14, GW_FILL, INK)
@@ -842,7 +936,8 @@ def build() -> str:
     svg.text(
         left_gutter + 1040,
         ly + 8,
-        "Supplier = external data only (no login lane) · ROP recommends only (no auto-PO)",
+        "Supplier = external data only (no login lane) · ROP recommends only "
+        "(no auto-PO) · Realtime refresh is not a process step",
         size=12,
         weight="600",
         fill=MUTED,
@@ -851,12 +946,26 @@ def build() -> str:
     svg.text(
         left_gutter + 1040,
         ly + 30,
-        "Submission statuses: pending → approved → received → stocked · rejected from pending",
+        "Submission: pending → approved → received → stocked · rejected from "
+        "pending only · Stock-out: waste | expired | adjustment",
         size=12,
         weight="600",
         fill=MUTED,
         anchor="start",
     )
+    svg.text(
+        left_gutter + 1040,
+        ly + 52,
+        "New vs prior diagram: Forgot Password, Currently Needed, Staff Accounts, "
+        "walk-in Add Donation, Average Daily Use wording",
+        size=12,
+        weight="600",
+        fill=MUTED,
+        anchor="start",
+    )
+
+    # silence unused locals (kept for readability / future hooks)
+    _ = (sys_auth, sys_stocked, d_impact, m_report, s_report)
 
     return svg.finish()
 
