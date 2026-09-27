@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SIYAM Top-Level Diagram (Level 1 DFD)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+  }
+  .canvas {
+    background: #ffffff;
+    width: 1700px;
+    height: 1220px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+  }
+  .header {
+    padding: 24px 36px 16px 36px;
+    border-bottom: 2px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+  }
+  .badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    border: 1px solid #bae6fd;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  svg {
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 1700px;
+    height: 1140px;
+  }
+
+  /* Process Bubble */
+  .proc-circle {
+    fill: #f0fdf4;
+    stroke: #16a34a;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 4px 6px rgba(22, 163, 74, 0.08));
+  }
+  .proc-id {
+    font-size: 11.5px;
+    font-weight: 800;
+    fill: #15803d;
+  }
+  .proc-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    fill: #0f172a;
+    letter-spacing: -0.2px;
+  }
+  .proc-sub {
+    font-size: 10px;
+    fill: #475569;
+  }
+
+  /* External Entities */
+  .ent-rect {
+    fill: #ffffff;
+    stroke-width: 2.5;
+    rx: 10;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.04));
+  }
+  .ent-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+
+  /* Data Stores */
+  .store-rect {
+    fill: #fefce8;
+    stroke: #ca8a04;
+    stroke-width: 1.8;
+    rx: 4;
+  }
+  .store-title {
+    font-size: 11px;
+    font-weight: 800;
+    fill: #854d0e;
+  }
+  .store-sub {
+    font-size: 9.5px;
+    fill: #713f12;
+  }
+
+  /* Lines */
+  .flow-path {
+    fill: none;
+    stroke-width: 1.8;
+  }
+  .flow-label {
+    font-size: 9.5px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+  <div class="header">
+    <div>
+      <h1>SIYAM Top-Level Diagram (Level 1 DFD)</h1>
+      <p>Major Decomposed Subsystems, Actual Implemented Data Stores & Multi-Role Workflows</p>
+    </div>
+    <div class="badge">DFD Level 1 • Capstone Architecture</div>
+  </div>
+
+  <svg viewBox="0 0 1700 1140">
+    <defs>
+      <!-- Arrow markers -->
+      <marker id="ar-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0284c7" />
+      </marker>
+      <marker id="ar-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#16a34a" />
+      </marker>
+      <marker id="ar-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#7c3aed" />
+      </marker>
+      <marker id="ar-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#d97706" />
+      </marker>
+      <marker id="ar-dark" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
+      </marker>
+
+      <filter id="lbl-bg" x="-10%" y="-15%" width="120%" height="130%">
+        <feFlood flood-color="#ffffff" flood-opacity="0.92" result="bg" />
+        <feMerge>
+          <feMergeNode in="bg" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+
+    <!-- ================================================================= -->
+    <!-- 3 EXTERNAL ENTITIES (COLORED BOXES)                               -->
+    <!-- ================================================================= -->
+
+    <!-- ENTITY 1: SHELTER STAFF (Top Left) -->
+    <g transform="translate(60, 40)">
+      <rect width="260" height="90" class="ent-rect" stroke="#0284c7" />
+      <rect width="260" height="28" rx="10" fill="#e0f2fe" />
+      <rect y="18" width="260" height="10" fill="#e0f2fe" />
+      <circle cx="20" cy="14" r="8" fill="#0284c7"/>
+      <text x="20" y="18" text-anchor="middle" font-size="9" font-weight="bold" fill="white">E1</text>
+      <text x="36" y="18" class="ent-title" fill="#0369a1">SHELTER STAFF</text>
+      <text x="14" y="46" font-size="10.5" fill="#334155" font-weight="600">• Clinical & Caretaker Access</text>
+      <text x="14" y="62" font-size="10" fill="#64748b">• Treatment & Medication Log</text>
+      <text x="14" y="78" font-size="10" fill="#64748b">• Inventory In/Out & Ordering Review</text>
+    </g>
+
+    <!-- ENTITY 2: SHELTER MANAGER (Top Right) -->
+    <g transform="translate(1380, 40)">
+      <rect width="260" height="90" class="ent-rect" stroke="#7c3aed" />
+      <rect width="260" height="28" rx="10" fill="#ede9fe" />
+      <rect y="18" width="260" height="10" fill="#ede9fe" />
+      <circle cx="20" cy="14" r="8" fill="#7c3aed"/>
+      <text x="20" y="18" text-anchor="middle" font-size="9" font-weight="bold" fill="white">E2</text>
+      <text x="36" y="18" class="ent-title" fill="#6d28d9">SHELTER MANAGER</text>
+      <text x="14" y="46" font-size="10.5" fill="#334155" font-weight="600">• Executive Administrator</text>
+      <text x="14" y="62" font-size="10" fill="#64748b">• Animal & Supplier Registry</text>
+      <text x="14" y="78" font-size="10" fill="#64748b">• System Config & Donation Approval</text>
+    </g>
+
+    <!-- ENTITY 3: DONOR (Bottom Center-Right) -->
+    <g transform="translate(1380, 800)">
+      <rect width="260" height="90" class="ent-rect" stroke="#d97706" />
+      <rect width="260" height="28" rx="10" fill="#fef3c7" />
+      <rect y="18" width="260" height="10" fill="#fef3c7" />
+      <circle cx="20" cy="14" r="8" fill="#d97706"/>
+      <text x="20" y="18" text-anchor="middle" font-size="9" font-weight="bold" fill="white">E3</text>
+      <text x="36" y="18" class="ent-title" fill="#b45309">SANCTUARY DONOR</text>
+      <text x="14" y="46" font-size="10.5" fill="#334155" font-weight="600">• External Supporter</text>
+      <text x="14" y="62" font-size="10" fill="#64748b">• Drop-off Pledge & Proof</text>
+      <text x="14" y="78" font-size="10" fill="#64748b">• Personalized FIFO Usage Impact</text>
+    </g>
+
+
+    <!-- ================================================================= -->
+    <!-- 6 MAJOR PROCESSES (CIRCULAR BUBBLES)                              -->
+    <!-- ================================================================= -->
+
+    <!-- PROCESS 1.0: AUTH & ACCESS -->
+    <g transform="translate(730, 20)">
+      <circle cx="120" cy="70" r="68" class="proc-circle" />
+      <rect x="80" y="24" width="80" height="18" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+      <text x="120" y="37" text-anchor="middle" class="proc-id">1.0</text>
+      <text x="120" y="62" text-anchor="middle" class="proc-title">Authentication &</text>
+      <text x="120" y="78" text-anchor="middle" class="proc-title">Role Access</text>
+      <text x="120" y="94" text-anchor="middle" class="proc-sub">Role Guard & Activation</text>
+    </g>
+
+    <!-- PROCESS 2.0: DONATION & IN-KIND -->
+    <g transform="translate(1080, 470)">
+      <circle cx="120" cy="80" r="76" class="proc-circle" />
+      <rect x="80" y="26" width="80" height="18" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+      <text x="120" y="39" text-anchor="middle" class="proc-id">2.0</text>
+      <text x="120" y="66" text-anchor="middle" class="proc-title">Donation &</text>
+      <text x="120" y="84" text-anchor="middle" class="proc-title">In-Kind Intake</text>
+      <text x="120" y="102" text-anchor="middle" class="proc-sub">Pledges, Approvals & Stock-In</text>
+    </g>
+
+    <!-- PROCESS 3.0: INVENTORY & STOCK -->
+    <g transform="translate(460, 230)">
+      <circle cx="120" cy="80" r="76" class="proc-circle" />
+      <rect x="80" y="26" width="80" height="18" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+      <text x="120" y="39" text-anchor="middle" class="proc-id">3.0</text>
+      <text x="120" y="66" text-anchor="middle" class="proc-title">Inventory & Stock</text>
+      <text x="120" y="84" text-anchor="middle" class="proc-title">Management</text>
+      <text x="120" y="102" text-anchor="middle" class="proc-sub">Dual Pools, FEFO Batches, Alerts</text>
+    </g>
+
+    <!-- PROCESS 4.0: MEDICAL & TREATMENT -->
+    <g transform="translate(100, 520)">
+      <circle cx="120" cy="80" r="76" class="proc-circle" />
+      <rect x="80" y="26" width="80" height="18" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+      <text x="120" y="39" text-anchor="middle" class="proc-id">4.0</text>
+      <text x="120" y="66" text-anchor="middle" class="proc-title">Medical &</text>
+      <text x="120" y="84" text-anchor="middle" class="proc-title">Treatment Records</text>
+      <text x="120" y="102" text-anchor="middle" class="proc-sub">Dispense Dosing & Follow-ups</text>
+    </g>
+
+    <!-- PROCESS 5.0: REPLENISHMENT & ORDERING -->
+    <g transform="translate(480, 820)">
+      <circle cx="120" cy="80" r="76" class="proc-circle" />
+      <rect x="80" y="26" width="80" height="18" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+      <text x="120" y="39" text-anchor="middle" class="proc-id">5.0</text>
+      <text x="120" y="66" text-anchor="middle" class="proc-title">Replenishment &</text>
+      <text x="120" y="84" text-anchor="middle" class="proc-title">Ordering (ROP)</text>
+      <text x="120" y="102" text-anchor="middle" class="proc-sub">30-day ADU, Safety Stock, POs</text>
+    </g>
+
+    <!-- PROCESS 6.0: AUDIT, REPORTS & IMPACT -->
+    <g transform="translate(930, 820)">
+      <circle cx="120" cy="80" r="76" class="proc-circle" />
+      <rect x="80" y="26" width="80" height="18" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+      <text x="120" y="39" text-anchor="middle" class="proc-id">6.0</text>
+      <text x="120" y="66" text-anchor="middle" class="proc-title">Analytics, Audit &</text>
+      <text x="120" y="84" text-anchor="middle" class="proc-title">Impact Engine</text>
+      <text x="120" y="102" text-anchor="middle" class="proc-sub">FIFO Traceability & Scoped Logs</text>
+    </g>
+
+
+    <!-- ================================================================= -->
+    <!-- DATA STORES (OPEN RECTANGLES / PARALLEL LINES)                     -->
+    <!-- ================================================================= -->
+
+    <!-- D1: USER -->
+    <g transform="translate(730, 185)">
+      <rect width="240" height="42" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="42" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D1 | USER</text>
+      <text x="14" y="33" class="store-sub">id, role (mgr/stf/dnr), contact, is_active</text>
+    </g>
+
+    <!-- D2: ITEM & CATALOG -->
+    <g transform="translate(560, 460)">
+      <rect width="250" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D2 | ITEM & CATALOG</text>
+      <text x="14" y="32" class="store-sub">purchase_stocks, package_stocks, units,</text>
+      <text x="14" y="42" class="store-sub">package_quantity, dispense_unit, count_mode</text>
+    </g>
+
+    <!-- D3: BATCHES (PURCHASE_ITEM & DONATION_ITEM) -->
+    <g transform="translate(560, 560)">
+      <rect width="250" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D3 | PURCHASE_ITEM & DONATION_ITEM</text>
+      <text x="14" y="32" class="store-sub">FEFO Batches: qty_remaining, expiry_date,</text>
+      <text x="14" y="42" class="store-sub">qty_unit, unit_cost</text>
+    </g>
+
+    <!-- D4: SUBMISSION -->
+    <g transform="translate(1360, 480)">
+      <rect width="250" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D4 | SUBMISSION</text>
+      <text x="14" y="32" class="store-sub">donorid, sched_date, proof_img, notes,</text>
+      <text x="14" y="42" class="store-sub">status: pending/approved/received/stocked</text>
+    </g>
+
+    <!-- D5: SETTINGS & ROP_SETTINGS -->
+    <g transform="translate(860, 310)">
+      <rect width="250" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D5 | SYSTEM_SETTINGS & ROP</text>
+      <text x="14" y="32" class="store-sub">low_stock_thresh, expiry_days, default_lt,</text>
+      <text x="14" y="42" class="store-sub">default_ss, item_rop_overrides</text>
+    </g>
+
+    <!-- D6: STOCK_OUT -->
+    <g transform="translate(330, 410)">
+      <rect width="200" height="42" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="42" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D6 | STOCK_OUT</text>
+      <text x="14" y="33" class="store-sub">itemid, qty, reason (waste/exp/adj)</text>
+    </g>
+
+    <!-- D7: PET -->
+    <g transform="translate(60, 360)">
+      <rect width="230" height="42" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="42" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D7 | PET (Animal Registry)</text>
+      <text x="14" y="33" class="store-sub">name, species, breed, status, spayed</text>
+    </g>
+
+    <!-- D8: TREATMENT & TREATMENT_ITEM -->
+    <g transform="translate(100, 750)">
+      <rect width="260" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D8 | TREATMENT & TREATMENT_ITEM</text>
+      <text x="14" y="32" class="store-sub">petid, treatid, dispensed_qty, dispense_unit,</text>
+      <text x="14" y="42" class="store-sub">consumed_date, givenby, follow_up_schedule</text>
+    </g>
+
+    <!-- D9: SUPPLIER & PURCHASE -->
+    <g transform="translate(240, 990)">
+      <rect width="250" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D9 | SUPPLIER & PURCHASE</text>
+      <text x="14" y="32" class="store-sub">vendor name, contact, address;</text>
+      <text x="14" y="42" class="store-sub">purchase orders: suppid, date, receivedby</text>
+    </g>
+
+    <!-- D10: AUDIT_ENTRY / LOGS -->
+    <g transform="translate(930, 1020)">
+      <rect width="260" height="46" class="store-rect" />
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#ca8a04" stroke-width="4"/>
+      <text x="14" y="18" class="store-title">D10 | AUDIT_ENTRY / SYSTEM LOGS</text>
+      <text x="14" y="32" class="store-sub">module, action, user, old/new diffs,</text>
+      <text x="14" y="42" class="store-sub">operational logs, monthly usage rollups</text>
+    </g>
+
+
+    <!-- ================================================================= -->
+    <!-- PROCESS FLOWS & CONNECTIONS                                       -->
+    <!-- ================================================================= -->
+
+    <!-- PROCESS 1.0 (AUTH) FLOWS -->
+    <!-- Staff to 1.0 -->
+    <path d="M 320 85 L 730 85" class="flow-path" stroke="#0284c7" marker-end="url(#ar-blue)"/>
+    <text x="490" y="77" class="flow-label" fill="#0369a1" filter="url(#lbl-bg)">Credentials / Sign In</text>
+
+    <!-- Manager to 1.0 -->
+    <path d="M 1380 85 L 970 85" class="flow-path" stroke="#7c3aed" marker-end="url(#ar-purple)"/>
+    <text x="1150" y="77" class="flow-label" fill="#6d28d9" filter="url(#lbl-bg)">Manager Credentials & Staff Account Toggle</text>
+
+    <!-- Donor to 1.0 -->
+    <path d="M 1480 800 Q 1550 400 970 90" class="flow-path" stroke="#d97706" marker-end="url(#ar-amber)"/>
+    <text x="1450" y="380" class="flow-label" fill="#b45309" filter="url(#lbl-bg)">Donor Self-Registration & Login</text>
+
+    <!-- 1.0 to D1 -->
+    <path d="M 850 140 L 850 185" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="855" y="165" class="flow-label" fill="#475569">Validate / Update User State</text>
+
+
+    <!-- PROCESS 2.0 (DONATION) FLOWS -->
+    <!-- Donor to 2.0 -->
+    <path d="M 1430 800 Q 1380 650 1270 600" class="flow-path" stroke="#d97706" marker-end="url(#ar-amber)"/>
+    <text x="1350" y="690" class="flow-label" fill="#b45309" filter="url(#lbl-bg)">Submit In-Kind Pledge & Drop Schedule</text>
+
+    <!-- 2.0 to Donor (Status & Needs) -->
+    <path d="M 1250 625 Q 1330 670 1410 800" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="1340" y="730" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">Pledge Status (Approved/Received) & Critical Needs</text>
+
+    <!-- Manager to 2.0 -->
+    <path d="M 1460 130 Q 1420 300 1260 480" class="flow-path" stroke="#7c3aed" marker-end="url(#ar-purple)"/>
+    <text x="1380" y="290" class="flow-label" fill="#6d28d9" filter="url(#lbl-bg)">Review, Approve/Decline Pledges</text>
+
+    <!-- 2.0 writes D4 -->
+    <path d="M 1275 510 L 1360 510" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="1285" y="502" class="flow-label" fill="#475569">Store Pledge</text>
+
+    <!-- 2.0 writes D2 & D3 (Stock-in accepted donations) -->
+    <path d="M 1120 560 Q 980 620 810 590" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="890" y="625" class="flow-label" fill="#475569" filter="url(#lbl-bg)">Stock-In Accepted Items (Create D3 Donation Batches & D2 Pool)</text>
+
+
+    <!-- PROCESS 3.0 (INVENTORY & STOCK) FLOWS -->
+    <!-- Staff to 3.0 -->
+    <path d="M 280 130 Q 400 180 470 240" class="flow-path" stroke="#0284c7" marker-end="url(#ar-blue)"/>
+    <text x="310" y="195" class="flow-label" fill="#0369a1" filter="url(#lbl-bg)">Purchase Stock-In, Manual Counts, Waste/Adjustments</text>
+
+    <!-- 3.0 to Staff (Alerts) -->
+    <path d="M 460 270 Q 360 240 260 130" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="240" y="240" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">Low-Stock, Zero-Stock & Batch Expiry Alerts</text>
+
+    <!-- 3.0 reads/writes D2 (Item) -->
+    <path d="M 580 380 L 610 460" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="600" y="420" class="flow-label" fill="#475569">Update Stock Pools</text>
+
+    <!-- 3.0 writes D3 (Batches) -->
+    <path d="M 550 380 Q 520 480 570 560" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="470" y="490" class="flow-label" fill="#475569">Create / Deduct FEFO Batches</text>
+
+    <!-- 3.0 writes D6 (Stock-out) -->
+    <path d="M 480 340 L 440 410" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="410" y="375" class="flow-label" fill="#475569">Log Waste/Loss</text>
+
+    <!-- Manager to 3.0 (Settings) via D5 -->
+    <path d="M 1420 130 Q 1200 240 985 310" class="flow-path" stroke="#7c3aed" marker-end="url(#ar-purple)"/>
+    <text x="1140" y="235" class="flow-label" fill="#6d28d9" filter="url(#lbl-bg)">Configure Low-Stock & Expiry Window Rules</text>
+
+    <!-- D5 to 3.0 -->
+    <path d="M 860 330 L 650 310" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="710" y="315" class="flow-label" fill="#475569">Read Alert Rules</text>
+
+
+    <!-- PROCESS 4.0 (MEDICAL & TREATMENT) FLOWS -->
+    <!-- Staff to 4.0 -->
+    <path d="M 160 130 L 190 520" class="flow-path" stroke="#0284c7" marker-end="url(#ar-blue)"/>
+    <text x="100" y="300" class="flow-label" fill="#0369a1" filter="url(#lbl-bg)">Log Administered Treatment,</text>
+    <text x="100" y="312" class="flow-label" fill="#0369a1" filter="url(#lbl-bg)">Dispensed Qty & Follow-up</text>
+
+    <!-- 4.0 to Staff (Reminders) -->
+    <path d="M 220 520 L 190 130" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="210" y="330" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">Actionable Medical Follow-up Reminders</text>
+
+    <!-- Manager to 4.0 (Pet Registry) -->
+    <path d="M 1400 130 Q 800 280 290 370" class="flow-path" stroke="#7c3aed" marker-end="url(#ar-purple)"/>
+    <text x="800" y="275" class="flow-label" fill="#6d28d9" filter="url(#lbl-bg)">Register Animals & Health Status (D7)</text>
+
+    <!-- 4.0 reads D7 -->
+    <path d="M 180 402 L 180 520" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="185" y="470" class="flow-label" fill="#475569">Fetch Animal Profile</text>
+
+    <!-- 4.0 writes D8 -->
+    <path d="M 210 675 L 210 750" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="215" y="715" class="flow-label" fill="#475569">Store Treatment & Items</text>
+
+    <!-- 4.0 FEFO stock deduction to D2/D3 -->
+    <path d="M 310 590 Q 420 580 560 575" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="360" y="565" class="flow-label" fill="#475569" filter="url(#lbl-bg)">Auto FEFO Deduction (When units match)</text>
+
+
+    <!-- PROCESS 5.0 (REPLENISHMENT & ORDERING) FLOWS -->
+    <!-- Staff to 5.0 -->
+    <path d="M 120 130 Q 30 500 500 840" class="flow-path" stroke="#0284c7" marker-end="url(#ar-blue)"/>
+    <text x="60" y="660" class="flow-label" fill="#0369a1" filter="url(#lbl-bg)">View Ordering Module (Replenishment + POs)</text>
+
+    <!-- 5.0 to Staff -->
+    <path d="M 520 830 Q 80 500 140 130" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="80" y="680" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">ROP Shortfalls, Lead Times & Past Purchase Orders</text>
+
+    <!-- 5.0 reads D2 (usable stock) -->
+    <path d="M 640 506 L 610 820" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="625" y="690" class="flow-label" fill="#475569">Current Usable Stocks</text>
+
+    <!-- 5.0 reads D8 (30-day consumption) -->
+    <path d="M 360 770 L 485 845" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="375" y="805" class="flow-label" fill="#475569">30-day Usage (ADU)</text>
+
+    <!-- 5.0 reads D5 (ROP parameters) -->
+    <path d="M 870 356 Q 780 650 660 840" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="730" y="660" class="flow-label" fill="#475569" filter="url(#lbl-bg)">Lead Times & Safety Stocks</text>
+
+    <!-- Manager manages D9 (Suppliers) -->
+    <path d="M 1520 130 Q 1650 650 490 1010" class="flow-path" stroke="#7c3aed" marker-end="url(#ar-purple)"/>
+    <text x="1480" y="620" class="flow-label" fill="#6d28d9" filter="url(#lbl-bg)">Maintain Suppliers Directory (D9)</text>
+
+    <!-- 5.0 reads D9 -->
+    <path d="M 430 990 L 530 945" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="440" y="960" class="flow-label" fill="#475569">Vendor PO History</text>
+
+
+    <!-- PROCESS 6.0 (AUDIT & IMPACT ENGINE) FLOWS -->
+    <!-- 6.0 to Donor (FIFO Impact) -->
+    <path d="M 1120 860 Q 1280 880 1380 860" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="1160" y="850" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">Personalized Medical Treatment Impacts</text>
+
+    <!-- 6.0 to Staff (My Activity) -->
+    <path d="M 940 840 Q 550 720 280 130" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="470" y="730" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">Scoped Operational Activity Logs ("My Activity")</text>
+
+    <!-- 6.0 to Manager (Full Audit & Reports) -->
+    <path d="M 1100 830 Q 1300 600 1440 130" class="flow-path" stroke="#16a34a" marker-end="url(#ar-green)"/>
+    <text x="1260" y="420" class="flow-label" fill="#15803d" filter="url(#lbl-bg)">Full System Audit Trail & Monthly Usage Reports</text>
+
+    <!-- 6.0 reads D3 (Donation Items) & D8 (Treatment Items) for FIFO attribution -->
+    <path d="M 780 606 Q 910 700 970 825" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="840" y="720" class="flow-label" fill="#475569">Trace Attributed Batches</text>
+
+    <!-- 6.0 writes/reads D10 -->
+    <path d="M 1030 970 L 1030 1020" class="flow-path" stroke="#475569" marker-end="url(#ar-dark)"/>
+    <text x="1035" y="995" class="flow-label" fill="#475569">Audit Trail Records</text>
+
+    <!-- ================================================================= -->
+    <!-- SYSTEM SUMMARY BAR / FOOTER                                       -->
+    <!-- ================================================================= -->
+    <g transform="translate(60, 1075)">
+      <rect width="1580" height="42" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="24" y="26" font-size="11.5" font-weight="700" fill="#334155">SYSTEM ARCHITECTURE NOTES:</text>
+      <text x="220" y="26" font-size="11" fill="#475569">1. Ordering merges Replenishment (ROP) and Purchase Orders into one module.</text>
+      <text x="730" y="26" font-size="11" fill="#475569">2. Manager strictly controls donation approvals & donation stock-ins.</text>
+      <text x="1190" y="26" font-size="11" fill="#475569">3. Donor view uses FIFO attribution to mask losses/waste.</text>
+    </g>
+
+  </svg>
+</div>
+
+</body>
+</html>
