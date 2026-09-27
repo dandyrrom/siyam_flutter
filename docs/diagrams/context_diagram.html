@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SIYAM Context Diagram (Level 0 DFD)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+  }
+  .canvas {
+    background: #ffffff;
+    width: 1400px;
+    height: 980px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+  }
+  .header {
+    padding: 24px 32px 16px 32px;
+    border-bottom: 2px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+  }
+  .badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    border: 1px solid #bae6fd;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  svg {
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 1400px;
+    height: 900px;
+  }
+
+  .entity-rect {
+    fill: #ffffff;
+    stroke-width: 2.5;
+    rx: 12;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.04));
+  }
+  .entity-header {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+  .entity-sub {
+    font-size: 11.5px;
+    fill: #64748b;
+  }
+
+  .system-bubble {
+    fill: #f0fdf4;
+    stroke: #16a34a;
+    stroke-width: 3.5;
+    filter: drop-shadow(0 8px 16px rgba(22, 163, 74, 0.12));
+  }
+
+  .flow-line {
+    fill: none;
+    stroke-width: 2;
+  }
+  .flow-text {
+    font-size: 11px;
+    font-weight: 600;
+    background: white;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+  <div class="header">
+    <div>
+      <h1>SIYAM System Context Diagram (Level 0 DFD)</h1>
+      <p>Animal Sanctuary Management System — Actual Implemented Boundary & External Data Flows</p>
+    </div>
+    <div class="badge">DFD Level 0 • Capstone Architecture</div>
+  </div>
+
+  <svg viewBox="0 0 1400 900">
+    <defs>
+      <!-- Arrow Markers -->
+      <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0284c7" />
+      </marker>
+      <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#16a34a" />
+      </marker>
+      <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#7c3aed" />
+      </marker>
+      <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#d97706" />
+      </marker>
+
+      <!-- Drop Shadows -->
+      <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+        <feDropShadow dx="0" dy="4" stdDeviation="5" flood-opacity="0.06"/>
+      </filter>
+    </defs>
+
+    <!-- ================================================================= -->
+    <!-- CENTRAL SYSTEM PROCESS 0.0                                        -->
+    <!-- ================================================================= -->
+    <g transform="translate(560, 310)">
+      <circle cx="140" cy="140" r="145" class="system-bubble" />
+      <circle cx="140" cy="140" r="137" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4 3" />
+      
+      <rect x="75" y="42" width="130" height="26" rx="13" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="140" y="59" text-anchor="middle" font-size="12" font-weight="800" fill="#15803d">PROCESS 0.0</text>
+
+      <text x="140" y="115" text-anchor="middle" font-size="28" font-weight="900" fill="#0f172a" letter-spacing="-0.5">SIYAM</text>
+      <text x="140" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">Animal Sanctuary</text>
+      <text x="140" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">Management System</text>
+
+      <line x1="50" y1="180" x2="230" y2="180" stroke="#bbf7d0" stroke-width="1.5"/>
+      <text x="140" y="202" text-anchor="middle" font-size="10.5" font-weight="600" fill="#475569">Single Integrated Web Application</text>
+      <text x="140" y="218" text-anchor="middle" font-size="10" font-weight="500" fill="#64748b">(Role-Based • In-Memory / Supabase)</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- EXTERNAL ENTITY 1: SHELTER STAFF (TOP)                           -->
+    <!-- ================================================================= -->
+    <g transform="translate(470, 25)">
+      <rect width="460" height="110" class="entity-rect" stroke="#0284c7" />
+      <rect width="460" height="34" rx="12" fill="#e0f2fe" />
+      <rect y="22" width="460" height="12" fill="#e0f2fe" />
+      <line x1="0" y1="34" x2="460" y2="34" stroke="#bae6fd" stroke-width="1.5"/>
+      
+      <circle cx="30" cy="17" r="9" fill="#0284c7"/>
+      <text x="30" y="21" text-anchor="middle" font-size="10" font-weight="bold" fill="white">E1</text>
+      <text x="50" y="22" class="entity-header" fill="#0369a1">EXTERNAL ENTITY: SHELTER STAFF</text>
+      
+      <text x="24" y="58" class="entity-sub" fill="#334155" font-weight="600">• Clinical & Care Staff:</text>
+      <text x="155" y="58" class="entity-sub">Administers medical treatments, logs dispensed doses, sets follow-ups</text>
+      <text x="24" y="78" class="entity-sub" fill="#334155" font-weight="600">• Inventory Custodians:</text>
+      <text x="155" y="78" class="entity-sub">Stock In purchases, logs waste/expired stock-out, checks usable stock</text>
+      <text x="24" y="98" class="entity-sub" fill="#334155" font-weight="600">• Operations Review:</text>
+      <text x="155" y="98" class="entity-sub">Evaluates replenishment (ADU/ROP), reviews purchase orders & activity logs</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- EXTERNAL ENTITY 2: SHELTER MANAGER (LEFT)                        -->
+    <!-- ================================================================= -->
+    <g transform="translate(30, 470)">
+      <rect width="380" height="160" class="entity-rect" stroke="#7c3aed" />
+      <rect width="380" height="34" rx="12" fill="#ede9fe" />
+      <rect y="22" width="380" height="12" fill="#ede9fe" />
+      <line x1="0" y1="34" x2="380" y2="34" stroke="#ddd6fe" stroke-width="1.5"/>
+      
+      <circle cx="28" cy="17" r="9" fill="#7c3aed"/>
+      <text x="28" y="21" text-anchor="middle" font-size="10" font-weight="bold" fill="white">E2</text>
+      <text x="48" y="22" class="entity-header" fill="#6d28d9">EXTERNAL ENTITY: SHELTER MANAGER</text>
+      
+      <text x="20" y="58" class="entity-sub" fill="#334155" font-weight="600">• Shelter Registry Authority:</text>
+      <text x="20" y="74" class="entity-sub">Registers animal records (species, breed, health status)</text>
+      <text x="20" y="90" class="entity-sub">Maintains vendor/supplier directory records</text>
+      
+      <text x="20" y="112" class="entity-sub" fill="#334155" font-weight="600">• Governance & Oversight:</text>
+      <text x="20" y="128" class="entity-sub">Configures alert thresholds, ROP defaults, category rules</text>
+      <text x="20" y="144" class="entity-sub">Approves donation pledges, oversees stock-in & audit logs</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- EXTERNAL ENTITY 3: DONOR (RIGHT)                                 -->
+    <!-- ================================================================= -->
+    <g transform="translate(990, 470)">
+      <rect width="380" height="160" class="entity-rect" stroke="#d97706" />
+      <rect width="380" height="34" rx="12" fill="#fef3c7" />
+      <rect y="22" width="380" height="12" fill="#fef3c7" />
+      <line x1="0" y1="34" x2="380" y2="34" stroke="#fde68a" stroke-width="1.5"/>
+      
+      <circle cx="28" cy="17" r="9" fill="#d97706"/>
+      <text x="28" y="21" text-anchor="middle" font-size="10" font-weight="bold" fill="white">E3</text>
+      <text x="48" y="22" class="entity-header" fill="#b45309">EXTERNAL ENTITY: DONOR</text>
+      
+      <text x="20" y="58" class="entity-sub" fill="#334155" font-weight="600">• Public Supporter / In-Kind Contributor:</text>
+      <text x="20" y="74" class="entity-sub">Self-registers public donor account and logs in</text>
+      <text x="20" y="90" class="entity-sub">Submits item donation drop-off schedules & proof photos</text>
+      
+      <text x="20" y="112" class="entity-sub" fill="#334155" font-weight="600">• Recipient of Transparency:</text>
+      <text x="20" y="128" class="entity-sub">Views sanctuary high-priority replenishment needs</text>
+      <text x="20" y="144" class="entity-sub">Traces treatment FIFO impact of donated goods</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- DATA FLOWS: STAFF <-> SIYAM                                       -->
+    <!-- ================================================================= -->
+    <!-- Staff to System (Inputs) -->
+    <!-- Left path: Stock In / Stock Out / Catalog -->
+    <path d="M 580 135 L 580 230 Q 580 260 630 290 L 645 300" class="flow-line" stroke="#0284c7" marker-end="url(#arrow-blue)" />
+    <g transform="translate(420, 180)">
+      <rect x="-10" y="-12" width="220" height="42" rx="6" fill="#ffffff" stroke="#bae6fd" stroke-width="1" filter="url(#shadow)"/>
+      <text x="100" y="3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0369a1">Purchase Stock-In, Stock-Out</text>
+      <text x="100" y="18" text-anchor="middle" font-size="9.5" fill="#64748b">(Waste/Adjustment, Expiry, Units)</text>
+    </g>
+
+    <!-- Center path: Treatment Admin -->
+    <path d="M 690 135 L 690 305" class="flow-line" stroke="#0284c7" marker-end="url(#arrow-blue)" />
+    <g transform="translate(695, 200)">
+      <rect x="0" y="-12" width="190" height="42" rx="6" fill="#ffffff" stroke="#bae6fd" stroke-width="1" filter="url(#shadow)"/>
+      <text x="95" y="3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0369a1">Treatment Administration</text>
+      <text x="95" y="18" text-anchor="middle" font-size="9.5" fill="#64748b">(Dispensed Qty, Animal, Follow-up)</text>
+    </g>
+
+    <!-- System to Staff (Outputs) -->
+    <!-- Right path: Alerts & Analytics -->
+    <path d="M 755 310 L 775 250 Q 790 200 810 135" class="flow-line" stroke="#16a34a" marker-end="url(#arrow-green)" />
+    <g transform="translate(805, 175)">
+      <rect x="0" y="-12" width="230" height="54" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1" filter="url(#shadow)"/>
+      <text x="115" y="2" text-anchor="middle" font-size="10.5" font-weight="700" fill="#15803d">Stock Alerts & Medical Reminders</text>
+      <text x="115" y="16" text-anchor="middle" font-size="9.5" fill="#64748b">Replenishment Shortfalls (ADU/ROP)</text>
+      <text x="115" y="30" text-anchor="middle" font-size="9.5" fill="#64748b">Monthly Usage & "My Activity" Audit</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- DATA FLOWS: MANAGER <-> SIYAM                                     -->
+    <!-- ================================================================= -->
+    <!-- Manager to System (Inputs) -->
+    <!-- Upper curve: Animals & Suppliers & Settings -->
+    <path d="M 410 500 Q 480 470 555 450" class="flow-line" stroke="#7c3aed" marker-end="url(#arrow-purple)" />
+    <g transform="translate(370, 420)">
+      <rect x="0" y="-12" width="190" height="52" rx="6" fill="#ffffff" stroke="#ddd6fe" stroke-width="1" filter="url(#shadow)"/>
+      <text x="95" y="2" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6d28d9">Animal & Supplier Records</text>
+      <text x="95" y="16" text-anchor="middle" font-size="9.5" fill="#64748b">Alert/ROP Threshold Settings</text>
+      <text x="95" y="30" text-anchor="middle" font-size="9.5" fill="#64748b">Staff Account Enable/Disable</text>
+    </g>
+
+    <!-- Lower curve: Donation Approval & Stock-In -->
+    <path d="M 410 570 Q 480 570 565 530" class="flow-line" stroke="#7c3aed" marker-end="url(#arrow-purple)" />
+    <g transform="translate(390, 580)">
+      <rect x="0" y="-12" width="180" height="40" rx="6" fill="#ffffff" stroke="#ddd6fe" stroke-width="1" filter="url(#shadow)"/>
+      <text x="90" y="3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6d28d9">Donation Review & Approval</text>
+      <text x="90" y="18" text-anchor="middle" font-size="9.5" fill="#64748b">Manager Donation Stock-In</text>
+    </g>
+
+    <!-- System to Manager (Outputs) -->
+    <path d="M 570 490 Q 490 515 410 535" class="flow-line" stroke="#16a34a" marker-end="url(#arrow-green)" />
+    <g transform="translate(425, 492)">
+      <rect x="0" y="-12" width="165" height="40" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1" filter="url(#shadow)"/>
+      <text x="82" y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#15803d">System-Wide Audit Logs</text>
+      <text x="82" y="18" text-anchor="middle" font-size="9" fill="#64748b">Executive Reports & Overviews</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- DATA FLOWS: DONOR <-> SIYAM                                       -->
+    <!-- ================================================================= -->
+    <!-- Donor to System (Inputs) -->
+    <path d="M 990 515 Q 920 490 845 470" class="flow-line" stroke="#d97706" marker-end="url(#arrow-amber)" />
+    <g transform="translate(850, 425)">
+      <rect x="0" y="-12" width="185" height="42" rx="6" fill="#ffffff" stroke="#fde68a" stroke-width="1" filter="url(#shadow)"/>
+      <text x="92" y="3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#b45309">Donation Pledges & Drops</text>
+      <text x="92" y="18" text-anchor="middle" font-size="9.5" fill="#64748b">(Item List, Proof Img, Schedule)</text>
+    </g>
+
+    <path d="M 990 565 Q 910 560 835 520" class="flow-line" stroke="#d97706" marker-end="url(#arrow-amber)" />
+    <g transform="translate(850, 580)">
+      <rect x="0" y="-12" width="175" height="40" rx="6" fill="#ffffff" stroke="#fde68a" stroke-width="1" filter="url(#shadow)"/>
+      <text x="87" y="3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#b45309">Registration Credentials</text>
+      <text x="87" y="18" text-anchor="middle" font-size="9.5" fill="#64748b">& Account Profile Updates</text>
+    </g>
+
+    <!-- System to Donor (Outputs) -->
+    <path d="M 830 495 Q 910 515 990 540" class="flow-line" stroke="#16a34a" marker-end="url(#arrow-green)" />
+    <g transform="translate(830, 495)">
+      <rect x="0" y="-12" width="195" height="54" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1" filter="url(#shadow)"/>
+      <text x="97" y="2" text-anchor="middle" font-size="10.5" font-weight="700" fill="#15803d">Personalized Treatment Impacts</text>
+      <text x="97" y="16" text-anchor="middle" font-size="9.5" fill="#64748b">Critical Shelter Needs List</text>
+      <text x="97" y="30" text-anchor="middle" font-size="9.5" fill="#64748b">Pledge Status & Notifications</text>
+    </g>
+
+    <!-- ================================================================= -->
+    <!-- LEGEND (BOTTOM)                                                   -->
+    <!-- ================================================================= -->
+    <g transform="translate(380, 800)">
+      <rect width="640" height="70" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="320" y="20" text-anchor="middle" font-size="11.5" font-weight="800" fill="#334155">NOTATION & FLOW CONVENTIONS</text>
+      
+      <circle cx="50" cy="45" r="5" fill="#0284c7"/>
+      <text x="65" y="49" font-size="11" fill="#334155" font-weight="600">Staff Data Flows</text>
+
+      <circle cx="210" cy="45" r="5" fill="#7c3aed"/>
+      <text x="225" y="49" font-size="11" fill="#334155" font-weight="600">Manager Data Flows</text>
+
+      <circle cx="370" cy="45" r="5" fill="#d97706"/>
+      <text x="385" y="49" font-size="11" fill="#334155" font-weight="600">Donor Data Flows</text>
+
+      <circle cx="510" cy="45" r="5" fill="#16a34a"/>
+      <text x="525" y="49" font-size="11" fill="#334155" font-weight="600">System Feedback / Alerts</text>
+    </g>
+
+  </svg>
+</div>
+
+</body>
+</html>
