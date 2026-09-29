@@ -190,14 +190,88 @@ def setup_header_footer(section):
     add_field(footer, "PAGE")
 
 
-def add_bottom_border(paragraph):
+PPR_ORDER = [
+    "pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr", "widowControl",
+    "numPr", "suppressLineNumbers", "pBdr", "shd", "tabs", "suppressAutoHyphens",
+    "kinsoku", "wordWrap", "overflowPunct", "topLinePunct", "autoSpaceDE",
+    "autoSpaceDN", "bidi", "adjustRightInd", "snapToGrid", "spacing", "ind",
+    "contextualSpacing", "mirrorIndents", "suppressOverlap", "jc", "textDirection",
+    "textAlignment", "textboxTightWrap", "outlineLvl",
+]
+
+
+def insert_ppr_child(paragraph, element):
     ppr = paragraph._p.get_or_add_pPr()
+    name = element.tag.split("}")[1]
+    later = set(PPR_ORDER[PPR_ORDER.index(name) + 1:])
+    for child in ppr:
+        if child.tag.split("}")[1] in later:
+            child.addprevious(element)
+            return
+    ppr.append(element)
+
+
+def add_bottom_border(paragraph):
     borders = OxmlElement("w:pBdr")
     bottom = OxmlElement("w:bottom")
     for k, v in (("w:val", "single"), ("w:sz", "6"), ("w:space", "1"), ("w:color", "000000")):
         bottom.set(qn(k), v)
     borders.append(bottom)
-    ppr.append(borders)
+    insert_ppr_child(paragraph, borders)
+
+
+def set_outline_level(paragraph, level):
+    el = OxmlElement("w:outlineLvl")
+    el.set(qn("w:val"), str(level))
+    insert_ppr_child(paragraph, el)
+
+
+_anchors = {}
+
+
+def anchor(key):
+    """Stable bookmark name for a TOC target (file path or group key)."""
+    if key not in _anchors:
+        _anchors[key] = f"_toc_{len(_anchors) + 1:03d}"
+    return _anchors[key]
+
+
+def add_bookmark(paragraph, key):
+    bid = str(1000 + list(_anchors).index(key))
+    start = OxmlElement("w:bookmarkStart")
+    start.set(qn("w:id"), bid)
+    start.set(qn("w:name"), anchor(key))
+    end = OxmlElement("w:bookmarkEnd")
+    end.set(qn("w:id"), bid)
+    p = paragraph._p
+    first_run = p.find(qn("w:r"))
+    first_run.addprevious(start)
+    p.append(end)
+
+
+def add_internal_link(paragraph, key, text, page, bold=False):
+    link = OxmlElement("w:hyperlink")
+    link.set(qn("w:anchor"), anchor(key))
+    link.set(qn("w:history"), "1")
+
+    def run(child):
+        r = OxmlElement("w:r")
+        if bold:
+            rpr = OxmlElement("w:rPr")
+            rpr.append(OxmlElement("w:b"))
+            r.append(rpr)
+        r.append(child)
+        link.append(r)
+
+    t = OxmlElement("w:t")
+    t.set(qn("xml:space"), "preserve")
+    t.text = text
+    run(t)
+    run(OxmlElement("w:tab"))
+    t2 = OxmlElement("w:t")
+    t2.text = str(page)
+    run(t2)
+    paragraph._p.append(link)
 
 
 def code_paragraph(body, line):
@@ -260,22 +334,21 @@ def add_toc(doc, groups, appendix_title, pages):
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     bold_run(p, "TABLE OF CONTENTS", Pt(14))
 
-    def entry(text, page, bold=False, indent=0, before=0):
+    def entry(key, text, page, bold=False, indent=0, before=0):
         para = doc.add_paragraph()
         pf = para.paragraph_format
         pf.left_indent = Inches(indent)
         pf.space_before = Pt(before)
         pf.tab_stops.add_tab_stop(TEXT_WIDTH, WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
-        run = para.add_run(f"{text}\t{page}")
-        run.bold = bold
+        add_internal_link(para, key, text, page, bold)
 
     for n, (title, files) in enumerate(groups, 1):
         if not files:
             continue
-        entry(f"Part {n}. {title}", pages.get(("group", n), 0), bold=True, before=6)
+        entry(("group", n), f"Part {n}. {title}", pages.get(("group", n), 0), bold=True, before=6)
         for f in files:
-            entry(f, pages.get(f, 0), indent=0.3)
-    entry(appendix_title, pages.get(("group", "appendix"), 0), bold=True, before=6)
+            entry(f, f, pages.get(f, 0), indent=0.3)
+    entry(("group", "appendix"), appendix_title, pages.get(("group", "appendix"), 0), bold=True, before=6)
 
 
 def add_group_heading(doc, n, title):
@@ -285,6 +358,8 @@ def add_group_heading(doc, n, title):
     p.paragraph_format.space_after = Pt(6)
     bold_run(p, f"PART {n}. {title.upper()}", Pt(12))
     add_bottom_border(p)
+    set_outline_level(p, 0)
+    add_bookmark(p, ("group", n))
     return p
 
 
@@ -295,9 +370,12 @@ def add_file_heading(doc, rel):
     p.paragraph_format.space_after = Pt(3)
     bold_run(p, f"Listing: {rel}")
     add_bottom_border(p)
+    set_outline_level(p, 1)
+    add_bookmark(p, rel)
 
 
 def build_document(selected_pages, pages, out_path):
+    _anchors.clear()
     groups = build_groups(selected_pages)
     appendix_title = "Appendix. Screen Files Not Printed in This Listing"
     doc = Document()
@@ -328,6 +406,8 @@ def build_document(selected_pages, pages, out_path):
     p.paragraph_format.space_after = Pt(6)
     bold_run(p, appendix_title.upper(), Pt(12))
     add_bottom_border(p)
+    set_outline_level(p, 0)
+    add_bookmark(p, ("group", "appendix"))
     note = doc.add_paragraph(
         "The files below are part of the application but were left out of this printed "
         "listing to stay within the page limit. Each is a screen (page) file under lib/pages/."
