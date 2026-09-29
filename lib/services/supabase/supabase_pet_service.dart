@@ -61,8 +61,8 @@ class SupabasePetService implements PetService {
     String? excludePetId,
   }) async {
     final rows = await _client.from('pet').select(
-      'id, name, species, breed, owner, gender, spayed_neutered',
-    );
+          'id, name, species, breed, owner, gender, spayed_neutered',
+        );
 
     final nameKey = _key(petName);
     final breedKey = _key(breed);
@@ -73,29 +73,22 @@ class SupabasePetService implements PetService {
 
       if (id == excludePetId) continue;
 
-      final sameName =
-          _key(row['name'] as String?) == nameKey;
+      final sameName = _key(row['name'] as String?) == nameKey;
 
       final sameSpecies =
-          (row['species'] as String?) ==
-              petSpeciesToString(species);
+          (row['species'] as String?) == petSpeciesToString(species);
 
       final sameGender =
-          (row['gender'] as String?) ==
-              petGenderToString(gender);
+          (row['gender'] as String?) == petGenderToString(gender);
 
-      final sameBreed =
-          _key(row['breed'] as String?) == breedKey;
+      final sameBreed = _key(row['breed'] as String?) == breedKey;
 
-      final sameOwner =
-          _key(row['owner'] as String?) == ownerKey;
+      final sameOwner = _key(row['owner'] as String?) == ownerKey;
 
       final sameSpayStatus =
-          (row['spayed_neutered'] as bool? ?? false) ==
-              spayedNeutered;
+          (row['spayed_neutered'] as bool? ?? false) == spayedNeutered;
 
-      final exactIdentity =
-          sameName &&
+      final exactIdentity = sameName &&
           sameSpecies &&
           sameGender &&
           sameBreed &&
@@ -103,10 +96,7 @@ class SupabasePetService implements PetService {
           sameSpayStatus;
 
       final sameOwnedAnimal =
-          ownerKey.isNotEmpty &&
-          sameName &&
-          sameSpecies &&
-          sameOwner;
+          ownerKey.isNotEmpty && sameName && sameSpecies && sameOwner;
 
       if (exactIdentity || sameOwnedAnimal) {
         throw Exception(
@@ -132,8 +122,7 @@ class SupabasePetService implements PetService {
       gender: petGenderFromString(
         row['gender'] as String? ?? 'male',
       ),
-      spayedNeutered:
-          row['spayed_neutered'] as bool? ?? false,
+      spayedNeutered: row['spayed_neutered'] as bool? ?? false,
       status: petStatusFromString(
         row['status'] as String? ?? 'healthy',
       ),
@@ -153,10 +142,7 @@ class SupabasePetService implements PetService {
   }
 
   Future<List<Pet>> _loadPets() async {
-    final rows = await _client
-        .from('pet')
-        .select(_columns)
-        .order('name');
+    final rows = await _client.from('pet').select(_columns).order('name');
 
     return rows.map((row) => _mapPet(row)).toList();
   }

@@ -29,12 +29,9 @@ class MonthlyUsageReport {
 
   int get itemsUsed => rows.where((row) => row.usedQty > 0).length;
 
-  int get usageEvents =>
-      rows.fold(0, (sum, row) => sum + row.usageEvents);
+  int get usageEvents => rows.fold(0, (sum, row) => sum + row.usageEvents);
 
-  int get lossEvents =>
-      rows.fold(0, (sum, row) => sum + row.lossEvents);
+  int get lossEvents => rows.fold(0, (sum, row) => sum + row.lossEvents);
 
-  int get itemsWithLosses =>
-      rows.where((row) => row.lossQty > 0).length;
+  int get itemsWithLosses => rows.where((row) => row.lossQty > 0).length;
 }

@@ -14,8 +14,7 @@ import 'hoverable_row.dart';
 // These widgets are only for donor donation-status and impact updates.
 // =============================================================================
 
-class DonorNotificationTile
-    extends StatelessWidget {
+class DonorNotificationTile extends StatelessWidget {
   final DonorNotification notification;
   final VoidCallback onTap;
   final bool dense;
@@ -27,30 +26,21 @@ class DonorNotificationTile
     this.dense = false,
   });
 
-  Color get _accent =>
-      switch (notification.kind) {
-        DonorNotificationKind.approved =>
-          AppColors.roleDonor,
-        DonorNotificationKind.received =>
-          AppColors.primary,
-        DonorNotificationKind.impact =>
-          AppColors.primary,
+  Color get _accent => switch (notification.kind) {
+        DonorNotificationKind.approved => AppColors.roleDonor,
+        DonorNotificationKind.received => AppColors.primary,
+        DonorNotificationKind.impact => AppColors.primary,
       };
 
-  IconData get _icon =>
-      switch (notification.kind) {
-        DonorNotificationKind.approved =>
-          Icons.check_circle_outline,
-        DonorNotificationKind.received =>
-          Icons.inventory_2_outlined,
-        DonorNotificationKind.impact =>
-          Icons.favorite_outline,
+  IconData get _icon => switch (notification.kind) {
+        DonorNotificationKind.approved => Icons.check_circle_outline,
+        DonorNotificationKind.received => Icons.inventory_2_outlined,
+        DonorNotificationKind.impact => Icons.favorite_outline,
       };
 
   @override
   Widget build(BuildContext context) {
-    final date =
-        notification.displayDate;
+    final date = notification.displayDate;
 
     return HoverableRow(
       onTap: onTap,
@@ -60,8 +50,7 @@ class DonorNotificationTile
           vertical: dense ? 9 : 12,
         ),
         child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 32,
@@ -78,13 +67,10 @@ class DonorNotificationTile
                 color: _accent,
               ),
             ),
-
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
@@ -92,60 +78,46 @@ class DonorNotificationTile
                         child: Text(
                           notification.title,
                           maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight:
-                                FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-
                       if (date != null) ...[
                         const SizedBox(width: 8),
-
                         Text(
                           _formatDate(date),
                           style: const TextStyle(
                             fontSize: 10.5,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
                     ],
                   ),
-
                   const SizedBox(height: 2),
-
                   Text(
                     notification.message,
-                    maxLines:
-                        dense ? 2 : 3,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    maxLines: dense ? 2 : 3,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
                       height: 1.35,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
             const Padding(
-              padding:
-                  EdgeInsets.only(top: 7),
+              padding: EdgeInsets.only(top: 7),
               child: Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -155,10 +127,8 @@ class DonorNotificationTile
   }
 }
 
-class DonorNotificationList
-    extends StatelessWidget {
-  final List<DonorNotification>
-      notifications;
+class DonorNotificationList extends StatelessWidget {
+  final List<DonorNotification> notifications;
 
   final void Function(
     DonorNotification notification,
@@ -171,8 +141,7 @@ class DonorNotificationList
     super.key,
     required this.notifications,
     required this.onTapNotification,
-    this.emptyText =
-        'No donation updates right now.',
+    this.emptyText = 'No donation updates right now.',
     this.dense = false,
   });
 
@@ -191,39 +160,28 @@ class DonorNotificationList
       ),
       child: notifications.isEmpty
           ? Padding(
-              padding:
-                  const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Text(
                 emptyText,
                 style: const TextStyle(
                   fontSize: 12.5,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             )
           : Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                for (var i = 0;
-                    i <
-                        notifications
-                            .length;
-                    i++) ...[
+                for (var i = 0; i < notifications.length; i++) ...[
                   if (i > 0)
                     const Divider(
                       height: 1,
-                      color:
-                          AppColors.border,
+                      color: AppColors.border,
                     ),
-
                   DonorNotificationTile(
-                    notification:
-                        notifications[i],
+                    notification: notifications[i],
                     dense: dense,
-                    onTap: () =>
-                        onTapNotification(
+                    onTap: () => onTapNotification(
                       notifications[i],
                     ),
                   ),
@@ -252,8 +210,7 @@ const _monthAbbrev = [
 String _formatDate(
   DateTime date,
 ) {
-  final local =
-      date.toLocal();
+  final local = date.toLocal();
 
   return '${_monthAbbrev[local.month - 1]} '
       '${local.day}, ${local.year}';

@@ -110,7 +110,8 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
@@ -380,17 +381,14 @@ class _ForgotPasswordDialog extends StatefulWidget {
   });
 
   @override
-  State<_ForgotPasswordDialog> createState() =>
-      _ForgotPasswordDialogState();
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
 }
 
-class _ForgotPasswordDialogState
-    extends State<_ForgotPasswordDialog> {
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
   final _emailFormKey = GlobalKey<FormState>();
   final _resetFormKey = GlobalKey<FormState>();
 
-  late final TextEditingController _emailController =
-      TextEditingController(
+  late final TextEditingController _emailController = TextEditingController(
     text: widget.initialEmail,
   );
 
@@ -414,8 +412,7 @@ class _ForgotPasswordDialogState
   }
 
   Future<void> _sendCode() async {
-    if (_busy ||
-        !_emailFormKey.currentState!.validate()) {
+    if (_busy || !_emailFormKey.currentState!.validate()) {
       return;
     }
 
@@ -433,8 +430,7 @@ class _ForgotPasswordDialogState
     });
 
     try {
-      await Supabase.instance.client.auth
-          .resetPasswordForEmail(
+      await Supabase.instance.client.auth.resetPasswordForEmail(
         _emailController.text.trim(),
       );
 
@@ -453,8 +449,7 @@ class _ForgotPasswordDialogState
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not send the recovery code. Please try again.';
+        _error = 'Could not send the recovery code. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -466,8 +461,7 @@ class _ForgotPasswordDialogState
   }
 
   Future<void> _resetPassword() async {
-    if (_busy ||
-        !_resetFormKey.currentState!.validate()) {
+    if (_busy || !_resetFormKey.currentState!.validate()) {
       return;
     }
 
@@ -481,31 +475,25 @@ class _ForgotPasswordDialogState
     });
 
     try {
-      final response =
-          await Supabase.instance.client.auth
-              .verifyOTP(
+      final response = await Supabase.instance.client.auth.verifyOTP(
         email: _emailController.text.trim(),
         token: _codeController.text.trim(),
         type: OtpType.recovery,
       );
 
-      if (response.session == null ||
-          response.user == null) {
+      if (response.session == null || response.user == null) {
         throw const AuthException(
           'Invalid or expired recovery code.',
         );
       }
 
-      await Supabase.instance.client.auth
-          .updateUser(
+      await Supabase.instance.client.auth.updateUser(
         UserAttributes(
-          password:
-              _newPasswordController.text,
+          password: _newPasswordController.text,
         ),
       );
 
-      await Supabase.instance.client.auth
-          .signOut(
+      await Supabase.instance.client.auth.signOut(
         scope: SignOutScope.local,
       );
 
@@ -522,8 +510,7 @@ class _ForgotPasswordDialogState
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not reset the password. Please try again.';
+        _error = 'Could not reset the password. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -537,8 +524,7 @@ class _ForgotPasswordDialogState
   String? _validateCode(
     String? value,
   ) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Recovery code is required';
     }
 
@@ -548,13 +534,11 @@ class _ForgotPasswordDialogState
   String? _validateConfirmPassword(
     String? value,
   ) {
-    if (value == null ||
-        value.isEmpty) {
+    if (value == null || value.isEmpty) {
       return 'Please confirm your password';
     }
 
-    if (value !=
-        _newPasswordController.text) {
+    if (value != _newPasswordController.text) {
       return 'Passwords do not match';
     }
 
@@ -569,14 +553,11 @@ class _ForgotPasswordDialogState
       labelText: labelText,
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor:
-          AppColors.catGray.withValues(
+      fillColor: AppColors.catGray.withValues(
         alpha: 0.20,
       ),
-      border:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(
           16,
         ),
       ),
@@ -588,22 +569,18 @@ class _ForgotPasswordDialogState
     BuildContext context,
   ) {
     return AlertDialog(
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
           20,
         ),
       ),
       title: const Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Welcome back',
             style: TextStyle(
-              fontWeight:
-                  FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
           SizedBox(height: 4),
@@ -611,50 +588,32 @@ class _ForgotPasswordDialogState
             'Reset your password',
             style: TextStyle(
               fontSize: 13.5,
-              fontWeight:
-                  FontWeight.w400,
-              color:
-                  AppColors.mutedForeground,
+              fontWeight: FontWeight.w400,
+              color: AppColors.mutedForeground,
             ),
           ),
         ],
       ),
       content: SizedBox(
         width: 400,
-        child:
-            SingleChildScrollView(
+        child: SingleChildScrollView(
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Form(
                 key: _emailFormKey,
-                child:
-                    TextFormField(
-                  controller:
-                      _emailController,
-                  readOnly:
-                      _codeSent,
-                  keyboardType:
-                      TextInputType
-                          .emailAddress,
-                  decoration:
-                      _decoration(
-                    labelText:
-                        'Email address',
+                child: TextFormField(
+                  controller: _emailController,
+                  readOnly: _codeSent,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: _decoration(
+                    labelText: 'Email address',
                   ),
-                  validator:
-                      validateEmail,
-                  onFieldSubmitted:
-                      (_) =>
-                          _codeSent
-                              ? null
-                              : _sendCode(),
+                  validator: validateEmail,
+                  onFieldSubmitted: (_) => _codeSent ? null : _sendCode(),
                 ),
               ),
-
               if (!_codeSent) ...[
                 const SizedBox(
                   height: 12,
@@ -663,23 +622,19 @@ class _ForgotPasswordDialogState
                   'Enter your email address and SIYAM will send a recovery code to your email.',
                   style: TextStyle(
                     fontSize: 12.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
-
               if (_codeSent) ...[
                 const SizedBox(
                   height: 12,
                 ),
                 Text(
                   'A recovery code was sent to ${_emailController.text.trim()}. Enter the code and your new password below.',
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
                 const SizedBox(
@@ -690,39 +645,24 @@ class _ForgotPasswordDialogState
                   child: Column(
                     children: [
                       TextFormField(
-                        controller:
-                            _codeController,
-                        keyboardType:
-                            TextInputType
-                                .number,
-                        decoration:
-                            _decoration(
-                          labelText:
-                              'Recovery code',
+                        controller: _codeController,
+                        keyboardType: TextInputType.number,
+                        decoration: _decoration(
+                          labelText: 'Recovery code',
                         ),
-                        validator:
-                            _validateCode,
+                        validator: _validateCode,
                       ),
                       const SizedBox(
                         height: 12,
                       ),
                       TextFormField(
-                        controller:
-                            _newPasswordController,
-                        obscureText:
-                            _obscureNewPassword,
-                        decoration:
-                            _decoration(
-                          labelText:
-                              'New password',
-                          suffixIcon:
-                              IconButton(
-                            onPressed:
-                                () =>
-                                    setState(
-                              () =>
-                                  _obscureNewPassword =
-                                      !_obscureNewPassword,
+                        controller: _newPasswordController,
+                        obscureText: _obscureNewPassword,
+                        decoration: _decoration(
+                          labelText: 'New password',
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(
+                              () => _obscureNewPassword = !_obscureNewPassword,
                             ),
                             icon: Icon(
                               _obscureNewPassword
@@ -731,29 +671,20 @@ class _ForgotPasswordDialogState
                             ),
                           ),
                         ),
-                        validator:
-                            validatePassword,
+                        validator: validatePassword,
                       ),
                       const SizedBox(
                         height: 12,
                       ),
                       TextFormField(
-                        controller:
-                            _confirmPasswordController,
-                        obscureText:
-                            _obscureConfirmPassword,
-                        decoration:
-                            _decoration(
-                          labelText:
-                              'Confirm new password',
-                          suffixIcon:
-                              IconButton(
-                            onPressed:
-                                () =>
-                                    setState(
-                              () =>
-                                  _obscureConfirmPassword =
-                                      !_obscureConfirmPassword,
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        decoration: _decoration(
+                          labelText: 'Confirm new password',
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(
+                              () => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
                             ),
                             icon: Icon(
                               _obscureConfirmPassword
@@ -762,28 +693,21 @@ class _ForgotPasswordDialogState
                             ),
                           ),
                         ),
-                        validator:
-                            _validateConfirmPassword,
-                        onFieldSubmitted:
-                            (_) =>
-                                _resetPassword(),
+                        validator: _validateConfirmPassword,
+                        onFieldSubmitted: (_) => _resetPassword(),
                       ),
                     ],
                   ),
                 ),
               ],
-
-              if (_error !=
-                  null) ...[
+              if (_error != null) ...[
                 const SizedBox(
                   height: 12,
                 ),
                 Text(
                   _error!,
-                  style:
-                      const TextStyle(
-                    color:
-                        AppColors.coralRed,
+                  style: const TextStyle(
+                    color: AppColors.coralRed,
                     fontSize: 13,
                   ),
                 ),
@@ -794,47 +718,36 @@ class _ForgotPasswordDialogState
       ),
       actions: [
         TextButton(
-          onPressed:
-              _busy
-                  ? null
-                  : () =>
-                      Navigator.of(
-                        context,
-                      ).pop(false),
-          child:
-              const Text(
+          onPressed: _busy
+              ? null
+              : () => Navigator.of(
+                    context,
+                  ).pop(false),
+          child: const Text(
             'Cancel',
           ),
         ),
         ElevatedButton(
-          onPressed:
-              _busy
-                  ? null
-                  : _codeSent
-                      ? _resetPassword
-                      : _sendCode,
-          style:
-              ElevatedButton.styleFrom(
-            backgroundColor:
-                AppColors.sageGreen,
-            foregroundColor:
-                Colors.white,
+          onPressed: _busy
+              ? null
+              : _codeSent
+                  ? _resetPassword
+                  : _sendCode,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.sageGreen,
+            foregroundColor: Colors.white,
           ),
           child: _busy
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child:
-                      CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color:
-                        Colors.white,
+                    color: Colors.white,
                   ),
                 )
               : Text(
-                  _codeSent
-                      ? 'Reset Password'
-                      : 'Send Code',
+                  _codeSent ? 'Reset Password' : 'Send Code',
                 ),
         ),
       ],

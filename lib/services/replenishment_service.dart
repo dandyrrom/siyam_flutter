@@ -76,8 +76,7 @@ class ReplenishmentService {
       firstBatchDate.day,
     );
 
-    final days =
-        today.difference(firstDay).inDays + 1;
+    final days = today.difference(firstDay).inDays + 1;
 
     if (days <= 1) {
       return 1;
@@ -122,8 +121,7 @@ class ReplenishmentService {
 
     final recordedUnitId = row['dispense_unit'] as String?;
 
-    final effectiveUnitId =
-        recordedUnitId ??
+    final effectiveUnitId = recordedUnitId ??
         item.dispenseUnitId ??
         item.packageUnitId ??
         item.purchaseUnitId;
@@ -182,8 +180,7 @@ class ReplenishmentService {
   bool _stockOutCountsTowardUsage(String? reason) {
     final normalized = (reason ?? '').trim().toLowerCase();
 
-    return normalized != 'adjustment' &&
-        normalized != 'expired';
+    return normalized != 'adjustment' && normalized != 'expired';
   }
 
   ReplenishmentPriority _priorityFor({
@@ -232,8 +229,7 @@ class ReplenishmentService {
       ),
     );
 
-    final items =
-        await _inventoryService.fetchItems();
+    final items = await _inventoryService.fetchItems();
 
     InventoryItem? item;
 
@@ -250,8 +246,7 @@ class ReplenishmentService {
       );
     }
 
-    final results =
-        await Future.wait<Object?>([
+    final results = await Future.wait<Object?>([
       _client
           .from('treatment_item')
           .select(
@@ -270,9 +265,7 @@ class ReplenishmentService {
           .eq('itemid', itemId)
           .gte(
             'recordeddate',
-            startLocal
-                .toUtc()
-                .toIso8601String(),
+            startLocal.toUtc().toIso8601String(),
           ),
       _client
           .from('inventory_batch')
@@ -280,31 +273,24 @@ class ReplenishmentService {
           .eq('itemid', itemId),
     ]);
 
-    final treatmentRows =
-        results[0] as List<dynamic>;
-    final stockOutRows =
-        results[1] as List<dynamic>;
-    final batchRows =
-        results[2] as List<dynamic>;
+    final treatmentRows = results[0] as List<dynamic>;
+    final stockOutRows = results[1] as List<dynamic>;
+    final batchRows = results[2] as List<dynamic>;
 
     DateTime? firstBatchDate;
 
     for (final raw in batchRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
       final parsed = DateTime.tryParse(
-        row['receiveddate']
-                ?.toString() ??
-            '',
+        row['receiveddate']?.toString() ?? '',
       );
 
       if (parsed == null) {
         continue;
       }
 
-      final receivedLocal =
-          parsed.toLocal();
+      final receivedLocal = parsed.toLocal();
 
       final receivedDay = DateTime(
         receivedLocal.year,
@@ -312,9 +298,7 @@ class ReplenishmentService {
         receivedLocal.day,
       );
 
-      if (firstBatchDate == null ||
-          receivedDay
-              .isBefore(firstBatchDate)) {
+      if (firstBatchDate == null || receivedDay.isBefore(firstBatchDate)) {
         firstBatchDate = receivedDay;
       }
     }
@@ -322,19 +306,16 @@ class ReplenishmentService {
     double usage = 0;
 
     for (final raw in treatmentRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      usage +=
-          _treatmentPurchaseEquivalent(
+      usage += _treatmentPurchaseEquivalent(
         row,
         item,
       );
     }
 
     for (final raw in stockOutRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
       if (!_stockOutCountsTowardUsage(
         row['reason'] as String?,
@@ -342,15 +323,13 @@ class ReplenishmentService {
         continue;
       }
 
-      usage +=
-          _stockOutPurchaseEquivalent(
+      usage += _stockOutPurchaseEquivalent(
         row,
         item,
       );
     }
 
-    final observationDays =
-        _observationDaysFor(
+    final observationDays = _observationDaysFor(
       today: DateTime(
         now.year,
         now.month,
@@ -394,7 +373,6 @@ class ReplenishmentService {
           : _inventoryService.fetchItems(),
       _settingsService.fetchSettings(),
       _ropService.fetchOverrides(),
-
       _client
           .from('treatment_item')
           .select(
@@ -404,7 +382,6 @@ class ReplenishmentService {
             'consumeddate',
             _dateOnly(startLocal),
           ),
-
       _client
           .from('stock_out')
           .select(
@@ -414,10 +391,7 @@ class ReplenishmentService {
             'recordeddate',
             startLocal.toUtc().toIso8601String(),
           ),
-
-      _client
-          .from('inventory_batch')
-          .select(
+      _client.from('inventory_batch').select(
             'itemid, receiveddate',
           ),
     ]);
@@ -434,8 +408,7 @@ class ReplenishmentService {
     };
 
     final overrideByItemId = <String, ItemRopSettings>{
-      for (final ropOverride in overrides)
-        ropOverride.itemId: ropOverride,
+      for (final ropOverride in overrides) ropOverride.itemId: ropOverride,
     };
 
     // -------------------------------------------------------------------------
@@ -449,15 +422,12 @@ class ReplenishmentService {
     // Items without batch history keep the original 30-day denominator.
     // -------------------------------------------------------------------------
 
-    final firstBatchDateByItemId =
-        <String, DateTime>{};
+    final firstBatchDateByItemId = <String, DateTime>{};
 
     for (final raw in batchRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final itemId =
-          row['itemid'] as String?;
+      final itemId = row['itemid'] as String?;
 
       if (itemId == null) {
         continue;
@@ -471,8 +441,7 @@ class ReplenishmentService {
         continue;
       }
 
-      final receivedLocal =
-          parsed.toLocal();
+      final receivedLocal = parsed.toLocal();
 
       final receivedDay = DateTime(
         receivedLocal.year,
@@ -480,13 +449,10 @@ class ReplenishmentService {
         receivedLocal.day,
       );
 
-      final current =
-          firstBatchDateByItemId[itemId];
+      final current = firstBatchDateByItemId[itemId];
 
-      if (current == null ||
-          receivedDay.isBefore(current)) {
-        firstBatchDateByItemId[itemId] =
-            receivedDay;
+      if (current == null || receivedDay.isBefore(current)) {
+        firstBatchDateByItemId[itemId] = receivedDay;
       }
     }
 
@@ -504,14 +470,11 @@ class ReplenishmentService {
       final item = itemById[itemId];
       if (item == null) continue;
 
-      final purchaseEquivalent =
-          _treatmentPurchaseEquivalent(row, item);
+      final purchaseEquivalent = _treatmentPurchaseEquivalent(row, item);
 
       if (purchaseEquivalent <= 0) continue;
 
-      usageByItemId[itemId] =
-          (usageByItemId[itemId] ?? 0) +
-          purchaseEquivalent;
+      usageByItemId[itemId] = (usageByItemId[itemId] ?? 0) + purchaseEquivalent;
     }
 
     // -------------------------------------------------------------------------
@@ -533,14 +496,11 @@ class ReplenishmentService {
       final item = itemById[itemId];
       if (item == null) continue;
 
-      final purchaseEquivalent =
-          _stockOutPurchaseEquivalent(row, item);
+      final purchaseEquivalent = _stockOutPurchaseEquivalent(row, item);
 
       if (purchaseEquivalent <= 0) continue;
 
-      usageByItemId[itemId] =
-          (usageByItemId[itemId] ?? 0) +
-          purchaseEquivalent;
+      usageByItemId[itemId] = (usageByItemId[itemId] ?? 0) + purchaseEquivalent;
     }
 
     // -------------------------------------------------------------------------
@@ -550,33 +510,26 @@ class ReplenishmentService {
     final rows = <ReplenishmentItem>[];
 
     for (final item in items) {
-      final ropOverride =
-          overrideByItemId[item.itemId];
+      final ropOverride = overrideByItemId[item.itemId];
 
       final leadTimeDays =
-          ropOverride?.leadTimeDays ??
-          settings.defaultLeadTimeDays;
+          ropOverride?.leadTimeDays ?? settings.defaultLeadTimeDays;
 
       final safetyStockQty =
-          ropOverride?.safetyStockQty ??
-          settings.defaultSafetyStockQty;
+          ropOverride?.safetyStockQty ?? settings.defaultSafetyStockQty;
 
-      final usage30 =
-          usageByItemId[item.itemId] ?? 0;
+      final usage30 = usageByItemId[item.itemId] ?? 0;
 
-      final observationDays =
-          _observationDaysFor(
+      final observationDays = _observationDaysFor(
         today: DateTime(
           now.year,
           now.month,
           now.day,
         ),
-        firstBatchDate:
-            firstBatchDateByItemId[item.itemId],
+        firstBatchDate: firstBatchDateByItemId[item.itemId],
       );
 
-      final adu =
-          usage30 / observationDays;
+      final adu = usage30 / observationDays;
 
       // -----------------------------------------------------------------------
       // OPERATIONAL WHOLE-UNIT ROP
@@ -597,12 +550,9 @@ class ReplenishmentService {
       // Rounding down could leave the shelter below the calculated threshold.
       // -----------------------------------------------------------------------
 
-      final rawReorderPoint =
-          (adu * leadTimeDays) +
-          safetyStockQty;
+      final rawReorderPoint = (adu * leadTimeDays) + safetyStockQty;
 
-      final reorderPoint =
-          rawReorderPoint.ceilToDouble();
+      final reorderPoint = rawReorderPoint.ceilToDouble();
 
       // If there is no demand and no safety stock, there is no meaningful ROP
       // to act on.
@@ -610,12 +560,10 @@ class ReplenishmentService {
         continue;
       }
 
-      final currentStock =
-          item.currentPurchaseUnitEquivalent;
+      final currentStock = item.currentPurchaseUnitEquivalent;
 
       // Use the actionable whole-unit ROP as the actual trigger point.
-      if (currentStock >
-          reorderPoint + 0.000000001) {
+      if (currentStock > reorderPoint + 0.000000001) {
         continue;
       }
 
@@ -658,8 +606,7 @@ class ReplenishmentService {
 
     // Critical → High → Medium, then largest shortage first.
     rows.sort((a, b) {
-      final byPriority =
-          a.priority.index.compareTo(
+      final byPriority = a.priority.index.compareTo(
         b.priority.index,
       );
 
@@ -667,8 +614,7 @@ class ReplenishmentService {
         return byPriority;
       }
 
-      final byShortage =
-          b.suggestedQty.compareTo(
+      final byShortage = b.suggestedQty.compareTo(
         a.suggestedQty,
       );
 
@@ -676,9 +622,7 @@ class ReplenishmentService {
         return byShortage;
       }
 
-      return a.item.itemName
-          .toLowerCase()
-          .compareTo(
+      return a.item.itemName.toLowerCase().compareTo(
             b.item.itemName.toLowerCase(),
           );
     });

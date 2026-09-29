@@ -32,8 +32,7 @@ enum _SortOption {
 class _InventoryPageState extends State<InventoryPage>
     with DataBusRefreshMixin<InventoryPage> {
   final InventoryService _service = InventoryService();
-  final ReplenishmentService _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
   final TextEditingController _searchCtrl = TextEditingController();
 
   List<InventoryItem> _items = [];
@@ -247,15 +246,13 @@ class _InventoryPageState extends State<InventoryPage>
 
       final items = results[0] as List<InventoryItem>;
 
-      final replenishmentRows =
-          results[1] as List<ReplenishmentItem>;
+      final replenishmentRows = results[1] as List<ReplenishmentItem>;
 
       setState(() {
         _items = items;
 
         _replenishmentByItemId = {
-          for (final row in replenishmentRows)
-            row.item.itemId: row,
+          for (final row in replenishmentRows) row.item.itemId: row,
         };
 
         _loading = false;
@@ -267,8 +264,7 @@ class _InventoryPageState extends State<InventoryPage>
 
       if (!silent) {
         setState(() {
-          _error =
-              'Could not load inventory: $e';
+          _error = 'Could not load inventory: $e';
 
           _loading = false;
         });
@@ -297,8 +293,7 @@ class _InventoryPageState extends State<InventoryPage>
       }
     }
 
-    final list = byId.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final list = byId.values.toList()..sort((a, b) => a.name.compareTo(b.name));
 
     return list;
   }
@@ -331,8 +326,7 @@ class _InventoryPageState extends State<InventoryPage>
               ? item.pCategoryId == _selectedPCategoryId
               : true;
 
-      final matchesStockLevel =
-          _stockLevelFilter == null ||
+      final matchesStockLevel = _stockLevelFilter == null ||
           _stockLevelFor(item) == _stockLevelFilter;
 
       final matchesSource =
@@ -377,11 +371,11 @@ class _InventoryPageState extends State<InventoryPage>
       case _SortOption.nameDesc:
         return ('Name (Z–A)', Icons.arrow_downward);
 
-     case _SortOption.stockAsc:
-  return ('Quantity-on-Hand (Low–High)', Icons.arrow_upward);
+      case _SortOption.stockAsc:
+        return ('Quantity-on-Hand (Low–High)', Icons.arrow_upward);
 
-case _SortOption.stockDesc:
-  return ('Quantity-on-Hand (High–Low)', Icons.arrow_downward);
+      case _SortOption.stockDesc:
+        return ('Quantity-on-Hand (High–Low)', Icons.arrow_downward);
     }
   }
 
@@ -430,9 +424,8 @@ case _SortOption.stockDesc:
       return;
     }
 
-    final route = itemId == null
-        ? '/inventory/add'
-        : '/inventory/add?itemId=$itemId';
+    final route =
+        itemId == null ? '/inventory/add' : '/inventory/add?itemId=$itemId';
 
     _goodsReceivedOpen = true;
 
@@ -465,8 +458,7 @@ case _SortOption.stockDesc:
     final result = await showStockOutDialog(
       context,
       service: _service,
-      recordedByUserId:
-          context.read<AuthController>().profile!.userId,
+      recordedByUserId: context.read<AuthController>().profile!.userId,
       item: item,
       items: _items,
     );
@@ -518,8 +510,7 @@ case _SortOption.stockDesc:
       return StockLevel.outOfStock;
     }
 
-    if (item.currentPurchaseUnitEquivalent <=
-        lowStockPurchaseUnitThreshold) {
+    if (item.currentPurchaseUnitEquivalent <= lowStockPurchaseUnitThreshold) {
       return StockLevel.low;
     }
 
@@ -593,9 +584,7 @@ case _SortOption.stockDesc:
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     Text(
                       item.itemName,
                       style: const TextStyle(
@@ -606,9 +595,7 @@ case _SortOption.stockDesc:
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
                       '${formatQty(_currentStockQty(item))} '
                       '${_currentStockUnit(item)}',
@@ -618,7 +605,6 @@ case _SortOption.stockDesc:
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     if (equivalentLabel != null) ...[
                       const SizedBox(height: 3),
                       Text(
@@ -630,7 +616,6 @@ case _SortOption.stockDesc:
                         textAlign: TextAlign.center,
                       ),
                     ],
-
                     if (conversionLabel != null) ...[
                       const SizedBox(height: 2),
                       Text(
@@ -642,19 +627,16 @@ case _SortOption.stockDesc:
                         textAlign: TextAlign.center,
                       ),
                     ],
-
                     if (item.hasExpiredStock) ...[
                       const SizedBox(height: 10),
                       _ExpiryNotice(
                         icon: Icons.error_outline,
-                        text:
-                            '${formatQty(item.expiredBatchStockQty)} '
+                        text: '${formatQty(item.expiredBatchStockQty)} '
                             '${item.currentUsableStockUnit} expired · '
                             'awaiting removal',
                         color: AppColors.destructive,
                       ),
                     ],
-
                     if (expiryDetail != null) ...[
                       const SizedBox(height: 6),
                       _ExpiryNotice(
@@ -663,9 +645,7 @@ case _SortOption.stockDesc:
                         color: _nearestExpiryColor(item),
                       ),
                     ],
-
                     const SizedBox(height: 8),
-
                     Text(
                       item.pCategoryName,
                       style: const TextStyle(
@@ -674,11 +654,9 @@ case _SortOption.stockDesc:
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 16),
                     const Divider(height: 1),
                     const SizedBox(height: 8),
-
                     _buildActionTile(
                       icon: Icons.inventory_2_outlined,
                       iconColor: AppColors.primary,
@@ -691,7 +669,6 @@ case _SortOption.stockDesc:
                         );
                       },
                     ),
-
                     _buildActionTile(
                       icon: Icons.arrow_downward,
                       iconColor: AppColors.destructive,
@@ -702,7 +679,6 @@ case _SortOption.stockDesc:
                         _openDispenseDialog(item: item);
                       },
                     ),
-
                     _buildActionTile(
                       icon: Icons.visibility,
                       iconColor: AppColors.mutedForeground,
@@ -715,9 +691,7 @@ case _SortOption.stockDesc:
                         );
                       },
                     ),
-
                     const SizedBox(height: 4),
-
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Close'),
@@ -763,8 +737,7 @@ case _SortOption.stockDesc:
 
   @override
   Widget build(BuildContext context) {
-    final isMobile =
-        MediaQuery.of(context).size.width < 600;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     if (_loading && _items.isEmpty) {
       return const PageLoading(
@@ -807,9 +780,7 @@ case _SortOption.stockDesc:
                   fontWeight: FontWeight.w800,
                 ),
               ),
-
               const SizedBox(height: 2),
-
               Text(
                 '${_items.length} items',
                 style: const TextStyle(
@@ -817,9 +788,7 @@ case _SortOption.stockDesc:
                   color: AppColors.mutedForeground,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               Row(
                 children: [
                   Expanded(
@@ -832,9 +801,7 @@ case _SortOption.stockDesc:
                       label: const Text('Goods Received'),
                     ),
                   ),
-
                   const SizedBox(width: 8),
-
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _openDispenseDialog,
@@ -867,7 +834,6 @@ case _SortOption.stockDesc:
                   ),
                 ),
               ),
-
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -879,9 +845,7 @@ case _SortOption.stockDesc:
                     ),
                     label: const Text('Goods Received'),
                   ),
-
                   const SizedBox(width: 12),
-
                   OutlinedButton.icon(
                     onPressed: _openDispenseDialog,
                     style: OutlinedButton.styleFrom(
@@ -897,9 +861,7 @@ case _SortOption.stockDesc:
               ),
             ],
           ),
-
         const SizedBox(height: 2),
-
         if (!isMobile)
           Text(
             '${_items.length} items',
@@ -908,9 +870,7 @@ case _SortOption.stockDesc:
               color: AppColors.mutedForeground,
             ),
           ),
-
         const SizedBox(height: 20),
-
         Container(
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -964,7 +924,6 @@ case _SortOption.stockDesc:
                         ),
                       ),
                     ),
-
                     _CategoryFilterMenu(
                       label: _categoryLabel,
                       primaryCategories: _primaryCategories,
@@ -991,7 +950,6 @@ case _SortOption.stockDesc:
                         );
                       },
                     ),
-
                     AppDropdown<StockLevel?>(
                       label: _stockLevelFilter == null
                           ? 'Stock Level'
@@ -1035,7 +993,6 @@ case _SortOption.stockDesc:
                         });
                       },
                     ),
-
                     AppDropdown<AcquisitionSource?>(
                       label: _sourceFilter == null
                           ? 'Source'
@@ -1047,8 +1004,7 @@ case _SortOption.stockDesc:
                           null,
                           'All sources',
                         ),
-                        for (final source
-                            in AcquisitionSource.values)
+                        for (final source in AcquisitionSource.values)
                           AppDropdownOption(
                             source,
                             _sourceMeta(source).$1,
@@ -1061,10 +1017,8 @@ case _SortOption.stockDesc:
                         });
                       },
                     ),
-
                     AppDropdown<_SortOption>(
-                      label:
-                          'Sort: ${_sortMeta(_sortOption).$1}',
+                      label: 'Sort: ${_sortMeta(_sortOption).$1}',
                       options: [
                         for (final option in _SortOption.values)
                           AppDropdownOption(
@@ -1078,7 +1032,6 @@ case _SortOption.stockDesc:
                         });
                       },
                     ),
-
                     if (_hasActiveFilters)
                       TextButton.icon(
                         onPressed: _resetFilters,
@@ -1091,9 +1044,7 @@ case _SortOption.stockDesc:
                   ],
                 ),
               ),
-
               const Divider(height: 1),
-
               if (_items.isEmpty)
                 const Center(
                   child: Padding(
@@ -1199,39 +1150,27 @@ case _SortOption.stockDesc:
                       ],
                     ),
                   ),
-
-                if (!isMobile)
-                  const Divider(height: 1),
-
+                if (!isMobile) const Divider(height: 1),
                 Column(
                   children: [
-                    for (var index = 0;
-                        index < _pageItems.length;
-                        index++) ...[
-                      if (index > 0)
-                        const Divider(height: 1),
-
+                    for (var index = 0; index < _pageItems.length; index++) ...[
+                      if (index > 0) const Divider(height: 1),
                       Builder(
                         builder: (context) {
                           final item = _pageItems[index];
 
-                          final stockLevel =
-                              _stockLevelFor(item);
+                          final stockLevel = _stockLevelFor(item);
 
                           final (levelLabel, levelColor) =
                               _stockLevelMeta(stockLevel);
 
-                          final replenishment =
-                              _replenishmentFor(item);
+                          final replenishment = _replenishmentFor(item);
 
-                          final currentStockQty =
-                              _currentStockQty(item);
+                          final currentStockQty = _currentStockQty(item);
 
-                          final currentStockUnit =
-                              _currentStockUnit(item);
+                          final currentStockUnit = _currentStockUnit(item);
 
-                          final equivalentLabel =
-                              _equivalentStockLabel(item);
+                          final equivalentLabel = _equivalentStockLabel(item);
 
                           if (!isMobile) {
                             return HoverableRow(
@@ -1252,38 +1191,31 @@ case _SortOption.stockDesc:
                                       child: Text(
                                         item.displayId,
                                         style: const TextStyle(
-                                          color:
-                                              AppColors.mutedForeground,
+                                          color: AppColors.mutedForeground,
                                         ),
                                       ),
                                     ),
-
                                     Expanded(
                                       flex: 4,
                                       child: Row(
                                         children: [
                                           Flexible(
                                             child: RichText(
-                                              overflow:
-                                                  TextOverflow.ellipsis,
+                                              overflow: TextOverflow.ellipsis,
                                               text: TextSpan(
                                                 style: const TextStyle(
-                                                  fontWeight:
-                                                      FontWeight.w600,
-                                                  color:
-                                                      AppColors.foreground,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.foreground,
                                                 ),
                                                 children: [
                                                   TextSpan(
                                                     text: item.itemName,
                                                   ),
-                                                  if (item.packageLabel !=
-                                                      null)
+                                                  if (item.packageLabel != null)
                                                     TextSpan(
                                                       text:
                                                           ' ${item.packageLabel}',
-                                                      style:
-                                                          const TextStyle(
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.w400,
                                                         color: AppColors
@@ -1297,29 +1229,24 @@ case _SortOption.stockDesc:
                                         ],
                                       ),
                                     ),
-
                                     const SizedBox(width: 16),
-
                                     Expanded(
                                       flex: 2,
                                       child: Align(
-                                        alignment:
-                                            Alignment.centerLeft,
+                                        alignment: Alignment.centerLeft,
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 10,
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color:
-                                                AppColors.secondary,
+                                            color: AppColors.secondary,
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
                                           child: Text(
                                             item.pCategoryName,
-                                            overflow:
-                                                TextOverflow.ellipsis,
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                               fontSize: 12,
                                             ),
@@ -1327,9 +1254,7 @@ case _SortOption.stockDesc:
                                         ),
                                       ),
                                     ),
-
                                     const SizedBox(width: 16),
-
                                     Expanded(
                                       flex: 2,
                                       child: Column(
@@ -1340,43 +1265,35 @@ case _SortOption.stockDesc:
                                           Text(
                                             '${formatQty(currentStockQty)} '
                                             '$currentStockUnit',
-                                            overflow:
-                                                TextOverflow.ellipsis,
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
-                                              fontWeight:
-                                                  FontWeight.w700,
+                                              fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                           if (equivalentLabel != null) ...[
                                             const SizedBox(height: 2),
                                             Text(
                                               equivalentLabel,
-                                              overflow:
-                                                  TextOverflow.ellipsis,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 fontSize: 10.5,
-                                                color: AppColors
-                                                    .mutedForeground,
+                                                color:
+                                                    AppColors.mutedForeground,
                                               ),
                                             ),
                                           ],
                                         ],
                                       ),
                                     ),
-
                                     const SizedBox(width: 16),
-
                                     Expanded(
                                       flex: 3,
                                       child: _ExpiryCell(
                                         item: item,
-                                        formatDate:
-                                            _formatExpiryDate,
+                                        formatDate: _formatExpiryDate,
                                       ),
                                     ),
-
                                     const SizedBox(width: 16),
-
                                     Expanded(
                                       flex: 2,
                                       child: Column(
@@ -1388,10 +1305,10 @@ case _SortOption.stockDesc:
                                             label: levelLabel,
                                             color: levelColor,
                                           ),
-                                          if ((stockLevel ==
-                                                      StockLevel.low ||
+                                          if ((stockLevel == StockLevel.low ||
                                                   stockLevel ==
-                                                      StockLevel.needsRestock) &&
+                                                      StockLevel
+                                                          .needsRestock) &&
                                               replenishment != null) ...[
                                             const SizedBox(height: 3),
                                             Text(
@@ -1399,22 +1316,19 @@ case _SortOption.stockDesc:
                                               '${item.purchaseUnitAbbr}',
                                               style: const TextStyle(
                                                 fontSize: 9.5,
-                                                color: AppColors
-                                                    .mutedForeground,
+                                                color:
+                                                    AppColors.mutedForeground,
                                               ),
                                             ),
                                           ],
                                         ],
                                       ),
                                     ),
-
                                     SizedBox(
                                       width: 56,
                                       child: Align(
-                                        alignment:
-                                            Alignment.centerRight,
-                                        child:
-                                            AppMenuButton<String>(
+                                        alignment: Alignment.centerRight,
+                                        child: AppMenuButton<String>(
                                           alignRight: true,
                                           options: const [
                                             AppDropdownOption(
@@ -1431,15 +1345,13 @@ case _SortOption.stockDesc:
                                             ),
                                           ],
                                           onSelected: (value) {
-                                            if (value ==
-                                                'receive') {
+                                            if (value == 'receive') {
                                               _openGoodsReceived(
                                                 itemId: item.itemId,
                                               );
                                             }
 
-                                            if (value ==
-                                                'dispense') {
+                                            if (value == 'dispense') {
                                               _openDispenseDialog(
                                                 item: item,
                                               );
@@ -1456,8 +1368,7 @@ case _SortOption.stockDesc:
                                             isOpen,
                                           ) {
                                             return const Padding(
-                                              padding:
-                                                  EdgeInsets.all(6),
+                                              padding: EdgeInsets.all(6),
                                               child: Icon(
                                                 Icons.more_horiz,
                                                 size: 18,
@@ -1480,65 +1391,52 @@ case _SortOption.stockDesc:
                                 item,
                               );
                             },
-                            borderRadius:
-                                BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 12,
                               ),
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
                                       Text(
                                         item.displayId,
                                         style: const TextStyle(
-                                          color:
-                                              AppColors.mutedForeground,
+                                          color: AppColors.mutedForeground,
                                           fontSize: 12,
                                         ),
                                       ),
-
                                       const SizedBox(width: 8),
-
                                       Expanded(
                                         child: Text(
                                           item.itemName,
                                           style: const TextStyle(
-                                            fontWeight:
-                                                FontWeight.w600,
+                                            fontWeight: FontWeight.w600,
                                             fontSize: 15,
                                           ),
-                                          overflow:
-                                              TextOverflow.ellipsis,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-
                                       const Icon(
                                         Icons.chevron_right,
                                         size: 18,
-                                        color:
-                                            AppColors.mutedForeground,
+                                        color: AppColors.mutedForeground,
                                       ),
                                     ],
                                   ),
-
                                   const SizedBox(height: 7),
-
                                   Row(
                                     children: [
                                       Container(
-                                        padding:
-                                            const EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color:
-                                              AppColors.secondary,
+                                          color: AppColors.secondary,
                                           borderRadius:
                                               BorderRadius.circular(12),
                                         ),
@@ -1549,17 +1447,13 @@ case _SortOption.stockDesc:
                                           ),
                                         ),
                                       ),
-
                                       const SizedBox(width: 8),
-
                                       _SmallBadge(
                                         label: levelLabel,
                                         color: levelColor,
                                         small: true,
                                       ),
-
                                       const Spacer(),
-
                                       Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.end,
@@ -1568,8 +1462,7 @@ case _SortOption.stockDesc:
                                             '${formatQty(currentStockQty)} '
                                             '$currentStockUnit',
                                             style: const TextStyle(
-                                              fontWeight:
-                                                  FontWeight.w700,
+                                              fontWeight: FontWeight.w700,
                                               fontSize: 14,
                                             ),
                                           ),
@@ -1578,23 +1471,20 @@ case _SortOption.stockDesc:
                                               equivalentLabel,
                                               style: const TextStyle(
                                                 fontSize: 10,
-                                                color: AppColors
-                                                    .mutedForeground,
+                                                color:
+                                                    AppColors.mutedForeground,
                                               ),
                                             ),
                                         ],
                                       ),
                                     ],
                                   ),
-
                                   if (item.hasExpiredStock ||
-                                      item.nearestExpiryDate !=
-                                          null) ...[
+                                      item.nearestExpiryDate != null) ...[
                                     const SizedBox(height: 8),
                                     _ExpiryCell(
                                       item: item,
-                                      formatDate:
-                                          _formatExpiryDate,
+                                      formatDate: _formatExpiryDate,
                                       compact: true,
                                     ),
                                   ],
@@ -1607,9 +1497,7 @@ case _SortOption.stockDesc:
                     ],
                   ],
                 ),
-
                 const Divider(height: 1),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -1619,13 +1507,11 @@ case _SortOption.stockDesc:
                       ? Column(
                           children: [
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const Text(
                                   'Show',
-                                  style:
-                                      TextStyle(fontSize: 12.5),
+                                  style: TextStyle(fontSize: 12.5),
                                 ),
                                 const SizedBox(width: 8),
                                 AppDropdown<int>(
@@ -1636,8 +1522,7 @@ case _SortOption.stockDesc:
                                     50,
                                   ]
                                       .map(
-                                        (number) =>
-                                            AppDropdownOption(
+                                        (number) => AppDropdownOption(
                                           number,
                                           '$number',
                                         ),
@@ -1653,14 +1538,11 @@ case _SortOption.stockDesc:
                                 const SizedBox(width: 8),
                                 const Text(
                                   'Per Page',
-                                  style:
-                                      TextStyle(fontSize: 12.5),
+                                  style: TextStyle(fontSize: 12.5),
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 8),
-
                             _PaginationControls(
                               page: _page,
                               pageCount: _pageCount,
@@ -1671,27 +1553,24 @@ case _SortOption.stockDesc:
                                       });
                                     }
                                   : null,
-                              onNext:
-                                  _page < _pageCount - 1
-                                      ? () {
-                                          setState(() {
-                                            _page++;
-                                          });
-                                        }
-                                      : null,
+                              onNext: _page < _pageCount - 1
+                                  ? () {
+                                      setState(() {
+                                        _page++;
+                                      });
+                                    }
+                                  : null,
                             ),
                           ],
                         )
                       : Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
                                 const Text(
                                   'Show',
-                                  style:
-                                      TextStyle(fontSize: 12.5),
+                                  style: TextStyle(fontSize: 12.5),
                                 ),
                                 const SizedBox(width: 8),
                                 AppDropdown<int>(
@@ -1702,8 +1581,7 @@ case _SortOption.stockDesc:
                                     50,
                                   ]
                                       .map(
-                                        (number) =>
-                                            AppDropdownOption(
+                                        (number) => AppDropdownOption(
                                           number,
                                           '$number',
                                         ),
@@ -1719,12 +1597,10 @@ case _SortOption.stockDesc:
                                 const SizedBox(width: 8),
                                 const Text(
                                   'Per Page',
-                                  style:
-                                      TextStyle(fontSize: 12.5),
+                                  style: TextStyle(fontSize: 12.5),
                                 ),
                               ],
                             ),
-
                             _PaginationControls(
                               page: _page,
                               pageCount: _pageCount,
@@ -1735,14 +1611,13 @@ case _SortOption.stockDesc:
                                       });
                                     }
                                   : null,
-                              onNext:
-                                  _page < _pageCount - 1
-                                      ? () {
-                                          setState(() {
-                                            _page++;
-                                          });
-                                        }
-                                      : null,
+                              onNext: _page < _pageCount - 1
+                                  ? () {
+                                      setState(() {
+                                        _page++;
+                                      });
+                                    }
+                                  : null,
                             ),
                           ],
                         ),
@@ -1813,8 +1688,7 @@ class _ExpiryCell extends StatelessWidget {
         );
       }
 
-      final isWarning =
-          item.isExpiringSoon || item.expiresToday;
+      final isWarning = item.isExpiringSoon || item.expiresToday;
 
       String timing;
 
@@ -1833,9 +1707,7 @@ class _ExpiryCell extends StatelessWidget {
             Icon(
               Icons.schedule_outlined,
               size: 13,
-              color: isWarning
-                  ? AppColors.warning
-                  : AppColors.mutedForeground,
+              color: isWarning ? AppColors.warning : AppColors.mutedForeground,
             ),
             const SizedBox(width: 4),
             Flexible(
@@ -1844,12 +1716,9 @@ class _ExpiryCell extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: compact ? 10.5 : 11.5,
-                  fontWeight: isWarning
-                      ? FontWeight.w600
-                      : FontWeight.w400,
-                  color: isWarning
-                      ? AppColors.warning
-                      : AppColors.mutedForeground,
+                  fontWeight: isWarning ? FontWeight.w600 : FontWeight.w400,
+                  color:
+                      isWarning ? AppColors.warning : AppColors.mutedForeground,
                 ),
               ),
             ),
@@ -1987,9 +1856,7 @@ class _PaginationControls extends StatelessWidget {
           ),
           label: const Text('Previous'),
         ),
-
         const SizedBox(width: 4),
-
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 10,
@@ -2007,9 +1874,7 @@ class _PaginationControls extends StatelessWidget {
             ),
           ),
         ),
-
         const SizedBox(width: 4),
-
         TextButton.icon(
           onPressed: onNext,
           icon: const Icon(
@@ -2064,8 +1929,7 @@ class _CategoryFilterMenu extends StatefulWidget {
   });
 
   @override
-  State<_CategoryFilterMenu> createState() =>
-      _CategoryFilterMenuState();
+  State<_CategoryFilterMenu> createState() => _CategoryFilterMenuState();
 }
 
 class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
@@ -2118,9 +1982,7 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
                       _select(widget.onSelectAll);
                     },
                   ),
-
-                  for (final primary
-                      in widget.primaryCategories)
+                  for (final primary in widget.primaryCategories)
                     MouseRegion(
                       onEnter: (_) {
                         _hoveredPrimaryId = primary.id;
@@ -2128,8 +1990,7 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
                       },
                       child: AppDropdownMenuRow(
                         label: primary.name,
-                        hasChildren:
-                            primary.subcategories.isNotEmpty,
+                        hasChildren: primary.subcategories.isNotEmpty,
                         onTap: () {
                           _select(
                             () {
@@ -2142,10 +2003,8 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
                 ],
               ),
             ),
-
             if (hovered != null && subs.isNotEmpty) ...[
               const VerticalDivider(width: 1),
-
               SizedBox(
                 width: 200,
                 child: Column(
@@ -2161,7 +2020,6 @@ class _CategoryFilterMenuState extends State<_CategoryFilterMenu>
                         );
                       },
                     ),
-
                     for (final entry in subs)
                       AppDropdownMenuRow(
                         label: entry.value,
@@ -2218,9 +2076,7 @@ class _HeaderCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: alignEnd
-          ? Alignment.centerRight
-          : Alignment.centerLeft,
+      alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
       child: Text(
         label,
         style: const TextStyle(

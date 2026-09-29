@@ -16,42 +16,32 @@ class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
   @override
-  State<NotificationsPage> createState() =>
-      _NotificationsPageState();
+  State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState
-    extends State<NotificationsPage>
+class _NotificationsPageState extends State<NotificationsPage>
     with DataBusRefreshMixin<NotificationsPage> {
-  final DashboardService _service =
-      DashboardService();
+  final DashboardService _service = DashboardService();
 
-  final DonorNotificationService
-      _donorNotificationService =
+  final DonorNotificationService _donorNotificationService =
       DonorNotificationService();
 
   ManagerDashboardStats? _stats;
 
-  List<DonorNotification>
-      _donorNotifications = [];
+  List<DonorNotification> _donorNotifications = [];
 
   bool _loading = true;
   String? _error;
 
-  AppRole? get _role => context
-      .read<AuthController>()
-      .profile
-      ?.role;
+  AppRole? get _role => context.read<AuthController>().profile?.role;
 
   bool get _showsInventoryAlerts {
     final role = _role;
 
-    return role == AppRole.manager ||
-        role == AppRole.staff;
+    return role == AppRole.manager || role == AppRole.staff;
   }
 
-  bool get _showsDonorUpdates =>
-      _role == AppRole.donor;
+  bool get _showsDonorUpdates => _role == AppRole.donor;
 
   @override
   void initState() {
@@ -79,9 +69,7 @@ class _NotificationsPageState
   Future<void> _load({
     bool silent = false,
   }) async {
-    final profile = context
-        .read<AuthController>()
-        .profile;
+    final profile = context.read<AuthController>().profile;
 
     if (profile == null) {
       if (!mounted) return;
@@ -108,17 +96,14 @@ class _NotificationsPageState
 
     if (_showsDonorUpdates) {
       try {
-        final notifications =
-            await _donorNotificationService
-                .fetchForDonor(
+        final notifications = await _donorNotificationService.fetchForDonor(
           profile.userId,
         );
 
         if (!mounted) return;
 
         setState(() {
-          _donorNotifications =
-              notifications;
+          _donorNotifications = notifications;
           _stats = null;
           _loading = false;
           _error = null;
@@ -128,8 +113,7 @@ class _NotificationsPageState
 
         if (!silent) {
           setState(() {
-            _error =
-                'Could not load notifications: $e';
+            _error = 'Could not load notifications: $e';
             _loading = false;
           });
         }
@@ -144,8 +128,7 @@ class _NotificationsPageState
 
     if (_showsInventoryAlerts) {
       try {
-        final stats =
-            await _service.fetchManagerStats();
+        final stats = await _service.fetchManagerStats();
 
         if (!mounted) return;
 
@@ -160,8 +143,7 @@ class _NotificationsPageState
 
         if (!silent) {
           setState(() {
-            _error =
-                'Could not load notifications: $e';
+            _error = 'Could not load notifications: $e';
             _loading = false;
           });
         }
@@ -200,71 +182,56 @@ class _NotificationsPageState
 
   @override
   Widget build(BuildContext context) {
-    final notifs =
-        _stats == null
-            ? const <CompactNotif>[]
-            : buildCompactNotifs(
-                _stats!,
-              );
+    final notifs = _stats == null
+        ? const <CompactNotif>[]
+        : buildCompactNotifs(
+            _stats!,
+          );
 
-    final donorMode =
-        _showsDonorUpdates;
+    final donorMode = _showsDonorUpdates;
 
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(
+      constraints: const BoxConstraints(
         maxWidth: 680,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Notifications',
             style: TextStyle(
               fontSize: 22,
-              fontWeight:
-                  FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             donorMode
                 ? 'Updates about your donation status and impact.'
                 : 'Actionable inventory alerts for stock levels and batch expiry.',
             style: const TextStyle(
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
-
           const SizedBox(height: 20),
-
           if (_loading)
             const PageLoading(
               message: 'Loading notifications',
             )
           else if (_error != null)
             Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _error!,
                   style: const TextStyle(
-                    color:
-                        AppColors.destructive,
+                    color: AppColors.destructive,
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 OutlinedButton(
                   onPressed: _load,
-                  child:
-                      const Text('Retry'),
+                  child: const Text('Retry'),
                 ),
               ],
             )
@@ -276,13 +243,10 @@ class _NotificationsPageState
                   'update${_donorNotifications.length == 1 ? '' : 's'}',
                   style: const TextStyle(
                     fontSize: 12.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
-
                 const Spacer(),
-
                 IconButton(
                   tooltip: 'Refresh',
                   onPressed: _load,
@@ -293,16 +257,11 @@ class _NotificationsPageState
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
-
             DonorNotificationList(
-              notifications:
-                  _donorNotifications,
-              onTapNotification:
-                  _openDonorUpdate,
-              emptyText:
-                  'No donation updates right now.',
+              notifications: _donorNotifications,
+              onTapNotification: _openDonorUpdate,
+              emptyText: 'No donation updates right now.',
             ),
           ] else if (_showsInventoryAlerts) ...[
             Row(
@@ -312,13 +271,10 @@ class _NotificationsPageState
                   'alert${notifs.length == 1 ? '' : 's'}',
                   style: const TextStyle(
                     fontSize: 12.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
-
                 const Spacer(),
-
                 IconButton(
                   tooltip: 'Refresh',
                   onPressed: _load,
@@ -329,21 +285,17 @@ class _NotificationsPageState
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
-
             CompactNotificationList(
               notifs: notifs,
               onTapNotif: _openDetail,
-              emptyText:
-                  'No active inventory alerts right now.',
+              emptyText: 'No active inventory alerts right now.',
             ),
           ] else
             CompactNotificationList(
               notifs: const [],
               onTapNotif: (_) {},
-              emptyText:
-                  'No notifications right now.',
+              emptyText: 'No notifications right now.',
             ),
         ],
       ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_colors.dart';
@@ -34,17 +34,14 @@ class MedicalRecordsPage extends StatefulWidget {
   const MedicalRecordsPage({super.key});
 
   @override
-  State<MedicalRecordsPage> createState() =>
-      _MedicalRecordsPageState();
+  State<MedicalRecordsPage> createState() => _MedicalRecordsPageState();
 }
 
 class _MedicalRecordsPageState extends State<MedicalRecordsPage>
     with DataBusRefreshMixin<MedicalRecordsPage> {
-  final TreatmentService _treatmentService =
-      TreatmentService();
+  final TreatmentService _treatmentService = TreatmentService();
 
-  final PetService _petService =
-      PetService();
+  final PetService _petService = PetService();
 
   List<TreatmentRecord> _treatments = [];
   List<Pet> _pets = [];
@@ -77,8 +74,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
   }
 
   @override
-  void onExternalDataChanged() =>
-      _load(silent: true);
+  void onExternalDataChanged() => _load(silent: true);
 
   Future<void> _load({
     bool silent = false,
@@ -99,11 +95,9 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
       if (!mounted) return;
 
       setState(() {
-        _treatments =
-            results[0] as List<TreatmentRecord>;
+        _treatments = results[0] as List<TreatmentRecord>;
 
-        _pets =
-            results[1] as List<Pet>;
+        _pets = results[1] as List<Pet>;
 
         _loading = false;
         _error = null;
@@ -113,8 +107,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
 
       if (!silent) {
         setState(() {
-          _error =
-              'Could not load medical records: $e';
+          _error = 'Could not load medical records: $e';
 
           _loading = false;
         });
@@ -126,10 +119,8 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
   // GROUP TREATMENTS BY ANIMAL
   // ==========================================================================
 
-  List<_AnimalMedicalSummary>
-      get _animalRecords {
-    final grouped =
-        <String, List<TreatmentRecord>>{};
+  List<_AnimalMedicalSummary> get _animalRecords {
+    final grouped = <String, List<TreatmentRecord>>{};
 
     for (final treatment in _treatments) {
       grouped
@@ -140,16 +131,13 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
           .add(treatment);
     }
 
-    final summaries =
-        <_AnimalMedicalSummary>[];
+    final summaries = <_AnimalMedicalSummary>[];
 
-    for (final entry
-        in grouped.entries) {
+    for (final entry in grouped.entries) {
       final records = entry.value;
 
       records.sort((a, b) {
-        final dateCompare =
-            b.recDate.compareTo(
+        final dateCompare = b.recDate.compareTo(
           a.recDate,
         );
 
@@ -170,19 +158,15 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
           petName: latest.petName,
           species: latest.petSpecies,
           breed: latest.petBreed,
-          treatmentCount:
-              records.length,
-          latestTreatment:
-              latest.treatName,
-          latestDate:
-              latest.recDate,
+          treatmentCount: records.length,
+          latestTreatment: latest.treatName,
+          latestDate: latest.recDate,
         ),
       );
     }
 
     summaries.sort(
-      (a, b) =>
-          b.latestDate.compareTo(
+      (a, b) => b.latestDate.compareTo(
         a.latestDate,
       ),
     );
@@ -190,27 +174,21 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
     return summaries;
   }
 
-  List<_AnimalMedicalSummary>
-      get _filtered {
+  List<_AnimalMedicalSummary> get _filtered {
     final records = _animalRecords;
 
     if (_search.trim().isEmpty) {
       return records;
     }
 
-    final query =
-        _search.toLowerCase().trim();
+    final query = _search.toLowerCase().trim();
 
     return records.where((record) {
-      final name =
-          record.petName.toLowerCase();
+      final name = record.petName.toLowerCase();
 
-      final breed =
-          record.breed?.toLowerCase() ??
-              '';
+      final breed = record.breed?.toLowerCase() ?? '';
 
-      return name.contains(query) ||
-          breed.contains(query);
+      return name.contains(query) || breed.contains(query);
     }).toList();
   }
 
@@ -218,10 +196,8 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
   // LATEST 5 TREATMENTS
   // ==========================================================================
 
-  List<TreatmentRecord>
-      get _latestRecordedTreatments {
-    final records =
-        List<TreatmentRecord>.from(
+  List<TreatmentRecord> get _latestRecordedTreatments {
+    final records = List<TreatmentRecord>.from(
       _treatments,
     );
 
@@ -229,8 +205,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
     // latest administered date. This matters when an older treatment is
     // entered into the system later.
     records.sort((a, b) {
-      final loggedCompare =
-          b.loggedDate.compareTo(
+      final loggedCompare = b.loggedDate.compareTo(
         a.loggedDate,
       );
 
@@ -249,9 +224,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
   IconData _speciesIcon(
     PetSpecies species,
   ) {
-    return species == PetSpecies.dog
-        ? Icons.pets
-        : Icons.pets_outlined;
+    return species == PetSpecies.dog ? Icons.pets : Icons.pets_outlined;
   }
 
   // ==========================================================================
@@ -266,10 +239,8 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
   // /medical-records route stays exactly where it is.
   // ==========================================================================
 
-  Future<void>
-      _showLatestTreatments() async {
-    final latest =
-        _latestRecordedTreatments;
+  Future<void> _showLatestTreatments() async {
+    final latest = _latestRecordedTreatments;
 
     await showDialog<void>(
       context: context,
@@ -277,134 +248,94 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
       builder: (
         dialogContext,
       ) {
-        final screen =
-            MediaQuery.sizeOf(
+        final screen = MediaQuery.sizeOf(
           dialogContext,
         );
 
-        final dialogWidth =
-            screen.width < 620
-                ? screen.width - 32
-                : 560.0;
+        final dialogWidth = screen.width < 620 ? screen.width - 32 : 560.0;
 
         return Dialog(
-          backgroundColor:
-              Colors.white,
-          surfaceTintColor:
-              Colors.white,
-          insetPadding:
-              const EdgeInsets.all(16),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          insetPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
               20,
             ),
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: dialogWidth,
-              maxHeight:
-                  screen.height * 0.82,
+              maxHeight: screen.height * 0.82,
             ),
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // ============================================================
                 // MODAL HEADER
                 // ============================================================
 
                 Padding(
-                  padding:
-                      const EdgeInsets
-                          .fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     20,
                     18,
                     12,
                     14,
                   ),
                   child: Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         width: 40,
                         height: 40,
-                        decoration:
-                            BoxDecoration(
-                          color: AppColors
-                              .primary
-                              .withValues(
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(
                             alpha: 0.09,
                           ),
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
+                          borderRadius: BorderRadius.circular(
                             11,
                           ),
                         ),
-                        alignment:
-                            Alignment.center,
+                        alignment: Alignment.center,
                         child: const Icon(
-                          Icons
-                              .medical_services_outlined,
+                          Icons.medical_services_outlined,
                           size: 20,
-                          color: AppColors
-                              .primary,
+                          color: AppColors.primary,
                         ),
                       ),
-
                       const SizedBox(
                         width: 11,
                       ),
-
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
                               'Latest Treatments',
-                              style:
-                                  TextStyle(
-                                fontSize:
-                                    19,
-                                fontWeight:
-                                    FontWeight
-                                        .w800,
-                                color: AppColors
-                                    .foreground,
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.foreground,
                               ),
                             ),
-
                             const SizedBox(
                               height: 3,
                             ),
-
                             Text(
-                              latest.length <
-                                      5
+                              latest.length < 5
                                   ? 'Most recently recorded treatments in SIYAM.'
                                   : '5 most recently recorded treatments in SIYAM.',
-                              style:
-                                  const TextStyle(
-                                fontSize:
-                                    11.8,
-                                color: AppColors
-                                    .mutedForeground,
+                              style: const TextStyle(
+                                fontSize: 11.8,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ],
                         ),
                       ),
-
                       IconButton(
                         tooltip: 'Close',
-                        onPressed: () =>
-                            Navigator.of(
+                        onPressed: () => Navigator.of(
                           dialogContext,
                         ).pop(),
                         icon: const Icon(
@@ -423,41 +354,30 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                 // ============================================================
 
                 Flexible(
-                  child:
-                      SingleChildScrollView(
-                    padding:
-                        const EdgeInsets
-                            .all(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(
                       16,
                     ),
                     child: latest.isEmpty
                         ? const Padding(
-                            padding:
-                                EdgeInsets
-                                    .symmetric(
-                              vertical:
-                                  30,
+                            padding: EdgeInsets.symmetric(
+                              vertical: 30,
                             ),
                             child: Center(
                               child: Column(
                                 children: [
                                   Icon(
-                                    Icons
-                                        .medical_services_outlined,
+                                    Icons.medical_services_outlined,
                                     size: 34,
-                                    color: AppColors
-                                        .mutedForeground,
+                                    color: AppColors.mutedForeground,
                                   ),
                                   SizedBox(
                                     height: 9,
                                   ),
                                   Text(
                                     'No treatments logged yet',
-                                    style:
-                                        TextStyle(
-                                      fontWeight:
-                                          FontWeight
-                                              .w700,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ],
@@ -466,28 +386,16 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                           )
                         : Column(
                             children: [
-                              for (var i = 0;
-                                  i <
-                                      latest
-                                          .length;
-                                  i++) ...[
+                              for (var i = 0; i < latest.length; i++) ...[
                                 _RecentTreatmentCard(
-                                  record:
-                                      latest[
-                                          i],
-                                  speciesIcon:
-                                      _speciesIcon(
-                                    latest[i]
-                                        .petSpecies,
+                                  record: latest[i],
+                                  speciesIcon: _speciesIcon(
+                                    latest[i].petSpecies,
                                   ),
                                 ),
-
-                                if (i <
-                                    latest.length -
-                                        1)
+                                if (i < latest.length - 1)
                                   const SizedBox(
-                                    height:
-                                        10,
+                                    height: 10,
                                   ),
                               ],
                             ],
@@ -502,9 +410,7 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                 // ============================================================
 
                 Padding(
-                  padding:
-                      const EdgeInsets
-                          .fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     16,
                     10,
                     16,
@@ -515,14 +421,10 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                       context,
                       constraints,
                     ) {
-                      final compactFooter =
-                          constraints.maxWidth <
-                              360;
+                      final compactFooter = constraints.maxWidth < 360;
 
-                      final closeButton =
-                          TextButton(
-                        onPressed: () =>
-                            Navigator.of(
+                      final closeButton = TextButton(
+                        onPressed: () => Navigator.of(
                           dialogContext,
                         ).pop(),
                         child: const Text(
@@ -532,29 +434,21 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
 
                       if (compactFooter) {
                         return Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .stretch,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             const Text(
                               'Close this window to continue viewing Medical Records.',
-                              style:
-                                  TextStyle(
-                                fontSize:
-                                    10.8,
-                                color: AppColors
-                                    .mutedForeground,
+                              style: TextStyle(
+                                fontSize: 10.8,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                             const SizedBox(
                               height: 6,
                             ),
                             Align(
-                              alignment:
-                                  Alignment
-                                      .centerRight,
-                              child:
-                                  closeButton,
+                              alignment: Alignment.centerRight,
+                              child: closeButton,
                             ),
                           ],
                         );
@@ -565,12 +459,9 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
                           const Expanded(
                             child: Text(
                               'Close this window to continue viewing Medical Records.',
-                              style:
-                                  TextStyle(
-                                fontSize:
-                                    10.8,
-                                color: AppColors
-                                    .mutedForeground,
+                              style: TextStyle(
+                                fontSize: 10.8,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ),
@@ -597,32 +488,28 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage>
 
   @override
   Widget build(BuildContext context) {
-if (_loading && _treatments.isEmpty) {
-  return const PageLoading(
-    message: 'Loading medical records...',
-  );
-}
+    if (_loading && _treatments.isEmpty) {
+      return const PageLoading(
+        message: 'Loading medical records...',
+      );
+    }
 
     if (_error != null) {
       return Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _error!,
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: _load,
-              child:
-                  const Text('Retry'),
+              child: const Text('Retry'),
             ),
           ],
         ),
@@ -635,13 +522,10 @@ if (_loading && _treatments.isEmpty) {
         context,
         constraints,
       ) {
-        final isMobile =
-            constraints.maxWidth <
-                650;
+        final isMobile = constraints.maxWidth < 650;
 
         return Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ================================================================
             // HEADER
@@ -649,53 +533,37 @@ if (_loading && _treatments.isEmpty) {
 
             if (isMobile)
               Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Medical Records',
                     style: TextStyle(
                       fontSize: 24,
-                      fontWeight:
-                          FontWeight
-                              .w800,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-
                   const SizedBox(
                     height: 4,
                   ),
-
                   const Text(
                     'View each animal\'s treatment history.',
-                    style:
-                        TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
-
                   const SizedBox(
                     height: 14,
                   ),
-
                   SizedBox(
-                    width:
-                        double.infinity,
-                    child:
-                        ElevatedButton
-                            .icon(
-                      onPressed:
-                          _openTreatmentForm,
-                      icon:
-                          const Icon(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _openTreatmentForm,
+                      icon: const Icon(
                         Icons.add,
                         size: 18,
                       ),
-                      label:
-                          const Text(
+                      label: const Text(
                         'Log Treatment',
                       ),
                     ),
@@ -704,25 +572,17 @@ if (_loading && _treatments.isEmpty) {
               )
             else
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Medical Records',
-                          style:
-                              TextStyle(
-                            fontSize:
-                                24,
-                            fontWeight:
-                                FontWeight
-                                    .w800,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         SizedBox(
@@ -730,21 +590,16 @@ if (_loading && _treatments.isEmpty) {
                         ),
                         Text(
                           'View each animal\'s treatment history.',
-                          style:
-                              TextStyle(
-                            fontSize:
-                                13,
-                            color: AppColors
-                                .mutedForeground,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
                     ),
                   ),
-
                   ElevatedButton.icon(
-                    onPressed:
-                        _openTreatmentForm,
+                    onPressed: _openTreatmentForm,
                     icon: const Icon(
                       Icons.add,
                       size: 18,
@@ -765,14 +620,10 @@ if (_loading && _treatments.isEmpty) {
             // ================================================================
 
             _SummaryBar(
-              animalCount:
-                  _animalRecords.length,
-              treatmentCount:
-                  _treatments.length,
-              isMobile:
-                  isMobile,
-              onTreatmentsTap:
-                  _showLatestTreatments,
+              animalCount: _animalRecords.length,
+              treatmentCount: _treatments.length,
+              isMobile: isMobile,
+              onTreatmentsTap: _showLatestTreatments,
             ),
 
             const SizedBox(
@@ -784,28 +635,22 @@ if (_loading && _treatments.isEmpty) {
             // ================================================================
 
             SizedBox(
-              width: isMobile
-                  ? double.infinity
-                  : 340,
+              width: isMobile ? double.infinity : 340,
               child: TextField(
                 onChanged: (
                   value,
                 ) {
                   setState(() {
-                    _search =
-                        value;
+                    _search = value;
                   });
                 },
-                decoration:
-                    const InputDecoration(
-                  prefixIcon:
-                      Icon(
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(
                     Icons.search,
                     size: 18,
                   ),
                   // Panel revision: keep the placeholder plain; no (...).
-                  hintText:
-                      'Search animals',
+                  hintText: 'Search animals',
                   isDense: true,
                 ),
               ),
@@ -825,12 +670,9 @@ if (_loading && _treatments.isEmpty) {
               const _EmptySearch()
             else
               _AnimalRecordsGrid(
-                records:
-                    _filtered,
-                isMobile:
-                    isMobile,
-                iconForSpecies:
-                    _speciesIcon,
+                records: _filtered,
+                isMobile: isMobile,
+                iconForSpecies: _speciesIcon,
                 onOpen: (
                   record,
                 ) {
@@ -860,13 +702,9 @@ if (_loading && _treatments.isEmpty) {
       return;
     }
 
-    final hasEligibleAnimal =
-        _pets.any(
+    final hasEligibleAnimal = _pets.any(
       (pet) =>
-          pet.status !=
-              PetStatus.adopted &&
-          pet.status !=
-              PetStatus.deceased,
+          pet.status != PetStatus.adopted && pet.status != PetStatus.deceased,
     );
 
     if (!hasEligibleAnimal) {
@@ -917,13 +755,11 @@ class _AnimalMedicalSummary {
 // SUMMARY
 // =============================================================================
 
-class _SummaryBar
-    extends StatelessWidget {
+class _SummaryBar extends StatelessWidget {
   final int animalCount;
   final int treatmentCount;
   final bool isMobile;
-  final VoidCallback
-      onTreatmentsTap;
+  final VoidCallback onTreatmentsTap;
 
   const _SummaryBar({
     required this.animalCount,
@@ -934,46 +770,36 @@ class _SummaryBar
 
   @override
   Widget build(BuildContext context) {
-    final animals =
-        _SummaryItem(
-      icon:
-          Icons.pets_outlined,
-      value:
-          animalCount.toString(),
-      label:
-          'Animals with Records',
+    final animals = _SummaryItem(
+      icon: Icons.pets_outlined,
+      value: animalCount.toString(),
+      label: 'Animals with Records',
     );
 
-    final treatments =
-        _SummaryItem(
-      icon: Icons
-          .medical_services_outlined,
-      value: treatmentCount
-          .toString(),
-      label:
-          'Treatments Logged',
-      helper:
-          'View latest treatments',
-      onTap:
-          onTreatmentsTap,
+    final treatments = _SummaryItem(
+      icon: Icons.medical_services_outlined,
+      value: treatmentCount.toString(),
+      label: 'Treatments Logged',
+      helper: 'View latest treatments',
+      onTap: onTreatmentsTap,
     );
 
-if (isMobile) {
-  return SizedBox(
-    width: double.infinity,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        animals,
-        const SizedBox(
-          height: 10,
+    if (isMobile) {
+      return SizedBox(
+        width: double.infinity,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            animals,
+            const SizedBox(
+              height: 10,
+            ),
+            treatments,
+          ],
         ),
-        treatments,
-      ],
-    ),
-  );
-}
+      );
+    }
 
     return Row(
       children: [
@@ -991,8 +817,7 @@ if (isMobile) {
   }
 }
 
-class _SummaryItem
-    extends StatelessWidget {
+class _SummaryItem extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
@@ -1009,29 +834,22 @@ class _SummaryItem
 
   @override
   Widget build(BuildContext context) {
-    final content =
-        Container(
+    final content = Container(
       width: double.infinity,
-      constraints:
-          const BoxConstraints(
+      constraints: const BoxConstraints(
         minHeight: 82,
       ),
-      padding:
-          const EdgeInsets
-              .symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 18,
         vertical: 15,
       ),
-      decoration:
-          BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           16,
         ),
         border: Border.all(
-          color:
-              AppColors.border,
+          color: AppColors.border,
         ),
       ),
       child: Row(
@@ -1039,54 +857,39 @@ class _SummaryItem
           Container(
             width: 38,
             height: 38,
-            decoration:
-                BoxDecoration(
-              color: AppColors
-                  .primary
-                  .withValues(
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(
                 alpha: 0.08,
               ),
-              borderRadius:
-                  BorderRadius
-                      .circular(
+              borderRadius: BorderRadius.circular(
                 11,
               ),
             ),
             child: Icon(
               icon,
               size: 19,
-              color:
-                  AppColors.primary,
+              color: AppColors.primary,
             ),
           ),
-
           const SizedBox(
             width: 12,
           ),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   value,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 19,
-                    fontWeight:
-                        FontWeight
-                            .w800,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
                   label,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
                 const SizedBox(
@@ -1099,35 +902,24 @@ class _SummaryItem
                   maintainState: true,
                   child: Text(
                     helper ?? 'View latest treatments',
-                    style:
-                        TextStyle(
+                    style: TextStyle(
                       fontSize: 10.5,
-                      fontWeight: onTap ==
-                              null
-                          ? FontWeight
-                              .w400
-                          : FontWeight
-                              .w600,
-                      color: onTap ==
-                              null
-                          ? AppColors
-                              .mutedForeground
-                          : AppColors
-                              .primary,
+                      fontWeight:
+                          onTap == null ? FontWeight.w400 : FontWeight.w600,
+                      color: onTap == null
+                          ? AppColors.mutedForeground
+                          : AppColors.primary,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
           if (onTap != null)
             const Icon(
-              Icons
-                  .chevron_right,
+              Icons.chevron_right,
               size: 18,
-              color: AppColors
-                  .primary,
+              color: AppColors.primary,
             ),
         ],
       ),
@@ -1139,19 +931,15 @@ class _SummaryItem
 
     return Material(
       color: Colors.transparent,
-      borderRadius:
-          BorderRadius.circular(
+      borderRadius: BorderRadius.circular(
         16,
       ),
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           16,
         ),
         onTap: onTap,
-        hoverColor: AppColors
-            .primary
-            .withValues(
+        hoverColor: AppColors.primary.withValues(
           alpha: 0.035,
         ),
         child: content,
@@ -1164,8 +952,7 @@ class _SummaryItem
 // RECENT TREATMENT MODAL CARD
 // =============================================================================
 
-class _RecentTreatmentCard
-    extends StatelessWidget {
+class _RecentTreatmentCard extends StatelessWidget {
   final TreatmentRecord record;
   final IconData speciesIcon;
 
@@ -1178,174 +965,121 @@ class _RecentTreatmentCard
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(
+      padding: const EdgeInsets.all(
         14,
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(
           14,
         ),
         border: Border.all(
-          color:
-              AppColors.border,
+          color: AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment
-                .start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 36,
                 height: 36,
-                decoration:
-                    BoxDecoration(
-                  color: AppColors
-                      .primary
-                      .withValues(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(
                     alpha: 0.08,
                   ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(
+                  borderRadius: BorderRadius.circular(
                     10,
                   ),
                 ),
-                alignment:
-                    Alignment.center,
+                alignment: Alignment.center,
                 child: Icon(
                   speciesIcon,
                   size: 18,
-                  color:
-                      AppColors.primary,
+                  color: AppColors.primary,
                 ),
               ),
-
               const SizedBox(
                 width: 10,
               ),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      record
-                          .treatName,
+                      record.treatName,
                       maxLines: 2,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 13.5,
-                        fontWeight:
-                            FontWeight
-                                .w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-
                     const SizedBox(
                       height: 2,
                     ),
-
                     Text(
                       record.petName,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 11.7,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(
                 width: 8,
               ),
-
               Text(
                 _formatDate(
                   record.recDate,
                 ),
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontSize: 11,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ],
           ),
-
           const SizedBox(
             height: 11,
           ),
-
           Wrap(
             spacing: 14,
             runSpacing: 7,
             children: [
               _TreatmentMeta(
-                icon: Icons
-                    .person_outline,
+                icon: Icons.person_outline,
                 text:
                     'Performed by ${record.performedByName.trim().isEmpty ? 'Not specified' : record.performedByName}',
               ),
               _TreatmentMeta(
-                icon: Icons
-                    .edit_note_outlined,
-                text:
-                    'Recorded by ${record.recordedByName}',
+                icon: Icons.edit_note_outlined,
+                text: 'Recorded by ${record.recordedByName}',
               ),
               _TreatmentMeta(
-                icon: Icons
-                    .schedule_outlined,
-                text:
-                    'Recorded ${_formatDateTime(record.loggedDate)}',
+                icon: Icons.schedule_outlined,
+                text: 'Recorded ${_formatDateTime(record.loggedDate)}',
               ),
             ],
           ),
-
-          if (record.notes !=
-                  null &&
-              record.notes!
-                  .trim()
-                  .isNotEmpty) ...[
+          if (record.notes != null && record.notes!.trim().isNotEmpty) ...[
             const SizedBox(
               height: 9,
             ),
             Text(
-              record.notes!
-                  .trim(),
+              record.notes!.trim(),
               maxLines: 2,
-              overflow:
-                  TextOverflow
-                      .ellipsis,
-              style:
-                  const TextStyle(
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 fontSize: 11.5,
                 height: 1.35,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -1355,8 +1089,7 @@ class _RecentTreatmentCard
   }
 }
 
-class _TreatmentMeta
-    extends StatelessWidget {
+class _TreatmentMeta extends StatelessWidget {
   final IconData icon;
   final String text;
 
@@ -1368,24 +1101,19 @@ class _TreatmentMeta
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize:
-          MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
           size: 13,
-          color:
-              AppColors
-                  .mutedForeground,
+          color: AppColors.mutedForeground,
         ),
         const SizedBox(width: 4),
         Text(
           text,
-          style:
-              const TextStyle(
+          style: const TextStyle(
             fontSize: 10.8,
-            color: AppColors
-                .mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
       ],
@@ -1397,11 +1125,8 @@ class _TreatmentMeta
 // RECORD GRID
 // =============================================================================
 
-class _AnimalRecordsGrid
-    extends StatelessWidget {
-  final List<
-          _AnimalMedicalSummary>
-      records;
+class _AnimalRecordsGrid extends StatelessWidget {
+  final List<_AnimalMedicalSummary> records;
 
   final bool isMobile;
 
@@ -1410,8 +1135,7 @@ class _AnimalRecordsGrid
   ) iconForSpecies;
 
   final void Function(
-    _AnimalMedicalSummary
-        record,
+    _AnimalMedicalSummary record,
   ) onOpen;
 
   const _AnimalRecordsGrid({
@@ -1426,18 +1150,14 @@ class _AnimalRecordsGrid
     if (isMobile) {
       return Column(
         children: [
-          for (final record
-              in records) ...[
+          for (final record in records) ...[
             _AnimalMedicalCard(
               record: record,
-              speciesIcon:
-                  iconForSpecies(
+              speciesIcon: iconForSpecies(
                 record.species,
               ),
-              onTap: () =>
-                  onOpen(record),
+              onTap: () => onOpen(record),
             ),
-
             const SizedBox(
               height: 12,
             ),
@@ -1451,43 +1171,28 @@ class _AnimalRecordsGrid
         context,
         constraints,
       ) {
-        final width =
-            constraints.maxWidth;
+        final width = constraints.maxWidth;
 
-        final columns =
-            width >= 1100
-                ? 3
-                : 2;
+        final columns = width >= 1100 ? 3 : 2;
 
         const spacing = 14.0;
 
-        final cardWidth =
-            (width -
-                    spacing *
-                        (columns -
-                            1)) /
-                columns;
+        final cardWidth = (width - spacing * (columns - 1)) / columns;
 
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
           children: [
-            for (final record
-                in records)
+            for (final record in records)
               SizedBox(
-                width:
-                    cardWidth,
+                width: cardWidth,
                 height: 184,
-                child:
-                    _AnimalMedicalCard(
+                child: _AnimalMedicalCard(
                   record: record,
-                  speciesIcon:
-                      iconForSpecies(
-                    record
-                        .species,
+                  speciesIcon: iconForSpecies(
+                    record.species,
                   ),
-                  onTap: () =>
-                      onOpen(
+                  onTap: () => onOpen(
                     record,
                   ),
                 ),
@@ -1503,10 +1208,8 @@ class _AnimalRecordsGrid
 // ANIMAL CARD
 // =============================================================================
 
-class _AnimalMedicalCard
-    extends StatefulWidget {
-  final _AnimalMedicalSummary
-      record;
+class _AnimalMedicalCard extends StatefulWidget {
+  final _AnimalMedicalSummary record;
 
   final IconData speciesIcon;
   final VoidCallback onTap;
@@ -1518,39 +1221,24 @@ class _AnimalMedicalCard
   });
 
   @override
-  State<_AnimalMedicalCard>
-      createState() =>
-          _AnimalMedicalCardState();
+  State<_AnimalMedicalCard> createState() => _AnimalMedicalCardState();
 }
 
-class _AnimalMedicalCardState
-    extends State<
-        _AnimalMedicalCard> {
+class _AnimalMedicalCardState extends State<_AnimalMedicalCard> {
   bool _hovering = false;
 
   @override
   Widget build(BuildContext context) {
-    final record =
-        widget.record;
+    final record = widget.record;
 
-    final speciesText =
-        record.species ==
-                PetSpecies.dog
-            ? 'Dog'
-            : 'Cat';
+    final speciesText = record.species == PetSpecies.dog ? 'Dog' : 'Cat';
 
-    final animalInfo =
-        record.breed == null ||
-                record.breed!
-                    .trim()
-                    .isEmpty
-            ? speciesText
-            : '$speciesText · ${record.breed}';
+    final animalInfo = record.breed == null || record.breed!.trim().isEmpty
+        ? speciesText
+        : '$speciesText · ${record.breed}';
 
     return MouseRegion(
-      cursor:
-          SystemMouseCursors
-              .click,
+      cursor: SystemMouseCursors.click,
       onEnter: (_) {
         setState(() {
           _hovering = true;
@@ -1562,208 +1250,140 @@ class _AnimalMedicalCardState
         });
       },
       child: Material(
-        color:
-            Colors.transparent,
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius:
-              BorderRadius.circular(
+          borderRadius: BorderRadius.circular(
             16,
           ),
           onTap: widget.onTap,
-          hoverColor:
-              Colors.transparent,
-  child:
-    AnimatedContainer(
-  duration:
-      const Duration(
-    milliseconds: 140,
-  ),
-  width:
-      double.infinity,
-  padding:
-      const EdgeInsets.all(
-    17,
-  ),
-            decoration:
-                BoxDecoration(
-              color: _hovering
-                  ? AppColors.muted
-                  : AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(
+          hoverColor: Colors.transparent,
+          child: AnimatedContainer(
+            duration: const Duration(
+              milliseconds: 140,
+            ),
+            width: double.infinity,
+            padding: const EdgeInsets.all(
+              17,
+            ),
+            decoration: BoxDecoration(
+              color: _hovering ? AppColors.muted : AppColors.card,
+              borderRadius: BorderRadius.circular(
                 16,
               ),
               border: Border.all(
-                color:
-                    AppColors.border,
+                color: AppColors.border,
               ),
             ),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
                       width: 40,
                       height: 40,
-                      decoration:
-                          BoxDecoration(
-                        color: AppColors
-                            .primary
-                            .withValues(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(
                           alpha: 0.08,
                         ),
-                        borderRadius:
-                            BorderRadius
-                                .circular(
+                        borderRadius: BorderRadius.circular(
                           11,
                         ),
                       ),
                       child: Icon(
-                        widget
-                            .speciesIcon,
+                        widget.speciesIcon,
                         size: 20,
-                        color: AppColors
-                            .primary,
+                        color: AppColors.primary,
                       ),
                     ),
-
                     const SizedBox(
                       width: 11,
                     ),
-
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            record
-                                .petName,
+                            record.petName,
                             maxLines: 1,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                            style:
-                                const TextStyle(
-                              fontSize:
-                                  15,
-                              fontWeight:
-                                  FontWeight
-                                      .w700,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-
                           const SizedBox(
                             height: 2,
                           ),
-
                           Text(
                             animalInfo,
                             maxLines: 1,
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
-                            style:
-                                const TextStyle(
-                              fontSize:
-                                  12,
-                              color: AppColors
-                                  .mutedForeground,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.mutedForeground,
                             ),
                           ),
                         ],
                       ),
                     ),
-
                     const Icon(
-                      Icons
-                          .chevron_right,
+                      Icons.chevron_right,
                       size: 19,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ],
                 ),
-
                 const SizedBox(
                   height: 16,
                 ),
-
                 Text(
                   '${record.treatmentCount} '
                   '${record.treatmentCount == 1 ? 'treatment' : 'treatments'} recorded',
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    fontWeight:
-                        FontWeight
-                            .w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 const SizedBox(
                   height: 10,
                 ),
-
                 const Text(
                   'LATEST TREATMENT',
                   style: TextStyle(
                     fontSize: 10.5,
-                    fontWeight:
-                        FontWeight
-                            .w700,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 0.7,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
-
                 const SizedBox(
                   height: 4,
                 ),
-
                 Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
                       child: Text(
-                        record
-                            .latestTreatment,
+                        record.latestTreatment,
                         maxLines: 1,
-                        overflow:
-                            TextOverflow
-                                .ellipsis,
-                        style:
-                            const TextStyle(
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           fontSize: 13,
-                          fontWeight:
-                              FontWeight
-                                  .w600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-
                     const SizedBox(
                       width: 8,
                     ),
-
                     Text(
                       _formatDate(
-                        record
-                            .latestDate,
+                        record.latestDate,
                       ),
-                      style:
-                          const TextStyle(
-                        fontSize:
-                            11.5,
-                        color: AppColors
-                            .mutedForeground,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1781,45 +1401,37 @@ class _AnimalMedicalCardState
 // EMPTY STATES
 // =============================================================================
 
-class _EmptyMedicalRecords
-    extends StatelessWidget {
+class _EmptyMedicalRecords extends StatelessWidget {
   const _EmptyMedicalRecords();
 
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding:
-          EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         vertical: 56,
       ),
       child: Center(
         child: Column(
           children: [
             Icon(
-              Icons
-                  .medical_services_outlined,
+              Icons.medical_services_outlined,
               size: 38,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
             SizedBox(height: 10),
             Text(
               'No medical records yet',
               style: TextStyle(
-                fontWeight:
-                    FontWeight
-                        .w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
             SizedBox(height: 4),
             Text(
               'Logged treatments will appear under each animal.',
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -1829,15 +1441,13 @@ class _EmptyMedicalRecords
   }
 }
 
-class _EmptySearch
-    extends StatelessWidget {
+class _EmptySearch extends StatelessWidget {
   const _EmptySearch();
 
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding:
-          EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         vertical: 48,
       ),
       child: Center(
@@ -1846,15 +1456,13 @@ class _EmptySearch
             Icon(
               Icons.search_off,
               size: 34,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
             SizedBox(height: 8),
             Text(
               'No animals match your search.',
               style: TextStyle(
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -1892,28 +1500,20 @@ String _formatDate(
 String _formatDateTime(
   DateTime date,
 ) {
-  final local =
-      date.toLocal();
+  final local = date.toLocal();
 
-  final hour =
-      local.hour == 0
-          ? 12
-          : local.hour > 12
-              ? local.hour - 12
-              : local.hour;
+  final hour = local.hour == 0
+      ? 12
+      : local.hour > 12
+          ? local.hour - 12
+          : local.hour;
 
-  final minute =
-      local.minute
-          .toString()
-          .padLeft(
-            2,
-            '0',
-          );
+  final minute = local.minute.toString().padLeft(
+        2,
+        '0',
+      );
 
-  final period =
-      local.hour >= 12
-          ? 'PM'
-          : 'AM';
+  final period = local.hour >= 12 ? 'PM' : 'AM';
 
   return '${_monthAbbrev[local.month - 1]} '
       '${local.day}, ${local.year} · '

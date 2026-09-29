@@ -209,8 +209,7 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
         _error = null;
       });
 
-      List<TreatmentOccurrence> selectedOccurrences =
-          cachedOccurrences ?? [];
+      List<TreatmentOccurrence> selectedOccurrences = cachedOccurrences ?? [];
       List<TreatmentItemUsed> selectedItems = cachedItemsUsed ?? [];
       String? detailError;
 
@@ -536,9 +535,11 @@ class _AnimalMedicalHistoryPageState extends State<AnimalMedicalHistoryPage>
       return;
     }
 
-    final initialDate = currentDate.isBefore(firstDate) ? firstDate : currentDate;
+    final initialDate =
+        currentDate.isBefore(firstDate) ? firstDate : currentDate;
     final lastDate = endDate ?? DateTime(2100);
-    final safeInitialDate = initialDate.isAfter(lastDate) ? lastDate : initialDate;
+    final safeInitialDate =
+        initialDate.isAfter(lastDate) ? lastDate : initialDate;
 
     final picked = await showDatePicker(
       context: context,
@@ -1074,13 +1075,11 @@ class _TreatmentHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = selected
-        ? AppColors.primary.withValues(alpha: 0.08)
-        : AppColors.card;
+    final backgroundColor =
+        selected ? AppColors.primary.withValues(alpha: 0.08) : AppColors.card;
 
-    final borderColor = selected
-        ? AppColors.primary.withValues(alpha: 0.45)
-        : AppColors.border;
+    final borderColor =
+        selected ? AppColors.primary.withValues(alpha: 0.45) : AppColors.border;
 
     return Material(
       color: Colors.transparent,
@@ -1113,9 +1112,8 @@ class _TreatmentHistoryCard extends StatelessWidget {
                 child: Icon(
                   Icons.medical_services_outlined,
                   size: 17,
-                  color: selected
-                      ? AppColors.primary
-                      : AppColors.mutedForeground,
+                  color:
+                      selected ? AppColors.primary : AppColors.mutedForeground,
                 ),
               ),
               const SizedBox(width: 11),
@@ -1280,7 +1278,6 @@ class _TreatmentDetailPanel extends StatelessWidget {
               ),
             ],
           ),
-
           if (record.notes != null && record.notes!.trim().isNotEmpty) ...[
             const SizedBox(height: 18),
             const Text(
@@ -1310,7 +1307,6 @@ class _TreatmentDetailPanel extends StatelessWidget {
               ),
             ),
           ],
-
           if (record.followUpRequired) ...[
             const SizedBox(height: 20),
             _FollowUpSchedulePanel(
@@ -1320,11 +1316,9 @@ class _TreatmentDetailPanel extends StatelessWidget {
               onStop: onStopFollowUp,
             ),
           ],
-
           const SizedBox(height: 22),
           const Divider(height: 1),
           const SizedBox(height: 18),
-
           Row(
             children: [
               const Expanded(
@@ -1363,9 +1357,7 @@ class _TreatmentDetailPanel extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           if (loading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 28),

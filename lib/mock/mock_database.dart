@@ -182,11 +182,14 @@ class SubmissionRow {
 
 class DonationRow {
   final String id;
+
   /// 'walk_in' or 'drop_off' -- see [DonationType]. Descriptive only; does
   /// not constrain whether [donorId] or [subId] are set.
   final String type;
+
   /// Null when the donor has no SIYAM account -- see [donorName].
   final String? donorId;
+
   /// Free-text donor name, for documentation only, when [donorId] is null
   /// (an unregistered/walk-in donor). Not a real donor reference.
   final String? donorName;
@@ -363,15 +366,22 @@ class MockDatabase {
     ));
 
     final unitBox = Unit(id: newMockId('unit'), name: 'Box', abbrName: 'box');
-    final unitTablet = Unit(id: newMockId('unit'), name: 'Tablet', abbrName: 'tablet');
-    final unitBottle = Unit(id: newMockId('unit'), name: 'Bottle', abbrName: 'bottle');
-    final unitMl = Unit(id: newMockId('unit'), name: 'Milliliter', abbrName: 'ml');
+    final unitTablet =
+        Unit(id: newMockId('unit'), name: 'Tablet', abbrName: 'tablet');
+    final unitBottle =
+        Unit(id: newMockId('unit'), name: 'Bottle', abbrName: 'bottle');
+    final unitMl =
+        Unit(id: newMockId('unit'), name: 'Milliliter', abbrName: 'ml');
     final unitBag = Unit(id: newMockId('unit'), name: 'Bag', abbrName: 'bag');
-    final unitKg = Unit(id: newMockId('unit'), name: 'Kilogram', abbrName: 'kg');
-    final unitDrop = Unit(id: newMockId('unit'), name: 'Drop', abbrName: 'drop');
+    final unitKg =
+        Unit(id: newMockId('unit'), name: 'Kilogram', abbrName: 'kg');
+    final unitDrop =
+        Unit(id: newMockId('unit'), name: 'Drop', abbrName: 'drop');
     final unitPcs = Unit(id: newMockId('unit'), name: 'Piece', abbrName: 'pcs');
-    final unitRoll = Unit(id: newMockId('unit'), name: 'Roll', abbrName: 'roll');
-    final unitAmpoule = Unit(id: newMockId('unit'), name: 'Ampoule', abbrName: 'amp');
+    final unitRoll =
+        Unit(id: newMockId('unit'), name: 'Roll', abbrName: 'roll');
+    final unitAmpoule =
+        Unit(id: newMockId('unit'), name: 'Ampoule', abbrName: 'amp');
     units.addAll([
       unitBox,
       unitTablet,
@@ -385,33 +395,38 @@ class MockDatabase {
       unitAmpoule,
     ]);
 
-    final catMedical =
-        PrimaryCategory(id: newMockId('pcat'), type: 'Medical', requiresExpiry: true);
-    final catFood =
-        PrimaryCategory(id: newMockId('pcat'), type: 'Food', requiresExpiry: true);
+    final catMedical = PrimaryCategory(
+        id: newMockId('pcat'), type: 'Medical', requiresExpiry: true);
+    final catFood = PrimaryCategory(
+        id: newMockId('pcat'), type: 'Food', requiresExpiry: true);
     final catCleaning = PrimaryCategory(
-        id: newMockId('pcat'), type: 'Cleaning Supplies', requiresExpiry: false);
-    final catEquipment =
-        PrimaryCategory(id: newMockId('pcat'), type: 'Equipment', requiresExpiry: false);
+        id: newMockId('pcat'),
+        type: 'Cleaning Supplies',
+        requiresExpiry: false);
+    final catEquipment = PrimaryCategory(
+        id: newMockId('pcat'), type: 'Equipment', requiresExpiry: false);
     primaryCategories.addAll([catMedical, catFood, catCleaning, catEquipment]);
 
-    final subTablets =
-        Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Tablets');
+    final subTablets = Subcategory(
+        id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Tablets');
     final subOralSuspension = Subcategory(
-        id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Oral Suspension');
-    final subDrops =
-        Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Drops');
-    final subSupplies =
-        Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Supplies');
-    final subDry = Subcategory(id: newMockId('scat'), pCategoryId: catFood.id, type: 'Dry');
-    final subBleach =
-        Subcategory(id: newMockId('scat'), pCategoryId: catCleaning.id, type: 'Bleach');
-    final subTools =
-        Subcategory(id: newMockId('scat'), pCategoryId: catEquipment.id, type: 'Tools');
-    final subSupplements =
-        Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Supplements');
-    final subNebules =
-        Subcategory(id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Nebules');
+        id: newMockId('scat'),
+        pCategoryId: catMedical.id,
+        type: 'Oral Suspension');
+    final subDrops = Subcategory(
+        id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Drops');
+    final subSupplies = Subcategory(
+        id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Supplies');
+    final subDry = Subcategory(
+        id: newMockId('scat'), pCategoryId: catFood.id, type: 'Dry');
+    final subBleach = Subcategory(
+        id: newMockId('scat'), pCategoryId: catCleaning.id, type: 'Bleach');
+    final subTools = Subcategory(
+        id: newMockId('scat'), pCategoryId: catEquipment.id, type: 'Tools');
+    final subSupplements = Subcategory(
+        id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Supplements');
+    final subNebules = Subcategory(
+        id: newMockId('scat'), pCategoryId: catMedical.id, type: 'Nebules');
     subcategories.addAll([
       subTablets,
       subOralSuspension,
@@ -730,21 +745,24 @@ class MockDatabase {
         });
       for (final batch in batches) {
         if (remaining <= 0) break;
-        final take = remaining < batch.qtyRemaining ? remaining : batch.qtyRemaining;
+        final take =
+            remaining < batch.qtyRemaining ? remaining : batch.qtyRemaining;
         batch.qtyRemaining -= take;
         remaining -= take;
       }
       if (item.packageQuantity != null) {
-        item.packageStocks =
-            ((item.packageStocks ?? 0) - dispensedQty).clamp(0, double.infinity);
+        item.packageStocks = ((item.packageStocks ?? 0) - dispensedQty)
+            .clamp(0, double.infinity);
       } else {
-        item.purchaseStocks = (item.purchaseStocks - dispensedQty).clamp(0, double.infinity);
+        item.purchaseStocks =
+            (item.purchaseStocks - dispensedQty).clamp(0, double.infinity);
       }
     }
 
     // Adds a donation-item batch and grows the item's stock pools --
     // mirrors [restock] above minus unit cost (donations have no cost).
-    void donate(ItemRow item, DonationRow donation, double qty, {DateTime? expiryDate}) {
+    void donate(ItemRow item, DonationRow donation, double qty,
+        {DateTime? expiryDate}) {
       final canonicalQty =
           item.packageQuantity != null ? qty * item.packageQuantity! : qty;
       donationItems.add(DonationItemRow(
@@ -856,7 +874,8 @@ class MockDatabase {
     dispense(itemMicropore, t, 1, unitRoll.id, daysAgo(30), staff.firstName);
 
     // -- Donations: 3 this week, 2 last week, 2 earlier this month, 2 last month.
-    DonationRow addDonation(int daysAgoN, {String? donorId, String? donorName}) {
+    DonationRow addDonation(int daysAgoN,
+        {String? donorId, String? donorName}) {
       final date = daysAgo(daysAgoN);
       final donation = DonationRow(
         id: newMockId('donation'),

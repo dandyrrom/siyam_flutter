@@ -19,12 +19,10 @@ class ConnectivityFallback extends StatefulWidget {
   });
 
   @override
-  State<ConnectivityFallback> createState() =>
-      _ConnectivityFallbackState();
+  State<ConnectivityFallback> createState() => _ConnectivityFallbackState();
 }
 
-class _ConnectivityFallbackState
-    extends State<ConnectivityFallback> {
+class _ConnectivityFallbackState extends State<ConnectivityFallback> {
   final Connectivity _connectivity = Connectivity();
 
   StreamSubscription<List<ConnectivityResult>>? _subscription;
@@ -194,9 +192,7 @@ class _ConnectivityFallbackState
                                         size: 18,
                                       ),
                                 label: Text(
-                                  _isChecking
-                                      ? 'Checking...'
-                                      : 'Try Again',
+                                  _isChecking ? 'Checking...' : 'Try Again',
                                 ),
                               ),
                             ),

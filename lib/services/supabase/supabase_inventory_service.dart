@@ -603,7 +603,10 @@ class SupabaseInventoryService implements InventoryService {
       _client.from('purchase_item').select('itemid').eq('itemid', itemId),
       _client.from('donation_item').select('itemid').eq('itemid', itemId),
       _client.from('stock_out').select('qty, qtyunit').eq('itemid', itemId),
-      _client.from('treatment_item').select('dispensed_qty').eq('itemid', itemId),
+      _client
+          .from('treatment_item')
+          .select('dispensed_qty')
+          .eq('itemid', itemId),
       _fetchBatchStockSummaryForItem(itemId, packageQuantity),
     ]);
 
@@ -636,8 +639,7 @@ class SupabaseInventoryService implements InventoryService {
 
     final lifetimeTreatmentQty = treatmentRows.fold<double>(
       0,
-      (sum, treatment) =>
-          sum + (_toDouble(treatment['dispensed_qty']) ?? 0),
+      (sum, treatment) => sum + (_toDouble(treatment['dispensed_qty']) ?? 0),
     );
 
     return _mapItem(

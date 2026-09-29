@@ -27,8 +27,7 @@ class SupabaseDashboardService implements DashboardService {
   final legacy.SupabaseDashboardService _base =
       legacy.SupabaseDashboardService();
 
-  final ReplenishmentService _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
 
   ReplenishmentPriority _dashboardPriority(
     rop.ReplenishmentPriority priority,
@@ -63,17 +62,13 @@ class SupabaseDashboardService implements DashboardService {
       _fetchRopRows(),
     ]);
 
-    final base =
-        results[0] as ManagerDashboardStats;
+    final base = results[0] as ManagerDashboardStats;
 
-    final ropRows =
-        results[1] as List<rop.ReplenishmentItem>;
+    final ropRows = results[1] as List<rop.ReplenishmentItem>;
 
     // Zero stock is a physical-stock condition and remains sourced from the
     // existing batch-aware dashboard implementation.
-    final zeroIds = base.zeroStockItems
-        .map((alert) => alert.itemId)
-        .toSet();
+    final zeroIds = base.zeroStockItems.map((alert) => alert.itemId).toSet();
 
     // Low Stock is now exclusively ROP-driven.
     //
@@ -96,9 +91,7 @@ class SupabaseDashboardService implements DashboardService {
 
       return byQty != 0
           ? byQty
-          : a.itemName
-              .toLowerCase()
-              .compareTo(
+          : a.itemName.toLowerCase().compareTo(
                 b.itemName.toLowerCase(),
               );
     });
@@ -106,30 +99,21 @@ class SupabaseDashboardService implements DashboardService {
     return ManagerDashboardStats(
       totalAnimals: base.totalAnimals,
       totalSuppliers: base.totalSuppliers,
-      pendingSubmissions:
-          base.pendingSubmissions,
+      pendingSubmissions: base.pendingSubmissions,
       staffAccounts: base.staffAccounts,
       totalItems: base.totalItems,
-      zeroStockCount:
-          base.zeroStockItems.length,
-      lowStockCount:
-          lowStockItems.length,
-      expiringSoonCount:
-          base.expiringSoonCount,
-      expiryTrackingAvailable:
-          base.expiryTrackingAvailable,
-      zeroStockItems:
-          base.zeroStockItems,
-      lowStockItems:
-          lowStockItems,
-      expiringSoonItems:
-          base.expiringSoonItems,
+      zeroStockCount: base.zeroStockItems.length,
+      lowStockCount: lowStockItems.length,
+      expiringSoonCount: base.expiringSoonCount,
+      expiryTrackingAvailable: base.expiryTrackingAvailable,
+      zeroStockItems: base.zeroStockItems,
+      lowStockItems: lowStockItems,
+      expiringSoonItems: base.expiringSoonItems,
     );
   }
 
   @override
-  Future<List<ReplenishmentAlert>>
-      fetchReplenishmentAlerts() async {
+  Future<List<ReplenishmentAlert>> fetchReplenishmentAlerts() async {
     final rows = await _fetchRopRows();
 
     return [
@@ -137,12 +121,9 @@ class SupabaseDashboardService implements DashboardService {
         ReplenishmentAlert(
           itemId: row.item.itemId,
           itemName: row.item.itemName,
-          stockQty:
-              row.currentStockPurchaseUnits,
-          unitAbbr:
-              row.item.purchaseUnitAbbr,
-          priority:
-              _dashboardPriority(row.priority),
+          stockQty: row.currentStockPurchaseUnits,
+          unitAbbr: row.item.purchaseUnitAbbr,
+          priority: _dashboardPriority(row.priority),
         ),
     ];
   }
@@ -161,33 +142,25 @@ class SupabaseDashboardService implements DashboardService {
       _fetchRopRows(),
     ]);
 
-    final base =
-        results[0] as StaffDashboardStats;
+    final base = results[0] as StaffDashboardStats;
 
-    final rows =
-        results[1] as List<rop.ReplenishmentItem>;
+    final rows = results[1] as List<rop.ReplenishmentItem>;
 
     final criticalCount = rows
         .where(
-          (row) =>
-              row.priority ==
-              rop.ReplenishmentPriority.critical,
+          (row) => row.priority == rop.ReplenishmentPriority.critical,
         )
         .length;
 
     final highCount = rows
         .where(
-          (row) =>
-              row.priority ==
-              rop.ReplenishmentPriority.high,
+          (row) => row.priority == rop.ReplenishmentPriority.high,
         )
         .length;
 
     final mediumCount = rows
         .where(
-          (row) =>
-              row.priority ==
-              rop.ReplenishmentPriority.medium,
+          (row) => row.priority == rop.ReplenishmentPriority.medium,
         )
         .length;
 
@@ -196,18 +169,12 @@ class SupabaseDashboardService implements DashboardService {
       outOfStockCount: criticalCount,
       lowStockCount: highCount,
       needsRestockCount: mediumCount,
-      animalsUnderTreatment:
-          base.animalsUnderTreatment,
-      pendingSubmissions:
-          base.pendingSubmissions,
-      pendingScheduled:
-          base.pendingScheduled,
-      pendingOverdue:
-          base.pendingOverdue,
-      pendingUnscheduled:
-          base.pendingUnscheduled,
-      mostRecentDeliveryDate:
-          base.mostRecentDeliveryDate,
+      animalsUnderTreatment: base.animalsUnderTreatment,
+      pendingSubmissions: base.pendingSubmissions,
+      pendingScheduled: base.pendingScheduled,
+      pendingOverdue: base.pendingOverdue,
+      pendingUnscheduled: base.pendingUnscheduled,
+      mostRecentDeliveryDate: base.mostRecentDeliveryDate,
       week: base.week,
       month: base.month,
     );

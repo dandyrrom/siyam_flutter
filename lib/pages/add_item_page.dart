@@ -57,11 +57,9 @@ class _StockInLineItem {
   /// dropdown stays closed until the user types or erases a character.
   int nameFieldEpoch = 0;
 
-  bool get isExistingItem =>
-      lockedItem != null || matchedExistingItem != null;
+  bool get isExistingItem => lockedItem != null || matchedExistingItem != null;
 
-  InventoryItem? get existingItem =>
-      lockedItem ?? matchedExistingItem;
+  InventoryItem? get existingItem => lockedItem ?? matchedExistingItem;
 
   PrimaryCategory? selectedPCategory;
   Subcategory? selectedSCategory;
@@ -86,17 +84,14 @@ class _StockInLineItem {
 
   /// Whether the target item (existing or being created here) has a
   /// package_unit/package_quantity breakdown -- gates the unit selector.
-  bool get hasPackageBreakdown =>
-      existingItem != null
-          ? existingItem!.packageUnitId != null
-          : selectedPackageUnit != null;
+  bool get hasPackageBreakdown => existingItem != null
+      ? existingItem!.packageUnitId != null
+      : selectedPackageUnit != null;
 
   /// Primary/sub category ids for the target item, existing or new.
-  String? get pCategoryId =>
-      existingItem?.pCategoryId ?? selectedPCategory?.id;
+  String? get pCategoryId => existingItem?.pCategoryId ?? selectedPCategory?.id;
 
-  String? get sCategoryId =>
-      existingItem?.sCategoryId ?? selectedSCategory?.id;
+  String? get sCategoryId => existingItem?.sCategoryId ?? selectedSCategory?.id;
 
   void dispose() {
     nameCtrl.dispose();
@@ -131,12 +126,9 @@ bool _resolveExpiryRequired(
     }
   }
 
-  final primary =
-      primaryCategories.where((c) => c.id == line.pCategoryId);
+  final primary = primaryCategories.where((c) => c.id == line.pCategoryId);
 
-  return primary.isEmpty
-      ? false
-      : primary.first.requiresExpiry;
+  return primary.isEmpty ? false : primary.first.requiresExpiry;
 }
 
 /// Staff-only "Stock In Item" page. Records the full stock-in: the catalog
@@ -167,34 +159,26 @@ class AddItemPage extends StatefulWidget {
   });
 
   @override
-  State<AddItemPage> createState() =>
-      _AddItemPageState();
+  State<AddItemPage> createState() => _AddItemPageState();
 }
 
 class _AddItemPageState extends State<AddItemPage>
     with DataBusRefreshMixin<AddItemPage> {
-  final InventoryService _inventoryService =
-      InventoryService();
+  final InventoryService _inventoryService = InventoryService();
 
-  final SupplierService _supplierService =
-      SupplierService();
+  final SupplierService _supplierService = SupplierService();
 
-  final DonationService _donationService =
-      DonationService();
+  final DonationService _donationService = DonationService();
 
-  final AuthService _authService =
-      AuthService();
+  final AuthService _authService = AuthService();
 
-  final CatalogService _catalogService =
-      CatalogService();
+  final CatalogService _catalogService = CatalogService();
 
   final _formKey = GlobalKey<FormState>();
 
-  final _receivedByCtrl =
-      TextEditingController();
+  final _receivedByCtrl = TextEditingController();
 
-  final _donorNameCtrl =
-      TextEditingController();
+  final _donorNameCtrl = TextEditingController();
 
   bool _loading = true;
   String? _error;
@@ -242,8 +226,7 @@ class _AddItemPageState extends State<AddItemPage>
     final cachedItems = cache.peekList<InventoryItem>(PageSnapshotCache.items);
     if (cachedItems != null) {
       _items = cachedItems;
-      _suppliers =
-          cache.peekList<Supplier>(PageSnapshotCache.suppliers) ?? [];
+      _suppliers = cache.peekList<Supplier>(PageSnapshotCache.suppliers) ?? [];
       _primaryCategories = cache.peekList<PrimaryCategory>(
             PageSnapshotCache.primaryCategories,
           ) ??
@@ -300,8 +283,10 @@ class _AddItemPageState extends State<AddItemPage>
 
     try {
       final cache = PageSnapshotCache.instance;
-      final cachedItems = cache.peekList<InventoryItem>(PageSnapshotCache.items);
-      final cachedSuppliers = cache.peekList<Supplier>(PageSnapshotCache.suppliers);
+      final cachedItems =
+          cache.peekList<InventoryItem>(PageSnapshotCache.items);
+      final cachedSuppliers =
+          cache.peekList<Supplier>(PageSnapshotCache.suppliers);
       final cachedCategories = cache.peekList<PrimaryCategory>(
         PageSnapshotCache.primaryCategories,
       );
@@ -331,8 +316,7 @@ class _AddItemPageState extends State<AddItemPage>
 
       if (!mounted) return;
 
-      final items =
-          results[0] as List<InventoryItem>;
+      final items = results[0] as List<InventoryItem>;
 
       InventoryItem? locked;
 
@@ -345,17 +329,14 @@ class _AddItemPageState extends State<AddItemPage>
               orElse: () => null,
             );
 
-        locked ??=
-            await _inventoryService.fetchItem(
+        locked ??= await _inventoryService.fetchItem(
           widget.itemId!,
         );
       }
 
-      final receivers =
-          results[2] as List<AppUser>;
+      final receivers = results[2] as List<AppUser>;
 
-      final firstLine =
-          _StockInLineItem();
+      final firstLine = _StockInLineItem();
 
       if (locked != null) {
         firstLine.lockedItem = locked;
@@ -363,8 +344,7 @@ class _AddItemPageState extends State<AddItemPage>
         firstLine.nameCtrl.text = locked.itemName;
       }
 
-      final linkableSubmissions =
-          results[3] as List<DonationSubmission>;
+      final linkableSubmissions = results[3] as List<DonationSubmission>;
 
       DonationSubmission? preselectedSubmission;
 
@@ -380,32 +360,24 @@ class _AddItemPageState extends State<AddItemPage>
 
       setState(() {
         _items = items;
-        _suppliers =
-            results[1] as List<Supplier>;
+        _suppliers = results[1] as List<Supplier>;
 
         _receivers = receivers;
 
-        _linkableSubmissions =
-            linkableSubmissions;
+        _linkableSubmissions = linkableSubmissions;
 
-        _primaryCategories =
-            results[4] as List<PrimaryCategory>;
+        _primaryCategories = results[4] as List<PrimaryCategory>;
 
-        _subcategories =
-            results[5] as List<Subcategory>;
+        _subcategories = results[5] as List<Subcategory>;
 
-        _units =
-            results[6] as List<Unit>;
+        _units = results[6] as List<Unit>;
 
         if (preselectedSubmission != null) {
-          _selectedSubmission =
-              preselectedSubmission;
+          _selectedSubmission = preselectedSubmission;
 
-          _donorNameCtrl.text =
-              preselectedSubmission.donorName;
+          _donorNameCtrl.text = preselectedSubmission.donorName;
 
-          _donationType =
-              DonationType.dropOff;
+          _donationType = DonationType.dropOff;
         }
 
         _lines
@@ -418,8 +390,7 @@ class _AddItemPageState extends State<AddItemPage>
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not load form data: $e';
+        _error = 'Could not load form data: $e';
 
         _loading = false;
       });
@@ -487,8 +458,7 @@ class _AddItemPageState extends State<AddItemPage>
     }
   }
 
-  void _addLine() =>
-      setState(
+  void _addLine() => setState(
         () => _lines.add(
           _StockInLineItem(),
         ),
@@ -524,33 +494,27 @@ class _AddItemPageState extends State<AddItemPage>
 
   Future<void> _clearAllLines() async {
     if (_hasFormData) {
-      final confirmed =
-          await showDialog<bool>(
+      final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title:
-              const Text('Clear all?'),
+          title: const Text('Clear all?'),
           content: const Text(
             'This removes the procurement details and every item row you\'ve entered so far.',
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(
+              onPressed: () => Navigator.pop(
                 ctx,
                 false,
               ),
-              child:
-                  const Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(
+              onPressed: () => Navigator.pop(
                 ctx,
                 true,
               ),
-              child:
-                  const Text('Clear All'),
+              child: const Text('Clear All'),
             ),
           ],
         ),
@@ -586,23 +550,19 @@ class _AddItemPageState extends State<AddItemPage>
   /// recording a stock-in they physically received themselves, rather than
   /// on someone else's behalf.
   void _useMyNameAsReceiver() {
-    final profile =
-        context.read<AuthController>().profile;
+    final profile = context.read<AuthController>().profile;
 
     if (profile == null) return;
 
     setState(() {
-      _receivedByCtrl.text =
-          profile.fullName;
+      _receivedByCtrl.text = profile.fullName;
 
-      _selectedReceiver =
-          profile;
+      _selectedReceiver = profile;
     });
   }
 
   Future<void> _pickDateReceived() async {
-    final picked =
-        await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: _dateReceived,
       firstDate: DateTime(2000),
@@ -620,8 +580,7 @@ class _AddItemPageState extends State<AddItemPage>
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        final screenWidth =
-            MediaQuery.sizeOf(dialogContext).width;
+        final screenWidth = MediaQuery.sizeOf(dialogContext).width;
 
         return AlertDialog(
           insetPadding: EdgeInsets.symmetric(
@@ -664,8 +623,7 @@ class _AddItemPageState extends State<AddItemPage>
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Close'),
             ),
           ],
@@ -691,16 +649,12 @@ class _AddItemPageState extends State<AddItemPage>
       return;
     }
 
-    final isPurchased =
-        _procurementType == 'purchased';
+    final isPurchased = _procurementType == 'purchased';
 
-    if (isPurchased &&
-        _selectedSupplier == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+    if (isPurchased && _selectedSupplier == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Select a supplier.'),
+          content: Text('Select a supplier.'),
         ),
       );
 
@@ -708,8 +662,7 @@ class _AddItemPageState extends State<AddItemPage>
     }
 
     if (_selectedReceiver == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'Select who received the stock.',
@@ -723,10 +676,8 @@ class _AddItemPageState extends State<AddItemPage>
     for (final line in _lines) {
       if (!line.isExistingItem &&
           (line.selectedPCategory == null ||
-              line.selectedPurchaseUnit ==
-                  null)) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
+              line.selectedPurchaseUnit == null)) {
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
               'Every new item needs a category and a purchase unit.',
@@ -740,12 +691,10 @@ class _AddItemPageState extends State<AddItemPage>
       if (!line.isExistingItem &&
           line.selectedPackageUnit != null &&
           double.tryParse(
-                line.packageQuantityCtrl.text
-                    .trim(),
+                line.packageQuantityCtrl.text.trim(),
               ) ==
               null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
               'Enter how many package units per purchase unit.',
@@ -756,17 +705,14 @@ class _AddItemPageState extends State<AddItemPage>
         return;
       }
 
-      final expiryRequired =
-          _resolveExpiryRequired(
+      final expiryRequired = _resolveExpiryRequired(
         line,
         _primaryCategories,
         _subcategories,
       );
 
-      if (expiryRequired &&
-          line.expiryDate == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
+      if (expiryRequired && line.expiryDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               '${line.nameCtrl.text.trim().isEmpty ? 'This item' : line.nameCtrl.text.trim()} needs an expiry date.',
@@ -790,64 +736,45 @@ class _AddItemPageState extends State<AddItemPage>
 
     if (!mounted) return;
 
-    final currentUserId =
-        context
-            .read<AuthController>()
-            .profile!
-            .userId;
+    final currentUserId = context.read<AuthController>().profile!.userId;
 
     try {
       await AppOperationController.instance.run(
         message: 'Recording goods received...',
         action: () async {
-          final resolvedItemIds =
-              <String>[];
+          final resolvedItemIds = <String>[];
 
-      for (final line in _lines) {
-        if (line.existingItem != null) {
-          resolvedItemIds.add(
-            line.existingItem!.itemId,
-          );
+          for (final line in _lines) {
+            if (line.existingItem != null) {
+              resolvedItemIds.add(
+                line.existingItem!.itemId,
+              );
 
-          continue;
-        }
+              continue;
+            }
 
-        final newItem =
-            await _inventoryService
-                .createItem(
-          itemName:
-              line.nameCtrl.text.trim(),
-          pCategoryId:
-              line.selectedPCategory!.id,
-          sCategoryId:
-              line.selectedSCategory?.id,
-          purchaseUnitId:
-              line.selectedPurchaseUnit!.id,
-          packageUnitId:
-              line.selectedPackageUnit?.id,
-          packageQuantity:
-              line.selectedPackageUnit ==
-                      null
+            final newItem = await _inventoryService.createItem(
+              itemName: line.nameCtrl.text.trim(),
+              pCategoryId: line.selectedPCategory!.id,
+              sCategoryId: line.selectedSCategory?.id,
+              purchaseUnitId: line.selectedPurchaseUnit!.id,
+              packageUnitId: line.selectedPackageUnit?.id,
+              packageQuantity: line.selectedPackageUnit == null
                   ? null
                   : double.parse(
-                      line.packageQuantityCtrl
-                          .text
-                          .trim(),
+                      line.packageQuantityCtrl.text.trim(),
                     ),
-          dispenseUnitId:
-              (line.selectedDispenseUnit ??
-                      line.selectedPackageUnit)
-                  ?.id,
-          stockCountMode:
-              line.selectedStockCountMode,
-        );
+              dispenseUnitId:
+                  (line.selectedDispenseUnit ?? line.selectedPackageUnit)?.id,
+              stockCountMode: line.selectedStockCountMode,
+            );
 
-        resolvedItemIds.add(
-          newItem.itemId,
-        );
-      }
+            resolvedItemIds.add(
+              newItem.itemId,
+            );
+          }
 
-      /*
+          /*
        * PURCHASE STOCK-IN FLOW
        *
        * The Stock In page still sends the item's received quantity,
@@ -867,64 +794,37 @@ class _AddItemPageState extends State<AddItemPage>
        * through OrderItemInput so the service can place it on the
        * inventory_batch record.
        */
-      if (isPurchased) {
-        final items = [
-          for (var i = 0;
-              i < _lines.length;
-              i++)
-            OrderItemInput(
-              itemId:
-                  resolvedItemIds[i],
-              itemName:
-                  _lines[i]
-                      .nameCtrl
-                      .text
-                      .trim(),
-              itemUom:
-                  _lines[i]
-                          .existingItem
-                          ?.itemUom ??
-                      _lines[i]
-                          .purchaseUnitCtrl
-                          .text
-                          .trim(),
-              qty: double.parse(
-                _lines[i]
-                    .qtyCtrl
-                    .text
-                    .trim(),
-              ),
-              unitCost: double.parse(
-                _lines[i]
-                    .costCtrl
-                    .text
-                    .trim(),
-              ),
-              qtyUnit:
-                  _lines[i].qtyUnit,
+          if (isPurchased) {
+            final items = [
+              for (var i = 0; i < _lines.length; i++)
+                OrderItemInput(
+                  itemId: resolvedItemIds[i],
+                  itemName: _lines[i].nameCtrl.text.trim(),
+                  itemUom: _lines[i].existingItem?.itemUom ??
+                      _lines[i].purchaseUnitCtrl.text.trim(),
+                  qty: double.parse(
+                    _lines[i].qtyCtrl.text.trim(),
+                  ),
+                  unitCost: double.parse(
+                    _lines[i].costCtrl.text.trim(),
+                  ),
+                  qtyUnit: _lines[i].qtyUnit,
 
-              // This value is now intended for inventory_batch.expirydate.
-              expiryDate:
-                  _lines[i].expiryDate,
-            ),
-        ];
+                  // This value is now intended for inventory_batch.expirydate.
+                  expiryDate: _lines[i].expiryDate,
+                ),
+            ];
 
-        await _supplierService
-            .createPurchaseOrder(
-          suppId:
-              _selectedSupplier!.suppId,
-          recordedByUserId:
-              currentUserId,
-          receivedBy:
-              _receivedByCtrl.text.trim(),
-          items:
-              items,
-          receivedDate:
-              _dateReceived,
-        );
-      }
+            await _supplierService.createPurchaseOrder(
+              suppId: _selectedSupplier!.suppId,
+              recordedByUserId: currentUserId,
+              receivedBy: _receivedByCtrl.text.trim(),
+              items: items,
+              receivedDate: _dateReceived,
+            );
+          }
 
-      /*
+          /*
        * DONATION STOCK-IN FLOW
        *
        * DonationService will now be responsible for:
@@ -945,95 +845,53 @@ class _AddItemPageState extends State<AddItemPage>
        * through DonationItemInput so the service can place it on the
        * corresponding inventory_batch.
        */
-      else {
-        final items = [
-          for (var i = 0;
-              i < _lines.length;
-              i++)
-            DonationItemInput(
-              itemId:
-                  resolvedItemIds[i],
-              itemName:
-                  _lines[i]
-                      .nameCtrl
-                      .text
-                      .trim(),
-              itemUom:
-                  _lines[i]
-                          .existingItem
-                          ?.itemUom ??
-                      _lines[i]
-                          .purchaseUnitCtrl
-                          .text
-                          .trim(),
-              qty: double.parse(
-                _lines[i]
-                    .qtyCtrl
-                    .text
-                    .trim(),
-              ),
-              qtyUnit:
-                  _lines[i].qtyUnit,
+          else {
+            final items = [
+              for (var i = 0; i < _lines.length; i++)
+                DonationItemInput(
+                  itemId: resolvedItemIds[i],
+                  itemName: _lines[i].nameCtrl.text.trim(),
+                  itemUom: _lines[i].existingItem?.itemUom ??
+                      _lines[i].purchaseUnitCtrl.text.trim(),
+                  qty: double.parse(
+                    _lines[i].qtyCtrl.text.trim(),
+                  ),
+                  qtyUnit: _lines[i].qtyUnit,
 
-              // This value is now intended for inventory_batch.expirydate.
-              expiryDate:
-                  _lines[i].expiryDate,
-            ),
-        ];
+                  // This value is now intended for inventory_batch.expirydate.
+                  expiryDate: _lines[i].expiryDate,
+                ),
+            ];
 
-        if (_selectedSubmission != null) {
-          await _donationService
-              .approveSubmission(
-            subId:
-                _selectedSubmission!.subId,
-            donorId:
-                _selectedSubmission!
-                    .donorId,
-            updatedByUserId:
-                currentUserId,
-            receivedBy:
-                _receivedByCtrl
-                    .text
-                    .trim(),
-            items:
-                items,
-            type:
-                _donationType!,
-            receivedDate:
-                _dateReceived,
-          );
-        } else {
-          await _donationService
-              .recordDirectDonation(
-            donorName:
-                _donorNameCtrl.text
-                        .trim()
-                        .isEmpty
+            if (_selectedSubmission != null) {
+              await _donationService.approveSubmission(
+                subId: _selectedSubmission!.subId,
+                donorId: _selectedSubmission!.donorId,
+                updatedByUserId: currentUserId,
+                receivedBy: _receivedByCtrl.text.trim(),
+                items: items,
+                type: _donationType!,
+                receivedDate: _dateReceived,
+              );
+            } else {
+              await _donationService.recordDirectDonation(
+                donorName: _donorNameCtrl.text.trim().isEmpty
                     ? null
-                    : _donorNameCtrl.text
-                        .trim(),
-            recordedByUserId:
-                currentUserId,
-            receivedBy:
-                _receivedByCtrl
-                    .text
-                    .trim(),
-            items:
-                items,
-            type:
-                _donationType!,
-            receivedDate:
-                _dateReceived,
-          );
-        }
-      }
+                    : _donorNameCtrl.text.trim(),
+                recordedByUserId: currentUserId,
+                receivedBy: _receivedByCtrl.text.trim(),
+                items: items,
+                type: _donationType!,
+                receivedDate: _dateReceived,
+              );
+            }
+          }
         },
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'Stock in recorded successfully.',
@@ -1055,8 +913,7 @@ class _AddItemPageState extends State<AddItemPage>
         () => _saving = false,
       );
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Could not save item: $e',
@@ -1072,49 +929,41 @@ class _AddItemPageState extends State<AddItemPage>
   ) {
     if (_loading && _items.isEmpty) {
       return const Center(
-        child:
-            CircularProgressIndicator(),
+        child: CircularProgressIndicator(),
       );
     }
 
     if (_error != null) {
       return Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _error!,
               style: const TextStyle(
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: _load,
-              child:
-                  const Text('Retry'),
+              child: const Text('Retry'),
             ),
           ],
         ),
       );
     }
 
-    final isPurchased =
-        _procurementType == 'purchased';
+    final isPurchased = _procurementType == 'purchased';
 
-    final isDonated =
-        _procurementType == 'donated';
+    final isDonated = _procurementType == 'donated';
 
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(
+      constraints: const BoxConstraints(
         maxWidth: 640,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
             onPressed: () async {
@@ -1128,78 +977,63 @@ class _AddItemPageState extends State<AddItemPage>
               Icons.arrow_back,
               size: 16,
             ),
-           label: Text(
-  widget.type == 'donated'
-      ? 'Back to Donations'
-      : 'Back to Inventory',
-),
+            label: Text(
+              widget.type == 'donated'
+                  ? 'Back to Donations'
+                  : 'Back to Inventory',
+            ),
             style: TextButton.styleFrom(
-              foregroundColor:
-                  AppColors
-                      .mutedForeground,
+              foregroundColor: AppColors.mutedForeground,
             ),
           ),
           const SizedBox(height: 8),
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Flexible(
                 child: Text(
                   'Goods Received',
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight:
-                        FontWeight.w800,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
               const SizedBox(width: 6),
               Tooltip(
-                message:
-                    _stockFieldHelp,
-                waitDuration:
-                    const Duration(
+                message: _stockFieldHelp,
+                waitDuration: const Duration(
                   milliseconds: 250,
                 ),
-                showDuration:
-                    const Duration(
+                showDuration: const Duration(
                   seconds: 20,
                 ),
                 preferBelow: true,
-                padding:
-                    const EdgeInsets.all(
+                padding: const EdgeInsets.all(
                   12,
                 ),
-                margin:
-                    const EdgeInsets.symmetric(
+                margin: const EdgeInsets.symmetric(
                   horizontal: 16,
                 ),
-                textStyle:
-                    const TextStyle(
+                textStyle: const TextStyle(
                   color: Colors.white,
                   fontSize: 12.5,
                   height: 1.35,
                 ),
                 child: IconButton(
-                  onPressed:
-                      _showStockFieldGuide,
-                  visualDensity:
-                      VisualDensity.compact,
-                  padding:
-                      const EdgeInsets.all(
+                  onPressed: _showStockFieldGuide,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(
                     4,
                   ),
-                  constraints:
-                      const BoxConstraints(
+                  constraints: const BoxConstraints(
                     minWidth: 36,
                     minHeight: 36,
                   ),
                   icon: const Icon(
                     Icons.info_outline_rounded,
                     size: 20,
-                    color:
-                        AppColors.primary,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -1209,17 +1043,14 @@ class _AddItemPageState extends State<AddItemPage>
           Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 KeyedSubtree(
                   key: ValueKey(
                     _procurementEpoch,
                   ),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _SectionLabel(
                         isPurchased
@@ -1231,17 +1062,11 @@ class _AddItemPageState extends State<AddItemPage>
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                AppDropdownField<
-                                    String>(
-                              label:
-                                  'Type *',
-                              initialValue:
-                                  _procurementType,
-                              placeholder:
-                                  'Select type',
-                              options:
-                                  const [
+                            child: AppDropdownField<String>(
+                              label: 'Type *',
+                              initialValue: _procurementType,
+                              placeholder: 'Select type',
+                              options: const [
                                 AppDropdownOption(
                                   'purchased',
                                   'Purchased',
@@ -1251,17 +1076,9 @@ class _AddItemPageState extends State<AddItemPage>
                                   'Donated',
                                 ),
                               ],
-                              validator: (v) =>
-                                  v ==
-                                          null
-                                      ? 'Required'
-                                      : null,
-                              onChanged:
-                                  (v) =>
-                                      setState(
-                                () =>
-                                    _procurementType =
-                                        v,
+                              validator: (v) => v == null ? 'Required' : null,
+                              onChanged: (v) => setState(
+                                () => _procurementType = v,
                               ),
                             ),
                           ),
@@ -1269,153 +1086,94 @@ class _AddItemPageState extends State<AddItemPage>
                             width: 12,
                           ),
                           Expanded(
-                            child:
-                                isPurchased
-                                    ? SearchSelectField<
-                                        Supplier>(
-                                        labelText:
-                                            'Supplier *',
-                                        options:
-                                            _suppliers,
-                                        displayStringForOption:
-                                            (s) =>
-                                                s.suppName,
-                                        initialText:
-                                            _selectedSupplier
-                                                ?.suppName,
-                                        onSelected:
-                                            (s) =>
-                                                setState(
-                                          () =>
-                                              _selectedSupplier =
-                                                  s,
+                            child: isPurchased
+                                ? SearchSelectField<Supplier>(
+                                    labelText: 'Supplier *',
+                                    options: _suppliers,
+                                    displayStringForOption: (s) => s.suppName,
+                                    initialText: _selectedSupplier?.suppName,
+                                    onSelected: (s) => setState(
+                                      () => _selectedSupplier = s,
+                                    ),
+                                  )
+                                : isDonated
+                                    ? AppDropdownField<DonationType>(
+                                        label: 'Donation Type *',
+                                        initialValue: _donationType,
+                                        placeholder: 'Select donation type',
+                                        options: const [
+                                          AppDropdownOption(
+                                            DonationType.walkIn,
+                                            'Walk-in',
+                                          ),
+                                          AppDropdownOption(
+                                            DonationType.dropOff,
+                                            'Dropped-off',
+                                          ),
+                                        ],
+                                        validator: (v) =>
+                                            v == null ? 'Required' : null,
+                                        onChanged: (v) => setState(
+                                          () => _donationType = v,
                                         ),
                                       )
-                                    : isDonated
-                                        ? AppDropdownField<
-                                            DonationType>(
-                                            label:
-                                                'Donation Type *',
-                                            initialValue:
-                                                _donationType,
-                                            placeholder:
-                                                'Select donation type',
-                                            options:
-                                                const [
-                                              AppDropdownOption(
-                                                DonationType.walkIn,
-                                                'Walk-in',
-                                              ),
-                                              AppDropdownOption(
-                                                DonationType.dropOff,
-                                                'Dropped-off',
-                                              ),
-                                            ],
-                                            validator:
-                                                (v) =>
-                                                    v ==
-                                                            null
-                                                        ? 'Required'
-                                                        : null,
-                                            onChanged:
-                                                (v) =>
-                                                    setState(
-                                              () =>
-                                                  _donationType =
-                                                      v,
-                                            ),
-                                          )
-                                        : const SizedBox
-                                            .shrink(),
+                                    : const SizedBox.shrink(),
                           ),
                         ],
                       ),
                       if (isDonated &&
-                          _donationType ==
-                              DonationType
-                                  .dropOff) ...[
+                          _donationType == DonationType.dropOff) ...[
                         const SizedBox(
                           height: 12,
                         ),
-                        _selectedSubmission ==
-                                null
-                            ? SearchSelectField<
-                                DonationSubmission>(
-                                labelText:
-                                    'Submission ID *',
-                                options:
-                                    _linkableSubmissions,
-                                displayStringForOption:
-                                    (s) =>
-                                        '${s.subId} — ${s.donorName} — '
-                                        '${_formatDate(s.dateReceived!)}',
-                                validator:
-                                    (v) =>
-                                        _selectedSubmission ==
-                                                null
-                                            ? 'Select a submission from the list'
-                                            : null,
-                                onSelected:
-                                    (s) =>
-                                        setState(
+                        _selectedSubmission == null
+                            ? SearchSelectField<DonationSubmission>(
+                                labelText: 'Submission ID *',
+                                options: _linkableSubmissions,
+                                displayStringForOption: (s) =>
+                                    '${s.subId} — ${s.donorName} — '
+                                    '${_formatDate(s.dateReceived!)}',
+                                validator: (v) => _selectedSubmission == null
+                                    ? 'Select a submission from the list'
+                                    : null,
+                                onSelected: (s) => setState(
                                   () {
-                                    _selectedSubmission =
-                                        s;
+                                    _selectedSubmission = s;
 
-                                    _donorNameCtrl
-                                            .text =
-                                        s.donorName;
+                                    _donorNameCtrl.text = s.donorName;
                                   },
                                 ),
                               )
                             : InputDecorator(
-                                decoration:
-                                    const InputDecoration(
-                                  labelText:
-                                      'Submission ID *',
+                                decoration: const InputDecoration(
+                                  labelText: 'Submission ID *',
                                 ),
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment
-                                          .center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Expanded(
-                                      child:
-                                          Text(
-                                        _selectedSubmission!
-                                            .subId,
-                                        style:
-                                            const TextStyle(
-                                          fontWeight:
-                                              FontWeight.w600,
+                                      child: Text(
+                                        _selectedSubmission!.subId,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
                                     IconButton(
-                                      icon:
-                                          const Icon(
+                                      icon: const Icon(
                                         Icons.close,
-                                        size:
-                                            16,
+                                        size: 16,
                                       ),
-                                      onPressed:
-                                          () =>
-                                              setState(
+                                      onPressed: () => setState(
                                         () {
-                                          _selectedSubmission =
-                                              null;
+                                          _selectedSubmission = null;
 
-                                          _donorNameCtrl
-                                              .clear();
+                                          _donorNameCtrl.clear();
                                         },
                                       ),
-                                      padding:
-                                          EdgeInsets
-                                              .zero,
-                                      constraints:
-                                          const BoxConstraints(),
-                                      splashRadius:
-                                          14,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      splashRadius: 14,
                                     ),
                                   ],
                                 ),
@@ -1424,37 +1182,26 @@ class _AddItemPageState extends State<AddItemPage>
                           height: 12,
                         ),
                         InputDecorator(
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Donor',
+                          decoration: const InputDecoration(
+                            labelText: 'Donor',
                           ),
                           child: Text(
-                            _selectedSubmission
-                                    ?.donorName ??
-                                '—',
-                            style:
-                                const TextStyle(
-                              fontWeight:
-                                  FontWeight.w600,
+                            _selectedSubmission?.donorName ?? '—',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ],
                       if (isDonated &&
-                          _donationType ==
-                              DonationType
-                                  .walkIn) ...[
+                          _donationType == DonationType.walkIn) ...[
                         const SizedBox(
                           height: 12,
                         ),
                         TextFormField(
-                          controller:
-                              _donorNameCtrl,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Donated by (optional)',
+                          controller: _donorNameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Donated by (optional)',
                           ),
                         ),
                       ],
@@ -1462,20 +1209,14 @@ class _AddItemPageState extends State<AddItemPage>
                         height: 12,
                       ),
                       Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: InkWell(
-                              onTap:
-                                  _pickDateReceived,
-                              child:
-                                  InputDecorator(
-                                decoration:
-                                    const InputDecoration(
-                                  labelText:
-                                      'Date received',
+                              onTap: _pickDateReceived,
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Date received',
                                 ),
                                 child: Text(
                                   _formatDate(
@@ -1490,65 +1231,37 @@ class _AddItemPageState extends State<AddItemPage>
                           ),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SearchSelectField<
-                                    AppUser>(
-                                  labelText:
-                                      'Received By *',
-                                  controller:
-                                      _receivedByCtrl,
-                                  options:
-                                      _receivers,
-                                  displayStringForOption:
-                                      (u) =>
-                                          u.fullName,
-                                  validator:
-                                      (v) =>
-                                          (v == null ||
-                                                  v
-                                                      .trim()
-                                                      .isEmpty)
-                                              ? 'Required'
-                                              : null,
-                                  onSelected:
-                                      (u) =>
-                                          setState(
-                                    () =>
-                                        _selectedReceiver =
-                                            u,
+                                SearchSelectField<AppUser>(
+                                  labelText: 'Received By *',
+                                  controller: _receivedByCtrl,
+                                  options: _receivers,
+                                  displayStringForOption: (u) => u.fullName,
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'Required'
+                                          : null,
+                                  onSelected: (u) => setState(
+                                    () => _selectedReceiver = u,
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed:
-                                      _useMyNameAsReceiver,
-                                  style:
-                                      TextButton
-                                          .styleFrom(
-                                    padding:
-                                        EdgeInsets
-                                            .zero,
-                                    minimumSize:
-                                        const Size(
+                                  onPressed: _useMyNameAsReceiver,
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(
                                       0,
                                       28,
                                     ),
                                     tapTargetSize:
-                                        MaterialTapTargetSize
-                                            .shrinkWrap,
-                                    alignment:
-                                        Alignment
-                                            .centerLeft,
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    alignment: Alignment.centerLeft,
                                   ),
-                                  child:
-                                      const Text(
+                                  child: const Text(
                                     'I received this',
-                                    style:
-                                        TextStyle(
-                                      fontSize:
-                                          12,
+                                    style: TextStyle(
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
@@ -1563,49 +1276,33 @@ class _AddItemPageState extends State<AddItemPage>
                 const SizedBox(
                   height: 24,
                 ),
-                for (final line
-                    in _lines)
+                for (final line in _lines)
                   _ItemDetailsBlock(
-                    key:
-                        ValueKey(line),
-                    line:
-                        line,
-                    allItems:
-                        _items,
-                    primaryCategories:
-                        _primaryCategories,
-                    subcategories:
-                        _subcategories,
-                    units:
-                        _units,
-                    isPurchased:
-                        isPurchased,
-                    showRemove:
-                        _lines.length >
-                            1,
-                    onRemove: () =>
-                        _removeLine(
+                    key: ValueKey(line),
+                    line: line,
+                    allItems: _items,
+                    primaryCategories: _primaryCategories,
+                    subcategories: _subcategories,
+                    units: _units,
+                    isPurchased: isPurchased,
+                    showRemove: _lines.length > 1,
+                    onRemove: () => _removeLine(
                       line,
                     ),
-                    onChanged: () =>
-                        setState(
+                    onChanged: () => setState(
                       () {},
                     ),
                   ),
-                if (widget.itemId ==
-                    null)
+                if (widget.itemId == null)
                   Row(
                     children: [
                       TextButton.icon(
-                        onPressed:
-                            _addLine,
-                        icon:
-                            const Icon(
+                        onPressed: _addLine,
+                        icon: const Icon(
                           Icons.add,
                           size: 16,
                         ),
-                        label:
-                            const Text(
+                        label: const Text(
                           'Add Item',
                         ),
                       ),
@@ -1613,15 +1310,12 @@ class _AddItemPageState extends State<AddItemPage>
                         width: 8,
                       ),
                       TextButton.icon(
-                        onPressed:
-                            _clearAllLines,
-                        icon:
-                            const Icon(
+                        onPressed: _clearAllLines,
+                        icon: const Icon(
                           Icons.clear_all,
                           size: 16,
                         ),
-                        label:
-                            const Text(
+                        label: const Text(
                           'Clear All',
                         ),
                       ),
@@ -1631,23 +1325,19 @@ class _AddItemPageState extends State<AddItemPage>
                   height: 20,
                 ),
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment
-                          .end,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed:
-                          _saving
-                              ? null
-                              : () async {
-                                  await _settleTransientInputs();
+                      onPressed: _saving
+                          ? null
+                          : () async {
+                              await _settleTransientInputs();
 
-                                  if (!mounted) return;
+                              if (!mounted) return;
 
-                                  context.pop();
-                                },
-                      child:
-                          const Text(
+                              context.pop();
+                            },
+                      child: const Text(
                         'Cancel',
                       ),
                     ),
@@ -1655,20 +1345,14 @@ class _AddItemPageState extends State<AddItemPage>
                       width: 8,
                     ),
                     ElevatedButton(
-                      onPressed:
-                          _saving
-                              ? null
-                              : _save,
+                      onPressed: _saving ? null : _save,
                       child: _saving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth:
-                                    2,
-                                color:
-                                    Colors.white,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
                             )
                           : const Text(
@@ -1686,15 +1370,11 @@ class _AddItemPageState extends State<AddItemPage>
   }
 }
 
-class _ItemDetailsBlock
-    extends StatelessWidget {
+class _ItemDetailsBlock extends StatelessWidget {
   final _StockInLineItem line;
-  final List<InventoryItem>
-      allItems;
-  final List<PrimaryCategory>
-      primaryCategories;
-  final List<Subcategory>
-      subcategories;
+  final List<InventoryItem> allItems;
+  final List<PrimaryCategory> primaryCategories;
+  final List<Subcategory> subcategories;
   final List<Unit> units;
   final bool isPurchased;
   final bool showRemove;
@@ -1718,41 +1398,30 @@ class _ItemDetailsBlock
   Widget build(
     BuildContext context,
   ) {
-    final existing =
-        line.existingItem;
+    final existing = line.existingItem;
 
-    final subcategoryOptions =
-        line.selectedPCategory ==
-                null
-            ? subcategories
-            : subcategories
-                .where(
-                  (s) =>
-                      s.pCategoryId ==
-                      line
-                          .selectedPCategory!
-                          .id,
-                )
-                .toList();
+    final subcategoryOptions = line.selectedPCategory == null
+        ? subcategories
+        : subcategories
+            .where(
+              (s) => s.pCategoryId == line.selectedPCategory!.id,
+            )
+            .toList();
 
-    final expiryRequired =
-        _resolveExpiryRequired(
+    final expiryRequired = _resolveExpiryRequired(
       line,
       primaryCategories,
       subcategories,
     );
 
     return Container(
-      margin:
-          const EdgeInsets.only(
+      margin: const EdgeInsets.only(
         bottom: 16,
       ),
-      padding:
-          const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           12,
         ),
         border: Border.all(
@@ -1760,50 +1429,38 @@ class _ItemDetailsBlock
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-                MainAxisAlignment
-                    .spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Item details',
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               if (showRemove)
                 IconButton(
-                  onPressed:
-                      onRemove,
-                  icon:
-                      const Icon(
+                  onPressed: onRemove,
+                  icon: const Icon(
                     Icons.close,
                     size: 18,
                   ),
-                  splashRadius:
-                      16,
+                  splashRadius: 16,
                 ),
             ],
           ),
           const SizedBox(height: 8),
           if (existing != null)
             Container(
-              padding:
-                  const EdgeInsets.all(
+              padding: const EdgeInsets.all(
                 12,
               ),
-              decoration:
-                  BoxDecoration(
-                color:
-                    AppColors.secondary,
-                borderRadius:
-                    BorderRadius
-                        .circular(
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                borderRadius: BorderRadius.circular(
                   10,
                 ),
               ),
@@ -1811,28 +1468,19 @@ class _ItemDetailsBlock
                 children: [
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          existing
-                              .itemName,
-                          style:
-                              const TextStyle(
-                            fontWeight:
-                                FontWeight.w700,
+                          existing.itemName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         Text(
                           '${existing.itemCategory} · ${existing.itemUom}',
-                          style:
-                              const TextStyle(
-                            fontSize:
-                                12.5,
-                            color:
-                                AppColors
-                                    .mutedForeground,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
@@ -1841,92 +1489,58 @@ class _ItemDetailsBlock
                   Text(
                     _currentStockSummary(existing),
                     textAlign: TextAlign.right,
-                    style:
-                        const TextStyle(
-                      fontSize:
-                          12.5,
+                    style: const TextStyle(
+                      fontSize: 12.5,
                     ),
                   ),
 
                   // Only offer to undo a name-typed match (line.lockedItem) --
                   // an item reached via the Inventory row's "Stock In" action
                   // was explicitly chosen, so it stays locked.
-                  if (line.lockedItem ==
-                      null)
+                  if (line.lockedItem == null)
                     IconButton(
                       onPressed: () {
-                        line.matchedExistingItem =
-                            null;
+                        line.matchedExistingItem = null;
 
-                        line.nameCtrl
-                            .clear();
+                        line.nameCtrl.clear();
 
                         line.nameFieldEpoch++;
 
                         onChanged();
                       },
-                      icon:
-                          const Icon(
+                      icon: const Icon(
                         Icons.close,
                         size: 18,
                       ),
-                      tooltip:
-                          'Undo selection',
-                      splashRadius:
-                          16,
+                      tooltip: 'Undo selection',
+                      splashRadius: 16,
                     ),
                 ],
               ),
             )
           else ...[
-            SearchSelectField<
-                InventoryItem>(
+            SearchSelectField<InventoryItem>(
               key: ValueKey(
                 'name_${line.nameFieldEpoch}',
               ),
-              labelText:
-                  'Name',
-              controller:
-                  line.nameCtrl,
-              options:
-                  allItems,
-              displayStringForOption:
-                  (i) =>
-                      i.itemName,
-              autofocus:
-                  line.nameFieldEpoch >
-                      0,
-              validator:
-                  (v) =>
-                      (v == null ||
-                              v
-                                  .trim()
-                                  .isEmpty)
-                          ? 'Required'
-                          : null,
-              onTextChanged:
-                  (text) {
-                final match =
-                    allItems.where(
-                  (i) =>
-                      i.itemName
-                          .toLowerCase() ==
-                      text
-                          .trim()
-                          .toLowerCase(),
+              labelText: 'Name',
+              controller: line.nameCtrl,
+              options: allItems,
+              displayStringForOption: (i) => i.itemName,
+              autofocus: line.nameFieldEpoch > 0,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+              onTextChanged: (text) {
+                final match = allItems.where(
+                  (i) => i.itemName.toLowerCase() == text.trim().toLowerCase(),
                 );
 
-                line.matchedExistingItem =
-                    match.isEmpty
-                        ? null
-                        : match.first;
+                line.matchedExistingItem = match.isEmpty ? null : match.first;
 
                 onChanged();
               },
-              onSelected:
-                  (item) {
-                line.matchedExistingItem =
-                    item;
+              onSelected: (item) {
+                line.matchedExistingItem = item;
 
                 onChanged();
               },
@@ -1935,41 +1549,22 @@ class _ItemDetailsBlock
               height: 12,
             ),
             Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child:
-                      SearchSelectField<
-                          PrimaryCategory>(
-                    labelText:
-                        'Category',
-                    controller:
-                        line.pCategoryCtrl,
-                    options:
-                        primaryCategories,
-                    displayStringForOption:
-                        (c) =>
-                            c.type,
-                    validator:
-                        (v) =>
-                            (v == null ||
-                                    v
-                                        .trim()
-                                        .isEmpty)
-                                ? 'Required'
-                                : null,
-                    onSelected:
-                        (c) {
-                      line.selectedPCategory =
-                          c;
+                  child: SearchSelectField<PrimaryCategory>(
+                    labelText: 'Category',
+                    controller: line.pCategoryCtrl,
+                    options: primaryCategories,
+                    displayStringForOption: (c) => c.type,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    onSelected: (c) {
+                      line.selectedPCategory = c;
 
-                      line.selectedSCategory =
-                          null;
+                      line.selectedSCategory = null;
 
-                      line.sCategoryCtrl
-                          .clear();
+                      line.sCategoryCtrl.clear();
 
                       onChanged();
                     },
@@ -1979,47 +1574,26 @@ class _ItemDetailsBlock
                   width: 12,
                 ),
                 Expanded(
-                  child:
-                      SearchSelectField<
-                          Subcategory>(
+                  child: SearchSelectField<Subcategory>(
                     key: ValueKey(
-                      line.selectedPCategory?.id ??
-                          'all_subcategories',
+                      line.selectedPCategory?.id ?? 'all_subcategories',
                     ),
-                    labelText:
-                        'Subcategory (optional)',
-                    controller:
-                        line.sCategoryCtrl,
-                    options:
-                        subcategoryOptions,
-                    displayStringForOption:
-                        (s) =>
-                            s.type,
-                    onSelected:
-                        (s) {
-                      line.selectedSCategory =
-                          s;
+                    labelText: 'Subcategory (optional)',
+                    controller: line.sCategoryCtrl,
+                    options: subcategoryOptions,
+                    displayStringForOption: (s) => s.type,
+                    onSelected: (s) {
+                      line.selectedSCategory = s;
 
-                      if (line.selectedPCategory ==
-                          null) {
-                        final parent =
-                            primaryCategories
-                                .where(
-                          (c) =>
-                              c.id ==
-                              s.pCategoryId,
+                      if (line.selectedPCategory == null) {
+                        final parent = primaryCategories.where(
+                          (c) => c.id == s.pCategoryId,
                         );
 
-                        if (parent
-                            .isNotEmpty) {
-                          line.selectedPCategory =
-                              parent.first;
+                        if (parent.isNotEmpty) {
+                          line.selectedPCategory = parent.first;
 
-                          line.pCategoryCtrl
-                                  .text =
-                              parent
-                                  .first
-                                  .type;
+                          line.pCategoryCtrl.text = parent.first.type;
                         }
                       }
 
@@ -2035,25 +1609,13 @@ class _ItemDetailsBlock
             SearchSelectField<Unit>(
               labelText:
                   'Purchase unit (the container bought, e.g. box, bottle)',
-              controller:
-                  line.purchaseUnitCtrl,
-              options:
-                  units,
-              displayStringForOption:
-                  (u) =>
-                      u.name,
-              validator:
-                  (v) =>
-                      (v == null ||
-                              v
-                                  .trim()
-                                  .isEmpty)
-                          ? 'Required'
-                          : null,
-              onSelected:
-                  (u) {
-                line.selectedPurchaseUnit =
-                    u;
+              controller: line.purchaseUnitCtrl,
+              options: units,
+              displayStringForOption: (u) => u.name,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+              onSelected: (u) {
+                line.selectedPurchaseUnit = u;
 
                 onChanged();
               },
@@ -2066,36 +1628,23 @@ class _ItemDetailsBlock
               'they stock out one purchase unit at a time.',
               style: TextStyle(
                 fontSize: 11.5,
-                color:
-                    AppColors
-                        .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(
               height: 12,
             ),
             Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child:
-                      SearchSelectField<
-                          Unit>(
-                    labelText:
-                        'Package unit (optional)',
-                    controller:
-                        line.packageUnitCtrl,
-                    options:
-                        units,
-                    displayStringForOption:
-                        (u) =>
-                            u.name,
-                    onSelected:
-                        (u) {
-                      line.selectedPackageUnit =
-                          u;
+                  child: SearchSelectField<Unit>(
+                    labelText: 'Package unit (optional)',
+                    controller: line.packageUnitCtrl,
+                    options: units,
+                    displayStringForOption: (u) => u.name,
+                    onSelected: (u) {
+                      line.selectedPackageUnit = u;
 
                       onChanged();
                     },
@@ -2105,20 +1654,13 @@ class _ItemDetailsBlock
                   width: 12,
                 ),
                 Expanded(
-                  child:
-                      TextFormField(
-                    controller:
-                        line.packageQuantityCtrl,
-                    keyboardType:
-                        const TextInputType
-                            .numberWithOptions(
-                      decimal:
-                          true,
+                  child: TextFormField(
+                    controller: line.packageQuantityCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                    decoration:
-                        const InputDecoration(
-                      labelText:
-                          'Package qty per purchase unit',
+                    decoration: const InputDecoration(
+                      labelText: 'Package qty per purchase unit',
                     ),
                   ),
                 ),
@@ -2130,50 +1672,35 @@ class _ItemDetailsBlock
             SearchSelectField<Unit>(
               labelText:
                   'Dispense unit (optional -- unit doses are recorded in)',
-              controller:
-                  line.dispenseUnitCtrl,
-              options:
-                  units,
-              displayStringForOption:
-                  (u) =>
-                      u.name,
-              onSelected:
-                  (u) {
-                line.selectedDispenseUnit =
-                    u;
+              controller: line.dispenseUnitCtrl,
+              options: units,
+              displayStringForOption: (u) => u.name,
+              onSelected: (u) {
+                line.selectedDispenseUnit = u;
 
                 onChanged();
               },
             ),
-            if (line.selectedPackageUnit !=
-                null) ...[
+            if (line.selectedPackageUnit != null) ...[
               const SizedBox(
                 height: 12,
               ),
-              AppDropdownField<
-                  StockCountMode>(
-                label:
-                    'Stock Count Mode',
-                initialValue:
-                    line.selectedStockCountMode,
-                placeholder:
-                    'Default',
+              AppDropdownField<StockCountMode>(
+                label: 'Stock Count Mode',
+                initialValue: line.selectedStockCountMode,
+                placeholder: 'Default',
                 options: [
                   AppDropdownOption(
-                    StockCountMode
-                        .packageUnit,
+                    StockCountMode.packageUnit,
                     'By package unit (${line.packageUnitCtrl.text})',
                   ),
                   AppDropdownOption(
-                    StockCountMode
-                        .purchaseUnit,
+                    StockCountMode.purchaseUnit,
                     'By purchase unit (${line.purchaseUnitCtrl.text})',
                   ),
                 ],
-                onChanged:
-                    (m) {
-                  line.selectedStockCountMode =
-                      m;
+                onChanged: (m) {
+                  line.selectedStockCountMode = m;
 
                   onChanged();
                 },
@@ -2187,10 +1714,8 @@ class _ItemDetailsBlock
             const Text(
               'Stock in by',
               style: TextStyle(
-                fontSize:
-                    12.5,
-                fontWeight:
-                    FontWeight.w600,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(
@@ -2203,15 +1728,9 @@ class _ItemDetailsBlock
                   label: Text(
                     'Purchase unit (${_purchaseUnitLabel(line, existing)})',
                   ),
-                  selected:
-                      line.qtyUnit ==
-                          QtyUnit
-                              .purchaseUnit,
-                  onSelected:
-                      (_) {
-                    line.qtyUnit =
-                        QtyUnit
-                            .purchaseUnit;
+                  selected: line.qtyUnit == QtyUnit.purchaseUnit,
+                  onSelected: (_) {
+                    line.qtyUnit = QtyUnit.purchaseUnit;
 
                     onChanged();
                   },
@@ -2220,15 +1739,9 @@ class _ItemDetailsBlock
                   label: Text(
                     'Package unit (${_packageUnitLabel(line, existing)})',
                   ),
-                  selected:
-                      line.qtyUnit ==
-                          QtyUnit
-                              .packageUnit,
-                  onSelected:
-                      (_) {
-                    line.qtyUnit =
-                        QtyUnit
-                            .packageUnit;
+                  selected: line.qtyUnit == QtyUnit.packageUnit,
+                  onSelected: (_) {
+                    line.qtyUnit = QtyUnit.packageUnit;
 
                     onChanged();
                   },
@@ -2240,27 +1753,20 @@ class _ItemDetailsBlock
             height: 12,
           ),
           TextFormField(
-            controller:
-                line.qtyCtrl,
-            keyboardType:
-                const TextInputType
-                    .numberWithOptions(
+            controller: line.qtyCtrl,
+            keyboardType: const TextInputType.numberWithOptions(
               decimal: true,
             ),
-            decoration:
-                InputDecoration(
+            decoration: InputDecoration(
               labelText:
                   'Quantity (${line.qtyUnit == QtyUnit.packageUnit ? _packageUnitLabel(line, existing) : _purchaseUnitLabel(line, existing)})',
             ),
-            validator:
-                (v) {
-              final n =
-                  double.tryParse(
+            validator: (v) {
+              final n = double.tryParse(
                 v ?? '',
               );
 
-              if (n == null ||
-                  n <= 0) {
+              if (n == null || n <= 0) {
                 return 'Enter a quantity greater than 0';
               }
 
@@ -2272,31 +1778,24 @@ class _ItemDetailsBlock
               height: 12,
             ),
             TextFormField(
-              controller:
-                  line.costCtrl,
-              keyboardType:
-                  const TextInputType
-                      .numberWithOptions(
+              controller: line.costCtrl,
+              keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration:
-                  InputDecoration(
+              decoration: InputDecoration(
                 labelText:
                     'Cost per ${line.qtyUnit == QtyUnit.packageUnit ? _packageUnitLabel(line, existing) : _purchaseUnitLabel(line, existing)}',
               ),
-              validator:
-                  (v) {
+              validator: (v) {
                 if (!isPurchased) {
                   return null;
                 }
 
-                final n =
-                    double.tryParse(
+                final n = double.tryParse(
                   v ?? '',
                 );
 
-                if (n == null ||
-                    n < 0) {
+                if (n == null || n < 0) {
                   return 'Enter a valid unit cost';
                 }
 
@@ -2308,44 +1807,30 @@ class _ItemDetailsBlock
             height: 12,
           ),
           InkWell(
-            onTap:
-                () async {
-              final picked =
-                  await showDatePicker(
-                context:
-                    context,
-                initialDate:
-                    line.expiryDate ??
-                        DateTime.now(),
-                firstDate:
-                    DateTime.now(),
-                lastDate:
-                    DateTime(2100),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: line.expiryDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime(2100),
               );
 
               if (picked != null) {
-                line.expiryDate =
-                    picked;
+                line.expiryDate = picked;
 
                 onChanged();
               }
             },
-            child:
-                InputDecorator(
-              decoration:
-                  InputDecoration(
+            child: InputDecorator(
+              decoration: InputDecoration(
                 labelText:
                     'Expiry date${expiryRequired ? ' *' : ' (optional)'}',
-                errorText:
-                    expiryRequired &&
-                            line.expiryDate ==
-                                null
-                        ? 'Required for this category'
-                        : null,
+                errorText: expiryRequired && line.expiryDate == null
+                    ? 'Required for this category'
+                    : null,
               ),
               child: Text(
-                line.expiryDate ==
-                        null
+                line.expiryDate == null
                     ? 'Select a date'
                     : _formatDate(
                         line.expiryDate!,
@@ -2372,14 +1857,11 @@ String _currentStockSummary(
         '${item.currentUsableStockUnit}';
   }
 
-  final packageQty =
-      item.currentUsableStockQty;
+  final packageQty = item.currentUsableStockQty;
 
-  final purchaseEquivalent =
-      item.currentPurchaseUnitEquivalent;
+  final purchaseEquivalent = item.currentPurchaseUnitEquivalent;
 
-  if (item.effectiveCountMode ==
-      StockCountMode.purchaseUnit) {
+  if (item.effectiveCountMode == StockCountMode.purchaseUnit) {
     return 'Current: ${formatQty(purchaseEquivalent)} '
         '${item.purchaseUnitAbbr} '
         '(${formatQty(packageQty)} ${item.packageUnitAbbr})';
@@ -2442,8 +1924,7 @@ const String _stockFieldHelp = '''
 • Expiry date — The date the received stock expires. It is required only for items that need an expiry date.
 ''';
 
-class _SectionLabel
-    extends StatelessWidget {
+class _SectionLabel extends StatelessWidget {
   final String text;
 
   const _SectionLabel(
@@ -2455,17 +1936,14 @@ class _SectionLabel
     BuildContext context,
   ) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 10,
       ),
       child: Text(
         text,
-        style:
-            const TextStyle(
+        style: const TextStyle(
           fontSize: 15,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

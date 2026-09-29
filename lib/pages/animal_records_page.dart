@@ -11,6 +11,7 @@ import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/page_loading.dart';
+
 enum _AnimalSort {
   nameAZ,
   nameZA,
@@ -27,8 +28,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     with DataBusRefreshMixin<AnimalRecordsPage> {
   final PetService _service = PetService();
   final TreatmentService _treatmentService = TreatmentService();
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Pet> _pets = [];
   List<TreatmentRecord> _treatments = [];
@@ -215,8 +215,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     final values = terms.values.toList();
 
     values.sort(
-      (a, b) =>
-          a.toLowerCase().compareTo(b.toLowerCase()),
+      (a, b) => a.toLowerCase().compareTo(b.toLowerCase()),
     );
 
     return values;
@@ -258,8 +257,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     for (final treatment in _treatments) {
       if (treatment.petId != petId) continue;
 
-      if (latest == null ||
-          treatment.recDate.isAfter(latest.recDate)) {
+      if (latest == null || treatment.recDate.isAfter(latest.recDate)) {
         latest = treatment;
       }
     }
@@ -300,12 +298,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
       return 'Specify the breeds in the mix';
     }
 
-    final mentionsMix =
-        RegExp(r'\bmix(ed)?\b').hasMatch(lower);
+    final mentionsMix = RegExp(r'\bmix(ed)?\b').hasMatch(lower);
 
     if (mentionsMix) {
-      final hasClearCombination =
-          clean.contains('×') ||
+      final hasClearCombination = clean.contains('×') ||
           RegExp(r'\s[xX]\s').hasMatch(clean) ||
           clean.contains('/') ||
           clean.contains('+') ||
@@ -350,8 +346,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     final values = breeds.values.toList();
 
     values.sort(
-      (a, b) =>
-          a.toLowerCase().compareTo(b.toLowerCase()),
+      (a, b) => a.toLowerCase().compareTo(b.toLowerCase()),
     );
 
     return values;
@@ -365,41 +360,31 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
     final q = _search.trim().toLowerCase();
 
     final result = _pets.where((pet) {
-      final matchesSearch =
-          q.isEmpty ||
+      final matchesSearch = q.isEmpty ||
           pet.petName.toLowerCase().contains(q) ||
           _breedMatches(pet.breed, q) ||
           (pet.owner ?? '').toLowerCase().contains(q);
 
       final matchesSpecies =
-          _speciesFilter == null ||
-          pet.species == _speciesFilter;
+          _speciesFilter == null || pet.species == _speciesFilter;
 
       final matchesStatus =
-          _statusFilter == null ||
-          pet.status == _statusFilter;
+          _statusFilter == null || pet.status == _statusFilter;
 
-      final matchesBreed =
-          _breedFilter == null ||
+      final matchesBreed = _breedFilter == null ||
           _breedMatches(
             pet.breed,
             _breedFilter!,
           );
 
-      return matchesSearch &&
-          matchesSpecies &&
-          matchesStatus &&
-          matchesBreed;
+      return matchesSearch && matchesSpecies && matchesStatus && matchesBreed;
     }).toList();
 
     result.sort((a, b) {
-      final comparison = a.petName
-          .toLowerCase()
-          .compareTo(b.petName.toLowerCase());
+      final comparison =
+          a.petName.toLowerCase().compareTo(b.petName.toLowerCase());
 
-      return _sort == _AnimalSort.nameAZ
-          ? comparison
-          : -comparison;
+      return _sort == _AnimalSort.nameAZ ? comparison : -comparison;
     });
 
     return result;
@@ -439,22 +424,18 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
         return false;
       }
 
-      final sameName =
-          _key(existing.petName) == _key(petName);
+      final sameName = _key(existing.petName) == _key(petName);
 
-      final sameSpecies =
-          existing.species == species;
+      final sameSpecies = existing.species == species;
 
-      final exactIdentity =
-          sameName &&
+      final exactIdentity = sameName &&
           sameSpecies &&
           existing.gender == gender &&
           _key(existing.breed) == _key(breed) &&
           _key(existing.owner) == ownerKey &&
           existing.spayedNeutered == spayedNeutered;
 
-      final sameOwnedAnimal =
-          ownerKey.isNotEmpty &&
+      final sameOwnedAnimal = ownerKey.isNotEmpty &&
           sameName &&
           sameSpecies &&
           _key(existing.owner) == ownerKey;
@@ -578,17 +559,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
     final formKey = GlobalKey<FormState>();
 
-    PetSpecies species =
-        pet?.species ?? PetSpecies.dog;
+    PetSpecies species = pet?.species ?? PetSpecies.dog;
 
-    PetGender gender =
-        pet?.gender ?? PetGender.male;
+    PetGender gender = pet?.gender ?? PetGender.male;
 
-    PetStatus status =
-        pet?.status ?? PetStatus.healthy;
+    PetStatus status = pet?.status ?? PetStatus.healthy;
 
-    bool spayedNeutered =
-        pet?.spayedNeutered ?? false;
+    bool spayedNeutered = pet?.spayedNeutered ?? false;
 
     bool saving = false;
     String? duplicateError;
@@ -602,27 +579,19 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             builderContext,
             setDialogState,
           ) {
-            final screen =
-                MediaQuery.sizeOf(builderContext);
+            final screen = MediaQuery.sizeOf(builderContext);
 
-            final contentWidth =
-                screen.width < 520
-                    ? screen.width - 96
-                    : 430.0;
+            final contentWidth = screen.width < 520 ? screen.width - 96 : 430.0;
 
             final maxContentHeight =
-                screen.height < 760
-                    ? screen.height * 0.58
-                    : 500.0;
+                screen.height < 760 ? screen.height * 0.58 : 500.0;
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
               title: Text(
-                isEdit
-                    ? 'Edit Animal'
-                    : 'Add Animal',
+                isEdit ? 'Edit Animal' : 'Add Animal',
               ),
               content: SizedBox(
                 width: contentWidth,
@@ -635,8 +604,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                       key: formKey,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // ===================================================
                           // NAME
@@ -650,13 +618,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 duplicateError = null;
                               });
                             },
-                            decoration:
-                                const InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Name',
                             ),
                             validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
+                              if (value == null || value.trim().isEmpty) {
                                 return 'Required';
                               }
 
@@ -673,14 +639,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           AppDropdownField<PetSpecies>(
                             label: 'Species',
                             initialValue: species,
-                            options:
-                                PetSpecies.values.map(
+                            options: PetSpecies.values.map(
                               (value) {
                                 return AppDropdownOption(
                                   value,
-                                  value == PetSpecies.dog
-                                      ? 'Dog'
-                                      : 'Cat',
+                                  value == PetSpecies.dog ? 'Dog' : 'Cat',
                                 );
                               },
                             ).toList(),
@@ -705,12 +668,9 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 duplicateError = null;
                               });
                             },
-                            decoration:
-                                const InputDecoration(
-                              labelText:
-                                  'Breed (optional)',
-                              hintText:
-                                  'e.g. Husky-Samoyed Mix',
+                            decoration: const InputDecoration(
+                              labelText: 'Breed (optional)',
+                              hintText: 'e.g. Husky-Samoyed Mix',
                               helperText:
                                   'For mixed breeds, specify the component breeds.',
                             ),
@@ -730,12 +690,9 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 duplicateError = null;
                               });
                             },
-                            decoration:
-                                const InputDecoration(
-                              labelText:
-                                  'Owner (optional)',
-                              helperText:
-                                  'Leave blank if no owner is known.',
+                            decoration: const InputDecoration(
+                              labelText: 'Owner (optional)',
+                              helperText: 'Leave blank if no owner is known.',
                             ),
                           ),
 
@@ -748,14 +705,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           AppDropdownField<PetGender>(
                             label: 'Gender',
                             initialValue: gender,
-                            options:
-                                PetGender.values.map(
+                            options: PetGender.values.map(
                               (value) {
                                 return AppDropdownOption(
                                   value,
-                                  value == PetGender.male
-                                      ? 'Male'
-                                      : 'Female',
+                                  value == PetGender.male ? 'Male' : 'Female',
                                 );
                               },
                             ).toList(),
@@ -776,8 +730,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           AppDropdownField<PetStatus>(
                             label: 'Status',
                             initialValue: status,
-                            options:
-                                PetStatus.values.map(
+                            options: PetStatus.values.map(
                               (value) {
                                 return AppDropdownOption(
                                   value,
@@ -800,8 +753,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
-                            controlAffinity:
-                                ListTileControlAffinity.leading,
+                            controlAffinity: ListTileControlAffinity.leading,
                             title: const Text(
                               'Spayed / Neutered',
                             ),
@@ -810,10 +762,8 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 ? null
                                 : (value) {
                                     setDialogState(() {
-                                      spayedNeutered =
-                                          value ?? false;
-                                      duplicateError =
-                                          null;
+                                      spayedNeutered = value ?? false;
+                                      duplicateError = null;
                                     });
                                   },
                           ),
@@ -824,26 +774,21 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
                           if (duplicateError != null) ...[
                             const SizedBox(height: 4),
-
                             Row(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Icon(
                                   Icons.error_outline,
                                   size: 16,
-                                  color:
-                                      AppColors.destructive,
+                                  color: AppColors.destructive,
                                 ),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     duplicateError!,
-                                    style:
-                                        const TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
-                                      color: AppColors
-                                          .destructive,
+                                      color: AppColors.destructive,
                                     ),
                                   ),
                                 ),
@@ -867,26 +812,21 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                         },
                   child: const Text('Cancel'),
                 ),
-
                 ElevatedButton(
                   onPressed: saving
                       ? null
                       : () async {
-                          if (!formKey.currentState!
-                              .validate()) {
+                          if (!formKey.currentState!.validate()) {
                             return;
                           }
 
-                          final cleanName =
-                              _cleanText(nameCtrl.text);
+                          final cleanName = _cleanText(nameCtrl.text);
 
-                          final cleanBreed =
-                              _cleanOptional(
+                          final cleanBreed = _cleanOptional(
                             breedCtrl.text,
                           );
 
-                          final cleanOwner =
-                              _cleanOptional(
+                          final cleanOwner = _cleanOptional(
                             ownerCtrl.text,
                           );
 
@@ -900,8 +840,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                             gender: gender,
                             breed: cleanBreed,
                             owner: cleanOwner,
-                            spayedNeutered:
-                                spayedNeutered,
+                            spayedNeutered: spayedNeutered,
                             excludePetId: pet?.petId,
                           )) {
                             setDialogState(() {
@@ -927,8 +866,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 status: status,
                                 breed: cleanBreed,
                                 owner: cleanOwner,
-                                spayedNeutered:
-                                    spayedNeutered,
+                                spayedNeutered: spayedNeutered,
                               );
                             } else {
                               await _service.createPet(
@@ -938,8 +876,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 status: status,
                                 breed: cleanBreed,
                                 owner: cleanOwner,
-                                spayedNeutered:
-                                    spayedNeutered,
+                                spayedNeutered: spayedNeutered,
                               );
                             }
 
@@ -980,8 +917,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 content: Text(
                                   _cleanError(e),
                                 ),
-                                backgroundColor:
-                                    AppColors.destructive,
+                                backgroundColor: AppColors.destructive,
                               ),
                             );
                           }
@@ -990,16 +926,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child:
-                              CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
                           ),
                         )
                       : Text(
-                          isEdit
-                              ? 'Save Changes'
-                              : 'Add Animal',
+                          isEdit ? 'Save Changes' : 'Add Animal',
                         ),
                 ),
               ],
@@ -1034,24 +967,17 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
       statusColor,
     ) = _statusMeta(pet.status);
 
-    final latestTreatment =
-        _latestTreatmentForPet(pet.petId);
+    final latestTreatment = _latestTreatmentForPet(pet.petId);
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        final screen =
-            MediaQuery.sizeOf(dialogContext);
+        final screen = MediaQuery.sizeOf(dialogContext);
 
-        final contentWidth =
-            screen.width < 620
-                ? screen.width - 96
-                : 520.0;
+        final contentWidth = screen.width < 620 ? screen.width - 96 : 520.0;
 
         final maxContentHeight =
-            screen.height < 760
-                ? screen.height * 0.62
-                : 550.0;
+            screen.height < 760 ? screen.height * 0.62 : 550.0;
 
         return AlertDialog(
           shape: RoundedRectangleBorder(
@@ -1062,15 +988,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
               FaIcon(
                 _speciesIcon(pet.species),
                 size: 20,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   pet.petName,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -1084,8 +1008,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // =========================================================
                     // ANIMAL INFORMATION
@@ -1093,11 +1016,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
                     _DetailRow(
                       label: 'Species',
-                      value:
-                          pet.species ==
-                                  PetSpecies.dog
-                              ? 'Dog'
-                              : 'Cat',
+                      value: pet.species == PetSpecies.dog ? 'Dog' : 'Cat',
                     ),
 
                     _DetailRow(
@@ -1112,19 +1031,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
                     _DetailRow(
                       label: 'Gender',
-                      value:
-                          pet.gender ==
-                                  PetGender.male
-                              ? 'Male'
-                              : 'Female',
+                      value: pet.gender == PetGender.male ? 'Male' : 'Female',
                     ),
 
                     _DetailRow(
                       label: 'Spayed/Neutered',
-                      value:
-                          pet.spayedNeutered
-                              ? 'Yes'
-                              : 'No',
+                      value: pet.spayedNeutered ? 'Yes' : 'No',
                     ),
 
                     const SizedBox(height: 4),
@@ -1134,25 +1046,21 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                     // =========================================================
 
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                            statusColor.withValues(
+                        color: statusColor.withValues(
                           alpha: 0.12,
                         ),
-                        borderRadius:
-                            BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         statusLabel,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight:
-                              FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                           color: statusColor,
                         ),
                       ),
@@ -1172,8 +1080,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                     const Row(
                       children: [
                         Icon(
-                          Icons
-                              .medical_services_outlined,
+                          Icons.medical_services_outlined,
                           size: 18,
                           color: AppColors.primary,
                         ),
@@ -1182,8 +1089,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                           'Latest Treatment',
                           style: TextStyle(
                             fontSize: 14.5,
-                            fontWeight:
-                                FontWeight.w700,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
@@ -1195,8 +1101,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                       'Most recent recorded treatment for this animal.',
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
 
@@ -1205,30 +1110,24 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                     if (latestTreatment == null)
                       Container(
                         width: double.infinity,
-                        padding:
-                            const EdgeInsets.all(
+                        padding: const EdgeInsets.all(
                           14,
                         ),
-                        decoration:
-                            BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.card,
-                          borderRadius:
-                              BorderRadius.circular(
+                          borderRadius: BorderRadius.circular(
                             12,
                           ),
                           border: Border.all(
-                            color:
-                                AppColors.border,
+                            color: AppColors.border,
                           ),
                         ),
                         child: const Row(
                           children: [
                             Icon(
-                              Icons
-                                  .medical_services_outlined,
+                              Icons.medical_services_outlined,
                               size: 17,
-                              color: AppColors
-                                  .mutedForeground,
+                              color: AppColors.mutedForeground,
                             ),
                             SizedBox(width: 8),
                             Expanded(
@@ -1236,8 +1135,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 'No treatment has been recorded for this animal.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors
-                                      .mutedForeground,
+                                  color: AppColors.mutedForeground,
                                 ),
                               ),
                             ),
@@ -1246,8 +1144,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                       )
                     else
                       _LatestTreatmentCard(
-                        record:
-                            latestTreatment,
+                        record: latestTreatment,
                       ),
                   ],
                 ),
@@ -1263,7 +1160,6 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
               },
               child: const Text('Close'),
             ),
-
             TextButton(
               onPressed: () {
                 Navigator.of(
@@ -1274,14 +1170,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   pet: pet,
                 );
               },
-              child:
-                  const Text('Edit Animal'),
+              child: const Text('Edit Animal'),
             ),
-
             AppMenuButton<PetStatus>(
               tooltip: 'Update status',
-              options:
-                  PetStatus.values.map(
+              options: PetStatus.values.map(
                 (newStatus) {
                   return AppDropdownOption(
                     newStatus,
@@ -1291,15 +1184,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   );
                 },
               ).toList(),
-              onSelected:
-                  (newStatus) async {
+              onSelected: (newStatus) async {
                 Navigator.of(
                   dialogContext,
                 ).pop();
 
                 try {
-                  await _service
-                      .updateStatus(
+                  await _service.updateStatus(
                     petId: pet.petId,
                     status: newStatus,
                   );
@@ -1328,16 +1219,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 isOpen,
               ) {
                 return Container(
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 10,
                   ),
-                  decoration:
-                      BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius:
-                        BorderRadius.circular(
+                    borderRadius: BorderRadius.circular(
                       10,
                     ),
                   ),
@@ -1399,14 +1287,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
   @override
   Widget build(BuildContext context) {
-    final isMobile =
-        MediaQuery.sizeOf(context).width < 600;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-  if (_loading && _pets.isEmpty) {
-  return const PageLoading(
-    message: 'Loading animal records',
-  );
-}
+    if (_loading && _pets.isEmpty) {
+      return const PageLoading(
+        message: 'Loading animal records',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -1416,8 +1303,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             Text(
               _error!,
               style: const TextStyle(
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 12),
@@ -1434,29 +1320,24 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
     final healthyCount = _pets
         .where(
-          (pet) =>
-              pet.status == PetStatus.healthy,
+          (pet) => pet.status == PetStatus.healthy,
         )
         .length;
 
     final treatmentCount = _pets
         .where(
-          (pet) =>
-              pet.status ==
-              PetStatus.underTreatment,
+          (pet) => pet.status == PetStatus.underTreatment,
         )
         .length;
 
     final adoptedCount = _pets
         .where(
-          (pet) =>
-              pet.status == PetStatus.adopted,
+          (pet) => pet.status == PetStatus.adopted,
         )
         .length;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // =====================================================================
         // HEADER
@@ -1464,26 +1345,20 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
         if (isMobile)
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Animal Records',
                 style: TextStyle(
                   fontSize: 24,
-                  fontWeight:
-                      FontWeight.w800,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               SizedBox(
                 width: double.infinity,
-                child:
-                    ElevatedButton.icon(
-                  onPressed: () =>
-                      _openAnimalFormDialog(),
+                child: ElevatedButton.icon(
+                  onPressed: () => _openAnimalFormDialog(),
                   icon: const Icon(
                     Icons.add,
                     size: 18,
@@ -1491,11 +1366,8 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   label: const Text(
                     'Add Animal',
                   ),
-                  style:
-                      ElevatedButton.styleFrom(
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
                       vertical: 14,
                     ),
                   ),
@@ -1505,25 +1377,20 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           )
         else
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Expanded(
                 child: Text(
                   'Animal Records',
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight:
-                        FontWeight.w800,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-
               ElevatedButton.icon(
-                onPressed: () =>
-                    _openAnimalFormDialog(),
+                onPressed: () => _openAnimalFormDialog(),
                 icon: const Icon(
                   Icons.add,
                   size: 18,
@@ -1541,8 +1408,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           '$totalCount animals',
           style: const TextStyle(
             fontSize: 13,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
 
@@ -1559,60 +1425,45 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                 label: 'Total Animals',
                 value: '$totalCount',
                 icon: Icons.pets_outlined,
-                accent:
-                    AppColors.roleManager,
+                accent: AppColors.roleManager,
                 selected: _statusFilter == null,
                 onTap: () {
                   _applyStatusQuickFilter(null);
                 },
               ),
-
               const SizedBox(height: 10),
-
               _buildMobileStatCard(
                 label: 'Healthy',
                 value: '$healthyCount',
-                icon: Icons
-                    .check_circle_outline,
+                icon: Icons.check_circle_outline,
                 accent: AppColors.primary,
-                selected:
-                    _statusFilter ==
-                    PetStatus.healthy,
+                selected: _statusFilter == PetStatus.healthy,
                 onTap: () {
                   _applyStatusQuickFilter(
                     PetStatus.healthy,
                   );
                 },
               ),
-
               const SizedBox(height: 10),
-
               _buildMobileStatCard(
                 label: 'Under Treatment',
                 value: '$treatmentCount',
-                icon: Icons
-                    .medical_services_outlined,
+                icon: Icons.medical_services_outlined,
                 accent: AppColors.warning,
-                selected:
-                    _statusFilter ==
-                    PetStatus.underTreatment,
+                selected: _statusFilter == PetStatus.underTreatment,
                 onTap: () {
                   _applyStatusQuickFilter(
                     PetStatus.underTreatment,
                   );
                 },
               ),
-
               const SizedBox(height: 10),
-
               _buildMobileStatCard(
                 label: 'Adopted',
                 value: '$adoptedCount',
                 icon: Icons.home_outlined,
                 accent: AppColors.accent,
-                selected:
-                    _statusFilter ==
-                    PetStatus.adopted,
+                selected: _statusFilter == PetStatus.adopted,
                 onTap: () {
                   _applyStatusQuickFilter(
                     PetStatus.adopted,
@@ -1623,20 +1474,17 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           )
         else
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildDesktopStatCard(
                   label: 'Total Animals',
                   value: '$totalCount',
                   icon: Icons.pets_outlined,
-                  accent:
-                      AppColors.roleManager,
+                  accent: AppColors.roleManager,
                   tooltip: 'Show all animals',
                   actionLabel: 'View animals',
-                  selected:
-                      _statusFilter == null,
+                  selected: _statusFilter == null,
                   onTap: () {
                     _applyStatusQuickFilter(
                       null,
@@ -1644,22 +1492,16 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   },
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: _buildDesktopStatCard(
                   label: 'Healthy',
                   value: '$healthyCount',
-                  icon: Icons
-                      .check_circle_outline,
+                  icon: Icons.check_circle_outline,
                   accent: AppColors.primary,
-                  tooltip:
-                      'Show healthy animals',
+                  tooltip: 'Show healthy animals',
                   actionLabel: 'View animals',
-                  selected:
-                      _statusFilter ==
-                      PetStatus.healthy,
+                  selected: _statusFilter == PetStatus.healthy,
                   onTap: () {
                     _applyStatusQuickFilter(
                       PetStatus.healthy,
@@ -1667,22 +1509,16 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   },
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: _buildDesktopStatCard(
                   label: 'Under Treatment',
                   value: '$treatmentCount',
-                  icon: Icons
-                      .medical_services_outlined,
+                  icon: Icons.medical_services_outlined,
                   accent: AppColors.warning,
-                  tooltip:
-                      'Show animals under treatment',
+                  tooltip: 'Show animals under treatment',
                   actionLabel: 'View animals',
-                  selected:
-                      _statusFilter ==
-                      PetStatus.underTreatment,
+                  selected: _statusFilter == PetStatus.underTreatment,
                   onTap: () {
                     _applyStatusQuickFilter(
                       PetStatus.underTreatment,
@@ -1690,21 +1526,16 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   },
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: _buildDesktopStatCard(
                   label: 'Adopted',
                   value: '$adoptedCount',
                   icon: Icons.home_outlined,
                   accent: AppColors.accent,
-                  tooltip:
-                      'Show adopted animals',
+                  tooltip: 'Show adopted animals',
                   actionLabel: 'View animals',
-                  selected:
-                      _statusFilter ==
-                      PetStatus.adopted,
+                  selected: _statusFilter == PetStatus.adopted,
                   onTap: () {
                     _applyStatusQuickFilter(
                       PetStatus.adopted,
@@ -1724,13 +1555,10 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
         Wrap(
           spacing: isMobile ? 8 : 12,
           runSpacing: isMobile ? 8 : 12,
-          crossAxisAlignment:
-              WrapCrossAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             SizedBox(
-              width: isMobile
-                  ? double.infinity
-                  : 280,
+              width: isMobile ? double.infinity : 280,
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) {
@@ -1738,14 +1566,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                     _search = value;
                   });
                 },
-                decoration:
-                    const InputDecoration(
+                decoration: const InputDecoration(
                   prefixIcon: Icon(
                     Icons.search,
                     size: 18,
                   ),
-                  hintText:
-                      'Search name, breed, or owner',
+                  hintText: 'Search name, breed, or owner',
                   isDense: true,
                 ),
               ),
@@ -1756,13 +1582,11 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             // ===============================================================
 
             AppDropdown<PetSpecies?>(
-              label:
-                  _speciesFilter == null
-                      ? 'Species'
-                      : _speciesFilter ==
-                              PetSpecies.dog
-                          ? 'Dog'
-                          : 'Cat',
+              label: _speciesFilter == null
+                  ? 'Species'
+                  : _speciesFilter == PetSpecies.dog
+                      ? 'Dog'
+                      : 'Cat',
               options: const [
                 AppDropdownOption(
                   null,
@@ -1791,15 +1615,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             AppDropdown<String?>(
               label: _breedFilter ?? 'Breed',
               options: [
-                const AppDropdownOption<
-                    String?>(
+                const AppDropdownOption<String?>(
                   null,
                   'All breeds',
                 ),
-                for (final breed
-                    in _breedOptions)
-                  AppDropdownOption<
-                      String?>(
+                for (final breed in _breedOptions)
+                  AppDropdownOption<String?>(
                     breed,
                     breed,
                   ),
@@ -1816,19 +1637,17 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             // ===============================================================
 
             AppDropdown<PetStatus?>(
-              label:
-                  _statusFilter == null
-                      ? 'Status'
-                      : _statusMeta(
-                          _statusFilter!,
-                        ).$1,
+              label: _statusFilter == null
+                  ? 'Status'
+                  : _statusMeta(
+                      _statusFilter!,
+                    ).$1,
               options: [
                 const AppDropdownOption(
                   null,
                   'All statuses',
                 ),
-                for (final status
-                    in PetStatus.values)
+                for (final status in PetStatus.values)
                   AppDropdownOption(
                     status,
                     _statusMeta(status).$1,
@@ -1846,11 +1665,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
             // ===============================================================
 
             AppDropdown<_AnimalSort>(
-              label:
-                  _sort ==
-                          _AnimalSort.nameAZ
-                      ? 'A–Z'
-                      : 'Z–A',
+              label: _sort == _AnimalSort.nameAZ ? 'A–Z' : 'Z–A',
               options: const [
                 AppDropdownOption(
                   _AnimalSort.nameAZ,
@@ -1890,8 +1705,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 
         if (_pets.isEmpty)
           const Padding(
-            padding:
-                EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               vertical: 56,
             ),
             child: Center(
@@ -1900,15 +1714,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   Icon(
                     Icons.pets_outlined,
                     size: 36,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                   SizedBox(height: 10),
                   Text(
                     'No animals recorded yet',
                     style: TextStyle(
-                      fontWeight:
-                          FontWeight.w600,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -1917,8 +1729,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           )
         else if (_filtered.isEmpty)
           const Padding(
-            padding:
-                EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               vertical: 48,
             ),
             child: Center(
@@ -1927,15 +1738,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   Icon(
                     Icons.search_off,
                     size: 32,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                   SizedBox(height: 8),
                   Text(
                     'No animals match your filters.',
                     style: TextStyle(
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
@@ -1945,18 +1754,12 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
         else
           GridView.builder(
             shrinkWrap: true,
-            physics:
-                const NeverScrollableScrollPhysics(),
-            gridDelegate:
-                SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent:
-                  isMobile ? 180 : 320,
-              mainAxisExtent:
-                  isMobile ? 155 : 175,
-              crossAxisSpacing:
-                  isMobile ? 10 : 16,
-              mainAxisSpacing:
-                  isMobile ? 10 : 16,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: isMobile ? 180 : 320,
+              mainAxisExtent: isMobile ? 155 : 175,
+              crossAxisSpacing: isMobile ? 10 : 16,
+              mainAxisSpacing: isMobile ? 10 : 16,
             ),
             itemCount: _filtered.length,
             itemBuilder: (context, index) {
@@ -1973,17 +1776,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   isHovered,
                 ) {
                   return InkWell(
-                    borderRadius:
-                        BorderRadius.circular(
+                    borderRadius: BorderRadius.circular(
                       16,
                     ),
-                    onTap: () =>
-                        _openDetailDialog(
+                    onTap: () => _openDetailDialog(
                       pet,
                     ),
                     child: AnimatedContainer(
-                      duration:
-                          const Duration(
+                      duration: const Duration(
                         milliseconds: 150,
                       ),
                       padding: EdgeInsets.all(
@@ -1991,32 +1791,25 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.card,
-                        borderRadius:
-                            BorderRadius.circular(
+                        borderRadius: BorderRadius.circular(
                           16,
                         ),
                         border: Border.all(
                           color: isHovered
-                              ? AppColors.primary
-                                  .withValues(
-                                    alpha: 0.4,
-                                  )
+                              ? AppColors.primary.withValues(
+                                  alpha: 0.4,
+                                )
                               : AppColors.border,
-                          width: isHovered
-                              ? 1.5
-                              : 1,
+                          width: isHovered ? 1.5 : 1,
                         ),
                         boxShadow: isHovered
                             ? [
                                 BoxShadow(
-                                  color: AppColors
-                                      .primary
-                                      .withValues(
-                                        alpha: 0.1,
-                                      ),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   blurRadius: 10,
-                                  offset:
-                                      const Offset(
+                                  offset: const Offset(
                                     0,
                                     3,
                                   ),
@@ -2025,9 +1818,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                             : null,
                       ),
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
@@ -2035,131 +1826,75 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                                 _speciesIcon(
                                   pet.species,
                                 ),
-                                size: isMobile
-                                    ? 18
-                                    : 20,
+                                size: isMobile ? 18 : 20,
                                 color: isHovered
-                                    ? AppColors
-                                        .primary
-                                    : AppColors
-                                        .mutedForeground,
+                                    ? AppColors.primary
+                                    : AppColors.mutedForeground,
                               ),
-
                               const SizedBox(
                                 width: 8,
                               ),
-
                               Expanded(
                                 child: Text(
                                   pet.petName,
-                                  overflow:
-                                      TextOverflow
-                                          .ellipsis,
-                                  style:
-                                      TextStyle(
-                                    fontWeight:
-                                        FontWeight
-                                            .w700,
-                                    fontSize:
-                                        isMobile
-                                            ? 13
-                                            : 14,
-                                    color: isHovered
-                                        ? AppColors
-                                            .primary
-                                        : null,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: isMobile ? 13 : 14,
+                                    color: isHovered ? AppColors.primary : null,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-
                           const SizedBox(
                             height: 6,
                           ),
-
                           Text(
                             pet.breed ??
-                                (pet.species ==
-                                        PetSpecies
-                                            .dog
-                                    ? 'Dog'
-                                    : 'Cat'),
-                            overflow:
-                                TextOverflow
-                                    .ellipsis,
+                                (pet.species == PetSpecies.dog ? 'Dog' : 'Cat'),
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: isMobile
-                                  ? 11
-                                  : 12.5,
-                              color: AppColors
-                                  .mutedForeground,
+                              fontSize: isMobile ? 11 : 12.5,
+                              color: AppColors.mutedForeground,
                             ),
                           ),
-
-                          if ((pet.owner ?? '')
-                              .trim()
-                              .isNotEmpty) ...[
+                          if ((pet.owner ?? '').trim().isNotEmpty) ...[
                             const SizedBox(
                               height: 3,
                             ),
                             Text(
                               'Owner: ${pet.owner}',
                               maxLines: 1,
-                              overflow:
-                                  TextOverflow
-                                      .ellipsis,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize:
-                                    isMobile
-                                        ? 10.5
-                                        : 11.5,
-                                color: AppColors
-                                    .mutedForeground,
+                                fontSize: isMobile ? 10.5 : 11.5,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ],
-
                           const Spacer(),
-
                           Align(
-                            alignment:
-                                Alignment
-                                    .centerLeft,
+                            alignment: Alignment.centerLeft,
                             child: Container(
-                              padding:
-                                  const EdgeInsets
-                                      .symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                                 vertical: 4,
                               ),
-                              decoration:
-                                  BoxDecoration(
-                                color: statusColor
-                                    .withValues(
-                                  alpha: isHovered
-                                      ? 0.2
-                                      : 0.12,
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(
+                                  alpha: isHovered ? 0.2 : 0.12,
                                 ),
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
+                                borderRadius: BorderRadius.circular(
                                   20,
                                 ),
                               ),
                               child: Text(
                                 statusLabel,
-                                style:
-                                    TextStyle(
-                                  fontSize:
-                                      isMobile
-                                          ? 10
-                                          : 12,
-                                  fontWeight:
-                                      FontWeight
-                                          .w600,
-                                  color:
-                                      statusColor,
+                                style: TextStyle(
+                                  fontSize: isMobile ? 10 : 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: statusColor,
                                 ),
                               ),
                             ),
@@ -2192,8 +1927,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   }) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: selected
               ? accent.withValues(
@@ -2209,15 +1943,13 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                     alpha: 0.10,
                   ),
                   blurRadius: 12,
-                  offset:
-                      const Offset(0, 3),
+                  offset: const Offset(0, 3),
                 ),
               ]
             : null,
       ),
       child: ClipRRect(
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         child: StatCard(
           label: label,
           value: value,
@@ -2245,24 +1977,20 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
   }) {
     return Material(
       color: Colors.transparent,
-      borderRadius:
-          BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: selected
                 ? accent.withValues(
                     alpha: 0.06,
                   )
                 : AppColors.card,
-            borderRadius:
-                BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
                   ? accent.withValues(
@@ -2275,21 +2003,14 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
           child: Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.all(
+                padding: const EdgeInsets.all(
                   10,
                 ),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      accent.withValues(
-                    alpha:
-                        selected
-                            ? 0.16
-                            : 0.1,
+                decoration: BoxDecoration(
+                  color: accent.withValues(
+                    alpha: selected ? 0.16 : 0.1,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(
+                  borderRadius: BorderRadius.circular(
                     10,
                   ),
                 ),
@@ -2299,37 +2020,28 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
                   color: accent,
                 ),
               ),
-
               const SizedBox(width: 14),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       value,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 20,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
                       label,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               if (selected)
                 Icon(
                   Icons.check_circle,
@@ -2357,8 +2069,7 @@ class _AnimalRecordsPageState extends State<AnimalRecordsPage>
 // - no treatment-detail route
 // =============================================================================
 
-class _LatestTreatmentCard
-    extends StatelessWidget {
+class _LatestTreatmentCard extends StatelessWidget {
   final TreatmentRecord record;
 
   const _LatestTreatmentCard({
@@ -2372,73 +2083,56 @@ class _LatestTreatmentCard
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 36,
                 height: 36,
-                decoration:
-                    BoxDecoration(
-                  color: AppColors.primary
-                      .withValues(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(
                     alpha: 0.08,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(
+                  borderRadius: BorderRadius.circular(
                     9,
                   ),
                 ),
                 child: const Icon(
-                  Icons
-                      .medical_services_outlined,
+                  Icons.medical_services_outlined,
                   size: 17,
                   color: AppColors.primary,
                 ),
               ),
-
               const SizedBox(width: 10),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       record.treatName,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 13.5,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-
                     const SizedBox(
                       height: 3,
                     ),
-
                     Text(
                       _formatTreatmentDate(
                         record.recDate,
                       ),
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 11.5,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -2446,29 +2140,19 @@ class _LatestTreatmentCard
               ),
             ],
           ),
-
           const SizedBox(height: 14),
-
           _TreatmentInfoRow(
             label: 'Performed by',
-            value:
-                record.performedByName,
+            value: record.performedByName,
           ),
-
           _TreatmentInfoRow(
             label: 'Recorded by',
-            value:
-                record.recordedByName,
+            value: record.recordedByName,
           ),
-
-          if (record.notes != null &&
-              record.notes!
-                  .trim()
-                  .isNotEmpty)
+          if (record.notes != null && record.notes!.trim().isNotEmpty)
             _TreatmentInfoRow(
               label: 'Notes',
-              value:
-                  record.notes!.trim(),
+              value: record.notes!.trim(),
             ),
         ],
       ),
@@ -2480,8 +2164,7 @@ class _LatestTreatmentCard
 // TREATMENT INFO ROW
 // =============================================================================
 
-class _TreatmentInfoRow
-    extends StatelessWidget {
+class _TreatmentInfoRow extends StatelessWidget {
   final String label;
   final String value;
 
@@ -2493,35 +2176,28 @@ class _TreatmentInfoRow
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 7,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 95,
             child: Text(
               label,
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 11.5,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
-
           Expanded(
             child: Text(
               value,
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 11.5,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -2546,12 +2222,10 @@ class _Hoverable extends StatefulWidget {
   });
 
   @override
-  State<_Hoverable> createState() =>
-      _HoverableState();
+  State<_Hoverable> createState() => _HoverableState();
 }
 
-class _HoverableState
-    extends State<_Hoverable> {
+class _HoverableState extends State<_Hoverable> {
   bool _isHovered = false;
 
   @override
@@ -2591,34 +2265,27 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 10,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 130,
             child: Text(
               label,
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 12.5,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
-
           Expanded(
             child: Text(
               value,
-              style:
-                  const TextStyle(
-                fontWeight:
-                    FontWeight.w600,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

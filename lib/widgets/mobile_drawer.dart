@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -9,8 +9,7 @@ import '../state/auth_state.dart';
 import '../state/app_operation_controller.dart';
 import 'pending_donation_badge.dart';
 
-class MobileDrawer
-    extends StatefulWidget {
+class MobileDrawer extends StatefulWidget {
   final String currentPath;
 
   const MobileDrawer({
@@ -19,27 +18,25 @@ class MobileDrawer
   });
 
   @override
-  State<MobileDrawer> createState() =>
-      _MobileDrawerState();
+  State<MobileDrawer> createState() => _MobileDrawerState();
 }
 
-class _MobileDrawerState
-    extends State<MobileDrawer> {
+class _MobileDrawerState extends State<MobileDrawer> {
   bool _confirmingLogout = false;
   bool _loggingOut = false;
-Future<void> _openRoute(
-  String path,
-  String _,
-) async {
-  if (AppOperationController.instance.isBusy) {
-    return;
+  Future<void> _openRoute(
+    String path,
+    String _,
+  ) async {
+    if (AppOperationController.instance.isBusy) {
+      return;
+    }
+
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
+    context.go(path);
   }
-
-  if (!mounted) return;
-
-  Navigator.of(context).pop();
-  context.go(path);
-}
   // =========================================================================
   // MOBILE LOGOUT
   // =========================================================================
@@ -53,11 +50,9 @@ Future<void> _openRoute(
       _loggingOut = true;
     });
 
-    final auth =
-        context.read<AuthController>();
+    final auth = context.read<AuthController>();
 
-    final success =
-        await auth.logout();
+    final success = await auth.logout();
 
     if (!mounted) {
       return;
@@ -74,12 +69,10 @@ Future<void> _openRoute(
       _loggingOut = false;
     });
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          auth.errorMessage ??
-              'Could not log out. Please try again.',
+          auth.errorMessage ?? 'Could not log out. Please try again.',
         ),
       ),
     );
@@ -109,11 +102,9 @@ Future<void> _openRoute(
   Widget build(
     BuildContext context,
   ) {
-    final auth =
-        context.watch<AuthController>();
+    final auth = context.watch<AuthController>();
 
-    final user =
-        auth.profile;
+    final user = auth.profile;
 
     final items = kNavItems
         .where(
@@ -125,9 +116,7 @@ Future<void> _openRoute(
         )
         .toList();
 
-    final disabled =
-        auth.isBusy ||
-        _loggingOut;
+    final disabled = auth.isBusy || _loggingOut;
 
     return Drawer(
       child: SafeArea(
@@ -138,59 +127,40 @@ Future<void> _openRoute(
             // =================================================================
 
             Container(
-              width:
-                  double.infinity,
-              padding:
-                  const EdgeInsets.all(
+              width: double.infinity,
+              padding: const EdgeInsets.all(
                 20,
               ),
-              color:
-                  AppColors.primary,
+              color: AppColors.primary,
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'SIYAM',
-                    style:
-                        TextStyle(
-                      color:
-                          Colors.white,
+                    style: TextStyle(
+                      color: Colors.white,
                       fontSize: 22,
-                      fontWeight:
-                          FontWeight
-                              .bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(
                     height: 4,
                   ),
-
                   Text(
-                    user?.fullName ??
-                        'Guest',
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.white70,
+                    user?.fullName ?? 'Guest',
+                    style: const TextStyle(
+                      color: Colors.white70,
                       fontSize: 14,
-                      fontWeight:
-                          FontWeight
-                              .w500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-
                   if (user != null)
                     Text(
                       appRoleToString(
                         user.role,
                       ).toUpperCase(),
-                      style:
-                          const TextStyle(
-                        color:
-                            Colors.white54,
+                      style: const TextStyle(
+                        color: Colors.white54,
                         fontSize: 11,
                       ),
                     ),
@@ -204,19 +174,13 @@ Future<void> _openRoute(
 
             Expanded(
               child: ListView(
-                padding:
-                    const EdgeInsets
-                        .symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 8,
                   vertical: 8,
                 ),
-                children:
-                    items.map(
+                children: items.map(
                   (item) {
-                    final active =
-                        widget
-                            .currentPath
-                            .startsWith(
+                    final active = widget.currentPath.startsWith(
                       item.path,
                     );
 
@@ -225,61 +189,39 @@ Future<void> _openRoute(
                             item.path == '/donations';
 
                     return Padding(
-                      padding:
-                          const EdgeInsets
-                              .only(
+                      padding: const EdgeInsets.only(
                         bottom: 2,
                       ),
-                      child:
-                          Material(
+                      child: Material(
                         color: active
-                            ? AppColors
-                                .sidebarAccent
-                            : Colors
-                                .transparent,
-                        elevation:
-                            active
-                                ? 1
-                                : 0,
-                        shadowColor:
-                            AppColors
-                                .sidebarForeground
-                                .withValues(
-                          alpha:
-                              0.25,
+                            ? AppColors.sidebarAccent
+                            : Colors.transparent,
+                        elevation: active ? 1 : 0,
+                        shadowColor: AppColors.sidebarForeground.withValues(
+                          alpha: 0.25,
                         ),
-                        borderRadius:
-                            BorderRadius
-                                .circular(
+                        borderRadius: BorderRadius.circular(
                           16,
                         ),
-                        child:
-                            InkWell(
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(
                             16,
                           ),
-                    onTap: () {
-  if (active) {
-    Navigator.of(context).pop();
-    return;
-  }
+                          onTap: () {
+                            if (active) {
+                              Navigator.of(context).pop();
+                              return;
+                            }
 
-  _openRoute(
-    item.path,
-    item.label,
-  );
-},
-                          child:
-                              Padding(
-                            padding:
-                                const EdgeInsets
-                                    .symmetric(
-                              horizontal:
-                                  12,
-                              vertical:
-                                  11,
+                            _openRoute(
+                              item.path,
+                              item.label,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 11,
                             ),
                             child: Row(
                               children: [
@@ -287,40 +229,25 @@ Future<void> _openRoute(
                                   item.icon,
                                   size: 18,
                                   color: active
-                                      ? AppColors
-                                          .sidebarPrimary
-                                      : AppColors
-                                          .sidebarAccentForeground,
+                                      ? AppColors.sidebarPrimary
+                                      : AppColors.sidebarAccentForeground,
                                 ),
-
                                 const SizedBox(
                                   width: 12,
                                 ),
-
                                 Expanded(
-                                  child:
-                                      Text(
+                                  child: Text(
                                     item.label,
-                                    overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                    style:
-                                        TextStyle(
-                                      fontSize:
-                                          13.5,
-                                      fontWeight:
-                                          active
-                                              ? FontWeight
-                                                  .w600
-                                              : FontWeight
-                                                  .w400,
-                                      color:
-                                          AppColors
-                                              .sidebarForeground,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: active
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: AppColors.sidebarForeground,
                                     ),
                                   ),
                                 ),
-
                                 if (showPendingDonationBadge) ...[
                                   const SizedBox(
                                     width: 8,
@@ -343,26 +270,18 @@ Future<void> _openRoute(
             // =================================================================
 
             Container(
-              padding:
-                  const EdgeInsets.all(
+              padding: const EdgeInsets.all(
                 8,
               ),
-              decoration:
-                  const BoxDecoration(
-                border:
-                    Border(
-                  top:
-                      BorderSide(
-                    color:
-                        AppColors
-                            .sidebarBorder,
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: AppColors.sidebarBorder,
                   ),
                 ),
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // ===========================================================
                   // USER
@@ -370,9 +289,7 @@ Future<void> _openRoute(
 
                   if (user != null)
                     Padding(
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 6,
                       ),
@@ -380,65 +297,39 @@ Future<void> _openRoute(
                         children: [
                           CircleAvatar(
                             radius: 14,
-                            backgroundColor:
-                                AppColors
-                                    .sidebarPrimary,
+                            backgroundColor: AppColors.sidebarPrimary,
                             child: Text(
                               user.initials,
-                              style:
-                                  const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 11,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
-                                color:
-                                    AppColors
-                                        .sidebarPrimaryForeground,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.sidebarPrimaryForeground,
                               ),
                             ),
                           ),
-
                           const SizedBox(
                             width: 8,
                           ),
-
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-                              mainAxisSize:
-                                  MainAxisSize
-                                      .min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   user.fullName,
-                                  overflow:
-                                      TextOverflow
-                                          .ellipsis,
-                                  style:
-                                      const TextStyle(
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
                                     fontSize: 12.5,
-                                    fontWeight:
-                                        FontWeight
-                                            .w600,
-                                    color:
-                                        AppColors
-                                            .sidebarForeground,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.sidebarForeground,
                                   ),
                                 ),
-
                                 Text(
                                   user.email,
-                                  overflow:
-                                      TextOverflow
-                                          .ellipsis,
-                                  style:
-                                      const TextStyle(
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
                                     fontSize: 11,
-                                    color:
-                                        AppColors
-                                            .sidebarAccentForeground,
+                                    color: AppColors.sidebarAccentForeground,
                                   ),
                                 ),
                               ],
@@ -454,154 +345,93 @@ Future<void> _openRoute(
 
                   if (!_confirmingLogout)
                     TextButton.icon(
-                      onPressed:
-                          disabled
-                              ? null
-                              : _showLogoutConfirmation,
-                      icon:
-                          const Icon(
+                      onPressed: disabled ? null : _showLogoutConfirmation,
+                      icon: const Icon(
                         Icons.logout,
                         size: 16,
-                        color:
-                            AppColors
-                                .sidebarAccentForeground,
+                        color: AppColors.sidebarAccentForeground,
                       ),
-                      label:
-                          const Text(
+                      label: const Text(
                         'Logout',
-                        style:
-                            TextStyle(
-                          color:
-                              AppColors
-                                  .sidebarForeground,
+                        style: TextStyle(
+                          color: AppColors.sidebarForeground,
                         ),
                       ),
-                      style:
-                          TextButton
-                              .styleFrom(
-                        alignment:
-                            Alignment
-                                .centerLeft,
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal:
-                              12,
-                          vertical:
-                              10,
+                      style: TextButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
                       ),
                     )
                   else
                     Container(
-                      margin:
-                          const EdgeInsets.only(
+                      margin: const EdgeInsets.only(
                         top: 4,
                       ),
-                      padding:
-                          const EdgeInsets.all(
+                      padding: const EdgeInsets.all(
                         12,
                       ),
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            AppColors
-                                .destructive
-                                .withValues(
-                          alpha:
-                              0.06,
+                      decoration: BoxDecoration(
+                        color: AppColors.destructive.withValues(
+                          alpha: 0.06,
                         ),
-                        borderRadius:
-                            BorderRadius
-                                .circular(
+                        borderRadius: BorderRadius.circular(
                           12,
                         ),
-                        border:
-                            Border.all(
-                          color:
-                              AppColors
-                                  .destructive
-                                  .withValues(
-                            alpha:
-                                0.20,
+                        border: Border.all(
+                          color: AppColors.destructive.withValues(
+                            alpha: 0.20,
                           ),
                         ),
                       ),
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Are you sure you want to log out?',
-                            style:
-                                TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
-                              fontWeight:
-                                  FontWeight
-                                      .w600,
-                              color:
-                                  AppColors
-                                      .sidebarForeground,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.sidebarForeground,
                             ),
                           ),
-
                           const SizedBox(
                             height: 10,
                           ),
-
                           Row(
                             children: [
                               Expanded(
-                                child:
-                                    OutlinedButton(
-                                  onPressed:
-                                      disabled
-                                          ? null
-                                          : _cancelLogout,
-                                  child:
-                                      const Text(
+                                child: OutlinedButton(
+                                  onPressed: disabled ? null : _cancelLogout,
+                                  child: const Text(
                                     'Cancel',
                                   ),
                                 ),
                               ),
-
                               const SizedBox(
                                 width: 8,
                               ),
-
                               Expanded(
-                                child:
-                                    ElevatedButton(
-                                  onPressed:
-                                      disabled
-                                          ? null
-                                          : _performLogout,
-                                  style:
-                                      ElevatedButton
-                                          .styleFrom(
-                                    backgroundColor:
-                                        AppColors
-                                            .destructive,
-                                    foregroundColor:
-                                        Colors.white,
+                                child: ElevatedButton(
+                                  onPressed: disabled ? null : _performLogout,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.destructive,
+                                    foregroundColor: Colors.white,
                                   ),
                                   child: _loggingOut
                                       ? const SizedBox(
                                           width: 16,
                                           height: 16,
-                                          child:
-                                              CircularProgressIndicator(
-                                            strokeWidth:
-                                                2,
-                                            color:
-                                                Colors.white,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
                                           ),
                                         )
                                       : const Text(
                                           'Confirm Logout',
-                                          textAlign:
-                                              TextAlign.center,
+                                          textAlign: TextAlign.center,
                                         ),
                                 ),
                               ),

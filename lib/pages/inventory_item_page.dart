@@ -34,8 +34,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     with DataBusRefreshMixin<InventoryItemPage> {
   final InventoryService _service = InventoryService();
   final CatalogService _catalogService = CatalogService();
-  final ReplenishmentService _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
 
   InventoryItem? _item;
   ReplenishmentItem? _replenishment;
@@ -89,8 +88,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
       return StockLevel.outOfStock;
     }
 
-    if (item.currentPurchaseUnitEquivalent <=
-        lowStockPurchaseUnitThreshold) {
+    if (item.currentPurchaseUnitEquivalent <= lowStockPurchaseUnitThreshold) {
       return StockLevel.low;
     }
 
@@ -126,9 +124,9 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     if (item != null) {
       _item = item;
       _replenishment = cache.replenishmentByItemId(widget.itemId);
-      _primaryCategories =
-          cache.peekList<PrimaryCategory>(PageSnapshotCache.primaryCategories) ??
-              [];
+      _primaryCategories = cache
+              .peekList<PrimaryCategory>(PageSnapshotCache.primaryCategories) ??
+          [];
       _units = cache.peekList<Unit>(PageSnapshotCache.units) ?? [];
       _history = cache.peekList<StockMovement>(
             'inventory.history.${widget.itemId}',
@@ -153,17 +151,15 @@ class _InventoryItemPageState extends State<InventoryItemPage>
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seededItem = forceRefresh
-          ? null
-          : _item ?? cache.itemById(widget.itemId);
+      final seededItem =
+          forceRefresh ? null : _item ?? cache.itemById(widget.itemId);
       final cachedCategories = forceRefresh
           ? null
           : cache.peekList<PrimaryCategory>(
               PageSnapshotCache.primaryCategories,
             );
-      final cachedUnits = forceRefresh
-          ? null
-          : cache.peekList<Unit>(PageSnapshotCache.units);
+      final cachedUnits =
+          forceRefresh ? null : cache.peekList<Unit>(PageSnapshotCache.units);
       final cachedRop = forceRefresh
           ? null
           : cache.peekList<ReplenishmentItem>(
@@ -196,8 +192,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
       if (!mounted) return;
 
       final item = results[0] as InventoryItem?;
-      final replenishmentRows =
-          results[4] as List<ReplenishmentItem>;
+      final replenishmentRows = results[4] as List<ReplenishmentItem>;
 
       ReplenishmentItem? replenishment;
 
@@ -386,9 +381,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
   // ===========================================================================
 
   bool get _openedFromPurchases {
-    final from = GoRouterState.of(context)
-        .uri
-        .queryParameters['from'];
+    final from = GoRouterState.of(context).uri.queryParameters['from'];
 
     return from == 'purchase-orders';
   }
@@ -402,9 +395,8 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     context.go('/inventory');
   }
 
-  String get _backLabel => _openedFromPurchases
-      ? 'Back to Ordering'
-      : 'Back to Inventory';
+  String get _backLabel =>
+      _openedFromPurchases ? 'Back to Ordering' : 'Back to Inventory';
 
   @override
   Widget build(BuildContext context) {
@@ -444,20 +436,15 @@ class _InventoryItemPageState extends State<InventoryItemPage>
     final item = _item!;
     final stockLevel = _stockLevelFor(item);
 
-    final (stockLevelLabel, stockLevelColor) =
-        _stockLevelMeta(stockLevel);
+    final (stockLevelLabel, stockLevelColor) = _stockLevelMeta(stockLevel);
 
-    final currentStockQty =
-        _currentStockQty(item);
+    final currentStockQty = _currentStockQty(item);
 
-    final currentStockUnit =
-        _currentStockUnit(item);
+    final currentStockUnit = _currentStockUnit(item);
 
-    final equivalent =
-        _purchaseUnitEquivalent(item);
+    final equivalent = _purchaseUnitEquivalent(item);
 
-    final conversionLabel =
-        _packageConversionLabel(item);
+    final conversionLabel = _packageConversionLabel(item);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(
@@ -476,8 +463,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               _backLabel,
             ),
             style: TextButton.styleFrom(
-              foregroundColor:
-                  AppColors.mutedForeground,
+              foregroundColor: AppColors.mutedForeground,
             ),
           ),
 
@@ -486,22 +472,18 @@ class _InventoryItemPageState extends State<InventoryItemPage>
           ),
 
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: stockLevelColor
-                      .withValues(
+                  color: stockLevelColor.withValues(
                     alpha: 0.12,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(
+                  borderRadius: BorderRadius.circular(
                     20,
                   ),
                 ),
@@ -509,8 +491,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                   stockLevelLabel,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                     color: stockLevelColor,
                   ),
                 ),
@@ -522,8 +503,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                 item.itemName,
                 style: const TextStyle(
                   fontSize: 24,
-                  fontWeight:
-                      FontWeight.w800,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -549,8 +529,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                   icon: const Icon(
                     Icons.arrow_upward,
                     size: 16,
-                    color:
-                        AppColors.roleManager,
+                    color: AppColors.roleManager,
                   ),
                   label: const Text(
                     'Goods Received',
@@ -562,13 +541,10 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               ),
               Expanded(
                 child: ElevatedButton.icon(
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.destructive,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.destructive,
                   ),
-                  onPressed:
-                      _openStockOutDialog,
+                  onPressed: _openStockOutDialog,
                   icon: const Icon(
                     Icons.arrow_downward,
                     size: 16,
@@ -603,10 +579,8 @@ class _InventoryItemPageState extends State<InventoryItemPage>
             value: item.itemName,
             onEdit: () => _editField(
               label: 'Name',
-              currentValue:
-                  item.itemName,
-              onSave: (v) =>
-                  _service.updateDetails(
+              currentValue: item.itemName,
+              onSave: (v) => _service.updateDetails(
                 itemId: item.itemId,
                 itemName: v,
               ),
@@ -622,21 +596,13 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               Expanded(
                 child: _FieldRow(
                   label: 'Category',
-                  value:
-                      item.itemCategory,
-                  onEdit: () =>
-                      _editPickerField<
-                          PrimaryCategory>(
+                  value: item.itemCategory,
+                  onEdit: () => _editPickerField<PrimaryCategory>(
                     label: 'Category',
-                    options:
-                        _primaryCategories,
-                    displayStringForOption:
-                        (c) => c.type,
-                    onSave: (c) =>
-                        _service
-                            .updateDetails(
-                      itemId:
-                          item.itemId,
+                    options: _primaryCategories,
+                    displayStringForOption: (c) => c.type,
+                    onSave: (c) => _service.updateDetails(
+                      itemId: item.itemId,
                       pCategoryId: c.id,
                     ),
                   ),
@@ -649,21 +615,13 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                 child: _FieldRow(
                   label: 'Purchase Unit',
                   value: item.itemUom,
-                  onEdit: () =>
-                      _editPickerField<
-                          Unit>(
-                    label:
-                        'Purchase Unit',
+                  onEdit: () => _editPickerField<Unit>(
+                    label: 'Purchase Unit',
                     options: _units,
-                    displayStringForOption:
-                        (u) => u.name,
-                    onSave: (u) =>
-                        _service
-                            .updateDetails(
-                      itemId:
-                          item.itemId,
-                      purchaseUnitId:
-                          u.id,
+                    displayStringForOption: (u) => u.name,
+                    onSave: (u) => _service.updateDetails(
+                      itemId: item.itemId,
+                      purchaseUnitId: u.id,
                     ),
                   ),
                 ),
@@ -680,9 +638,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               Expanded(
                 child: _FieldRow(
                   label: 'Package Unit',
-                  value:
-                      item.packageUnitAbbr ??
-                          '—',
+                  value: item.packageUnitAbbr ?? '—',
                 ),
               ),
               const SizedBox(
@@ -690,15 +646,12 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               ),
               Expanded(
                 child: _FieldRow(
-                  label:
-                      'Package Quantity',
-                  value:
-                      item.packageQuantity ==
-                              null
-                          ? '—'
-                          : formatQty(
-                              item.packageQuantity!,
-                            ),
+                  label: 'Package Quantity',
+                  value: item.packageQuantity == null
+                      ? '—'
+                      : formatQty(
+                          item.packageQuantity!,
+                        ),
                 ),
               ),
             ],
@@ -710,9 +663,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
 
           _FieldRow(
             label: 'Dispense Unit',
-            value:
-                item.dispenseUnitAbbr ??
-                    '—',
+            value: item.dispenseUnitAbbr ?? '—',
           ),
 
           const SizedBox(
@@ -723,34 +674,21 @@ class _InventoryItemPageState extends State<InventoryItemPage>
           // STOCK COUNT MODE
           // ===============================================================
 
-          if (item.packageUnitAbbr !=
-              null) ...[
+          if (item.packageUnitAbbr != null) ...[
             _FieldRow(
-              label:
-                  'Stock Count Mode',
-              value: item.effectiveCountMode ==
-                      StockCountMode
-                          .packageUnit
+              label: 'Stock Count Mode',
+              value: item.effectiveCountMode == StockCountMode.packageUnit
                   ? 'By package unit (${item.packageUnitAbbr})'
                   : 'By purchase unit (${item.purchaseUnitAbbr})',
-              onEdit: () =>
-                  _editPickerField<
-                      StockCountMode>(
-                label:
-                    'Stock Count Mode',
-                options:
-                    StockCountMode.values,
-                displayStringForOption:
-                    (m) {
-                  return m ==
-                          StockCountMode
-                              .packageUnit
+              onEdit: () => _editPickerField<StockCountMode>(
+                label: 'Stock Count Mode',
+                options: StockCountMode.values,
+                displayStringForOption: (m) {
+                  return m == StockCountMode.packageUnit
                       ? 'By package unit (${item.packageUnitAbbr})'
                       : 'By purchase unit (${item.purchaseUnitAbbr})';
                 },
-                onSave: (m) =>
-                    _service
-                        .updateDetails(
+                onSave: (m) => _service.updateDetails(
                   itemId: item.itemId,
                   stockCountMode: m,
                 ),
@@ -769,32 +707,23 @@ class _InventoryItemPageState extends State<InventoryItemPage>
             item,
           ))
             Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child:
-                      _StockStatCard(
-                    label:
-                        'Current Stock',
-                    qty:
-                        currentStockQty,
-                    unit:
-                        currentStockUnit,
+                  child: _StockStatCard(
+                    label: 'Current Stock',
+                    qty: currentStockQty,
+                    unit: currentStockUnit,
                   ),
                 ),
                 const SizedBox(
                   width: 16,
                 ),
                 Expanded(
-                  child:
-                      _StockStatCard(
-                    label:
-                        'Equivalent',
-                    qty:
-                        equivalent ?? 0,
-                    unit: item
-                        .purchaseUnitAbbr,
+                  child: _StockStatCard(
+                    label: 'Equivalent',
+                    qty: equivalent ?? 0,
+                    unit: item.purchaseUnitAbbr,
                   ),
                 ),
               ],
@@ -806,8 +735,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
               unit: currentStockUnit,
             ),
 
-          if (conversionLabel !=
-              null) ...[
+          if (conversionLabel != null) ...[
             const SizedBox(
               height: 8,
             ),
@@ -816,19 +744,16 @@ class _InventoryItemPageState extends State<InventoryItemPage>
                 const Icon(
                   Icons.info_outline,
                   size: 14,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
                 const SizedBox(
                   width: 6,
                 ),
                 Text(
                   conversionLabel,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
@@ -847,8 +772,7 @@ class _InventoryItemPageState extends State<InventoryItemPage>
             'Stock History',
             style: TextStyle(
               fontSize: 15,
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
 
@@ -858,45 +782,37 @@ class _InventoryItemPageState extends State<InventoryItemPage>
 
           if (_history.isEmpty)
             const Padding(
-              padding:
-                  EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 vertical: 8,
               ),
               child: Text(
                 'No stock movements yet.',
                 style: TextStyle(
                   fontSize: 12.5,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             )
           else
             Container(
-              decoration:
-                  BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius:
-                    BorderRadius.circular(
+                borderRadius: BorderRadius.circular(
                   12,
                 ),
                 border: Border.all(
-                  color:
-                      AppColors.border,
+                  color: AppColors.border,
                 ),
               ),
               child: Column(
                 children: [
-                  for (var i = 0;
-                      i < _history.length;
-                      i++) ...[
+                  for (var i = 0; i < _history.length; i++) ...[
                     if (i > 0)
                       const Divider(
                         height: 1,
                       ),
                     _StockHistoryRow(
-                      movement:
-                          _history[i],
+                      movement: _history[i],
                     ),
                   ],
                 ],
@@ -921,13 +837,9 @@ class _StockHistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLoggedTreatment =
-        movement.typeLabel ==
-            'Logged Treatment';
+    final isLoggedTreatment = movement.typeLabel == 'Logged Treatment';
 
-    final isIn =
-        movement.direction ==
-            StockDirection.stockIn;
+    final isIn = movement.direction == StockDirection.stockIn;
 
     final color = isLoggedTreatment
         ? AppColors.primary
@@ -936,41 +848,34 @@ class _StockHistoryRow extends StatelessWidget {
             : AppColors.destructive;
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 12,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             isLoggedTreatment
-                ? Icons
-                    .medical_services_outlined
+                ? Icons.medical_services_outlined
                 : isIn
                     ? Icons.arrow_upward
                     : Icons.arrow_downward,
             size: 16,
             color: color,
           ),
-
           const SizedBox(
             width: 10,
           ),
-
           Expanded(
             flex: 3,
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   movement.typeLabel,
                   style: TextStyle(
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                     color: color,
                   ),
                 ),
@@ -981,56 +886,47 @@ class _StockHistoryRow extends StatelessWidget {
                   _formatDate(
                     movement.date,
                   ),
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
             ),
           ),
-
           Expanded(
             flex: 2,
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            Text(
-  isLoggedTreatment
-      ? '${formatQty(movement.qty)} ${movement.unitAbbr}'
-      : isIn
-          ? '+${formatQty(movement.qty)} ${movement.unitAbbr}'
-          : 'Dispensed ${formatQty(movement.qty)} ${movement.unitAbbr}',
-  style: TextStyle(
-    fontWeight: FontWeight.w600,
-    color: color,
-  ),
-),
+                Text(
+                  isLoggedTreatment
+                      ? '${formatQty(movement.qty)} ${movement.unitAbbr}'
+                      : isIn
+                          ? '+${formatQty(movement.qty)} ${movement.unitAbbr}'
+                          : 'Dispensed ${formatQty(movement.qty)} ${movement.unitAbbr}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
                 if (isLoggedTreatment)
                   const Text(
                     'No stock deduction',
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
               ],
             ),
           ),
-
           Expanded(
             flex: 3,
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (movement
-                        .treatmentId !=
-                    null)
+                if (movement.treatmentId != null)
                   InkWell(
                     onTap: () {
                       context.push(
@@ -1038,33 +934,22 @@ class _StockHistoryRow extends StatelessWidget {
                       );
                     },
                     child: Text(
-                      movement
-                              .treatmentName ??
-                          '',
-                      textAlign:
-                          TextAlign.end,
-                      style:
-                          const TextStyle(
+                      movement.treatmentName ?? '',
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(
                         fontSize: 12.5,
-                        color:
-                            AppColors.primary,
-                        fontWeight:
-                            FontWeight.w600,
-                        decoration:
-                            TextDecoration
-                                .underline,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
                 Text(
                   'by ${movement.recordedByName}',
-                  textAlign:
-                      TextAlign.end,
-                  style:
-                      const TextStyle(
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
@@ -1116,19 +1001,16 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 6,
       ),
       child: Text(
         text.toUpperCase(),
         style: const TextStyle(
           fontSize: 11,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
-          color: AppColors
-              .mutedForeground,
+          color: AppColors.mutedForeground,
         ),
       ),
     );
@@ -1153,28 +1035,23 @@ class _FieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _FieldLabel(
           label,
         ),
         Container(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 8,
           ),
-          decoration:
-              BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               12,
             ),
             border: Border.all(
-              color:
-                  AppColors.border,
+              color: AppColors.border,
               width: 1.5,
             ),
           ),
@@ -1183,8 +1060,7 @@ class _FieldRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   value,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                   ),
                 ),
@@ -1194,8 +1070,7 @@ class _FieldRow extends StatelessWidget {
                   icon: const Icon(
                     Icons.edit_outlined,
                     size: 15,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                   onPressed: onEdit,
                   splashRadius: 18,
@@ -1226,29 +1101,24 @@ class _StockStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _FieldLabel(
           label,
         ),
         Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
           ),
-          decoration:
-              BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               12,
             ),
             border: Border.all(
-              color:
-                  AppColors.border,
+              color: AppColors.border,
               width: 1.5,
             ),
           ),
@@ -1258,11 +1128,9 @@ class _StockStatCard extends StatelessWidget {
                 formatQty(
                   qty,
                 ),
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(
@@ -1270,10 +1138,8 @@ class _StockStatCard extends StatelessWidget {
               ),
               Text(
                 unit,
-                style:
-                    const TextStyle(
-                  color: AppColors
-                      .mutedForeground,
+                style: const TextStyle(
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ],

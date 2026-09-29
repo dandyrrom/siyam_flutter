@@ -92,47 +92,38 @@ class DonorNotification {
 }
 
 class DonorNotificationService {
-  final DonationService _donationService =
-      DonationService();
+  final DonationService _donationService = DonationService();
 
-  final ImpactService _impactService =
-      ImpactService();
+  final ImpactService _impactService = ImpactService();
 
   Future<List<DonorNotification>> fetchForDonor(
     String donorId,
   ) async {
     // Start both reads together.
-    final submissionsFuture =
-        _donationService.fetchSubmissions(
+    final submissionsFuture = _donationService.fetchSubmissions(
       donorId: donorId,
     );
 
-    final impactFuture =
-        _impactService.fetchDonorImpact(
+    final impactFuture = _impactService.fetchDonorImpact(
       donorId,
     );
 
-    final submissions =
-        await submissionsFuture;
+    final submissions = await submissionsFuture;
 
-    final impactLines =
-        await impactFuture;
+    final impactLines = await impactFuture;
 
-    final notifications =
-        <DonorNotification>[];
+    final notifications = <DonorNotification>[];
 
     // =========================================================================
     // DONATION STATUS UPDATES
     // =========================================================================
 
     for (final submission in submissions) {
-      final status =
-          submission.status;
+      final status = submission.status;
 
-      final hasBeenApproved =
-          status == SubmissionStatus.approved ||
-              status == SubmissionStatus.received ||
-              status == SubmissionStatus.stocked;
+      final hasBeenApproved = status == SubmissionStatus.approved ||
+          status == SubmissionStatus.received ||
+          status == SubmissionStatus.stocked;
 
       if (hasBeenApproved) {
         // public.submission currently has no approval timestamp.
@@ -144,33 +135,24 @@ class DonorNotificationService {
         notifications.add(
           DonorNotification(
             id: 'approved:${submission.subId}',
-            kind:
-                DonorNotificationKind.approved,
-            sortDate:
-                submission.dateReceived ??
-                    submission.dateSub,
+            kind: DonorNotificationKind.approved,
+            sortDate: submission.dateReceived ?? submission.dateSub,
           ),
         );
       }
 
-      final hasBeenReceived =
-          status == SubmissionStatus.received ||
-              status == SubmissionStatus.stocked;
+      final hasBeenReceived = status == SubmissionStatus.received ||
+          status == SubmissionStatus.stocked;
 
       if (hasBeenReceived) {
-        final receivedDate =
-            submission.dateReceived ??
-                submission.dateSub;
+        final receivedDate = submission.dateReceived ?? submission.dateSub;
 
         notifications.add(
           DonorNotification(
             id: 'received:${submission.subId}',
-            kind:
-                DonorNotificationKind.received,
-            sortDate:
-                receivedDate,
-            displayDate:
-                submission.dateReceived,
+            kind: DonorNotificationKind.received,
+            sortDate: receivedDate,
+            displayDate: submission.dateReceived,
           ),
         );
       }
@@ -185,20 +167,16 @@ class DonorNotificationService {
     // duplicate notifications.
     // =========================================================================
 
-    final seenTreatmentKeys =
-        <String>{};
+    final seenTreatmentKeys = <String>{};
 
     for (final line in impactLines) {
-      for (final contribution
-          in line.contributions) {
-        if (contribution.kind !=
-            ImpactEventKind.treatment) {
+      for (final contribution in line.contributions) {
+        if (contribution.kind != ImpactEventKind.treatment) {
           continue;
         }
 
-        final key =
-            contribution.treatmentId ??
-                '${contribution.date.toUtc().toIso8601String()}:${contribution.petId ?? line.itemId}';
+        final key = contribution.treatmentId ??
+            '${contribution.date.toUtc().toIso8601String()}:${contribution.petId ?? line.itemId}';
 
         if (!seenTreatmentKeys.add(key)) {
           continue;
@@ -207,20 +185,16 @@ class DonorNotificationService {
         notifications.add(
           DonorNotification(
             id: 'impact:$key',
-            kind:
-                DonorNotificationKind.impact,
-            sortDate:
-                contribution.date,
-            displayDate:
-                contribution.date,
+            kind: DonorNotificationKind.impact,
+            sortDate: contribution.date,
+            displayDate: contribution.date,
           ),
         );
       }
     }
 
     notifications.sort((a, b) {
-      final dateCompare =
-          b.sortDate.compareTo(
+      final dateCompare = b.sortDate.compareTo(
         a.sortDate,
       );
 

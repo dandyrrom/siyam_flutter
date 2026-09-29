@@ -45,15 +45,13 @@ class PurchaseOrdersPage extends StatefulWidget {
   const PurchaseOrdersPage({super.key});
 
   @override
-  State<PurchaseOrdersPage> createState() =>
-      _PurchaseOrdersPageState();
+  State<PurchaseOrdersPage> createState() => _PurchaseOrdersPageState();
 }
 
 class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
     with DataBusRefreshMixin<PurchaseOrdersPage> {
   final SupplierService _supplierService = SupplierService();
-  final ReplenishmentService _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
 
   final _purchaseSearchCtrl = TextEditingController();
   final _replenishmentSearchCtrl = TextEditingController();
@@ -64,8 +62,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   bool _loading = true;
   String? _error;
 
-  _PurchaseModuleTab _tab =
-      _PurchaseModuleTab.replenishment;
+  _PurchaseModuleTab _tab = _PurchaseModuleTab.replenishment;
 
   String _purchaseSearch = '';
   String _replenishmentSearch = '';
@@ -80,12 +77,10 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   void initState() {
     super.initState();
 
-    final cachedOrders =
-        PageSnapshotCache.instance.peekList<PurchaseOrder>(
+    final cachedOrders = PageSnapshotCache.instance.peekList<PurchaseOrder>(
       PageSnapshotCache.purchaseOrders,
     );
-    final cachedRop =
-        PageSnapshotCache.instance.peekList<ReplenishmentItem>(
+    final cachedRop = PageSnapshotCache.instance.peekList<ReplenishmentItem>(
       PageSnapshotCache.replenishment,
     );
 
@@ -108,8 +103,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   }
 
   @override
-  void onExternalDataChanged() =>
-      _load(silent: true);
+  void onExternalDataChanged() => _load(silent: true);
 
   // ===========================================================================
   // LOAD BOTH SIDES OF THE MERGED MODULE
@@ -126,29 +120,22 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
     }
 
     try {
-      final results =
-          await Future.wait<Object?>([
+      final results = await Future.wait<Object?>([
         _supplierService.fetchAllPurchaseOrders(),
-        _replenishmentService
-            .fetchReplenishmentItems(),
+        _replenishmentService.fetchReplenishmentItems(),
       ]);
 
       if (!mounted) return;
 
       setState(() {
-        _orders =
-            results[0] as List<PurchaseOrder>;
+        _orders = results[0] as List<PurchaseOrder>;
 
-        _replenishment =
-            results[1]
-                as List<ReplenishmentItem>;
+        _replenishment = results[1] as List<ReplenishmentItem>;
 
         _loading = false;
 
-        if (_replenishmentPage >=
-            _replenishmentPageCount) {
-          _replenishmentPage =
-              _replenishmentPageCount - 1;
+        if (_replenishmentPage >= _replenishmentPageCount) {
+          _replenishmentPage = _replenishmentPageCount - 1;
         }
       });
     } catch (e) {
@@ -156,8 +143,7 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
 
       if (!silent) {
         setState(() {
-          _error =
-              'Could not load ordering data: $e';
+          _error = 'Could not load ordering data: $e';
           _loading = false;
         });
       }
@@ -168,25 +154,17 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   // PURCHASE SEARCH
   // ===========================================================================
 
-  List<PurchaseOrder>
-      get _filteredOrders {
-    final query =
-        _purchaseSearch.trim().toLowerCase();
+  List<PurchaseOrder> get _filteredOrders {
+    final query = _purchaseSearch.trim().toLowerCase();
 
     if (query.isEmpty) {
       return _orders;
     }
 
     return _orders.where((order) {
-      return order.suppName
-              .toLowerCase()
-              .contains(query) ||
-          order.receivedBy
-              .toLowerCase()
-              .contains(query) ||
-          order.buyerName
-              .toLowerCase()
-              .contains(query);
+      return order.suppName.toLowerCase().contains(query) ||
+          order.receivedBy.toLowerCase().contains(query) ||
+          order.buyerName.toLowerCase().contains(query);
     }).toList();
   }
 
@@ -222,69 +200,43 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
       _priorityFilter != null ||
       _customRopOnly;
 
-  List<ReplenishmentItem>
-      get _filteredReplenishment {
-    final query =
-        _replenishmentSearch
-            .trim()
-            .toLowerCase();
+  List<ReplenishmentItem> get _filteredReplenishment {
+    final query = _replenishmentSearch.trim().toLowerCase();
 
     return _replenishment.where((row) {
-      final matchesSearch =
-          query.isEmpty ||
-          row.item.itemName
-              .toLowerCase()
-              .contains(query) ||
-          row.item.itemCategory
-              .toLowerCase()
-              .contains(query) ||
-          row.item.purchaseUnitAbbr
-              .toLowerCase()
-              .contains(query);
+      final matchesSearch = query.isEmpty ||
+          row.item.itemName.toLowerCase().contains(query) ||
+          row.item.itemCategory.toLowerCase().contains(query) ||
+          row.item.purchaseUnitAbbr.toLowerCase().contains(query);
 
       final matchesPriority =
-          _priorityFilter == null ||
-          row.priority == _priorityFilter;
+          _priorityFilter == null || row.priority == _priorityFilter;
 
-      final matchesRopMode =
-          !_customRopOnly ||
-          row.usesCustomRop;
+      final matchesRopMode = !_customRopOnly || row.usesCustomRop;
 
-      return matchesSearch &&
-          matchesPriority &&
-          matchesRopMode;
+      return matchesSearch && matchesPriority && matchesRopMode;
     }).toList();
   }
 
   int get _replenishmentPageCount {
     final count =
-        (_filteredReplenishment.length /
-                _replenishmentPageSize)
-            .ceil();
+        (_filteredReplenishment.length / _replenishmentPageSize).ceil();
 
     return count < 1 ? 1 : count;
   }
 
-  List<ReplenishmentItem>
-      get _replenishmentPageItems {
-    final filtered =
-        _filteredReplenishment;
+  List<ReplenishmentItem> get _replenishmentPageItems {
+    final filtered = _filteredReplenishment;
 
-    final start =
-        _replenishmentPage *
-        _replenishmentPageSize;
+    final start = _replenishmentPage * _replenishmentPageSize;
 
     if (start >= filtered.length) {
       return const [];
     }
 
-    final proposedEnd =
-        start + _replenishmentPageSize;
+    final proposedEnd = start + _replenishmentPageSize;
 
-    final end =
-        proposedEnd > filtered.length
-            ? filtered.length
-            : proposedEnd;
+    final end = proposedEnd > filtered.length ? filtered.length : proposedEnd;
 
     return filtered.sublist(
       start,
@@ -316,26 +268,20 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   // SUMMARY
   // ===========================================================================
 
-  int get _criticalCount =>
-      _replenishment
-          .where(
-            (row) =>
-                row.priority ==
-                ReplenishmentPriority.critical,
-          )
-          .length;
+  int get _criticalCount => _replenishment
+      .where(
+        (row) => row.priority == ReplenishmentPriority.critical,
+      )
+      .length;
 
-  int get _customRopCount =>
-      _replenishment
-          .where(
-            (row) =>
-                row.usesCustomRop,
-          )
-          .length;
+  int get _customRopCount => _replenishment
+      .where(
+        (row) => row.usesCustomRop,
+      )
+      .length;
 
   bool get _showingAllReplenishment =>
-      _priorityFilter == null &&
-      !_customRopOnly;
+      _priorityFilter == null && !_customRopOnly;
 
   void _showAllReplenishment() {
     setState(() {
@@ -348,13 +294,9 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
   void _toggleCriticalSummary() {
     setState(() {
       final alreadySelected =
-          _priorityFilter ==
-                  ReplenishmentPriority.critical &&
-              !_customRopOnly;
+          _priorityFilter == ReplenishmentPriority.critical && !_customRopOnly;
 
-      _priorityFilter = alreadySelected
-          ? null
-          : ReplenishmentPriority.critical;
+      _priorityFilter = alreadySelected ? null : ReplenishmentPriority.critical;
 
       _customRopOnly = false;
       _replenishmentPage = 0;
@@ -363,11 +305,9 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
 
   void _toggleCustomRopSummary() {
     setState(() {
-      final alreadySelected =
-          _customRopOnly;
+      final alreadySelected = _customRopOnly;
 
-      _customRopOnly =
-          !alreadySelected;
+      _customRopOnly = !alreadySelected;
 
       // Summary filters are intentionally mutually exclusive so the manager/
       // staff can always understand exactly what the list is showing.
@@ -382,11 +322,11 @@ class _PurchaseOrdersPageState extends State<PurchaseOrdersPage>
 
   @override
   Widget build(BuildContext context) {
-if (_loading && _orders.isEmpty) {
-  return const PageLoading(
-    message: 'Loading purchase orders',
-  );
-}
+    if (_loading && _orders.isEmpty) {
+      return const PageLoading(
+        message: 'Loading purchase orders',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -396,8 +336,7 @@ if (_loading && _orders.isEmpty) {
             Text(
               _error!,
               style: const TextStyle(
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 12),
@@ -411,16 +350,13 @@ if (_loading && _orders.isEmpty) {
     }
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHeader(),
         const SizedBox(height: 18),
         _buildTabSelector(),
         const SizedBox(height: 20),
-
-        if (_tab ==
-            _PurchaseModuleTab.replenishment)
+        if (_tab == _PurchaseModuleTab.replenishment)
           _buildReplenishmentTab()
         else
           _buildPurchaseHistoryTab(),
@@ -433,20 +369,16 @@ if (_loading && _orders.isEmpty) {
   // ===========================================================================
 
   Widget _buildHeader() {
-    final showRecordPurchase =
-        _tab ==
-        _PurchaseModuleTab.purchaseHistory;
+    final showRecordPurchase = _tab == _PurchaseModuleTab.purchaseHistory;
 
     final titleBlock = const Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Ordering',
           style: TextStyle(
             fontSize: 24,
-            fontWeight:
-                FontWeight.w800,
+            fontWeight: FontWeight.w800,
           ),
         ),
         SizedBox(height: 3),
@@ -454,15 +386,13 @@ if (_loading && _orders.isEmpty) {
           'Review replenishment needs and recorded purchase history in one place.',
           style: TextStyle(
             fontSize: 13,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
       ],
     );
 
-    final recordPurchaseButton =
-        ElevatedButton.icon(
+    final recordPurchaseButton = ElevatedButton.icon(
       onPressed: () => context.push(
         '/inventory/add?type=purchased',
       ),
@@ -470,29 +400,23 @@ if (_loading && _orders.isEmpty) {
         Icons.add,
         size: 18,
       ),
-      label:
-          const Text('Record Purchase'),
+      label: const Text('Record Purchase'),
     );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final mobile =
-            constraints.maxWidth < 600;
+        final mobile = constraints.maxWidth < 600;
 
         if (mobile) {
           return Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               titleBlock,
-
               if (showRecordPurchase) ...[
                 const SizedBox(height: 14),
-
                 SizedBox(
                   width: double.infinity,
-                  child:
-                      recordPurchaseButton,
+                  child: recordPurchaseButton,
                 ),
               ],
             ],
@@ -500,13 +424,11 @@ if (_loading && _orders.isEmpty) {
         }
 
         return Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: titleBlock,
             ),
-
             if (showRecordPurchase) ...[
               const SizedBox(width: 16),
               recordPurchaseButton,
@@ -524,32 +446,23 @@ if (_loading && _orders.isEmpty) {
   Widget _buildTabSelector() {
     return Align(
       alignment: Alignment.centerLeft,
-      child:
-          SegmentedButton<
-              _PurchaseModuleTab>(
+      child: SegmentedButton<_PurchaseModuleTab>(
         segments: const [
           ButtonSegment(
-            value:
-                _PurchaseModuleTab
-                    .replenishment,
+            value: _PurchaseModuleTab.replenishment,
             icon: Icon(
               Icons.autorenew_outlined,
               size: 18,
             ),
-            label:
-                Text('Replenishment'),
+            label: Text('Replenishment'),
           ),
           ButtonSegment(
-            value:
-                _PurchaseModuleTab
-                    .purchaseHistory,
+            value: _PurchaseModuleTab.purchaseHistory,
             icon: Icon(
-              Icons
-                  .receipt_long_outlined,
+              Icons.receipt_long_outlined,
               size: 18,
             ),
-            label:
-                Text('Purchase History'),
+            label: Text('Purchase History'),
           ),
         ],
         selected: {_tab},
@@ -569,8 +482,7 @@ if (_loading && _orders.isEmpty) {
 
   Widget _buildReplenishmentTab() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ---------------------------------------------------------------------
         // SUMMARY CARDS
@@ -581,45 +493,29 @@ if (_loading && _orders.isEmpty) {
           runSpacing: 12,
           children: [
             _SummaryCard(
-              icon: Icons
-                  .inventory_2_outlined,
-              label:
-                  'Needs Replenishment',
-              value:
-                  '${_replenishment.length}',
-              helper:
-                  'At or below calculated ROP',
-              selected:
-                  _showingAllReplenishment,
-              onTap:
-                  _showAllReplenishment,
+              icon: Icons.inventory_2_outlined,
+              label: 'Needs Replenishment',
+              value: '${_replenishment.length}',
+              helper: 'At or below calculated ROP',
+              selected: _showingAllReplenishment,
+              onTap: _showAllReplenishment,
             ),
             _SummaryCard(
-              icon:
-                  Icons.warning_amber_rounded,
+              icon: Icons.warning_amber_rounded,
               label: 'Critical',
               value: '$_criticalCount',
-              helper:
-                  'No usable stock remaining',
-              selected:
-                  _priorityFilter ==
-                          ReplenishmentPriority
-                              .critical &&
-                      !_customRopOnly,
-              onTap:
-                  _toggleCriticalSummary,
+              helper: 'No usable stock remaining',
+              selected: _priorityFilter == ReplenishmentPriority.critical &&
+                  !_customRopOnly,
+              onTap: _toggleCriticalSummary,
             ),
             _SummaryCard(
-              icon:
-                  Icons.tune_outlined,
+              icon: Icons.tune_outlined,
               label: 'Custom ROP',
               value: '$_customRopCount',
-              helper:
-                  'Using item-specific settings',
-              selected:
-                  _customRopOnly,
-              onTap:
-                  _toggleCustomRopSummary,
+              helper: 'Using item-specific settings',
+              selected: _customRopOnly,
+              onTap: _toggleCustomRopSummary,
             ),
           ],
         ),
@@ -632,19 +528,16 @@ if (_loading && _orders.isEmpty) {
 
         Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.secondary,
-            borderRadius:
-                BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: AppColors.border,
             ),
           ),
           child: const Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 Icons.info_outline,
@@ -678,40 +571,31 @@ if (_loading && _orders.isEmpty) {
           width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius:
-                BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: AppColors.border,
             ),
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildReplenishmentFilters(),
               const Divider(height: 1),
-
               if (_replenishment.isEmpty)
                 const _EmptyState(
-                  icon:
-                      Icons.check_circle_outline,
-                  title:
-                      'Nothing needs replenishment',
+                  icon: Icons.check_circle_outline,
+                  title: 'Nothing needs replenishment',
                   message:
                       'All items are currently above their calculated reorder points.',
                 )
-              else if (_filteredReplenishment
-                  .isEmpty)
+              else if (_filteredReplenishment.isEmpty)
                 _EmptyState(
                   icon: Icons.search_off,
-                  title:
-                      'No items match your filters',
+                  title: 'No items match your filters',
                   message:
                       'Clear the search or priority filter to see other replenishment items.',
-                  actionLabel:
-                      'Reset Filters',
-                  onAction:
-                      _resetReplenishmentFilters,
+                  actionLabel: 'Reset Filters',
+                  onAction: _resetReplenishmentFilters,
                 )
               else ...[
                 if (MediaQuery.sizeOf(context).width < 1000)
@@ -748,7 +632,6 @@ if (_loading && _orders.isEmpty) {
                       ],
                     ],
                   ),
-
                 const Divider(height: 1),
                 _buildReplenishmentPagination(),
               ],
@@ -760,8 +643,7 @@ if (_loading && _orders.isEmpty) {
   }
 
   Widget _buildReplenishmentFilters() {
-    final narrow =
-        MediaQuery.sizeOf(context).width < 940;
+    final narrow = MediaQuery.sizeOf(context).width < 940;
 
     final search = TextField(
       controller: _replenishmentSearchCtrl,
@@ -808,13 +690,10 @@ if (_loading && _orders.isEmpty) {
         ),
         _PriorityChoice(
           label: 'Critical',
-          selected:
-              _priorityFilter ==
-              ReplenishmentPriority.critical,
+          selected: _priorityFilter == ReplenishmentPriority.critical,
           onTap: () {
             setState(() {
-              _priorityFilter =
-                  ReplenishmentPriority.critical;
+              _priorityFilter = ReplenishmentPriority.critical;
               _customRopOnly = false;
               _replenishmentPage = 0;
             });
@@ -822,13 +701,10 @@ if (_loading && _orders.isEmpty) {
         ),
         _PriorityChoice(
           label: 'High',
-          selected:
-              _priorityFilter ==
-              ReplenishmentPriority.high,
+          selected: _priorityFilter == ReplenishmentPriority.high,
           onTap: () {
             setState(() {
-              _priorityFilter =
-                  ReplenishmentPriority.high;
+              _priorityFilter = ReplenishmentPriority.high;
               _customRopOnly = false;
               _replenishmentPage = 0;
             });
@@ -836,13 +712,10 @@ if (_loading && _orders.isEmpty) {
         ),
         _PriorityChoice(
           label: 'Medium',
-          selected:
-              _priorityFilter ==
-              ReplenishmentPriority.medium,
+          selected: _priorityFilter == ReplenishmentPriority.medium,
           onTap: () {
             setState(() {
-              _priorityFilter =
-                  ReplenishmentPriority.medium;
+              _priorityFilter = ReplenishmentPriority.medium;
               _customRopOnly = false;
               _replenishmentPage = 0;
             });
@@ -864,8 +737,7 @@ if (_loading && _orders.isEmpty) {
       padding: const EdgeInsets.all(16),
       child: narrow
           ? Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 search,
                 const SizedBox(height: 12),
@@ -884,8 +756,7 @@ if (_loading && _orders.isEmpty) {
 
   Widget _buildReplenishmentPagination() {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 10,
       ),
@@ -897,61 +768,52 @@ if (_loading && _orders.isEmpty) {
               '${_filteredReplenishment.length == 1 ? '' : 's'}',
               style: const TextStyle(
                 fontSize: 12.5,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
           TextButton.icon(
-            onPressed:
-                _replenishmentPage > 0
-                    ? () {
-                        setState(() {
-                          _replenishmentPage--;
-                        });
-                      }
-                    : null,
+            onPressed: _replenishmentPage > 0
+                ? () {
+                    setState(() {
+                      _replenishmentPage--;
+                    });
+                  }
+                : null,
             icon: const Icon(
               Icons.chevron_left,
               size: 16,
             ),
-            label:
-                const Text('Previous'),
+            label: const Text('Previous'),
           ),
           const SizedBox(width: 4),
           Container(
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 10,
               vertical: 5,
             ),
             decoration: BoxDecoration(
               color: AppColors.primary,
-              borderRadius:
-                  BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               '${_replenishmentPage + 1} / $_replenishmentPageCount',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
           const SizedBox(width: 4),
           TextButton.icon(
-            onPressed:
-                _replenishmentPage <
-                        _replenishmentPageCount -
-                            1
-                    ? () {
-                        setState(() {
-                          _replenishmentPage++;
-                        });
-                      }
-                    : null,
+            onPressed: _replenishmentPage < _replenishmentPageCount - 1
+                ? () {
+                    setState(() {
+                      _replenishmentPage++;
+                    });
+                  }
+                : null,
             icon: const Icon(
               Icons.chevron_right,
               size: 16,
@@ -969,8 +831,7 @@ if (_loading && _orders.isEmpty) {
 
   Widget _buildPurchaseHistoryTab() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
@@ -981,20 +842,17 @@ if (_loading && _orders.isEmpty) {
                     : '${_orders.length} recorded purchase transactions',
                 style: const TextStyle(
                   fontSize: 13,
-                  color:
-                      AppColors.mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-
         SizedBox(
           width: 380,
           child: TextField(
-            controller:
-                _purchaseSearchCtrl,
+            controller: _purchaseSearchCtrl,
             onChanged: (value) {
               setState(() {
                 _purchaseSearch = value;
@@ -1005,76 +863,55 @@ if (_loading && _orders.isEmpty) {
                 Icons.search,
                 size: 18,
               ),
-              suffixIcon:
-                  _purchaseSearch.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip:
-                              'Clear search',
-                          onPressed:
-                              _clearPurchaseSearch,
-                          icon:
-                              const Icon(
-                            Icons.close,
-                            size: 18,
-                          ),
-                        ),
-              hintText:
-                  'Search supplier or staff',
+              suffixIcon: _purchaseSearch.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: _clearPurchaseSearch,
+                      icon: const Icon(
+                        Icons.close,
+                        size: 18,
+                      ),
+                    ),
+              hintText: 'Search supplier or staff',
               isDense: true,
             ),
           ),
         ),
-
         const SizedBox(height: 18),
-
         if (_orders.isEmpty)
           const _EmptyState(
-            icon:
-                Icons.receipt_long_outlined,
-            title:
-                'No purchase history yet',
-            message:
-                'Record a purchase from Inventory → Stock In.',
+            icon: Icons.receipt_long_outlined,
+            title: 'No purchase history yet',
+            message: 'Record a purchase from Inventory → Stock In.',
           )
         else if (_filteredOrders.isEmpty)
           _EmptyState(
             icon: Icons.search_off,
-            title:
-                'No purchases match your search',
-            message:
-                'Try another supplier or staff name.',
-            actionLabel:
-                'Clear Search',
-            onAction:
-                _clearPurchaseSearch,
+            title: 'No purchases match your search',
+            message: 'Try another supplier or staff name.',
+            actionLabel: 'Clear Search',
+            onAction: _clearPurchaseSearch,
           )
         else
           Container(
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.border,
               ),
             ),
             child: Column(
               children: [
-                for (var i = 0;
-                    i <
-                        _filteredOrders
-                            .length;
-                    i++) ...[
+                for (var i = 0; i < _filteredOrders.length; i++) ...[
                   if (i > 0)
                     const Divider(
                       height: 1,
                     ),
                   _PurchaseOrderRow(
-                    order:
-                        _filteredOrders[i],
-                    onTap: () =>
-                        _showPurchaseDetails(
+                    order: _filteredOrders[i],
+                    onTap: () => _showPurchaseDetails(
                       _filteredOrders[i],
                     ),
                   ),
@@ -1091,8 +928,7 @@ if (_loading && _orders.isEmpty) {
 // SUMMARY CARD
 // =============================================================================
 
-class _SummaryCard
-    extends StatelessWidget {
+class _SummaryCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
@@ -1109,96 +945,74 @@ class _SummaryCard
     required this.onTap,
   });
 
-@override
-Widget build(BuildContext context) {
-  final isMobile =
-      MediaQuery.sizeOf(context).width < 600;
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-  return SizedBox(
-    width: isMobile
-        ? double.infinity
-        : 230,
+    return SizedBox(
+      width: isMobile ? double.infinity : 230,
       child: Material(
         color: Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius:
-              BorderRadius.circular(16),
-          hoverColor: AppColors.primary
-              .withValues(
+          borderRadius: BorderRadius.circular(16),
+          hoverColor: AppColors.primary.withValues(
             alpha: 0.035,
           ),
           child: AnimatedContainer(
-            duration:
-                const Duration(
+            duration: const Duration(
               milliseconds: 140,
             ),
-            padding:
-                const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: selected
-                  ? AppColors.primary
-                      .withValues(
+                  ? AppColors.primary.withValues(
                       alpha: 0.055,
                     )
                   : AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.border,
-                width: selected
-                    ? 1.5
-                    : 1,
+                color: selected ? AppColors.primary : AppColors.border,
+                width: selected ? 1.5 : 1,
               ),
             ),
             child: Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
                     color: selected
-                        ? AppColors.primary
-                            .withValues(
+                        ? AppColors.primary.withValues(
                             alpha: 0.13,
                           )
                         : AppColors.secondary,
-                    borderRadius:
-                        BorderRadius.circular(
+                    borderRadius: BorderRadius.circular(
                       12,
                     ),
                   ),
-                  alignment:
-                      Alignment.center,
+                  alignment: Alignment.center,
                   child: Icon(
                     icon,
                     size: 19,
-                    color:
-                        AppColors.primary,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               value,
-                              style:
-                                  const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
-                                fontWeight:
-                                    FontWeight.w800,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ),
@@ -1206,43 +1020,34 @@ Widget build(BuildContext context) {
                             const Icon(
                               Icons.check_circle,
                               size: 16,
-                              color:
-                                  AppColors.primary,
+                              color: AppColors.primary,
                             ),
                         ],
                       ),
                       Text(
                         label,
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           fontSize: 12.5,
-                          fontWeight:
-                              FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         helper,
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           fontSize: 11.5,
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        selected
-                            ? 'Filter active'
-                            : 'Click to filter',
+                        selected ? 'Filter active' : 'Click to filter',
                         style: TextStyle(
                           fontSize: 10.3,
-                          fontWeight:
-                              FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                           color: selected
                               ? AppColors.primary
-                              : AppColors
-                                  .mutedForeground,
+                              : AppColors.mutedForeground,
                         ),
                       ),
                     ],
@@ -1261,8 +1066,7 @@ Widget build(BuildContext context) {
 // PRIORITY FILTER
 // =============================================================================
 
-class _PriorityChoice
-    extends StatelessWidget {
+class _PriorityChoice extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -1280,20 +1084,13 @@ class _PriorityChoice
       selected: selected,
       showCheckmark: false,
       onSelected: (_) => onTap(),
-      selectedColor:
-          AppColors.primary,
+      selectedColor: AppColors.primary,
       labelStyle: TextStyle(
-        color: selected
-            ? Colors.white
-            : AppColors.foreground,
-        fontWeight: selected
-            ? FontWeight.w700
-            : FontWeight.w500,
+        color: selected ? Colors.white : AppColors.foreground,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
       ),
       side: BorderSide(
-        color: selected
-            ? AppColors.primary
-            : AppColors.border,
+        color: selected ? AppColors.primary : AppColors.border,
       ),
     );
   }
@@ -1327,8 +1124,7 @@ class _PriorityChoice
   }
 }
 
-class _PriorityBadge
-    extends StatelessWidget {
+class _PriorityBadge extends StatelessWidget {
   final ReplenishmentPriority priority;
 
   const _PriorityBadge({
@@ -1337,12 +1133,10 @@ class _PriorityBadge
 
   @override
   Widget build(BuildContext context) {
-    final meta =
-        _priorityMeta(priority);
+    final meta = _priorityMeta(priority);
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 9,
         vertical: 4,
       ),
@@ -1350,15 +1144,13 @@ class _PriorityBadge
         color: meta.$2.withValues(
           alpha: 0.12,
         ),
-        borderRadius:
-            BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         meta.$1,
         style: TextStyle(
           fontSize: 11.5,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
           color: meta.$2,
         ),
       ),
@@ -1366,8 +1158,7 @@ class _PriorityBadge
   }
 }
 
-class _RopModeBadge
-    extends StatelessWidget {
+class _RopModeBadge extends StatelessWidget {
   final bool custom;
 
   const _RopModeBadge({
@@ -1377,8 +1168,7 @@ class _RopModeBadge
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 8,
         vertical: 3,
       ),
@@ -1388,19 +1178,14 @@ class _RopModeBadge
                 alpha: 0.10,
               )
             : AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         custom ? 'Custom' : 'Default',
         style: TextStyle(
           fontSize: 10.5,
-          fontWeight:
-              FontWeight.w600,
-          color: custom
-              ? AppColors.primary
-              : AppColors
-                  .mutedForeground,
+          fontWeight: FontWeight.w600,
+          color: custom ? AppColors.primary : AppColors.mutedForeground,
         ),
       ),
     );
@@ -1417,8 +1202,7 @@ String _qty(
 String _suggestedLabel(
   ReplenishmentItem row,
 ) {
-  if (row.suggestedQty <=
-      0.000000001) {
+  if (row.suggestedQty <= 0.000000001) {
     return 'At ROP';
   }
 
@@ -1432,15 +1216,13 @@ String _suggestedLabel(
 // DESKTOP REPLENISHMENT TABLE
 // =============================================================================
 
-class _ReplenishmentHeader
-    extends StatelessWidget {
+class _ReplenishmentHeader extends StatelessWidget {
   const _ReplenishmentHeader();
 
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding:
-          EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 12,
       ),
@@ -1448,8 +1230,7 @@ class _ReplenishmentHeader
         children: [
           SizedBox(
             width: 84,
-            child:
-                _HeaderCell('Priority'),
+            child: _HeaderCell('Priority'),
           ),
           Expanded(
             flex: 3,
@@ -1458,20 +1239,15 @@ class _ReplenishmentHeader
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Quantity on hand'),
+            child: _HeaderCell('Quantity on hand'),
           ),
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Usage'),
+            child: _HeaderCell('Usage'),
           ),
           SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: _HeaderCell('Average Daily Use')
-          ),
+          Expanded(flex: 2, child: _HeaderCell('Average Daily Use')),
           SizedBox(width: 12),
           Expanded(
             flex: 2,
@@ -1480,14 +1256,12 @@ class _ReplenishmentHeader
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Suggested'),
+            child: _HeaderCell('Suggested'),
           ),
           SizedBox(width: 12),
           SizedBox(
             width: 76,
-            child:
-                _HeaderCell('Settings'),
+            child: _HeaderCell('Settings'),
           ),
           SizedBox(width: 22),
         ],
@@ -1496,8 +1270,7 @@ class _ReplenishmentHeader
   }
 }
 
-class _ReplenishmentDesktopRow
-    extends StatelessWidget {
+class _ReplenishmentDesktopRow extends StatelessWidget {
   final ReplenishmentItem row;
 
   const _ReplenishmentDesktopRow({
@@ -1506,8 +1279,7 @@ class _ReplenishmentDesktopRow
 
   @override
   Widget build(BuildContext context) {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     return Material(
       color: Colors.transparent,
@@ -1516,8 +1288,7 @@ class _ReplenishmentDesktopRow
           '/inventory/${row.item.itemId}?from=purchase-orders',
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 13,
           ),
@@ -1526,32 +1297,23 @@ class _ReplenishmentDesktopRow
               SizedBox(
                 width: 84,
                 child: Align(
-                  alignment:
-                      Alignment.centerLeft,
+                  alignment: Alignment.centerLeft,
                   child: _PriorityBadge(
-                    priority:
-                        row.priority,
+                    priority: row.priority,
                   ),
                 ),
               ),
               Expanded(
                 flex: 3,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       row.item.itemName,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 13.5,
-                        fontWeight:
-                            FontWeight
-                                .w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(
@@ -1559,14 +1321,10 @@ class _ReplenishmentDesktopRow
                     ),
                     Text(
                       row.item.itemCategory,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 11.5,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1580,8 +1338,7 @@ class _ReplenishmentDesktopRow
                     row.currentStockPurchaseUnits,
                     unit,
                   ),
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1592,8 +1349,7 @@ class _ReplenishmentDesktopRow
                     row.usage30PurchaseUnits,
                     unit,
                   ),
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1601,16 +1357,14 @@ class _ReplenishmentDesktopRow
                 flex: 2,
                 child: Text(
                   '${row.averageDailyUsage.toStringAsFixed(2)} $unit/day',
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
                 child: Tooltip(
-                  message:
-                      'Observed ${row.observationDays} day'
+                  message: 'Observed ${row.observationDays} day'
                       '${row.observationDays == 1 ? '' : 's'} • '
                       '(${row.averageDailyUsage.toStringAsFixed(2)} × ${row.leadTimeDays} days) + '
                       '${formatQty(row.safetyStockQty)} $unit safety stock',
@@ -1619,13 +1373,9 @@ class _ReplenishmentDesktopRow
                       row.reorderPoint,
                       unit,
                     ),
-                    overflow:
-                        TextOverflow
-                            .ellipsis,
-                    style:
-                        const TextStyle(
-                      fontWeight:
-                          FontWeight.w600,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -1635,12 +1385,9 @@ class _ReplenishmentDesktopRow
                 flex: 2,
                 child: Text(
                   _suggestedLabel(row),
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(
-                    fontWeight:
-                        FontWeight.w700,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -1648,11 +1395,9 @@ class _ReplenishmentDesktopRow
               SizedBox(
                 width: 76,
                 child: Align(
-                  alignment:
-                      Alignment.centerLeft,
+                  alignment: Alignment.centerLeft,
                   child: _RopModeBadge(
-                    custom:
-                        row.usesCustomRop,
+                    custom: row.usesCustomRop,
                   ),
                 ),
               ),
@@ -1660,8 +1405,7 @@ class _ReplenishmentDesktopRow
               const Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ],
           ),
@@ -1675,8 +1419,7 @@ class _ReplenishmentDesktopRow
 // MOBILE REPLENISHMENT ROW
 // =============================================================================
 
-class _ReplenishmentMobileRow
-    extends StatelessWidget {
+class _ReplenishmentMobileRow extends StatelessWidget {
   final ReplenishmentItem row;
 
   const _ReplenishmentMobileRow({
@@ -1685,8 +1428,7 @@ class _ReplenishmentMobileRow
 
   @override
   Widget build(BuildContext context) {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     return Material(
       color: Colors.transparent,
@@ -1695,59 +1437,46 @@ class _ReplenishmentMobileRow
           '/inventory/${row.item.itemId}?from=purchase-orders',
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   _PriorityBadge(
-                    priority:
-                        row.priority,
+                    priority: row.priority,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       row.item.itemName,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 14.5,
-                        fontWeight:
-                            FontWeight
-                                .w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   _RopModeBadge(
-                    custom:
-                        row.usesCustomRop,
+                    custom: row.usesCustomRop,
                   ),
                   const SizedBox(width: 4),
                   const Icon(
                     Icons.chevron_right,
                     size: 18,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 row.item.itemCategory,
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontSize: 11.5,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
               const SizedBox(height: 12),
-
               Wrap(
                 spacing: 18,
                 runSpacing: 10,
@@ -1773,8 +1502,7 @@ class _ReplenishmentMobileRow
                   ),
                   _MiniMetric(
                     label: 'Average Daily Use',
-                    value:
-                        '${formatQty(row.averageDailyUsage)} $unit/day',
+                    value: '${formatQty(row.averageDailyUsage)} $unit/day',
                   ),
                   _MiniMetric(
                     label: 'ROP',
@@ -1785,8 +1513,7 @@ class _ReplenishmentMobileRow
                   ),
                   _MiniMetric(
                     label: 'Suggested',
-                    value:
-                        _suggestedLabel(row),
+                    value: _suggestedLabel(row),
                   ),
                   _MiniMetric(
                     label: 'Lead / Safety',
@@ -1803,8 +1530,7 @@ class _ReplenishmentMobileRow
   }
 }
 
-class _MiniMetric
-    extends StatelessWidget {
+class _MiniMetric extends StatelessWidget {
   final String label;
   final String value;
 
@@ -1818,26 +1544,22 @@ class _MiniMetric
     return SizedBox(
       width: 145,
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: const TextStyle(
               fontSize: 10.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            overflow:
-                TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12.5,
-              fontWeight:
-                  FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1850,8 +1572,7 @@ class _MiniMetric
 // PURCHASE HISTORY ROW
 // =============================================================================
 
-class _PurchaseOrderRow
-    extends StatelessWidget {
+class _PurchaseOrderRow extends StatelessWidget {
   final PurchaseOrder order;
   final VoidCallback onTap;
 
@@ -1867,8 +1588,7 @@ class _PurchaseOrderRow
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 16,
           ),
@@ -1878,22 +1598,15 @@ class _PurchaseOrderRow
                 child: Wrap(
                   spacing: 24,
                   runSpacing: 8,
-                  crossAxisAlignment:
-                      WrapCrossAlignment
-                          .center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
                       width: 220,
                       child: Text(
                         order.suppName,
-                        overflow:
-                            TextOverflow
-                                .ellipsis,
-                        style:
-                            const TextStyle(
-                          fontWeight:
-                              FontWeight
-                                  .w600,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
                           fontSize: 14.5,
                         ),
                       ),
@@ -1904,34 +1617,25 @@ class _PurchaseOrderRow
                         _formatDate(
                           order.receivedDate,
                         ),
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ),
                     SizedBox(
                       width: 180,
                       child: _MetaLine(
-                        label:
-                            'Received by',
-                        value: order
-                                .receivedBy
-                                .isEmpty
-                            ? '—'
-                            : order
-                                .receivedBy,
+                        label: 'Received by',
+                        value:
+                            order.receivedBy.isEmpty ? '—' : order.receivedBy,
                       ),
                     ),
                     SizedBox(
                       width: 180,
                       child: _MetaLine(
-                        label:
-                            'Recorded by',
-                        value:
-                            order.buyerName,
+                        label: 'Recorded by',
+                        value: order.buyerName,
                       ),
                     ),
                   ],
@@ -1940,8 +1644,7 @@ class _PurchaseOrderRow
               const Icon(
                 Icons.visibility_outlined,
                 size: 18,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ],
           ),
@@ -1950,7 +1653,6 @@ class _PurchaseOrderRow
     );
   }
 }
-
 
 // =============================================================================
 // PURCHASE HISTORY DETAILS MODAL
@@ -1975,21 +1677,17 @@ class _PurchaseDetailsDialog extends StatefulWidget {
   });
 
   @override
-  State<_PurchaseDetailsDialog> createState() =>
-      _PurchaseDetailsDialogState();
+  State<_PurchaseDetailsDialog> createState() => _PurchaseDetailsDialogState();
 }
 
-class _PurchaseDetailsDialogState
-    extends State<_PurchaseDetailsDialog> {
-  late final Future<List<OrderLineItem>>
-      _itemsFuture;
+class _PurchaseDetailsDialogState extends State<_PurchaseDetailsDialog> {
+  late final Future<List<OrderLineItem>> _itemsFuture;
 
   @override
   void initState() {
     super.initState();
 
-    _itemsFuture =
-        widget.service.fetchOrderItems(
+    _itemsFuture = widget.service.fetchOrderItems(
       widget.order.purId,
     );
   }
@@ -1997,33 +1695,23 @@ class _PurchaseDetailsDialogState
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    final screen =
-        MediaQuery.sizeOf(context);
+    final screen = MediaQuery.sizeOf(context);
 
     // Keep the purchase-details modal visually stable while its items load.
     // Desktop/tablet use a consistent 720 x 600 maximum footprint.
     // Smaller APK/mobile screens use the available width and 82% of height.
-    final dialogWidth =
-        screen.width < 752
-            ? screen.width - 32
-            : 720.0;
+    final dialogWidth = screen.width < 752 ? screen.width - 32 : 720.0;
 
-    final responsiveHeight =
-        screen.height * 0.82;
+    final responsiveHeight = screen.height * 0.82;
 
-    final dialogHeight =
-        responsiveHeight < 600
-            ? responsiveHeight
-            : 600.0;
+    final dialogHeight = responsiveHeight < 600 ? responsiveHeight : 600.0;
 
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
-      insetPadding:
-          const EdgeInsets.all(16),
+      insetPadding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: SizedBox(
         width: dialogWidth,
@@ -2035,55 +1723,43 @@ class _PurchaseDetailsDialogState
             // -----------------------------------------------------------------
 
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 20,
                 18,
                 12,
                 14,
               ),
               child: Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: 42,
                     height: 42,
-                    decoration:
-                        BoxDecoration(
-                      color: AppColors.primary
-                          .withValues(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(
                         alpha: 0.09,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(
+                      borderRadius: BorderRadius.circular(
                         12,
                       ),
                     ),
-                    alignment:
-                        Alignment.center,
+                    alignment: Alignment.center,
                     child: const Icon(
-                      Icons
-                          .receipt_long_outlined,
+                      Icons.receipt_long_outlined,
                       size: 20,
-                      color:
-                          AppColors.primary,
+                      color: AppColors.primary,
                     ),
                   ),
-
                   const SizedBox(width: 11),
-
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           order.suppName,
                           style: const TextStyle(
                             fontSize: 20,
-                            fontWeight:
-                                FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -2091,19 +1767,15 @@ class _PurchaseDetailsDialogState
                           'Purchase received ${_formatDate(order.receivedDate)}',
                           style: const TextStyle(
                             fontSize: 11.8,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
                     ),
                   ),
-
                   IconButton(
                     tooltip: 'Close',
-                    onPressed: () =>
-                        Navigator.of(context)
-                            .pop(),
+                    onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(
                       Icons.close,
                       size: 19,
@@ -2120,62 +1792,50 @@ class _PurchaseDetailsDialogState
             // -----------------------------------------------------------------
 
             Expanded(
-              child:
-                  FutureBuilder<
-                      List<OrderLineItem>>(
+              child: FutureBuilder<List<OrderLineItem>>(
                 future: _itemsFuture,
                 builder: (
                   context,
                   snapshot,
                 ) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Padding(
-                      padding:
-                          EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         vertical: 48,
                       ),
                       child: Center(
-                        child:
-                            CircularProgressIndicator(),
+                        child: CircularProgressIndicator(),
                       ),
                     );
                   }
 
                   if (snapshot.hasError) {
                     return Padding(
-                      padding:
-                          const EdgeInsets.all(
+                      padding: const EdgeInsets.all(
                         24,
                       ),
                       child: Column(
-                        mainAxisSize:
-                            MainAxisSize.min,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
                             Icons.error_outline,
                             size: 32,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                           const SizedBox(height: 8),
                           const Text(
                             'Could not load purchase details.',
                             style: TextStyle(
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${snapshot.error}',
-                            textAlign:
-                                TextAlign.center,
-                            style:
-                                const TextStyle(
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
                               fontSize: 11.5,
-                              color: AppColors
-                                  .mutedForeground,
+                              color: AppColors.mutedForeground,
                             ),
                           ),
                         ],
@@ -2183,48 +1843,36 @@ class _PurchaseDetailsDialogState
                     );
                   }
 
-                  final items =
-                      snapshot.data ??
-                          const <OrderLineItem>[];
+                  final items = snapshot.data ?? const <OrderLineItem>[];
 
-                  final total =
-                      items.fold<double>(
+                  final total = items.fold<double>(
                     0,
                     (
                       sum,
                       item,
                     ) =>
-                        sum +
-                        item.qty *
-                            item.unitCost,
+                        sum + item.qty * item.unitCost,
                   );
 
                   return SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.all(
+                    padding: const EdgeInsets.all(
                       18,
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           'Purchase Details',
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight:
-                                FontWeight.w700,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-
                         const SizedBox(height: 10),
-
                         _PurchaseDetailSummary(
                           order: order,
                         ),
-
                         const SizedBox(height: 18),
-
                         Row(
                           children: [
                             const Expanded(
@@ -2232,8 +1880,7 @@ class _PurchaseDetailsDialogState
                                 'Items Received',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight:
-                                      FontWeight.w700,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -2242,113 +1889,77 @@ class _PurchaseDetailsDialogState
                               '${items.length == 1 ? 'item' : 'items'}',
                               style: const TextStyle(
                                 fontSize: 11.5,
-                                color: AppColors
-                                    .mutedForeground,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 10),
-
                         if (items.isEmpty)
                           Container(
-                            width:
-                                double.infinity,
-                            padding:
-                                const EdgeInsets
-                                    .symmetric(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
                               vertical: 26,
                             ),
-                            decoration:
-                                BoxDecoration(
-                              color: AppColors
-                                  .secondary,
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary,
+                              borderRadius: BorderRadius.circular(
                                 12,
                               ),
-                              border:
-                                  Border.all(
-                                color: AppColors
-                                    .border,
+                              border: Border.all(
+                                color: AppColors.border,
                               ),
                             ),
                             child: const Center(
                               child: Text(
                                 'No items logged for this purchase.',
-                                style:
-                                    TextStyle(
-                                  color: AppColors
-                                      .mutedForeground,
+                                style: TextStyle(
+                                  color: AppColors.mutedForeground,
                                 ),
                               ),
                             ),
                           )
                         else
                           Container(
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  AppColors.card,
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: BorderRadius.circular(
                                 12,
                               ),
-                              border:
-                                  Border.all(
-                                color:
-                                    AppColors.border,
+                              border: Border.all(
+                                color: AppColors.border,
                               ),
                             ),
                             child: Column(
                               children: [
-                                for (var i = 0;
-                                    i <
-                                        items.length;
-                                    i++) ...[
+                                for (var i = 0; i < items.length; i++) ...[
                                   if (i > 0)
                                     const Divider(
                                       height: 1,
                                     ),
                                   _PurchaseDetailItemRow(
-                                    item:
-                                        items[i],
+                                    item: items[i],
                                   ),
                                 ],
                               ],
                             ),
                           ),
-
                         const SizedBox(height: 14),
-
                         Container(
                           width: double.infinity,
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 12,
                           ),
-                          decoration:
-                              BoxDecoration(
-                            color: AppColors
-                                .primary
-                                .withValues(
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(
                               alpha: 0.055,
                             ),
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
+                            borderRadius: BorderRadius.circular(
                               12,
                             ),
-                            border:
-                                Border.all(
-                              color: AppColors
-                                  .primary
-                                  .withValues(
+                            border: Border.all(
+                              color: AppColors.primary.withValues(
                                 alpha: 0.18,
                               ),
                             ),
@@ -2358,38 +1969,30 @@ class _PurchaseDetailsDialogState
                               const Expanded(
                                 child: Text(
                                   'Purchase Total',
-                                  style:
-                                      TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12.5,
-                                    fontWeight:
-                                        FontWeight.w700,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
                               Text(
                                 '₱${total.toStringAsFixed(2)}',
-                                style:
-                                    const TextStyle(
+                                style: const TextStyle(
                                   fontSize: 17,
-                                  fontWeight:
-                                      FontWeight.w800,
-                                  color: AppColors
-                                      .primary,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 8),
-
                         const Text(
                           'Read-only purchase record. Closing this window keeps you on the Purchase History tab.',
                           style: TextStyle(
                             fontSize: 10.8,
                             height: 1.35,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
@@ -2402,22 +2005,17 @@ class _PurchaseDetailsDialogState
             const Divider(height: 1),
 
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 16,
                 8,
                 16,
                 10,
               ),
               child: Align(
-                alignment:
-                    Alignment.centerRight,
+                alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () =>
-                      Navigator.of(context)
-                          .pop(),
-                  child:
-                      const Text('Close'),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
                 ),
               ),
             ),
@@ -2428,8 +2026,7 @@ class _PurchaseDetailsDialogState
   }
 }
 
-class _PurchaseDetailSummary
-    extends StatelessWidget {
+class _PurchaseDetailSummary extends StatelessWidget {
   final PurchaseOrder order;
 
   const _PurchaseDetailSummary({
@@ -2438,28 +2035,22 @@ class _PurchaseDetailSummary
 
   @override
   Widget build(BuildContext context) {
-    final mobile =
-        MediaQuery.sizeOf(context).width <
-            620;
+    final mobile = MediaQuery.sizeOf(context).width < 620;
 
     final cards = [
       _PurchaseDetailInfoCard(
         label: 'Date received',
-        value:
-            _formatDate(
+        value: _formatDate(
           order.receivedDate,
         ),
-        icon:
-            Icons.calendar_today_outlined,
+        icon: Icons.calendar_today_outlined,
       ),
       _PurchaseDetailInfoCard(
         label: 'Received by',
-        value:
-            order.receivedBy.trim().isEmpty
-                ? 'Not specified'
-                : order.receivedBy,
-        icon:
-            Icons.inventory_outlined,
+        value: order.receivedBy.trim().isEmpty
+            ? 'Not specified'
+            : order.receivedBy,
+        icon: Icons.inventory_outlined,
       ),
       _PurchaseDetailInfoCard(
         label: 'Recorded by',
@@ -2471,11 +2062,8 @@ class _PurchaseDetailSummary
     if (mobile) {
       return Column(
         children: [
-          for (var i = 0;
-              i < cards.length;
-              i++) ...[
-            if (i > 0)
-              const SizedBox(height: 8),
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
             cards[i],
           ],
         ],
@@ -2483,14 +2071,10 @@ class _PurchaseDetailSummary
     }
 
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0;
-            i < cards.length;
-            i++) ...[
-          if (i > 0)
-            const SizedBox(width: 8),
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
           Expanded(child: cards[i]),
         ],
       ],
@@ -2498,8 +2082,7 @@ class _PurchaseDetailSummary
   }
 }
 
-class _PurchaseDetailInfoCard
-    extends StatelessWidget {
+class _PurchaseDetailInfoCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
@@ -2513,12 +2096,10 @@ class _PurchaseDetailInfoCard
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
@@ -2528,33 +2109,28 @@ class _PurchaseDetailInfoCard
           Icon(
             icon,
             size: 17,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
                   style: const TextStyle(
                     fontSize: 10.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
                   maxLines: 2,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 11.8,
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -2566,8 +2142,7 @@ class _PurchaseDetailInfoCard
   }
 }
 
-class _PurchaseDetailItemRow
-    extends StatelessWidget {
+class _PurchaseDetailItemRow extends StatelessWidget {
   final OrderLineItem item;
 
   const _PurchaseDetailItemRow({
@@ -2576,27 +2151,21 @@ class _PurchaseDetailItemRow
 
   @override
   Widget build(BuildContext context) {
-    final mobile =
-        MediaQuery.sizeOf(context).width <
-            620;
+    final mobile = MediaQuery.sizeOf(context).width < 620;
 
-    final subtotal =
-        item.qty * item.unitCost;
+    final subtotal = item.qty * item.unitCost;
 
     if (mobile) {
       return Padding(
-        padding:
-            const EdgeInsets.all(13),
+        padding: const EdgeInsets.all(13),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               item.itemName,
               style: const TextStyle(
                 fontSize: 12.8,
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 7),
@@ -2606,19 +2175,16 @@ class _PurchaseDetailItemRow
               children: [
                 _PurchaseDetailMiniValue(
                   label: 'Quantity',
-                  value:
-                      '${formatQty(item.qty)} '
+                  value: '${formatQty(item.qty)} '
                       '${item.itemUom}',
                 ),
                 _PurchaseDetailMiniValue(
                   label: 'Unit cost',
-                  value:
-                      '₱${item.unitCost.toStringAsFixed(2)}',
+                  value: '₱${item.unitCost.toStringAsFixed(2)}',
                 ),
                 _PurchaseDetailMiniValue(
                   label: 'Subtotal',
-                  value:
-                      '₱${subtotal.toStringAsFixed(2)}',
+                  value: '₱${subtotal.toStringAsFixed(2)}',
                   strong: true,
                 ),
               ],
@@ -2629,8 +2195,7 @@ class _PurchaseDetailItemRow
     }
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 14,
         vertical: 11,
       ),
@@ -2640,12 +2205,10 @@ class _PurchaseDetailItemRow
             flex: 4,
             child: Text(
               item.itemName,
-              overflow:
-                  TextOverflow.ellipsis,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 12.5,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -2655,8 +2218,7 @@ class _PurchaseDetailItemRow
             child: Text(
               '${formatQty(item.qty)} '
               '${item.itemUom}',
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 11.8,
               ),
             ),
@@ -2666,8 +2228,7 @@ class _PurchaseDetailItemRow
             flex: 2,
             child: Text(
               '₱${item.unitCost.toStringAsFixed(2)}',
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 11.8,
               ),
             ),
@@ -2680,8 +2241,7 @@ class _PurchaseDetailItemRow
               textAlign: TextAlign.end,
               style: const TextStyle(
                 fontSize: 11.8,
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -2691,8 +2251,7 @@ class _PurchaseDetailItemRow
   }
 }
 
-class _PurchaseDetailMiniValue
-    extends StatelessWidget {
+class _PurchaseDetailMiniValue extends StatelessWidget {
   final String label;
   final String value;
   final bool strong;
@@ -2708,28 +2267,22 @@ class _PurchaseDetailMiniValue
     return SizedBox(
       width: 125,
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: const TextStyle(
               fontSize: 10.3,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            overflow:
-                TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 11.8,
-              fontWeight:
-                  strong
-                      ? FontWeight.w700
-                      : FontWeight.w500,
+              fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ],
@@ -2738,8 +2291,7 @@ class _PurchaseDetailMiniValue
   }
 }
 
-class _MetaLine
-    extends StatelessWidget {
+class _MetaLine extends StatelessWidget {
   final String label;
   final String value;
 
@@ -2751,26 +2303,22 @@ class _MetaLine
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
             fontSize: 11.5,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          overflow:
-              TextOverflow.ellipsis,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 13,
-            fontWeight:
-                FontWeight.w500,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -2782,8 +2330,7 @@ class _MetaLine
 // COMMON SMALL WIDGETS
 // =============================================================================
 
-class _HeaderCell
-    extends StatelessWidget {
+class _HeaderCell extends StatelessWidget {
   final String label;
 
   const _HeaderCell(this.label);
@@ -2791,24 +2338,20 @@ class _HeaderCell
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment:
-          Alignment.centerLeft,
+      alignment: Alignment.centerLeft,
       child: Text(
         label,
         style: const TextStyle(
           fontSize: 11.5,
-          fontWeight:
-              FontWeight.w700,
-          color:
-              AppColors.mutedForeground,
+          fontWeight: FontWeight.w700,
+          color: AppColors.mutedForeground,
         ),
       ),
     );
   }
 }
 
-class _EmptyState
-    extends StatelessWidget {
+class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
@@ -2826,29 +2369,25 @@ class _EmptyState
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: 52,
         horizontal: 24,
       ),
       child: Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
               size: 34,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
             const SizedBox(height: 10),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
@@ -2857,17 +2396,14 @@ class _EmptyState
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12.5,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
-            if (actionLabel != null &&
-                onAction != null) ...[
+            if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: onAction,
-                child:
-                    Text(actionLabel!),
+                child: Text(actionLabel!),
               ),
             ],
           ],

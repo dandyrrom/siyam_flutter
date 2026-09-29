@@ -56,17 +56,15 @@ class SearchSelectField<T extends Object> extends StatefulWidget {
   });
 
   @override
-  State<SearchSelectField<T>> createState() =>
-      _SearchSelectFieldState<T>();
+  State<SearchSelectField<T>> createState() => _SearchSelectFieldState<T>();
 }
 
 class _SearchSelectFieldState<T extends Object>
     extends State<SearchSelectField<T>> {
-  late final TextEditingController _controller =
-      widget.controller ??
-          TextEditingController(
-            text: widget.initialText ?? '',
-          );
+  late final TextEditingController _controller = widget.controller ??
+      TextEditingController(
+        text: widget.initialText ?? '',
+      );
 
   final FocusNode _focusNode = FocusNode();
   final ScrollController _optionsScrollController = ScrollController();
@@ -92,8 +90,7 @@ class _SearchSelectFieldState<T extends Object>
     final availableScreenWidth =
         screenWidth > 32 ? screenWidth - 32 : screenWidth;
 
-    final renderObject =
-        _fieldKey.currentContext?.findRenderObject();
+    final renderObject = _fieldKey.currentContext?.findRenderObject();
 
     if (renderObject is RenderBox &&
         renderObject.hasSize &&
@@ -109,9 +106,7 @@ class _SearchSelectFieldState<T extends Object>
     // Safe fallback for the very first overlay frame if the field's render box
     // is not measurable yet. In normal use the field is already laid out before
     // RawAutocomplete opens its options overlay.
-    return availableScreenWidth < 320
-        ? availableScreenWidth
-        : 320;
+    return availableScreenWidth < 320 ? availableScreenWidth : 320;
   }
 
   @override

@@ -33,26 +33,21 @@ enum AuthStatus {
 ///
 /// Normal UI changes should not unnecessarily rebuild the route tree.
 class AuthController extends ChangeNotifier {
-  final AuthService _authService =
-      AuthService();
+  final AuthService _authService = AuthService();
 
   // ==========================================================================
   // ROUTER REFRESH NOTIFIER
   // ==========================================================================
 
-  final ValueNotifier<int>
-      _routerRefresh =
-      ValueNotifier<int>(0);
+  final ValueNotifier<int> _routerRefresh = ValueNotifier<int>(0);
 
-  Listenable get routerRefreshListenable =>
-      _routerRefresh;
+  Listenable get routerRefreshListenable => _routerRefresh;
 
   // ==========================================================================
   // AUTH STATE
   // ==========================================================================
 
-  AuthStatus status =
-      AuthStatus.unknown;
+  AuthStatus status = AuthStatus.unknown;
 
   AppUser? profile;
 
@@ -71,13 +66,9 @@ class AuthController extends ChangeNotifier {
   // GETTERS
   // ==========================================================================
 
-  bool get isAuthenticated =>
-      status ==
-      AuthStatus.authenticated;
+  bool get isAuthenticated => status == AuthStatus.authenticated;
 
-  bool get isAuthResolved =>
-      status !=
-      AuthStatus.unknown;
+  bool get isAuthResolved => status != AuthStatus.unknown;
 
   // ==========================================================================
   // AUTH STATUS CHANGE
@@ -90,13 +81,11 @@ class AuthController extends ChangeNotifier {
   void _setStatus(
     AuthStatus newStatus,
   ) {
-    if (status ==
-        newStatus) {
+    if (status == newStatus) {
       return;
     }
 
-    status =
-        newStatus;
+    status = newStatus;
 
     _routerRefresh.value++;
     _syncRealtime();
@@ -146,19 +135,16 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> _verifyActiveSession() async {
-    if (_heartbeatInFlight ||
-        !isAuthenticated) {
+    if (_heartbeatInFlight || !isAuthenticated) {
       return;
     }
 
     _heartbeatInFlight = true;
 
     try {
-      final valid =
-          await _authService.touchSession();
+      final valid = await _authService.touchSession();
 
-      if (valid ||
-          !isAuthenticated) {
+      if (valid || !isAuthenticated) {
         return;
       }
 
@@ -192,8 +178,7 @@ class AuthController extends ChangeNotifier {
   // RESTORE SESSION
   // ==========================================================================
 
-  Future<void>
-      restoreSession() async {
+  Future<void> restoreSession() async {
     errorMessage = null;
     profile = null;
 
@@ -206,9 +191,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user =
-          await _authService
-              .restoreSession();
+      final user = await _authService.restoreSession();
 
       if (user != null) {
         profile = user;
@@ -261,15 +244,12 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user =
-          await _authService
-              .signIn(
+      final user = await _authService.signIn(
         email: email,
         password: password,
       );
 
-      profile =
-          user;
+      profile = user;
 
       _setStatus(
         AuthStatus.authenticated,
@@ -285,9 +265,7 @@ class AuthController extends ChangeNotifier {
         AuthStatus.unauthenticated,
       );
 
-      errorMessage = e
-          .toString()
-          .replaceFirst(
+      errorMessage = e.toString().replaceFirst(
             'Exception: ',
             '',
           );
@@ -330,19 +308,12 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user =
-          await _authService
-              .signUpDonor(
-        firstName:
-            firstName,
-        lastName:
-            lastName,
-        email:
-            email,
-        password:
-            password,
-        contactNum:
-            contactNum,
+      final user = await _authService.signUpDonor(
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        password: password,
+        contactNum: contactNum,
       );
 
       // Public SIYAM registration is donor-only.
@@ -381,9 +352,7 @@ class AuthController extends ChangeNotifier {
         AuthStatus.unauthenticated,
       );
 
-      errorMessage = e
-          .toString()
-          .replaceFirst(
+      errorMessage = e.toString().replaceFirst(
             'Exception: ',
             '',
           );
@@ -437,23 +406,19 @@ class AuthController extends ChangeNotifier {
       // SUPABASE SIGN OUT
       // ----------------------------------------------------------------------
 
-      await _authService
-          .signOut();
+      await _authService.signOut();
 
       // ----------------------------------------------------------------------
       // CLEAR LOCAL SESSION
       // ----------------------------------------------------------------------
 
-      profile =
-          null;
+      profile = null;
 
-      status =
-          AuthStatus.unauthenticated;
+      status = AuthStatus.unauthenticated;
 
       _syncRealtime();
 
-      isBusy =
-          false;
+      isBusy = false;
 
       // ----------------------------------------------------------------------
       // DO NOT notify or refresh GoRouter here.
@@ -465,12 +430,9 @@ class AuthController extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      isBusy =
-          false;
+      isBusy = false;
 
-      errorMessage = e
-          .toString()
-          .replaceFirst(
+      errorMessage = e.toString().replaceFirst(
             'Exception: ',
             '',
           );
@@ -496,11 +458,9 @@ class AuthController extends ChangeNotifier {
     required String lastName,
     String? contactNum,
   }) async {
-    final userId =
-        profile?.userId;
+    final userId = profile?.userId;
 
-    if (userId == null ||
-        isBusy) {
+    if (userId == null || isBusy) {
       return false;
     }
 
@@ -509,34 +469,23 @@ class AuthController extends ChangeNotifier {
 
     notifyListeners();
 
-    bool success =
-        false;
+    bool success = false;
 
     try {
-      final updatedProfile =
-          await _authService
-              .updateProfile(
-        userId:
-            userId,
-        firstName:
-            firstName,
-        lastName:
-            lastName,
-        contactNum:
-            contactNum,
+      final updatedProfile = await _authService.updateProfile(
+        userId: userId,
+        firstName: firstName,
+        lastName: lastName,
+        contactNum: contactNum,
       );
 
-      profile =
-          updatedProfile;
+      profile = updatedProfile;
 
-      success =
-          true;
+      success = true;
     } catch (_) {
-      errorMessage =
-          'Could not update your profile. Please try again.';
+      errorMessage = 'Could not update your profile. Please try again.';
     } finally {
-      isBusy =
-          false;
+      isBusy = false;
 
       notifyListeners();
     }
@@ -552,11 +501,9 @@ class AuthController extends ChangeNotifier {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final userId =
-        profile?.userId;
+    final userId = profile?.userId;
 
-    if (userId == null ||
-        isBusy) {
+    if (userId == null || isBusy) {
       return false;
     }
 
@@ -565,36 +512,27 @@ class AuthController extends ChangeNotifier {
 
     notifyListeners();
 
-    bool success =
-        false;
+    bool success = false;
 
     try {
-      await _authService
-          .changePassword(
-        userId:
-            userId,
-        currentPassword:
-            currentPassword,
-        newPassword:
-            newPassword,
+      await _authService.changePassword(
+        userId: userId,
+        currentPassword: currentPassword,
+        newPassword: newPassword,
       );
 
       // Password verification may rotate the Supabase session.
       // The service transfers the SIYAM lock; touch it once immediately.
       await _authService.touchSession();
 
-      success =
-          true;
+      success = true;
     } catch (e) {
-      errorMessage = e
-          .toString()
-          .replaceFirst(
+      errorMessage = e.toString().replaceFirst(
             'Exception: ',
             '',
           );
     } finally {
-      isBusy =
-          false;
+      isBusy = false;
 
       notifyListeners();
     }
@@ -610,8 +548,7 @@ class AuthController extends ChangeNotifier {
   void dispose() {
     _stopSessionHeartbeat();
 
-    _routerRefresh
-        .dispose();
+    _routerRefresh.dispose();
 
     super.dispose();
   }

@@ -63,14 +63,14 @@ class _SubmissionDetailPageState extends State<SubmissionDetailPage>
     _load(silent: cached != null);
   }
 
-@override
-void onExternalDataChanged() {
-  if (_acting) {
-    return;
-  }
+  @override
+  void onExternalDataChanged() {
+    if (_acting) {
+      return;
+    }
 
-  _load(silent: true, forceRefresh: true);
-}
+    _load(silent: true, forceRefresh: true);
+  }
 
   Future<void> _load({bool silent = false, bool forceRefresh = false}) async {
     if (!silent) {
@@ -85,8 +85,8 @@ void onExternalDataChanged() {
       final seeded = forceRefresh
           ? null
           : _submission ?? cache.submissionById(widget.subId);
-      final submission = seeded ??
-          await _donationService.fetchSubmission(widget.subId);
+      final submission =
+          seeded ?? await _donationService.fetchSubmission(widget.subId);
 
       if (submission == null) {
         if (!mounted) return;
@@ -110,12 +110,11 @@ void onExternalDataChanged() {
       if (submission.proofImg != null &&
           submission.proofImg!.trim().isNotEmpty) {
         try {
-          proofSignedUrl = await _client.storage
-              .from('donation-proofs')
-              .createSignedUrl(
-                submission.proofImg!,
-                60 * 10,
-              );
+          proofSignedUrl =
+              await _client.storage.from('donation-proofs').createSignedUrl(
+                    submission.proofImg!,
+                    60 * 10,
+                  );
         } catch (_) {
           // If Storage fails, keep the URL null so the page can show
           // the existing image error state without breaking the whole page.
@@ -128,8 +127,7 @@ void onExternalDataChanged() {
       setState(() {
         _submission = submission;
         _donor = results[0] as AppUser?;
-        _receivedItems =
-            results[1] as List<DonationLineItem>;
+        _receivedItems = results[1] as List<DonationLineItem>;
 
         // Saves the signed URL used by Image.network below.
         _proofSignedUrl = proofSignedUrl;
@@ -245,22 +243,18 @@ void onExternalDataChanged() {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title:
-            Text('Reject donation from ${_submission!.donorName}?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Reject donation from ${_submission!.donorName}?'),
         content: const Text(
             'The donor will no longer be able to have this submission stocked in.'),
         actions: [
           TextButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.destructive),
-            onPressed: () =>
-                Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Reject'),
           ),
         ],
@@ -269,8 +263,7 @@ void onExternalDataChanged() {
 
     if (confirmed != true || !mounted) return;
 
-    final updatedByUserId =
-        context.read<AuthController>().profile?.userId;
+    final updatedByUserId = context.read<AuthController>().profile?.userId;
 
     if (updatedByUserId == null) return;
 
@@ -278,8 +271,7 @@ void onExternalDataChanged() {
 
     try {
       await _donationService.rejectSubmission(
-          subId: widget.subId,
-          updatedByUserId: updatedByUserId);
+          subId: widget.subId, updatedByUserId: updatedByUserId);
 
       await _load();
     } catch (e) {
@@ -288,37 +280,30 @@ void onExternalDataChanged() {
       setState(() => _acting = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Could not reject donation: $e')));
+          SnackBar(content: Text('Could not reject donation: $e')));
     }
   }
 
   Future<void> _approve() async {
-    final currentUser =
-        context.read<AuthController>().profile;
+    final currentUser = context.read<AuthController>().profile;
 
     if (currentUser == null) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title:
-            Text('Approve donation from ${_submission!.donorName}?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Approve donation from ${_submission!.donorName}?'),
         content: const Text(
           'This marks the submission approved. Once the items physically '
           'arrive, come back here to confirm receipt and stock them in.',
         ),
         actions: [
           TextButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Approve'),
           ),
         ],
@@ -343,9 +328,7 @@ void onExternalDataChanged() {
       setState(() => _acting = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Could not approve donation: $e')));
+          SnackBar(content: Text('Could not approve donation: $e')));
     }
   }
 
@@ -353,8 +336,7 @@ void onExternalDataChanged() {
     setState(() => _acting = true);
 
     try {
-      await _donationService.markSubmissionReceived(
-          subId: widget.subId);
+      await _donationService.markSubmissionReceived(subId: widget.subId);
 
       await _load();
     } catch (e) {
@@ -363,15 +345,12 @@ void onExternalDataChanged() {
       setState(() => _acting = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Could not confirm items received: $e')));
+          SnackBar(content: Text('Could not confirm items received: $e')));
     }
   }
 
   Future<void> _stockIn() async {
-    await context.push(
-        '/inventory/add?type=donated&subId=${widget.subId}');
+    await context.push('/inventory/add?type=donated&subId=${widget.subId}');
 
     if (!mounted) return;
 
@@ -393,8 +372,7 @@ void onExternalDataChanged() {
               onPressed: _acting ? null : _reject,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.destructive,
-                side:
-                    const BorderSide(color: AppColors.destructive),
+                side: const BorderSide(color: AppColors.destructive),
               ),
               child: const Text('Reject'),
             ),
@@ -411,19 +389,16 @@ void onExternalDataChanged() {
           icon: Icons.local_shipping_outlined,
           iconColor: AppColors.primary,
           title: 'Waiting for items to arrive',
-          description:
-              'Once the donor drops off (or you receive) the items in '
+          description: 'Once the donor drops off (or you receive) the items in '
               'person, confirm receipt to move this donation forward.',
           actions: [
             ElevatedButton.icon(
-              onPressed:
-                  _acting ? null : _confirmItemsReceived,
+              onPressed: _acting ? null : _confirmItemsReceived,
               icon: const Icon(
-                  Icons.inventory_outlined,
-                  size: 18,
+                Icons.inventory_outlined,
+                size: 18,
               ),
-              label:
-                  const Text('Confirm Items Received'),
+              label: const Text('Confirm Items Received'),
             ),
           ],
         );
@@ -440,11 +415,10 @@ void onExternalDataChanged() {
             ElevatedButton.icon(
               onPressed: _acting ? null : _stockIn,
               icon: const Icon(
-                  Icons.inventory_2_outlined,
-                  size: 18,
+                Icons.inventory_2_outlined,
+                size: 18,
               ),
-              label:
-                  const Text('Stock In Items'),
+              label: const Text('Stock In Items'),
             ),
           ],
         );
@@ -473,8 +447,7 @@ void onExternalDataChanged() {
   @override
   Widget build(BuildContext context) {
     if (_loading && _submission == null) {
-      return const Center(
-          child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_notFound || _submission == null) {
@@ -482,116 +455,84 @@ void onExternalDataChanged() {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-                Icons.volunteer_activism_outlined,
-                size: 40,
-                color: AppColors.mutedForeground),
+            const Icon(Icons.volunteer_activism_outlined,
+                size: 40, color: AppColors.mutedForeground),
             const SizedBox(height: 12),
-            const Text(
-                'Submission not found',
-                style:
-                    TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Submission not found',
+                style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             TextButton(
-               onPressed: () {
-  if (context.canPop()) {
-    context.pop();
-  } else {
-    context.go('/donations');
-  }
-},
-                child:
-                    const Text('Back to Donations')),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/donations');
+                  }
+                },
+                child: const Text('Back to Donations')),
           ],
         ),
       );
     }
 
     final sub = _submission!;
-    final (statusLabel, statusColor) =
-        _statusMeta(sub.status);
+    final (statusLabel, statusColor) = _statusMeta(sub.status);
 
-    final hasReceivedItems =
-        _receivedItems.isNotEmpty;
+    final hasReceivedItems = _receivedItems.isNotEmpty;
 
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(maxWidth: 720),
+      constraints: const BoxConstraints(maxWidth: 720),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () =>
-                context.go('/donations'),
-            icon:
-                const Icon(Icons.arrow_back, size: 16),
-            label:
-                const Text('Back to Donations'),
+            onPressed: () => context.go('/donations'),
+            icon: const Icon(Icons.arrow_back, size: 16),
+            label: const Text('Back to Donations'),
             style: TextButton.styleFrom(
-                foregroundColor:
-                    AppColors.mutedForeground),
+                foregroundColor: AppColors.mutedForeground),
           ),
-
           const SizedBox(height: 8),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       sub.donorName,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight:
-                              FontWeight.w800),
+                          fontSize: 24, fontWeight: FontWeight.w800),
                     ),
-
                     const SizedBox(height: 4),
-
                     InkWell(
-                      borderRadius:
-                          BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(6),
                       onTap: () async {
-                        await Clipboard.setData(
-                            ClipboardData(
-                                text: sub.subId));
+                        await Clipboard.setData(ClipboardData(text: sub.subId));
 
                         if (!context.mounted) return;
 
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Submission ID copied')),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Submission ID copied')),
                         );
                       },
                       child: Row(
-                        mainAxisSize:
-                            MainAxisSize.min,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             sub.subId,
-                            style:
-                                const TextStyle(
+                            style: const TextStyle(
                               fontSize: 12.5,
-                              color: AppColors
-                                  .mutedForeground,
+                              color: AppColors.mutedForeground,
                             ),
                           ),
                           const SizedBox(width: 4),
                           const Icon(
                             Icons.copy,
                             size: 13,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ],
                       ),
@@ -599,92 +540,65 @@ void onExternalDataChanged() {
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Container(
                 padding:
-                    const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(
-                      alpha: 0.12),
-                  borderRadius:
-                      BorderRadius.circular(20),
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   statusLabel,
                   style: TextStyle(
                       fontSize: 12.5,
-                      fontWeight:
-                          FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                       color: statusColor),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           _StatusStepper(status: sub.status),
-
           const SizedBox(height: 24),
-
           const _SectionLabel('Donor'),
-
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(12),
-              border: Border.all(
-                  color: AppColors.border),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               children: [
                 Expanded(
-                  child: _FieldBlock(
-                      label: 'Name',
-                      value: sub.donorName),
+                  child: _FieldBlock(label: 'Name', value: sub.donorName),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _FieldBlock(
-                      label: 'Email',
-                      value:
-                          _donor?.email ?? '—'),
+                  child:
+                      _FieldBlock(label: 'Email', value: _donor?.email ?? '—'),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: _FieldBlock(
                     label: 'Contact number',
-                    value:
-                        (_donor?.contactNum?.isNotEmpty ??
-                                false)
-                            ? _donor!.contactNum!
-                            : '—',
+                    value: (_donor?.contactNum?.isNotEmpty ?? false)
+                        ? _donor!.contactNum!
+                        : '—',
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 20),
-
-          const _SectionLabel(
-              'Submission details'),
-
+          const _SectionLabel('Submission details'),
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _FieldBlock(
-                    label: 'Submitted',
-                    value:
-                        _formatDate(sub.dateSub)),
+                    label: 'Submitted', value: _formatDate(sub.dateSub)),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -692,44 +606,35 @@ void onExternalDataChanged() {
                   label: 'Preferred drop-off',
                   value: sub.schedDate == null
                       ? 'Not specified'
-                      : _formatDate(
-                          sub.schedDate!),
+                      : _formatDate(sub.schedDate!),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _FieldBlock(
                   label: 'Last updated by',
-                  value: sub.updatedByName ??
-                      'Not yet reviewed',
+                  value: sub.updatedByName ?? 'Not yet reviewed',
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
           const Text(
             'Notes',
             style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
-                color:
-                    AppColors.mutedForeground),
+                color: AppColors.mutedForeground),
           ),
-
           const SizedBox(height: 6),
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(12),
-              border: Border.all(
-                  color: AppColors.border),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
             ),
             child: Text(
               (sub.notes?.isNotEmpty ?? false)
@@ -737,15 +642,12 @@ void onExternalDataChanged() {
                   : 'No notes provided.',
               style: TextStyle(
                 fontSize: 13.5,
-                color:
-                    (sub.notes?.isNotEmpty ?? false)
-                        ? AppColors.foreground
-                        : AppColors
-                            .mutedForeground,
+                color: (sub.notes?.isNotEmpty ?? false)
+                    ? AppColors.foreground
+                    : AppColors.mutedForeground,
               ),
             ),
           ),
-
           if (sub.proofImg?.isNotEmpty ?? false) ...[
             const SizedBox(height: 16),
 
@@ -785,9 +687,8 @@ void onExternalDataChanged() {
                               height: 200,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder:
-                                  (context, error, stackTrace) =>
-                                      _ProofImageError(
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _ProofImageError(
                                 path: sub.proofImg!,
                               ),
                             ),
@@ -805,8 +706,7 @@ void onExternalDataChanged() {
                                   color: Colors.black.withValues(
                                     alpha: 0.55,
                                   ),
-                                  borderRadius:
-                                      BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -822,8 +722,7 @@ void onExternalDataChanged() {
                                       style: TextStyle(
                                         fontSize: 11.5,
                                         color: Colors.white,
-                                        fontWeight:
-                                            FontWeight.w500,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
@@ -839,66 +738,43 @@ void onExternalDataChanged() {
               ),
             ),
           ],
-
           if (hasReceivedItems) ...[
             const SizedBox(height: 20),
-
-            const _SectionLabel(
-                'Items received'),
-
+            const _SectionLabel('Items received'),
             Container(
               decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius:
-                    BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.border),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: [
                   const Padding(
-                    padding:
-                        EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Expanded(
-                            flex: 3,
-                            child: _HeaderCell(
-                                'Item')),
-                        Expanded(
-                            flex: 2,
-                            child:
-                                _HeaderCell('Qty')),
+                        Expanded(flex: 3, child: _HeaderCell('Item')),
+                        Expanded(flex: 2, child: _HeaderCell('Qty')),
                       ],
                     ),
                   ),
-
                   const Divider(height: 1),
-
-                  for (final item
-                      in _receivedItems)
+                  for (final item in _receivedItems)
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       child: Row(
                         children: [
                           Expanded(
                             flex: 3,
                             child: Text(
                               item.itemName,
-                              overflow:
-                                  TextOverflow
-                                      .ellipsis,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Expanded(
                             flex: 2,
-                            child: Text(
-                                '${item.qty} ${item.itemUom}'),
+                            child: Text('${item.qty} ${item.itemUom}'),
                           ),
                         ],
                       ),
@@ -907,9 +783,7 @@ void onExternalDataChanged() {
               ),
             ),
           ],
-
           const SizedBox(height: 24),
-
           _buildActionPanel(sub),
         ],
       ),
@@ -932,10 +806,8 @@ class _ProofImageError extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(12),
-        border:
-            Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
       ),
       alignment: Alignment.center,
       child: const Text(
@@ -956,13 +828,10 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -980,8 +849,7 @@ class _FieldBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
@@ -989,17 +857,14 @@ class _FieldBlock extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           value,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -1054,12 +919,10 @@ class _StatusStepper extends StatelessWidget {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: AppColors.destructive
-              .withValues(alpha: 0.08),
+          color: AppColors.destructive.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: AppColors.destructive
-                .withValues(alpha: 0.3),
+            color: AppColors.destructive.withValues(alpha: 0.3),
           ),
         ),
         child: const Row(
@@ -1104,9 +967,7 @@ class _StatusStepper extends StatelessWidget {
                 margin: const EdgeInsets.only(
                   bottom: 18,
                 ),
-                color: i < active
-                    ? AppColors.primary
-                    : AppColors.border,
+                color: i < active ? AppColors.primary : AppColors.border,
               ),
             ),
         ],
@@ -1137,8 +998,7 @@ class _StepDot extends StatelessWidget {
     final Color textColor = switch (state) {
       _StepState.done => AppColors.foreground,
       _StepState.current => AppColors.foreground,
-      _StepState.upcoming =>
-        AppColors.mutedForeground,
+      _StepState.upcoming => AppColors.mutedForeground,
     };
 
     return Column(
@@ -1148,16 +1008,12 @@ class _StepDot extends StatelessWidget {
           height: 28,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: state == _StepState.upcoming
-                ? Colors.transparent
-                : fill,
+            color: state == _StepState.upcoming ? Colors.transparent : fill,
             border: Border.all(
               color: state == _StepState.upcoming
                   ? AppColors.border
                   : AppColors.primary,
-              width: state == _StepState.current
-                  ? 2
-                  : 1,
+              width: state == _StepState.current ? 2 : 1,
             ),
           ),
           alignment: Alignment.center,
@@ -1172,11 +1028,9 @@ class _StepDot extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: state ==
-                            _StepState.current
+                    color: state == _StepState.current
                         ? Colors.white
-                        : AppColors
-                            .mutedForeground,
+                        : AppColors.mutedForeground,
                   ),
                 ),
         ),
@@ -1186,9 +1040,7 @@ class _StepDot extends StatelessWidget {
           style: TextStyle(
             fontSize: 11.5,
             fontWeight:
-                state == _StepState.current
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+                state == _StepState.current ? FontWeight.w700 : FontWeight.w500,
             color: textColor,
           ),
         ),
@@ -1227,8 +1079,7 @@ class _ActionPanel extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -1236,8 +1087,7 @@ class _ActionPanel extends StatelessWidget {
               color: iconColor.withValues(
                 alpha: 0.12,
               ),
-              borderRadius:
-                  BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
@@ -1248,15 +1098,13 @@ class _ActionPanel extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: const TextStyle(
                     fontSize: 14.5,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1265,14 +1113,12 @@ class _ActionPanel extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12.5,
                     height: 1.4,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
                 const SizedBox(height: 14),
                 Wrap(
-                  crossAxisAlignment:
-                      WrapCrossAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: actions,
                 ),
               ],
@@ -1320,15 +1166,13 @@ class _InfoPanel extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 14.5,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                     color: color,
                   ),
                 ),
@@ -1338,8 +1182,7 @@ class _InfoPanel extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12.5,
                     height: 1.4,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],

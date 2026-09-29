@@ -31,15 +31,12 @@ class PendingDonationBadge extends StatefulWidget {
   });
 
   @override
-  State<PendingDonationBadge> createState() =>
-      _PendingDonationBadgeState();
+  State<PendingDonationBadge> createState() => _PendingDonationBadgeState();
 }
 
-class _PendingDonationBadgeState
-    extends State<PendingDonationBadge>
+class _PendingDonationBadgeState extends State<PendingDonationBadge>
     with DataBusRefreshMixin<PendingDonationBadge> {
-  final DonationService _donationService =
-      DonationService();
+  final DonationService _donationService = DonationService();
 
   int _count = 0;
   int _requestId = 0;
@@ -79,8 +76,7 @@ class _PendingDonationBadgeState
     final requestId = ++_requestId;
 
     try {
-      final submissions =
-          await _donationService.fetchSubmissions();
+      final submissions = await _donationService.fetchSubmissions();
 
       if (!mounted || requestId != _requestId) {
         return;
@@ -88,9 +84,7 @@ class _PendingDonationBadgeState
 
       final nextCount = submissions
           .where(
-            (submission) =>
-                submission.status ==
-                SubmissionStatus.pending,
+            (submission) => submission.status == SubmissionStatus.pending,
           )
           .length;
 
@@ -113,9 +107,7 @@ class _PendingDonationBadgeState
       return const SizedBox.shrink();
     }
 
-    final label = _count > 99
-        ? '99+'
-        : '$_count';
+    final label = _count > 99 ? '99+' : '$_count';
 
     if (widget.compact) {
       return Container(

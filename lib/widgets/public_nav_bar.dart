@@ -7,8 +7,7 @@ import '../core/app_colors.dart';
 ///
 /// Public registration is enabled and creates Donor accounts only.
 /// Staff accounts are managed internally by a Manager.
-class PublicNavBar extends StatelessWidget
-    implements PreferredSizeWidget {
+class PublicNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String currentPath;
 
   const PublicNavBar({
@@ -19,32 +18,27 @@ class PublicNavBar extends StatelessWidget
   static const _kNarrowBreakpoint = 760.0;
 
   @override
-  Size get preferredSize =>
-      const Size.fromHeight(76);
+  Size get preferredSize => const Size.fromHeight(76);
 
   @override
   Widget build(BuildContext context) {
-    final registerActive =
-        _isActive('/register');
+    final registerActive = _isActive('/register');
 
-    final loginActive =
-        _isActive('/login');
+    final loginActive = _isActive('/login');
 
     return Container(
       color: Colors.white,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 20,
           ),
           child: SizedBox(
             height: 76,
             child: Center(
               child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
+                constraints: const BoxConstraints(
                   maxWidth: 1100,
                 ),
                 child: LayoutBuilder(
@@ -52,32 +46,24 @@ class PublicNavBar extends StatelessWidget
                     context,
                     constraints,
                   ) {
-                    final narrow =
-                        constraints.maxWidth <
-                            _kNarrowBreakpoint;
+                    final narrow = constraints.maxWidth < _kNarrowBreakpoint;
 
                     final actions = Row(
-                      mainAxisSize:
-                          MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _RegisterButton(
-                          active:
-                              registerActive,
-                          onTap: () =>
-                              context.go(
+                          active: registerActive,
+                          onTap: () => context.go(
                             '/register',
                           ),
                         ),
                         SizedBox(
-                          width:
-                              narrow ? 12 : 16,
+                          width: narrow ? 12 : 16,
                         ),
                         _NavTabButton(
                           label: 'Sign In',
-                          active:
-                              loginActive,
-                          onTap: () =>
-                              context.go(
+                          active: loginActive,
+                          onTap: () => context.go(
                             '/login',
                           ),
                         ),
@@ -88,8 +74,7 @@ class PublicNavBar extends StatelessWidget
                       return Row(
                         children: [
                           _Brand(
-                            onTap: () =>
-                                context.go(
+                            onTap: () => context.go(
                               '/login',
                             ),
                           ),
@@ -103,12 +88,9 @@ class PublicNavBar extends StatelessWidget
                       children: [
                         Expanded(
                           child: Align(
-                            alignment:
-                                Alignment
-                                    .centerLeft,
+                            alignment: Alignment.centerLeft,
                             child: _Brand(
-                              onTap: () =>
-                                  context.go(
+                              onTap: () => context.go(
                                 '/login',
                               ),
                             ),
@@ -150,20 +132,16 @@ class _Brand extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius:
-          BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(
+        padding: const EdgeInsets.symmetric(
           vertical: 8,
         ),
         child: Row(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(9),
               child: Image.asset(
                 'assets/branding/pet-house-green.png',
                 width: 36,
@@ -175,11 +153,9 @@ class _Brand extends StatelessWidget {
             const Text(
               'SIYAM',
               style: TextStyle(
-                fontWeight:
-                    FontWeight.w800,
+                fontWeight: FontWeight.w800,
                 fontSize: 18,
-                color:
-                    AppColors.deepBrown,
+                color: AppColors.deepBrown,
               ),
             ),
           ],
@@ -193,8 +169,7 @@ class _Brand extends StatelessWidget {
 // REGISTER BUTTON
 // =============================================================================
 
-class _RegisterButton
-    extends StatelessWidget {
+class _RegisterButton extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
@@ -211,28 +186,23 @@ class _RegisterButton
           : AppColors.cream.withValues(
               alpha: 0.65,
             ),
-      borderRadius:
-          BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(24),
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 22,
             vertical: 12,
           ),
           decoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               24,
             ),
             border: Border.all(
               color: active
                   ? AppColors.sageGreen
-                  : AppColors.catGray
-                      .withValues(
+                  : AppColors.catGray.withValues(
                       alpha: 0.45,
                     ),
             ),
@@ -241,11 +211,8 @@ class _RegisterButton
             'Register',
             style: TextStyle(
               fontSize: 13.5,
-              fontWeight:
-                  FontWeight.w700,
-              color: active
-                  ? Colors.white
-                  : AppColors.deepBrown,
+              fontWeight: FontWeight.w700,
+              color: active ? Colors.white : AppColors.deepBrown,
             ),
           ),
         ),
@@ -258,8 +225,7 @@ class _RegisterButton
 // SIGN-IN TAB
 // =============================================================================
 
-class _NavTabButton
-    extends StatelessWidget {
+class _NavTabButton extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -272,34 +238,26 @@ class _NavTabButton
 
   @override
   Widget build(BuildContext context) {
-    final color = active
-        ? AppColors.sageGreen
-        : AppColors.deepBrown;
+    final color = active ? AppColors.sageGreen : AppColors.deepBrown;
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 18,
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(6),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             vertical: 6,
           ),
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 label,
                 style: TextStyle(
-                  fontWeight: active
-                      ? FontWeight.w700
-                      : FontWeight.w600,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                   fontSize: 14,
                   color: color,
                 ),
@@ -308,9 +266,7 @@ class _NavTabButton
               Container(
                 width: 32,
                 height: 2,
-                color: active
-                    ? color
-                    : Colors.transparent,
+                color: active ? color : Colors.transparent,
               ),
             ],
           ),

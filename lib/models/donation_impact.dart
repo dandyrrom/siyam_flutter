@@ -74,7 +74,8 @@ class ImpactContribution {
 class DonationImpactLine {
   final String itemId;
   final String itemName;
-  final String itemUom; // purchase_unit abbr -- the unit every *Qty field below is in
+  final String
+      itemUom; // purchase_unit abbr -- the unit every *Qty field below is in
   final double donatedQty;
   final DateTime receivedDate;
   final double usedQty;

@@ -99,9 +99,8 @@ class SupabaseImpactService implements ImpactService {
 
       if (batchRows.isEmpty) continue;
 
-      final batchIds = batchRows
-          .map((r) => r['inventorybatchid'] as String)
-          .toList();
+      final batchIds =
+          batchRows.map((r) => r['inventorybatchid'] as String).toList();
 
       final totalReceived = batchRows.fold<double>(
         0,
@@ -201,10 +200,9 @@ class SupabaseImpactService implements ImpactService {
         final discardedUnits =
             (discardedCanonical / packageQuantity).roundToDouble();
 
-        usedQty =
-            (donatedQty - discardedUnits - sealedRemaining)
-                .clamp(0.0, donatedQty)
-                .toDouble();
+        usedQty = (donatedQty - discardedUnits - sealedRemaining)
+            .clamp(0.0, donatedQty)
+            .toDouble();
 
         discardedQty = discardedUnits;
 
@@ -272,35 +270,29 @@ class SupabaseImpactService implements ImpactService {
         .inFilter('treatmentitemid', treatmentItemIds);
 
     final treatmentItemMap = {
-      for (final r in treatmentItemRows)
-        r['treatmentitemid'] as String: r,
+      for (final r in treatmentItemRows) r['treatmentitemid'] as String: r,
     };
 
     for (final transaction in transactions) {
-      final treatmentItemId =
-          transaction['treatmentitemid'] as String?;
+      final treatmentItemId = transaction['treatmentitemid'] as String?;
 
       if (treatmentItemId == null) continue;
 
       final row = treatmentItemMap[treatmentItemId];
       if (row == null) continue;
 
-      final treatment =
-          row['treatment'] as Map<String, dynamic>?;
+      final treatment = row['treatment'] as Map<String, dynamic>?;
 
       if (treatment == null) continue;
 
-      final pet =
-          treatment['pet'] as Map<String, dynamic>?;
+      final pet = treatment['pet'] as Map<String, dynamic>?;
 
-      final dispenseUnitId =
-          row['dispense_unit'] as String?;
+      final dispenseUnitId = row['dispense_unit'] as String?;
 
       // qtychange is the exact portion supplied by this donor's batch.
       // This avoids crediting the donor for the entire treatment when a
       // treatment happened to span several batches.
-      final exactBatchAmount =
-          _d(transaction['qtychange']).abs();
+      final exactBatchAmount = _d(transaction['qtychange']).abs();
 
       contributions.add(
         ImpactContribution(
@@ -313,11 +305,9 @@ class SupabaseImpactService implements ImpactService {
             transaction['txndate'] as String,
           ),
           treatmentId: row['treatid'] as String?,
-          treatmentName:
-              treatment['name'] as String? ?? 'Treatment',
+          treatmentName: treatment['name'] as String? ?? 'Treatment',
           petId: treatment['petid'] as String?,
-          petName:
-              pet?['name'] as String? ?? 'Unknown animal',
+          petName: pet?['name'] as String? ?? 'Unknown animal',
           petSpecies: petSpeciesFromString(
             pet?['species'] as String? ?? 'dog',
           ),
@@ -358,14 +348,11 @@ class SupabaseImpactService implements ImpactService {
     }
 
     for (final transaction in transactions) {
-      final stockOutId =
-          transaction['stockoutid'] as String?;
+      final stockOutId = transaction['stockoutid'] as String?;
 
-      final stockOut =
-          stockOutId == null ? null : stockOutMap[stockOutId];
+      final stockOut = stockOutId == null ? null : stockOutMap[stockOutId];
 
-      final type =
-          transaction['txntype'] as String?;
+      final type = transaction['txntype'] as String?;
 
       StockOutReason reason;
 
@@ -389,17 +376,14 @@ class SupabaseImpactService implements ImpactService {
         }
       }
 
-      var amount =
-          _d(transaction['qtychange']).abs();
+      var amount = _d(transaction['qtychange']).abs();
 
-      String unitAbbr =
-          item.packageUnitAbbr ?? item.itemUom;
+      String unitAbbr = item.packageUnitAbbr ?? item.itemUom;
 
       // Stock-out entries are entered in purchase-unit terms, while the
       // batch ledger may hold canonical package-unit quantities. Convert the
       // exact batch allocation back to purchase units for the donor message.
-      if (item.packageQuantity != null &&
-          item.packageQuantity! > 0) {
+      if (item.packageQuantity != null && item.packageQuantity! > 0) {
         amount /= item.packageQuantity!;
         unitAbbr = item.itemUom;
       }

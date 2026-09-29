@@ -265,8 +265,7 @@ class MockCatalogService implements CatalogService {
 
     final duplicateName = _db.units.any(
       (u) =>
-          u.id != id &&
-          u.name.trim().toLowerCase() == cleanName.toLowerCase(),
+          u.id != id && u.name.trim().toLowerCase() == cleanName.toLowerCase(),
     );
 
     if (duplicateName) {
@@ -331,8 +330,7 @@ class MockCatalogService implements CatalogService {
     final cleanType = type.trim();
     final duplicate = _db.primaryCategories.any(
       (c) =>
-          c.id != id &&
-          c.type.trim().toLowerCase() == cleanType.toLowerCase(),
+          c.id != id && c.type.trim().toLowerCase() == cleanType.toLowerCase(),
     );
 
     if (duplicate) {

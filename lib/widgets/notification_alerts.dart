@@ -38,14 +38,10 @@ extension NotifKindRoute on NotifKind {
       };
 
   IconData get icon => switch (this) {
-        NotifKind.zeroStock =>
-          Icons.remove_shopping_cart_outlined,
-        NotifKind.lowStock =>
-          Icons.warning_amber_outlined,
-        NotifKind.expiry =>
-          Icons.schedule_outlined,
-        NotifKind.expiredStock =>
-          Icons.event_busy_outlined,
+        NotifKind.zeroStock => Icons.remove_shopping_cart_outlined,
+        NotifKind.lowStock => Icons.warning_amber_outlined,
+        NotifKind.expiry => Icons.schedule_outlined,
+        NotifKind.expiredStock => Icons.event_busy_outlined,
       };
 
   String get label => switch (this) {
@@ -125,15 +121,11 @@ List<CompactNotif> buildCompactNotifs(
   ManagerDashboardStats stats,
 ) {
   final expired = stats.expiringSoonItems.where(
-    (alert) =>
-        alert.kind ==
-        ExpiryAlertKind.expiredStock,
+    (alert) => alert.kind == ExpiryAlertKind.expiredStock,
   );
 
   final upcoming = stats.expiringSoonItems.where(
-    (alert) =>
-        alert.kind ==
-        ExpiryAlertKind.expiringSoon,
+    (alert) => alert.kind == ExpiryAlertKind.expiringSoon,
   );
 
   return [
@@ -145,7 +137,6 @@ List<CompactNotif> buildCompactNotifs(
         subtitle: 'No usable stock remaining',
         accent: AppColors.destructive,
       ),
-
     for (final alert in expired)
       CompactNotif(
         kind: NotifKind.expiredStock,
@@ -156,19 +147,16 @@ List<CompactNotif> buildCompactNotifs(
             : '${formatExpirySubtitle(alert.daysUntilExpiry)} · removal required',
         accent: AppColors.destructive,
       ),
-
     for (final item in stats.lowStockItems)
       CompactNotif(
         kind: NotifKind.lowStock,
         itemId: item.itemId,
         itemName: item.itemName,
-        subtitle:
-            '${formatQty(item.stockQty)} '
+        subtitle: '${formatQty(item.stockQty)} '
             '${item.unitAbbr} equivalent left · '
             'at/below calculated ROP',
         accent: AppColors.warning,
       ),
-
     for (final alert in upcoming)
       CompactNotif(
         kind: NotifKind.expiry,
@@ -227,13 +215,10 @@ class CompactNotificationTile extends StatelessWidget {
                 color: notif.accent,
               ),
             ),
-
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
@@ -241,54 +226,42 @@ class CompactNotificationTile extends StatelessWidget {
                         child: Text(
                           notif.itemName,
                           maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight:
-                                FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 6),
-
                       Text(
                         notif.kind.label,
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight:
-                              FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                           color: notif.accent,
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 2),
-
                   Text(
                     notif.subtitle,
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
-                      color:
-                          AppColors.mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
             const Icon(
               Icons.chevron_right,
               size: 18,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ],
         ),
@@ -303,8 +276,7 @@ class CompactNotificationTile extends StatelessWidget {
 
 class CompactNotificationList extends StatelessWidget {
   final List<CompactNotif> notifs;
-  final void Function(CompactNotif notif)
-      onTapNotif;
+  final void Function(CompactNotif notif) onTapNotif;
   final String emptyText;
   final bool dense;
 
@@ -312,8 +284,7 @@ class CompactNotificationList extends StatelessWidget {
     super.key,
     required this.notifs,
     required this.onTapNotif,
-    this.emptyText =
-        'No notifications right now.',
+    this.emptyText = 'No notifications right now.',
     this.dense = false,
   });
 
@@ -332,35 +303,28 @@ class CompactNotificationList extends StatelessWidget {
       ),
       child: notifs.isEmpty
           ? Padding(
-              padding:
-                  const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Text(
                 emptyText,
                 style: const TextStyle(
                   fontSize: 12.5,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             )
           : Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                for (var i = 0;
-                    i < notifs.length;
-                    i++) ...[
+                for (var i = 0; i < notifs.length; i++) ...[
                   if (i > 0)
                     const Divider(
                       height: 1,
                       color: AppColors.border,
                     ),
-
                   CompactNotificationTile(
                     notif: notifs[i],
                     dense: dense,
-                    onTap: () =>
-                        onTapNotif(
+                    onTap: () => onTapNotif(
                       notifs[i],
                     ),
                   ),

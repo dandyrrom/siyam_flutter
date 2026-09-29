@@ -81,7 +81,7 @@ class _AppShellState extends State<AppShell> {
         // FIX: Pass the actual currentPath, not hardcoded '/dashboard'
         // ============================================================
         drawer: MobileDrawer(
-          currentPath: widget.currentPath,  // ← CHANGED: Now uses actual path
+          currentPath: widget.currentPath, // ← CHANGED: Now uses actual path
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -104,7 +104,8 @@ class _AppShellState extends State<AppShell> {
           Expanded(
             child: Column(
               children: [
-                TopNav(currentPath: widget.currentPath, onToggleSidebar: _toggle),
+                TopNav(
+                    currentPath: widget.currentPath, onToggleSidebar: _toggle),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),

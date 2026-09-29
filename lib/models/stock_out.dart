@@ -118,7 +118,6 @@ class StockOut {
     // from immediately breaking while we migrate the remaining files.
     //
     this.qtyUnit = QtyUnit.purchaseUnit,
-
     required this.reason,
     required this.recordedDate,
     required this.recordedByUserId,

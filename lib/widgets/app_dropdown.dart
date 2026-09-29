@@ -244,12 +244,9 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
           screenSize.height - (triggerTopLeft.dy + triggerSize.height);
       final spaceAbove = triggerTopLeft.dy;
 
-      if (panelSize.height + margin > spaceBelow &&
-          spaceAbove > spaceBelow) {
-        _resolvedTargetAnchor =
-            Alignment(_resolvedTargetAnchor.x, -1);
-        _resolvedFollowerAnchor =
-            Alignment(_resolvedFollowerAnchor.x, 1);
+      if (panelSize.height + margin > spaceBelow && spaceAbove > spaceBelow) {
+        _resolvedTargetAnchor = Alignment(_resolvedTargetAnchor.x, -1);
+        _resolvedFollowerAnchor = Alignment(_resolvedFollowerAnchor.x, 1);
         _resolvedOffset = Offset(_resolvedOffset.dx, -8);
         changed = true;
       }
@@ -259,20 +256,16 @@ mixin DropdownOverlayMixin<T extends StatefulWidget> on State<T> {
       final spaceRight = screenSize.width - triggerTopLeft.dx;
 
       if (panelSize.width + margin > spaceRight) {
-        _resolvedTargetAnchor =
-            Alignment(1, _resolvedTargetAnchor.y);
-        _resolvedFollowerAnchor =
-            Alignment(1, _resolvedFollowerAnchor.y);
+        _resolvedTargetAnchor = Alignment(1, _resolvedTargetAnchor.y);
+        _resolvedFollowerAnchor = Alignment(1, _resolvedFollowerAnchor.y);
         changed = true;
       }
     } else {
       final spaceLeft = triggerTopLeft.dx + triggerSize.width;
 
       if (panelSize.width + margin > spaceLeft) {
-        _resolvedTargetAnchor =
-            Alignment(-1, _resolvedTargetAnchor.y);
-        _resolvedFollowerAnchor =
-            Alignment(-1, _resolvedFollowerAnchor.y);
+        _resolvedTargetAnchor = Alignment(-1, _resolvedTargetAnchor.y);
+        _resolvedFollowerAnchor = Alignment(-1, _resolvedFollowerAnchor.y);
         changed = true;
       }
     }
@@ -401,8 +394,7 @@ class AppDropdown<T> extends StatelessWidget {
     return AppMenuButton<T>(
       options: options,
       onSelected: onSelect,
-      triggerBuilder: (context, isOpen) =>
-          AppDropdownButton(
+      triggerBuilder: (context, isOpen) => AppDropdownButton(
         label: label,
         expand: expand,
       ),
@@ -450,9 +442,7 @@ class AppDropdownField<T> extends FormField<T> {
                   selected?.label ?? placeholder ?? '',
                   style: TextStyle(
                     fontSize: 14,
-                    color: selected == null
-                        ? AppColors.mutedForeground
-                        : null,
+                    color: selected == null ? AppColors.mutedForeground : null,
                   ),
                 ),
               ),

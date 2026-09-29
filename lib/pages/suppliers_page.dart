@@ -62,12 +62,10 @@ class _SuppliersPageState extends State<SuppliersPage>
   void initState() {
     super.initState();
 
-    final cachedSuppliers =
-        PageSnapshotCache.instance.peekList<Supplier>(
+    final cachedSuppliers = PageSnapshotCache.instance.peekList<Supplier>(
       PageSnapshotCache.suppliers,
     );
-    final cachedOrders =
-        PageSnapshotCache.instance.peekList<PurchaseOrder>(
+    final cachedOrders = PageSnapshotCache.instance.peekList<PurchaseOrder>(
       PageSnapshotCache.purchaseOrders,
     );
 
@@ -148,13 +146,11 @@ class _SuppliersPageState extends State<SuppliersPage>
   String _cleanError(Object error) =>
       error.toString().replaceFirst('Exception: ', '');
 
-  List<PurchaseOrder> _ordersFor(String suppId) => _allOrders
-      .where((order) => order.suppId == suppId)
-      .toList();
+  List<PurchaseOrder> _ordersFor(String suppId) =>
+      _allOrders.where((order) => order.suppId == suppId).toList();
 
-  int _orderCountFor(Supplier supplier) => _allOrders
-      .where((order) => order.suppId == supplier.suppId)
-      .length;
+  int _orderCountFor(Supplier supplier) =>
+      _allOrders.where((order) => order.suppId == supplier.suppId).length;
 
   DateTime? _latestOrderDateFor(Supplier supplier) {
     DateTime? latest;
@@ -296,7 +292,8 @@ class _SuppliersPageState extends State<SuppliersPage>
     final isEdit = supplier != null;
     final nameCtrl = TextEditingController(text: supplier?.suppName ?? '');
     final contactCtrl = TextEditingController(text: supplier?.contactNum ?? '');
-    final contactTelCtrl = TextEditingController(text: supplier?.contactTel ?? '');
+    final contactTelCtrl =
+        TextEditingController(text: supplier?.contactTel ?? '');
     final addressCtrl = TextEditingController(text: supplier?.address ?? '');
     final formKey = GlobalKey<FormState>();
     var saving = false;
@@ -309,12 +306,14 @@ class _SuppliersPageState extends State<SuppliersPage>
           builder: (builderContext, setDialogState) {
             final screen = MediaQuery.sizeOf(builderContext);
             final contentWidth = screen.width < 520 ? screen.width - 96 : 420.0;
-            final contentHeight = screen.height < 700 ? screen.height * 0.52 : 390.0;
+            final contentHeight =
+                screen.height < 700 ? screen.height * 0.52 : 390.0;
 
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
               content: SizedBox(
                 width: contentWidth,
@@ -327,7 +326,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                         TextFormField(
                           controller: nameCtrl,
                           autofocus: !isEdit,
-                          decoration: const InputDecoration(labelText: 'Supplier name'),
+                          decoration:
+                              const InputDecoration(labelText: 'Supplier name'),
                           validator: (value) => _validateSupplierName(
                             value,
                             editingSupplier: supplier,
@@ -342,7 +342,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                           decoration: const InputDecoration(
                             labelText: 'Contact number (optional)',
                             hintText: '09XXXXXXXXX',
-                            helperText: 'Enter exactly 11 digits, starting with 09',
+                            helperText:
+                                'Enter exactly 11 digits, starting with 09',
                             counterText: '',
                           ),
                           validator: validatePhoneNumber,
@@ -361,7 +362,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                           controller: addressCtrl,
                           minLines: 2,
                           maxLines: 3,
-                          decoration: const InputDecoration(labelText: 'Address (optional)'),
+                          decoration: const InputDecoration(
+                              labelText: 'Address (optional)'),
                         ),
                       ],
                     ),
@@ -370,7 +372,8 @@ class _SuppliersPageState extends State<SuppliersPage>
               ),
               actions: [
                 TextButton(
-                  onPressed: saving ? null : () => Navigator.of(builderContext).pop(),
+                  onPressed:
+                      saving ? null : () => Navigator.of(builderContext).pop(),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -422,7 +425,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                           } catch (e) {
                             if (!builderContext.mounted) return;
                             setDialogState(() => saving = false);
-                            ScaffoldMessenger.of(builderContext).clearSnackBars();
+                            ScaffoldMessenger.of(builderContext)
+                                .clearSnackBars();
                             ScaffoldMessenger.of(builderContext).showSnackBar(
                               SnackBar(
                                 content: Text(_cleanError(e)),
@@ -457,7 +461,8 @@ class _SuppliersPageState extends State<SuppliersPage>
 
   Future<void> _openSupplierDirectoryDialog() async {
     final directory = List<Supplier>.from(_suppliers)
-      ..sort((a, b) => a.suppName.toLowerCase().compareTo(b.suppName.toLowerCase()));
+      ..sort((a, b) =>
+          a.suppName.toLowerCase().compareTo(b.suppName.toLowerCase()));
 
     await showDialog<void>(
       context: context,
@@ -470,7 +475,8 @@ class _SuppliersPageState extends State<SuppliersPage>
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: SizedBox(
             width: width,
             height: height,
@@ -479,7 +485,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                 _DirectoryDialogHeader(
                   icon: Icons.local_shipping_outlined,
                   title: 'Supplier Directory',
-                  subtitle: '${directory.length} supplier${directory.length == 1 ? '' : 's'}',
+                  subtitle:
+                      '${directory.length} supplier${directory.length == 1 ? '' : 's'}',
                   onClose: () => Navigator.of(dialogContext).pop(),
                 ),
                 const Divider(height: 1),
@@ -494,7 +501,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                       : ListView.separated(
                           padding: const EdgeInsets.all(12),
                           itemCount: directory.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final supplier = directory[index];
                             final orders = _ordersFor(supplier.suppId);
@@ -543,7 +551,8 @@ class _SuppliersPageState extends State<SuppliersPage>
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: SizedBox(
             width: width,
             height: height,
@@ -552,7 +561,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                 _DirectoryDialogHeader(
                   icon: Icons.receipt_long_outlined,
                   title: 'Purchase Orders',
-                  subtitle: '${orders.length} recorded purchase ${orders.length == 1 ? 'order' : 'orders'}',
+                  subtitle:
+                      '${orders.length} recorded purchase ${orders.length == 1 ? 'order' : 'orders'}',
                   onClose: () => Navigator.of(dialogContext).pop(),
                 ),
                 const Divider(height: 1),
@@ -567,7 +577,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                       : ListView.separated(
                           padding: const EdgeInsets.all(12),
                           itemCount: orders.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final order = orders[index];
                             final supplier = _supplierForOrder(order);
@@ -579,7 +590,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                                   : () {
                                       Navigator.of(dialogContext).pop();
                                       Future<void>.delayed(Duration.zero, () {
-                                        if (mounted) _openDetailDialog(supplier);
+                                        if (mounted)
+                                          _openDetailDialog(supplier);
                                       });
                                     },
                             );
@@ -593,7 +605,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Select a purchase row to open that supplier’s details.',
-                      style: TextStyle(fontSize: 10.8, color: AppColors.mutedForeground),
+                      style: TextStyle(
+                          fontSize: 10.8, color: AppColors.mutedForeground),
                     ),
                   ),
                 ),
@@ -684,7 +697,8 @@ class _SuppliersPageState extends State<SuppliersPage>
         builder: (dialogContext) {
           final screen = MediaQuery.sizeOf(dialogContext);
           final contentWidth = screen.width < 600 ? screen.width - 64 : 540.0;
-          final maxContentHeight = screen.height < 700 ? screen.height * 0.64 : 570.0;
+          final maxContentHeight =
+              screen.height < 700 ? screen.height * 0.64 : 570.0;
 
           return AlertDialog(
             backgroundColor: _supplierModalSurface,
@@ -852,7 +866,9 @@ class _SuppliersPageState extends State<SuppliersPage>
                                 ),
                                 _DetailRow(
                                   label: 'Staff',
-                                  value: staffNames.isEmpty ? '—' : staffNames.join(', '),
+                                  value: staffNames.isEmpty
+                                      ? '—'
+                                      : staffNames.join(', '),
                                 ),
                               ],
                             ),
@@ -907,7 +923,9 @@ class _SuppliersPageState extends State<SuppliersPage>
                               ),
                               child: Column(
                                 children: [
-                                  for (var i = 0; i < purchasedItems.length; i++) ...[
+                                  for (var i = 0;
+                                      i < purchasedItems.length;
+                                      i++) ...[
                                     if (i > 0)
                                       const Divider(
                                         height: 1,
@@ -966,7 +984,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.mutedForeground,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 child: const Text(
                   'Close',
@@ -982,7 +1001,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                   backgroundColor: AppColors.sageGreen,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1003,23 +1023,19 @@ class _SuppliersPageState extends State<SuppliersPage>
   }
 
   Widget _buildListControls() {
-    final isMobile =
-        MediaQuery.sizeOf(context).width < 600;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return Wrap(
       spacing: isMobile ? 8 : 12,
       runSpacing: isMobile ? 8 : 12,
-      crossAxisAlignment:
-          WrapCrossAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         // =====================================================================
         // SEARCH
         // =====================================================================
 
         SizedBox(
-          width: isMobile
-              ? double.infinity
-              : 280,
+          width: isMobile ? double.infinity : 280,
           child: TextField(
             controller: _searchCtrl,
             onChanged: (value) {
@@ -1131,8 +1147,7 @@ class _SuppliersPageState extends State<SuppliersPage>
 
         if (_hasNonDefaultControls)
           TextButton.icon(
-            onPressed:
-                _resetSupplierControls,
+            onPressed: _resetSupplierControls,
             icon: const Icon(
               Icons.filter_alt_off_outlined,
               size: 16,
@@ -1149,11 +1164,11 @@ class _SuppliersPageState extends State<SuppliersPage>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-  if (_loading && _suppliers.isEmpty) {
-  return const PageLoading(
-    message: 'Loading suppliers',
-  );
-}
+    if (_loading && _suppliers.isEmpty) {
+      return const PageLoading(
+        message: 'Loading suppliers',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -1219,10 +1234,10 @@ class _SuppliersPageState extends State<SuppliersPage>
         const SizedBox(height: 2),
         Text(
           _supplierCountLabel,
-          style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground),
+          style:
+              const TextStyle(fontSize: 13, color: AppColors.mutedForeground),
         ),
         const SizedBox(height: 20),
-
         if (isMobile)
           Column(
             children: [
@@ -1261,11 +1276,9 @@ class _SuppliersPageState extends State<SuppliersPage>
               ),
             ],
           ),
-
         const SizedBox(height: 20),
         _buildListControls(),
         const SizedBox(height: 20),
-
         if (_suppliers.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 56),
@@ -1350,7 +1363,8 @@ class _SuppliersPageState extends State<SuppliersPage>
                         boxShadow: isHovered
                             ? [
                                 BoxShadow(
-                                  color: AppColors.roleManager.withValues(alpha: 0.10),
+                                  color: AppColors.roleManager
+                                      .withValues(alpha: 0.10),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -1369,7 +1383,9 @@ class _SuppliersPageState extends State<SuppliersPage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: isMobile ? 14 : 15,
-                                    color: isHovered ? AppColors.roleManager : null,
+                                    color: isHovered
+                                        ? AppColors.roleManager
+                                        : null,
                                   ),
                                 ),
                               ),
@@ -1548,7 +1564,6 @@ class _SuppliersPageState extends State<SuppliersPage>
       ),
     );
   }
-
 }
 
 // =============================================================================
@@ -1925,7 +1940,8 @@ class _PurchasedItemRow extends StatelessWidget {
               color: AppColors.sageGreen.withValues(alpha: 0.09),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check, size: 14, color: AppColors.sageGreen),
+            child:
+                const Icon(Icons.check, size: 14, color: AppColors.sageGreen),
           ),
           const SizedBox(width: 9),
           Expanded(

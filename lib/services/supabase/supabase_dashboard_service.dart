@@ -73,15 +73,11 @@ class SupabaseDashboardService implements DashboardService {
       return qty;
     }
 
-    final packageQuantity =
-        _toDouble(item['package_quantity'])!;
+    final packageQuantity = _toDouble(item['package_quantity'])!;
 
-    final qtyUnit =
-        (batch['qtyunit'] as String?) ?? 'purchase_unit';
+    final qtyUnit = (batch['qtyunit'] as String?) ?? 'purchase_unit';
 
-    return qtyUnit == 'purchase_unit'
-        ? qty * packageQuantity
-        : qty;
+    return qtyUnit == 'purchase_unit' ? qty * packageQuantity : qty;
   }
 
   String _canonicalUnitAbbr(
@@ -108,33 +104,28 @@ class SupabaseDashboardService implements DashboardService {
     final alertLookups = await Future.wait<Object?>([
       _unitAbbrMap(),
       _client.from('item').select(
-        'id, name, total_purchase_stocks, total_package_stocks, '
-        'package_quantity, purchase_unit, package_unit',
-      ),
+            'id, name, total_purchase_stocks, total_package_stocks, '
+            'package_quantity, purchase_unit, package_unit',
+          ),
       // Load all batches, including zero/depleted rows, so merely having batch
       // history is enough to switch the item away from legacy aggregate fallback.
       _client.from('inventory_batch').select(
-        'itemid, qtyavailable, qtyunit, status, expirydate',
-      ),
+            'itemid, qtyavailable, qtyunit, status, expirydate',
+          ),
     ]);
 
     final units = alertLookups[0] as Map<String, String>;
     final itemRows = alertLookups[1] as List<dynamic>;
     final rawBatchRows = alertLookups[2] as List<dynamic>;
 
-    final batchesByItem =
-        <String, List<Map<String, dynamic>>>{};
+    final batchesByItem = <String, List<Map<String, dynamic>>>{};
 
     for (final raw in rawBatchRows) {
-      final batch =
-          Map<String, dynamic>.from(raw);
+      final batch = Map<String, dynamic>.from(raw);
 
-      final itemId =
-          batch['itemid'] as String;
+      final itemId = batch['itemid'] as String;
 
-      batchesByItem
-          .putIfAbsent(itemId, () => [])
-          .add(batch);
+      batchesByItem.putIfAbsent(itemId, () => []).add(batch);
     }
 
     final today = _todayOnly();
@@ -144,24 +135,18 @@ class SupabaseDashboardService implements DashboardService {
     final needsRestock = <DashboardStockAlert>[];
 
     for (final rawItem in itemRows) {
-      final item =
-          Map<String, dynamic>.from(rawItem);
+      final item = Map<String, dynamic>.from(rawItem);
 
       final itemId = item['id'] as String;
-      final itemName =
-          (item['name'] as String?) ?? '';
+      final itemName = (item['name'] as String?) ?? '';
 
-      final purchaseUnitAbbr =
-          units[item['purchase_unit']] ?? '';
+      final purchaseUnitAbbr = units[item['purchase_unit']] ?? '';
 
-      final packageQuantity =
-          _toDouble(item['package_quantity']);
+      final packageQuantity = _toDouble(item['package_quantity']);
 
-      final itemBatches =
-          batchesByItem[itemId] ?? const [];
+      final itemBatches = batchesByItem[itemId] ?? const [];
 
-      final hasBatchHistory =
-          itemBatches.isNotEmpty;
+      final hasBatchHistory = itemBatches.isNotEmpty;
 
       double purchaseEquivalent;
 
@@ -173,38 +158,30 @@ class SupabaseDashboardService implements DashboardService {
         double usableCanonical = 0;
 
         for (final batch in itemBatches) {
-          final qty =
-              _toDouble(batch['qtyavailable']) ?? 0;
+          final qty = _toDouble(batch['qtyavailable']) ?? 0;
 
           if (qty <= 0) continue;
 
           final status =
-              ((batch['status'] as String?) ?? 'ACTIVE')
-                  .toUpperCase();
+              ((batch['status'] as String?) ?? 'ACTIVE').toUpperCase();
 
-          if (status == 'DEPLETED' ||
-              status == 'QUARANTINED') {
+          if (status == 'DEPLETED' || status == 'QUARANTINED') {
             continue;
           }
 
-          final expiry =
-              _dateOnly(batch['expirydate']);
+          final expiry = _dateOnly(batch['expirydate']);
 
-          if (expiry != null &&
-              expiry.isBefore(today)) {
+          if (expiry != null && expiry.isBefore(today)) {
             continue;
           }
 
-          usableCanonical +=
-              _canonicalBatchQty(batch, item);
+          usableCanonical += _canonicalBatchQty(batch, item);
         }
 
         if (_hasPackageBreakdown(item)) {
-          purchaseEquivalent =
-              usableCanonical / packageQuantity!;
+          purchaseEquivalent = usableCanonical / packageQuantity!;
         } else {
-          purchaseEquivalent =
-              usableCanonical;
+          purchaseEquivalent = usableCanonical;
         }
       } else {
         // ====================================================================
@@ -214,16 +191,12 @@ class SupabaseDashboardService implements DashboardService {
         // Only used by items that genuinely have no inventory_batch history.
         // ====================================================================
 
-        final purchaseStock =
-            _toDouble(item['total_purchase_stocks']) ?? 0;
+        final purchaseStock = _toDouble(item['total_purchase_stocks']) ?? 0;
 
-        final packageStock =
-            _toDouble(item['total_package_stocks']);
+        final packageStock = _toDouble(item['total_package_stocks']);
 
-        if (_hasPackageBreakdown(item) &&
-            packageStock != null) {
-          purchaseEquivalent =
-              packageStock / packageQuantity!;
+        if (_hasPackageBreakdown(item) && packageStock != null) {
+          purchaseEquivalent = packageStock / packageQuantity!;
         } else {
           purchaseEquivalent = purchaseStock;
         }
@@ -238,8 +211,7 @@ class SupabaseDashboardService implements DashboardService {
 
       if (purchaseEquivalent <= 0) {
         zero.add(alert);
-      } else if (purchaseEquivalent <=
-          lowStockPurchaseUnitThreshold) {
+      } else if (purchaseEquivalent <= lowStockPurchaseUnitThreshold) {
         low.add(alert);
       } else if (purchaseEquivalent <= 30) {
         needsRestock.add(alert);
@@ -250,12 +222,9 @@ class SupabaseDashboardService implements DashboardService {
       DashboardStockAlert a,
       DashboardStockAlert b,
     ) {
-      final byQty =
-          a.stockQty.compareTo(b.stockQty);
+      final byQty = a.stockQty.compareTo(b.stockQty);
 
-      return byQty != 0
-          ? byQty
-          : a.itemName.compareTo(b.itemName);
+      return byQty != 0 ? byQty : a.itemName.compareTo(b.itemName);
     }
 
     zero.sort(compareAlerts);
@@ -290,70 +259,56 @@ class SupabaseDashboardService implements DashboardService {
     final expiryLookups = await Future.wait<Object?>([
       _unitAbbrMap(),
       _client.from('item').select(
-        'id, name, purchase_unit, package_unit, package_quantity',
-      ),
+            'id, name, purchase_unit, package_unit, package_quantity',
+          ),
       _client.from('inventory_batch').select(
-        'itemid, expirydate, qtyavailable, qtyunit, status',
-      ),
+            'itemid, expirydate, qtyavailable, qtyunit, status',
+          ),
     ]);
 
     final units = expiryLookups[0] as Map<String, String>;
     final rawItemRows = expiryLookups[1] as List<dynamic>;
     final rawBatchRows = expiryLookups[2] as List<dynamic>;
 
-    final itemsById =
-        <String, Map<String, dynamic>>{
+    final itemsById = <String, Map<String, dynamic>>{
       for (final raw in rawItemRows)
-        raw['id'] as String:
-            Map<String, dynamic>.from(raw as Map),
+        raw['id'] as String: Map<String, dynamic>.from(raw as Map),
     };
 
     final today = _todayOnly();
-    final cutoff =
-        today.add(Duration(days: warningDays));
+    final cutoff = today.add(Duration(days: warningDays));
 
-    final expiredQtyByItem =
-        <String, double>{};
+    final expiredQtyByItem = <String, double>{};
 
-    final oldestExpiredByItem =
-        <String, DateTime>{};
+    final oldestExpiredByItem = <String, DateTime>{};
 
-    final nearestUpcomingByItem =
-        <String, DateTime>{};
+    final nearestUpcomingByItem = <String, DateTime>{};
 
-    final nearestUpcomingQtyByItem =
-        <String, double>{};
+    final nearestUpcomingQtyByItem = <String, double>{};
 
     for (final raw in rawBatchRows) {
-      final batch =
-          Map<String, dynamic>.from(raw);
+      final batch = Map<String, dynamic>.from(raw);
 
-      final itemId =
-          batch['itemid'] as String;
+      final itemId = batch['itemid'] as String;
 
       final item = itemsById[itemId];
       if (item == null) continue;
 
-      final qty =
-          _toDouble(batch['qtyavailable']) ?? 0;
+      final qty = _toDouble(batch['qtyavailable']) ?? 0;
 
       if (qty <= 0) continue;
 
-      final status =
-          ((batch['status'] as String?) ?? 'ACTIVE')
-              .toUpperCase();
+      final status = ((batch['status'] as String?) ?? 'ACTIVE').toUpperCase();
 
       if (status == 'DEPLETED') {
         continue;
       }
 
-      final expiry =
-          _dateOnly(batch['expirydate']);
+      final expiry = _dateOnly(batch['expirydate']);
 
       if (expiry == null) continue;
 
-      final canonicalQty =
-          _canonicalBatchQty(batch, item);
+      final canonicalQty = _canonicalBatchQty(batch, item);
 
       // ======================================================================
       // EXPIRED STOCK
@@ -365,14 +320,11 @@ class SupabaseDashboardService implements DashboardService {
 
       if (expiry.isBefore(today)) {
         expiredQtyByItem[itemId] =
-            (expiredQtyByItem[itemId] ?? 0) +
-                canonicalQty;
+            (expiredQtyByItem[itemId] ?? 0) + canonicalQty;
 
-        final currentOldest =
-            oldestExpiredByItem[itemId];
+        final currentOldest = oldestExpiredByItem[itemId];
 
-        if (currentOldest == null ||
-            expiry.isBefore(currentOldest)) {
+        if (currentOldest == null || expiry.isBefore(currentOldest)) {
           oldestExpiredByItem[itemId] = expiry;
         }
 
@@ -391,18 +343,14 @@ class SupabaseDashboardService implements DashboardService {
         continue;
       }
 
-      final currentNearest =
-          nearestUpcomingByItem[itemId];
+      final currentNearest = nearestUpcomingByItem[itemId];
 
-      if (currentNearest == null ||
-          expiry.isBefore(currentNearest)) {
+      if (currentNearest == null || expiry.isBefore(currentNearest)) {
         nearestUpcomingByItem[itemId] = expiry;
-        nearestUpcomingQtyByItem[itemId] =
-            canonicalQty;
+        nearestUpcomingQtyByItem[itemId] = canonicalQty;
       } else if (expiry == currentNearest) {
         nearestUpcomingQtyByItem[itemId] =
-            (nearestUpcomingQtyByItem[itemId] ?? 0) +
-                canonicalQty;
+            (nearestUpcomingQtyByItem[itemId] ?? 0) + canonicalQty;
       }
     }
 
@@ -412,37 +360,26 @@ class SupabaseDashboardService implements DashboardService {
       final itemId = entry.key;
       final item = entry.value;
 
-      final itemName =
-          (item['name'] as String?) ??
-          'Unknown item';
+      final itemName = (item['name'] as String?) ?? 'Unknown item';
 
-      final unitAbbr =
-          _canonicalUnitAbbr(item, units);
+      final unitAbbr = _canonicalUnitAbbr(item, units);
 
       // ======================================================================
       // EXPIRED STOCK ALERT
       // ======================================================================
 
-      final expiredQty =
-          expiredQtyByItem[itemId];
+      final expiredQty = expiredQtyByItem[itemId];
 
-      final oldestExpired =
-          oldestExpiredByItem[itemId];
+      final oldestExpired = oldestExpiredByItem[itemId];
 
-      if (expiredQty != null &&
-          expiredQty > 0 &&
-          oldestExpired != null) {
+      if (expiredQty != null && expiredQty > 0 && oldestExpired != null) {
         alerts.add(
           ExpiryAlert(
-            kind:
-                ExpiryAlertKind.expiredStock,
+            kind: ExpiryAlertKind.expiredStock,
             itemId: itemId,
             itemName: itemName,
             expiryDate: oldestExpired,
-            daysUntilExpiry:
-                oldestExpired
-                    .difference(today)
-                    .inDays,
+            daysUntilExpiry: oldestExpired.difference(today).inDays,
             qty: expiredQty,
             unitAbbr: unitAbbr,
           ),
@@ -453,23 +390,17 @@ class SupabaseDashboardService implements DashboardService {
       // EXPIRING SOON ALERT
       // ======================================================================
 
-      final nearestUpcoming =
-          nearestUpcomingByItem[itemId];
+      final nearestUpcoming = nearestUpcomingByItem[itemId];
 
       if (nearestUpcoming != null) {
         alerts.add(
           ExpiryAlert(
-            kind:
-                ExpiryAlertKind.expiringSoon,
+            kind: ExpiryAlertKind.expiringSoon,
             itemId: itemId,
             itemName: itemName,
             expiryDate: nearestUpcoming,
-            daysUntilExpiry:
-                nearestUpcoming
-                    .difference(today)
-                    .inDays,
-            qty:
-                nearestUpcomingQtyByItem[itemId],
+            daysUntilExpiry: nearestUpcoming.difference(today).inDays,
+            qty: nearestUpcomingQtyByItem[itemId],
             unitAbbr: unitAbbr,
           ),
         );
@@ -548,8 +479,7 @@ class SupabaseDashboardService implements DashboardService {
   // ==========================================================================
 
   @override
-  Future<List<ReplenishmentAlert>>
-      fetchReplenishmentAlerts() async {
+  Future<List<ReplenishmentAlert>> fetchReplenishmentAlerts() async {
     final alerts = await _fetchStockAlerts();
 
     return [
@@ -559,8 +489,7 @@ class SupabaseDashboardService implements DashboardService {
           itemName: a.itemName,
           stockQty: a.stockQty,
           unitAbbr: a.unitAbbr,
-          priority:
-              ReplenishmentPriority.critical,
+          priority: ReplenishmentPriority.critical,
         ),
       for (final a in alerts.low)
         ReplenishmentAlert(
@@ -568,8 +497,7 @@ class SupabaseDashboardService implements DashboardService {
           itemName: a.itemName,
           stockQty: a.stockQty,
           unitAbbr: a.unitAbbr,
-          priority:
-              ReplenishmentPriority.high,
+          priority: ReplenishmentPriority.high,
         ),
       for (final a in alerts.needsRestock)
         ReplenishmentAlert(
@@ -577,8 +505,7 @@ class SupabaseDashboardService implements DashboardService {
           itemName: a.itemName,
           stockQty: a.stockQty,
           unitAbbr: a.unitAbbr,
-          priority:
-              ReplenishmentPriority.medium,
+          priority: ReplenishmentPriority.medium,
         ),
     ];
   }
@@ -592,19 +519,15 @@ class SupabaseDashboardService implements DashboardService {
   ) async {
     final now = DateTime.now();
 
-    final start =
-        now.subtract(Duration(days: windowDays));
+    final start = now.subtract(Duration(days: windowDays));
 
     final priorStart = now.subtract(
       Duration(days: windowDays * 2),
     );
 
-    bool inCurrent(DateTime d) =>
-        d.isAfter(start);
+    bool inCurrent(DateTime d) => d.isAfter(start);
 
-    bool inPrior(DateTime d) =>
-        d.isAfter(priorStart) &&
-        !d.isAfter(start);
+    bool inPrior(DateTime d) => d.isAfter(priorStart) && !d.isAfter(start);
 
     List<Map<String, dynamic>> asMaps(Object? raw) {
       return (raw as List)
@@ -658,17 +581,13 @@ class SupabaseDashboardService implements DashboardService {
     double itemsReceivedFor(
       List<Map<String, dynamic>> list,
     ) {
-      final ids =
-          list
-              .map((p) => p['id'] as String)
-              .toSet();
+      final ids = list.map((p) => p['id'] as String).toSet();
 
       var total = 0.0;
 
       for (final pi in purchaseItemRows) {
         if (ids.contains(pi['purchaseid'])) {
-          total +=
-              (pi['qty'] as num).toDouble();
+          total += (pi['qty'] as num).toDouble();
         }
       }
 
@@ -678,10 +597,7 @@ class SupabaseDashboardService implements DashboardService {
     int suppliersFor(
       List<Map<String, dynamic>> list,
     ) {
-      return list
-          .map((p) => p['suppid'] as String)
-          .toSet()
-          .length;
+      return list.map((p) => p['suppid'] as String).toSet().length;
     }
 
     final treatmentRows = asMaps(periodRows[2]);
@@ -709,19 +625,13 @@ class SupabaseDashboardService implements DashboardService {
     int animalsTreatedFor(
       List<Map<String, dynamic>> list,
     ) {
-      return list
-          .map((t) => t['petid'] as String)
-          .toSet()
-          .length;
+      return list.map((t) => t['petid'] as String).toSet().length;
     }
 
     int staffFor(
       List<Map<String, dynamic>> list,
     ) {
-      return list
-          .map((t) => t['recordedby'] as String)
-          .toSet()
-          .length;
+      return list.map((t) => t['recordedby'] as String).toSet().length;
     }
 
     final treatmentItemRows = asMaps(periodRows[3]);
@@ -729,15 +639,11 @@ class SupabaseDashboardService implements DashboardService {
     int itemsDispensedFor(
       List<Map<String, dynamic>> list,
     ) {
-      final ids =
-          list
-              .map((t) => t['id'] as String)
-              .toSet();
+      final ids = list.map((t) => t['id'] as String).toSet();
 
       return treatmentItemRows
           .where(
-            (ti) =>
-                ids.contains(ti['treatid']),
+            (ti) => ids.contains(ti['treatid']),
           )
           .length;
     }
@@ -771,8 +677,7 @@ class SupabaseDashboardService implements DashboardService {
 
       for (final di in donationItemRows) {
         if (di['dntid'] == donationId) {
-          total +=
-              (di['qty'] as num).toDouble();
+          total += (di['qty'] as num).toDouble();
         }
       }
 
@@ -799,11 +704,7 @@ class SupabaseDashboardService implements DashboardService {
     ) {
       return list
           .map(
-            (d) =>
-                (d['donorid'] ??
-                        d['donor_name'] ??
-                        d['id'])
-                    as String,
+            (d) => (d['donorid'] ?? d['donor_name'] ?? d['id']) as String,
           )
           .toSet()
           .length;
@@ -812,65 +713,39 @@ class SupabaseDashboardService implements DashboardService {
     int largestDropoffFor(
       List<Map<String, dynamic>> list,
     ) {
-      return list
-          .fold<double>(
-            0,
-            (max, d) {
-              final total =
-                  donationTotal(
-                d['id'] as String,
-              );
+      return list.fold<double>(
+        0,
+        (max, d) {
+          final total = donationTotal(
+            d['id'] as String,
+          );
 
-              return total > max
-                  ? total
-                  : max;
-            },
-          )
-          .round();
+          return total > max ? total : max;
+        },
+      ).round();
     }
 
     return DashboardPeriodStats(
       purchaseCount: purchasesCur.length,
-      purchaseCountPrior:
-          purchasesPrior.length,
-      itemsReceived:
-          itemsReceivedFor(purchasesCur)
-              .round(),
-      itemsReceivedPrior:
-          itemsReceivedFor(purchasesPrior)
-              .round(),
-      distinctSuppliers:
-          suppliersFor(purchasesCur),
-      distinctSuppliersPrior:
-          suppliersFor(purchasesPrior),
-      treatmentCount:
-          treatmentsCur.length,
-      treatmentCountPrior:
-          treatmentsPrior.length,
-      animalsTreated:
-          animalsTreatedFor(treatmentsCur),
-      animalsTreatedPrior:
-          animalsTreatedFor(treatmentsPrior),
-      itemsDispensed:
-          itemsDispensedFor(treatmentsCur),
-      itemsDispensedPrior:
-          itemsDispensedFor(treatmentsPrior),
-      staffWhoRecorded:
-          staffFor(treatmentsCur),
-      donationCount:
-          donationsCur.length,
-      donationCountPrior:
-          donationsPrior.length,
-      itemsDonated:
-          itemsDonatedFor(donationsCur),
-      itemsDonatedPrior:
-          itemsDonatedFor(donationsPrior),
-      distinctDonors:
-          donorsFor(donationsCur),
-      distinctDonorsPrior:
-          donorsFor(donationsPrior),
-      largestDropoff:
-          largestDropoffFor(donationsCur),
+      purchaseCountPrior: purchasesPrior.length,
+      itemsReceived: itemsReceivedFor(purchasesCur).round(),
+      itemsReceivedPrior: itemsReceivedFor(purchasesPrior).round(),
+      distinctSuppliers: suppliersFor(purchasesCur),
+      distinctSuppliersPrior: suppliersFor(purchasesPrior),
+      treatmentCount: treatmentsCur.length,
+      treatmentCountPrior: treatmentsPrior.length,
+      animalsTreated: animalsTreatedFor(treatmentsCur),
+      animalsTreatedPrior: animalsTreatedFor(treatmentsPrior),
+      itemsDispensed: itemsDispensedFor(treatmentsCur),
+      itemsDispensedPrior: itemsDispensedFor(treatmentsPrior),
+      staffWhoRecorded: staffFor(treatmentsCur),
+      donationCount: donationsCur.length,
+      donationCountPrior: donationsPrior.length,
+      itemsDonated: itemsDonatedFor(donationsCur),
+      itemsDonatedPrior: itemsDonatedFor(donationsPrior),
+      distinctDonors: donorsFor(donationsCur),
+      distinctDonorsPrior: donorsFor(donationsPrior),
+      largestDropoff: largestDropoffFor(donationsCur),
     );
   }
 
@@ -923,12 +798,10 @@ class SupabaseDashboardService implements DashboardService {
     final outOfStockCount = alerts
         .where((a) => a.priority == ReplenishmentPriority.critical)
         .length;
-    final lowStockCount = alerts
-        .where((a) => a.priority == ReplenishmentPriority.high)
-        .length;
-    final needsRestockCount = alerts
-        .where((a) => a.priority == ReplenishmentPriority.medium)
-        .length;
+    final lowStockCount =
+        alerts.where((a) => a.priority == ReplenishmentPriority.high).length;
+    final needsRestockCount =
+        alerts.where((a) => a.priority == ReplenishmentPriority.medium).length;
 
     final now = DateTime.now();
     var pendingScheduled = 0;
@@ -1008,11 +881,7 @@ class SupabaseDashboardService implements DashboardService {
     var itemsDonated = 0;
 
     for (final r in itemRows) {
-      itemsDonated +=
-          ((r['qty'] as num?)
-                      ?.toDouble() ??
-                  0)
-              .round();
+      itemsDonated += ((r['qty'] as num?)?.toDouble() ?? 0).round();
     }
 
     return DonorDashboardStats(
@@ -1022,8 +891,7 @@ class SupabaseDashboardService implements DashboardService {
       lastDonation: donations.isEmpty
           ? null
           : DateTime.parse(
-              donations.first['receiveddate']
-                  as String,
+              donations.first['receiveddate'] as String,
             ),
     );
   }

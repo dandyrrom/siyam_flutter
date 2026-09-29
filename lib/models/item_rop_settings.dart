@@ -37,10 +37,8 @@ class ItemRopSettings {
   ) {
     return ItemRopSettings(
       itemId: map['itemid'] as String,
-      leadTimeDays:
-          (map['lead_time_days'] as num).toInt(),
-      safetyStockQty:
-          (map['safety_stock_qty'] as num).toDouble(),
+      leadTimeDays: (map['lead_time_days'] as num).toInt(),
+      safetyStockQty: (map['safety_stock_qty'] as num).toDouble(),
     );
   }
 }

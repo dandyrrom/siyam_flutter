@@ -44,8 +44,7 @@ class ReportService {
 
     final recordedUnitId = row['dispense_unit'] as String?;
 
-    final effectiveUnitId =
-        recordedUnitId ??
+    final effectiveUnitId = recordedUnitId ??
         item.dispenseUnitId ??
         item.packageUnitId ??
         item.purchaseUnitId;
@@ -155,11 +154,9 @@ class ReportService {
       final qty = _treatmentPurchaseEquivalent(row, item);
       if (qty <= 0) continue;
 
-      usedByItem[itemId] =
-          (usedByItem[itemId] ?? 0) + qty;
+      usedByItem[itemId] = (usedByItem[itemId] ?? 0) + qty;
 
-      usageEventsByItem[itemId] =
-          (usageEventsByItem[itemId] ?? 0) + 1;
+      usageEventsByItem[itemId] = (usageEventsByItem[itemId] ?? 0) + 1;
     }
 
     for (final raw in stockOutRows) {
@@ -173,30 +170,23 @@ class ReportService {
       final qty = _stockOutPurchaseEquivalent(row, item);
       if (qty <= 0) continue;
 
-      final reason =
-          ((row['reason'] as String?) ?? '')
-              .trim()
-              .toLowerCase();
+      final reason = ((row['reason'] as String?) ?? '').trim().toLowerCase();
 
       if (reason == 'adjustment') {
         continue;
       }
 
       if (reason == 'waste' || reason == 'expired') {
-        lossByItem[itemId] =
-            (lossByItem[itemId] ?? 0) + qty;
+        lossByItem[itemId] = (lossByItem[itemId] ?? 0) + qty;
 
-        lossEventsByItem[itemId] =
-            (lossEventsByItem[itemId] ?? 0) + 1;
+        lossEventsByItem[itemId] = (lossEventsByItem[itemId] ?? 0) + 1;
 
         continue;
       }
 
-      usedByItem[itemId] =
-          (usedByItem[itemId] ?? 0) + qty;
+      usedByItem[itemId] = (usedByItem[itemId] ?? 0) + qty;
 
-      usageEventsByItem[itemId] =
-          (usageEventsByItem[itemId] ?? 0) + 1;
+      usageEventsByItem[itemId] = (usageEventsByItem[itemId] ?? 0) + 1;
     }
 
     final rows = <MonthlyUsageRow>[];
@@ -212,10 +202,8 @@ class ReportService {
           item: item,
           usedQty: used,
           lossQty: losses,
-          usageEvents:
-              usageEventsByItem[item.itemId] ?? 0,
-          lossEvents:
-              lossEventsByItem[item.itemId] ?? 0,
+          usageEvents: usageEventsByItem[item.itemId] ?? 0,
+          lossEvents: lossEventsByItem[item.itemId] ?? 0,
         ),
       );
     }

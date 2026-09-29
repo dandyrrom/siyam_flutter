@@ -63,15 +63,13 @@ class ManagerReportsPage extends StatefulWidget {
   const ManagerReportsPage({super.key});
 
   @override
-  State<ManagerReportsPage> createState() =>
-      _ManagerReportsPageState();
+  State<ManagerReportsPage> createState() => _ManagerReportsPageState();
 }
 
 class _ManagerReportsPageState extends State<ManagerReportsPage>
     with DataBusRefreshMixin<ManagerReportsPage> {
   final ReportService _reportService = ReportService();
-  final ReplenishmentService _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
 
   final _usageSearchCtrl = TextEditingController();
   final _ropSearchCtrl = TextEditingController();
@@ -108,8 +106,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     final cachedUsage = PageSnapshotCache.instance.peek<MonthlyUsageReport>(
       'reports.usage.${_selectedMonth.year}-${_selectedMonth.month}',
     );
-    final cachedRop =
-        PageSnapshotCache.instance.peekList<ReplenishmentItem>(
+    final cachedRop = PageSnapshotCache.instance.peekList<ReplenishmentItem>(
       PageSnapshotCache.replenishment,
     );
 
@@ -161,11 +158,9 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       if (!mounted) return;
 
       setState(() {
-        _monthlyUsage =
-            results[0] as MonthlyUsageReport;
+        _monthlyUsage = results[0] as MonthlyUsageReport;
 
-        _ropRows =
-            results[1] as List<ReplenishmentItem>;
+        _ropRows = results[1] as List<ReplenishmentItem>;
 
         // If a category disappears from the newly loaded month, return to All.
         if (_usageCategoryFilter != null &&
@@ -202,8 +197,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     });
 
     try {
-      final report =
-          await _reportService.fetchMonthlyUsage(
+      final report = await _reportService.fetchMonthlyUsage(
         month,
       );
 
@@ -217,8 +211,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not load monthly usage: $e';
+        _error = 'Could not load monthly usage: $e';
         _loading = false;
       });
     }
@@ -238,8 +231,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     final categories = <String>{};
 
     for (final row in report.rows) {
-      final category =
-          row.item.pCategoryName.trim();
+      final category = row.item.pCategoryName.trim();
 
       if (category.isNotEmpty) {
         categories.add(category);
@@ -248,10 +240,9 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
     final values = categories.toList()
       ..sort(
-        (a, b) =>
-            a.toLowerCase().compareTo(
-                  b.toLowerCase(),
-                ),
+        (a, b) => a.toLowerCase().compareTo(
+              b.toLowerCase(),
+            ),
       );
 
     return values;
@@ -264,26 +255,17 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       return const [];
     }
 
-    final query =
-        _usageSearch.trim().toLowerCase();
+    final query = _usageSearch.trim().toLowerCase();
 
     final rows = report.rows.where((row) {
-      final matchesSearch =
-          query.isEmpty ||
-          row.item.itemName
-              .toLowerCase()
-              .contains(query) ||
-          row.item.itemCategory
-              .toLowerCase()
-              .contains(query);
+      final matchesSearch = query.isEmpty ||
+          row.item.itemName.toLowerCase().contains(query) ||
+          row.item.itemCategory.toLowerCase().contains(query);
 
-      final matchesCategory =
-          _usageCategoryFilter == null ||
-          row.item.pCategoryName ==
-              _usageCategoryFilter;
+      final matchesCategory = _usageCategoryFilter == null ||
+          row.item.pCategoryName == _usageCategoryFilter;
 
-      if (!matchesSearch ||
-          !matchesCategory) {
+      if (!matchesSearch || !matchesCategory) {
         return false;
       }
 
@@ -308,8 +290,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       );
     } else if (_usageFocus == _UsageFocus.usageEvents) {
       rows.sort((a, b) {
-        final byEvents =
-            b.usageEvents.compareTo(a.usageEvents);
+        final byEvents = b.usageEvents.compareTo(a.usageEvents);
 
         if (byEvents != 0) {
           return byEvents;
@@ -331,11 +312,9 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
     if (_usageFocus == _UsageFocus.itemsUsed) {
       focusLabel = 'Items used';
-    } else if (_usageFocus ==
-        _UsageFocus.usageEvents) {
+    } else if (_usageFocus == _UsageFocus.usageEvents) {
       focusLabel = 'Usage records';
-    } else if (_usageFocus ==
-        _UsageFocus.itemsWithLosses) {
+    } else if (_usageFocus == _UsageFocus.itemsWithLosses) {
       focusLabel = 'Items with losses';
     } else {
       focusLabel = 'All activity';
@@ -352,10 +331,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     _UsageFocus focus,
   ) {
     setState(() {
-      _usageFocus =
-          _usageFocus == focus
-              ? _UsageFocus.all
-              : focus;
+      _usageFocus = _usageFocus == focus ? _UsageFocus.all : focus;
     });
   }
 
@@ -382,31 +358,23 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
   // ===========================================================================
 
   List<ReplenishmentItem> get _filteredRopRows {
-    final query =
-        _ropSearch.trim().toLowerCase();
+    final query = _ropSearch.trim().toLowerCase();
 
     return _ropRows.where((row) {
-      final matchesSearch =
-          query.isEmpty ||
-          row.item.itemName
-              .toLowerCase()
-              .contains(query) ||
-          row.item.itemCategory
-              .toLowerCase()
-              .contains(query);
+      final matchesSearch = query.isEmpty ||
+          row.item.itemName.toLowerCase().contains(query) ||
+          row.item.itemCategory.toLowerCase().contains(query);
 
       if (!matchesSearch) {
         return false;
       }
 
       if (_ropFocus == _RopFocus.critical) {
-        return row.priority ==
-            ReplenishmentPriority.critical;
+        return row.priority == ReplenishmentPriority.critical;
       }
 
       if (_ropFocus == _RopFocus.high) {
-        return row.priority ==
-            ReplenishmentPriority.high;
+        return row.priority == ReplenishmentPriority.high;
       }
 
       if (_ropFocus == _RopFocus.custom) {
@@ -437,10 +405,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     _RopFocus focus,
   ) {
     setState(() {
-      _ropFocus =
-          _ropFocus == focus
-              ? _RopFocus.all
-              : focus;
+      _ropFocus = _ropFocus == focus ? _RopFocus.all : focus;
     });
   }
 
@@ -467,11 +432,11 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
   @override
   Widget build(BuildContext context) {
-  if (_loading) {
-  return const PageLoading(
-    message: 'Loading reports',
-  );
-}
+    if (_loading) {
+      return const PageLoading(
+        message: 'Loading reports',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -500,8 +465,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     }
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Reports',
@@ -510,9 +474,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
             fontWeight: FontWeight.w800,
           ),
         ),
-
         const SizedBox(height: 3),
-
         const Text(
           'Review shelter inventory usage, losses, and current replenishment needs.',
           style: TextStyle(
@@ -520,13 +482,9 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
             color: AppColors.mutedForeground,
           ),
         ),
-
         const SizedBox(height: 18),
-
         _buildTabs(),
-
         const SizedBox(height: 20),
-
         if (_tab == _ReportTab.monthlyUsage)
           _buildMonthlyUsage()
         else
@@ -576,13 +534,10 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     final report = _monthlyUsage!;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildMonthAndSearch(),
-
         const SizedBox(height: 16),
-
         _EqualSummaryCards(
           cards: [
             _InteractiveSummaryCard(
@@ -590,8 +545,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               value: '${report.itemsUsed}',
               label: 'Items Used',
               helper: 'Items consumed this month',
-              selected:
-                  _usageFocus == _UsageFocus.itemsUsed,
+              selected: _usageFocus == _UsageFocus.itemsUsed,
               onTap: () => _selectUsageFocus(
                 _UsageFocus.itemsUsed,
               ),
@@ -601,8 +555,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               value: '${report.usageEvents}',
               label: 'Usage Records',
               helper: 'Times stock use was recorded',
-              selected:
-                  _usageFocus == _UsageFocus.usageEvents,
+              selected: _usageFocus == _UsageFocus.usageEvents,
               onTap: () => _selectUsageFocus(
                 _UsageFocus.usageEvents,
               ),
@@ -612,29 +565,22 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               value: '${report.itemsWithLosses}',
               label: 'Items With Losses',
               helper: 'Items with waste or expiry',
-              selected:
-                  _usageFocus ==
-                  _UsageFocus.itemsWithLosses,
+              selected: _usageFocus == _UsageFocus.itemsWithLosses,
               onTap: () => _selectUsageFocus(
                 _UsageFocus.itemsWithLosses,
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 14),
-
         _ActiveFilterBar(
           label: _usageFocusLabel,
-          active:
-              _usageFocus != _UsageFocus.all ||
+          active: _usageFocus != _UsageFocus.all ||
               _usageSearch.isNotEmpty ||
               _usageCategoryFilter != null,
           onClear: _clearUsageFilters,
         ),
-
         const SizedBox(height: 14),
-
         _buildUsageList(),
       ],
     );
@@ -642,44 +588,35 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
   // UI ORDER MARKER: REPORTS_SEARCH_LEFT_V2
   Widget _buildMonthAndSearch() {
-    final narrow =
-        MediaQuery.sizeOf(context).width < 850;
+    final narrow = MediaQuery.sizeOf(context).width < 850;
 
-    final monthPicker =
-        AppDropdown<DateTime>(
+    final monthPicker = AppDropdown<DateTime>(
       label: _monthYear(
         _selectedMonth,
       ),
       options: [
-        for (final month
-            in _monthOptions())
+        for (final month in _monthOptions())
           AppDropdownOption(
             month,
             _monthYear(month),
           ),
       ],
       onSelect: (month) {
-        if (month !=
-            _selectedMonth) {
+        if (month != _selectedMonth) {
           _changeMonth(month);
         }
       },
       expand: narrow,
     );
 
-    final categoryPicker =
-        AppDropdown<String?>(
-      label:
-          _usageCategoryFilter ??
-          'All Categories',
+    final categoryPicker = AppDropdown<String?>(
+      label: _usageCategoryFilter ?? 'All Categories',
       options: [
-        const AppDropdownOption<
-            String?>(
+        const AppDropdownOption<String?>(
           null,
           'All Categories',
         ),
-        for (final category
-            in _usageCategoryOptions)
+        for (final category in _usageCategoryOptions)
           AppDropdownOption<String?>(
             category,
             category,
@@ -687,8 +624,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       ],
       onSelect: (category) {
         setState(() {
-          _usageCategoryFilter =
-              category;
+          _usageCategoryFilter = category;
         });
       },
       expand: narrow,
@@ -702,17 +638,16 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
           Icons.search,
           size: 18,
         ),
-        suffixIcon:
-            _usageSearch.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Clear search',
-                    onPressed: _clearUsageSearch,
-                    icon: const Icon(
-                      Icons.close,
-                      size: 18,
-                    ),
-                  ),
+        suffixIcon: _usageSearch.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                onPressed: _clearUsageSearch,
+                icon: const Icon(
+                  Icons.close,
+                  size: 18,
+                ),
+              ),
         hintText: 'Search item or category',
       ),
       onChanged: (value) {
@@ -724,8 +659,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
     if (narrow) {
       return Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           search,
           const SizedBox(height: 10),
@@ -744,18 +678,15 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
     // The two compact filters are grouped together on the RIGHT.
     return Row(
       textDirection: TextDirection.ltr,
-      crossAxisAlignment:
-          CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: search,
         ),
         const SizedBox(width: 12),
         Row(
-          mainAxisSize:
-              MainAxisSize.min,
-          textDirection:
-              TextDirection.ltr,
+          mainAxisSize: MainAxisSize.min,
+          textDirection: TextDirection.ltr,
           children: [
             SizedBox(
               width: 220,
@@ -779,8 +710,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       return const _EmptyState(
         icon: Icons.event_busy_outlined,
         title: 'No usage recorded',
-        message:
-            'There are no inventory usage or loss records for this month.',
+        message: 'There are no inventory usage or loss records for this month.',
       );
     }
 
@@ -795,8 +725,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       );
     }
 
-    final mobile =
-        MediaQuery.sizeOf(context).width < 980;
+    final mobile = MediaQuery.sizeOf(context).width < 980;
 
     return Container(
       width: double.infinity,
@@ -809,16 +738,10 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       ),
       child: Column(
         children: [
-          if (!mobile)
-            const _UsageHeader(),
-
-          if (!mobile)
-            const Divider(height: 1),
-
+          if (!mobile) const _UsageHeader(),
+          if (!mobile) const Divider(height: 1),
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0)
-              const Divider(height: 1),
-
+            if (i > 0) const Divider(height: 1),
             if (mobile)
               _UsageMobileRow(
                 row: rows[i],
@@ -842,11 +765,9 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
   Future<void> _showUsageDetails(
     MonthlyUsageRow row,
   ) async {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
-    final totalMoved =
-        row.usedQty + row.lossQty;
+    final totalMoved = row.usedQty + row.lossQty;
 
     await showDialog<void>(
       context: context,
@@ -857,23 +778,20 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          titlePadding:
-              const EdgeInsets.fromLTRB(
+          titlePadding: const EdgeInsets.fromLTRB(
             22,
             20,
             22,
             0,
           ),
-          contentPadding:
-              const EdgeInsets.fromLTRB(
+          contentPadding: const EdgeInsets.fromLTRB(
             22,
             14,
             22,
             8,
           ),
           title: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 row.item.itemName,
@@ -907,8 +825,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 4),
 
@@ -920,8 +837,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                     children: [
                       Expanded(
                         child: _UsageMetricCard(
-                          icon:
-                              Icons.inventory_outlined,
+                          icon: Icons.inventory_outlined,
                           label: 'Used this month',
                           value: _qty(
                             row.usedQty,
@@ -929,15 +845,13 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                           ),
                           helper:
                               'Stock used for treatments or normal dispensing.',
-                          accent:
-                              AppColors.primary,
+                          accent: AppColors.primary,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _UsageMetricCard(
-                          icon:
-                              Icons.delete_outline,
+                          icon: Icons.delete_outline,
                           label: 'Lost this month',
                           value: _qty(
                             row.lossQty,
@@ -945,8 +859,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                           ),
                           helper:
                               'Stock removed because it expired or was wasted.',
-                          accent:
-                              AppColors.stockOut,
+                          accent: AppColors.stockOut,
                         ),
                       ),
                     ],
@@ -971,8 +884,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                     style: const TextStyle(
                       fontSize: 12,
                       height: 1.4,
-                      color:
-                          AppColors.mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
 
@@ -995,8 +907,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                   ),
 
                   _ExplainedCountRow(
-                    icon:
-                        Icons.medical_services_outlined,
+                    icon: Icons.medical_services_outlined,
                     label: 'Usage records',
                     value: '${row.usageEvents}',
                     explanation:
@@ -1007,8 +918,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                   const SizedBox(height: 8),
 
                   _ExplainedCountRow(
-                    icon:
-                        Icons.warning_amber_outlined,
+                    icon: Icons.warning_amber_outlined,
                     label: 'Loss records',
                     value: '${row.lossEvents}',
                     explanation:
@@ -1027,15 +937,13 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: AppColors.secondary,
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: AppColors.border,
                       ),
                     ),
                     child: const Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
@@ -1049,10 +957,8 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                               'What do these numbers mean?',
                               style: TextStyle(
                                 fontSize: 12.5,
-                                fontWeight:
-                                    FontWeight.w700,
-                                color:
-                                    AppColors.foreground,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.foreground,
                               ),
                             ),
                           ],
@@ -1065,8 +971,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                           style: TextStyle(
                             fontSize: 11.8,
                             height: 1.45,
-                            color:
-                                AppColors.mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
@@ -1079,16 +984,14 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                     'All quantities are shown in the item\'s purchase unit ($unit).',
                     style: const TextStyle(
                       fontSize: 11,
-                      color:
-                          AppColors.mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          actionsPadding:
-              const EdgeInsets.fromLTRB(
+          actionsPadding: const EdgeInsets.fromLTRB(
             18,
             0,
             18,
@@ -1096,8 +999,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.of(
+              onPressed: () => Navigator.of(
                 dialogContext,
               ).pop(),
               child: const Text(
@@ -1118,34 +1020,26 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
   // ===========================================================================
 
   Widget _buildRopStatus() {
-    final critical =
-        _ropRows
-            .where(
-              (row) =>
-                  row.priority ==
-                  ReplenishmentPriority.critical,
-            )
-            .length;
+    final critical = _ropRows
+        .where(
+          (row) => row.priority == ReplenishmentPriority.critical,
+        )
+        .length;
 
-    final high =
-        _ropRows
-            .where(
-              (row) =>
-                  row.priority ==
-                  ReplenishmentPriority.high,
-            )
-            .length;
+    final high = _ropRows
+        .where(
+          (row) => row.priority == ReplenishmentPriority.high,
+        )
+        .length;
 
-    final custom =
-        _ropRows
-            .where(
-              (row) => row.usesCustomRop,
-            )
-            .length;
+    final custom = _ropRows
+        .where(
+          (row) => row.usesCustomRop,
+        )
+        .length;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _EqualSummaryCards(
           cards: [
@@ -1154,8 +1048,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               value: '${_ropRows.length}',
               label: 'Needs Replenishment',
               helper: 'At or below current ROP',
-              selected:
-                  _ropFocus == _RopFocus.all,
+              selected: _ropFocus == _RopFocus.all,
               onTap: () {
                 setState(() {
                   _ropFocus = _RopFocus.all;
@@ -1163,25 +1056,21 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               },
             ),
             _InteractiveSummaryCard(
-              icon:
-                  Icons.warning_amber_rounded,
+              icon: Icons.warning_amber_rounded,
               value: '$critical',
               label: 'Critical',
               helper: 'No usable stock remaining',
-              selected:
-                  _ropFocus == _RopFocus.critical,
+              selected: _ropFocus == _RopFocus.critical,
               onTap: () => _selectRopFocus(
                 _RopFocus.critical,
               ),
             ),
             _InteractiveSummaryCard(
-              icon:
-                  Icons.priority_high_rounded,
+              icon: Icons.priority_high_rounded,
               value: '$high',
               label: 'High Priority',
               helper: 'Requires closer attention',
-              selected:
-                  _ropFocus == _RopFocus.high,
+              selected: _ropFocus == _RopFocus.high,
               onTap: () => _selectRopFocus(
                 _RopFocus.high,
               ),
@@ -1190,19 +1079,15 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               icon: Icons.tune_outlined,
               value: '$custom',
               label: 'Custom ROP',
-              helper:
-                  'Using item-specific settings',
-              selected:
-                  _ropFocus == _RopFocus.custom,
+              helper: 'Using item-specific settings',
+              selected: _ropFocus == _RopFocus.custom,
               onTap: () => _selectRopFocus(
                 _RopFocus.custom,
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 16),
-
         TextField(
           controller: _ropSearchCtrl,
           decoration: InputDecoration(
@@ -1211,17 +1096,16 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
               Icons.search,
               size: 18,
             ),
-            suffixIcon:
-                _ropSearch.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear search',
-                        onPressed: _clearRopSearch,
-                        icon: const Icon(
-                          Icons.close,
-                          size: 18,
-                        ),
-                      ),
+            suffixIcon: _ropSearch.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Clear search',
+                    onPressed: _clearRopSearch,
+                    icon: const Icon(
+                      Icons.close,
+                      size: 18,
+                    ),
+                  ),
             hintText: 'Search item or category',
           ),
           onChanged: (value) {
@@ -1230,19 +1114,13 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
             });
           },
         ),
-
         const SizedBox(height: 14),
-
         _ActiveFilterBar(
           label: _ropFocusLabel,
-          active:
-              _ropFocus != _RopFocus.all ||
-              _ropSearch.isNotEmpty,
+          active: _ropFocus != _RopFocus.all || _ropSearch.isNotEmpty,
           onClear: _clearRopFilters,
         ),
-
         const SizedBox(height: 14),
-
         _buildRopList(),
       ],
     );
@@ -1255,8 +1133,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       return const _EmptyState(
         icon: Icons.check_circle_outline,
         title: 'No replenishment needed',
-        message:
-            'All items are currently above their reorder points.',
+        message: 'All items are currently above their reorder points.',
       );
     }
 
@@ -1264,15 +1141,13 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       return _EmptyState(
         icon: Icons.search_off,
         title: 'No matching items',
-        message:
-            'Try another search or clear the selected summary filter.',
+        message: 'Try another search or clear the selected summary filter.',
         actionLabel: 'Clear Filters',
         onAction: _clearRopFilters,
       );
     }
 
-    final mobile =
-        MediaQuery.sizeOf(context).width < 1050;
+    final mobile = MediaQuery.sizeOf(context).width < 1050;
 
     return Container(
       width: double.infinity,
@@ -1285,16 +1160,10 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
       ),
       child: Column(
         children: [
-          if (!mobile)
-            const _RopHeader(),
-
-          if (!mobile)
-            const Divider(height: 1),
-
+          if (!mobile) const _RopHeader(),
+          if (!mobile) const Divider(height: 1),
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0)
-              const Divider(height: 1),
-
+            if (i > 0) const Divider(height: 1),
             if (mobile)
               _RopMobileRow(
                 row: rows[i],
@@ -1318,19 +1187,14 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
   Future<void> _showRopDetails(
     ReplenishmentItem row,
   ) async {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     final rawRop =
-        (row.averageDailyUsage *
-                row.leadTimeDays) +
-            row.safetyStockQty;
+        (row.averageDailyUsage * row.leadTimeDays) + row.safetyStockQty;
 
-    final stockCoverDays =
-        row.averageDailyUsage > 0
-            ? row.currentStockPurchaseUnits /
-                row.averageDailyUsage
-            : null;
+    final stockCoverDays = row.averageDailyUsage > 0
+        ? row.currentStockPurchaseUnits / row.averageDailyUsage
+        : null;
 
     await showDialog<void>(
       context: context,
@@ -1339,51 +1203,41 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          titlePadding:
-              const EdgeInsets.fromLTRB(
+          titlePadding: const EdgeInsets.fromLTRB(
             22,
             20,
             22,
             0,
           ),
-          contentPadding:
-              const EdgeInsets.fromLTRB(
+          contentPadding: const EdgeInsets.fromLTRB(
             22,
             16,
             22,
             8,
           ),
           title: Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       row.item.itemName,
                     ),
-
                     const SizedBox(height: 3),
-
                     Text(
                       row.item.itemCategory,
                       style: const TextStyle(
                         fontSize: 12.5,
-                        fontWeight:
-                            FontWeight.w400,
-                        color:
-                            AppColors.mutedForeground,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
               _PriorityBadge(
                 priority: row.priority,
               ),
@@ -1394,8 +1248,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // -----------------------------------------------------------
                   // CURRENT SITUATION
@@ -1439,8 +1292,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                   if (stockCoverDays != null)
                     Padding(
-                      padding:
-                          const EdgeInsets.only(
+                      padding: const EdgeInsets.only(
                         top: 5,
                       ),
                       child: Text(
@@ -1449,8 +1301,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                         style: const TextStyle(
                           fontSize: 11.5,
                           height: 1.4,
-                          color:
-                              AppColors.mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ),
@@ -1463,46 +1314,36 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.primary
-                          .withValues(
+                      color: AppColors.primary.withValues(
                         alpha: 0.07,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: AppColors.primary
-                            .withValues(
+                        color: AppColors.primary.withValues(
                           alpha: 0.22,
                         ),
                       ),
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           'Recommended Action',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight:
-                                FontWeight.w700,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-
                         const SizedBox(height: 5),
-
                         Text(
                           'Replenish ${_qty(row.suggestedQty, unit)}',
                           style: const TextStyle(
                             fontSize: 19,
-                            fontWeight:
-                                FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-
                         const SizedBox(height: 4),
                         Text(
                           row.currentStockPurchaseUnits <= 0
@@ -1513,8 +1354,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                           style: const TextStyle(
                             fontSize: 11.8,
                             height: 1.4,
-                            color:
-                                AppColors.mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
@@ -1533,8 +1373,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                   _DetailLine(
                     label: 'Lead time',
-                    value:
-                        '${row.leadTimeDays} days',
+                    value: '${row.leadTimeDays} days',
                   ),
 
                   _DetailLine(
@@ -1547,10 +1386,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                   _DetailLine(
                     label: 'Settings',
-                    value:
-                        row.usesCustomRop
-                            ? 'Custom'
-                            : 'System default',
+                    value: row.usesCustomRop ? 'Custom' : 'System default',
                   ),
 
                   const SizedBox(height: 8),
@@ -1561,118 +1397,95 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 
                   Theme(
                     data: Theme.of(dialogContext).copyWith(
-                      dividerColor:
-                          Colors.transparent,
+                      dividerColor: Colors.transparent,
                     ),
                     child: ExpansionTile(
                       tilePadding: EdgeInsets.zero,
-                      childrenPadding:
-                          const EdgeInsets.only(
+                      childrenPadding: const EdgeInsets.only(
                         bottom: 4,
                       ),
                       title: const Text(
                         'How was this calculated?',
                         style: TextStyle(
                           fontSize: 12.5,
-                          fontWeight:
-                              FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       subtitle: const Text(
                         'View the ROP formula and usage rate.',
                         style: TextStyle(
                           fontSize: 11.5,
-                          color:
-                              AppColors.mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                       children: [
                         Container(
                           width: double.infinity,
-                          padding:
-                              const EdgeInsets.all(
+                          padding: const EdgeInsets.all(
                             12,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.secondary,
-                            borderRadius:
-                                BorderRadius.circular(
+                            color: AppColors.secondary,
+                            borderRadius: BorderRadius.circular(
                               12,
                             ),
                             border: Border.all(
-                              color:
-                                  AppColors.border,
+                              color: AppColors.border,
                             ),
                           ),
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _DetailLine(
                                 label: 'Usage',
                                 value:
                                     '${_reportQtyNumber(row.usage30PurchaseUnits)} $unit',
                               ),
-
                               _DetailLine(
                                 label: 'Observation period',
                                 value:
                                     '${row.observationDays} day${row.observationDays == 1 ? '' : 's'}',
                               ),
-
                               _DetailLine(
                                 label: 'ADU',
                                 value:
                                     '${_reportQtyNumber(row.averageDailyUsage)} $unit/day',
                               ),
-
                               const SizedBox(
                                 height: 4,
                               ),
-
                               const Text(
                                 'ADU = Usage ÷ Observation Period',
                                 style: TextStyle(
                                   fontSize: 11.8,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-
                               const SizedBox(
                                 height: 5,
                               ),
-
                               Text(
                                 '${_reportQtyNumber(row.usage30PurchaseUnits)} ÷ '
                                 '${row.observationDays} '
                                 '= ${_reportQtyNumber(row.averageDailyUsage)} $unit/day',
                                 style: const TextStyle(
                                   fontSize: 11.5,
-                                  color: AppColors
-                                      .mutedForeground,
+                                  color: AppColors.mutedForeground,
                                 ),
                               ),
-
                               const SizedBox(
                                 height: 8,
                               ),
-
                               const Text(
                                 'ROP = (Average Daily Usage × Lead Time) + Safety Stock',
                                 style: TextStyle(
                                   fontSize: 11.8,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-
                               const SizedBox(
                                 height: 5,
                               ),
-
                               Text(
                                 '(${_reportQtyNumber(row.averageDailyUsage)} × '
                                 '${row.leadTimeDays}) + '
@@ -1680,15 +1493,12 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                                 '= ${_reportQtyNumber(rawRop)} $unit',
                                 style: const TextStyle(
                                   fontSize: 11.5,
-                                  color: AppColors
-                                      .mutedForeground,
+                                  color: AppColors.mutedForeground,
                                 ),
                               ),
-
                               const SizedBox(
                                 height: 8,
                               ),
-
                               Text(
                                 'The calculated value is rounded up to '
                                 '${_reportQtyNumber(row.reorderPoint)} $unit so the reorder point '
@@ -1696,8 +1506,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
                                 style: const TextStyle(
                                   fontSize: 11.5,
                                   height: 1.4,
-                                  color: AppColors
-                                      .mutedForeground,
+                                  color: AppColors.mutedForeground,
                                 ),
                               ),
                             ],
@@ -1712,8 +1521,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.of(
+              onPressed: () => Navigator.of(
                 dialogContext,
               ).pop(),
               child: const Text('Close'),
@@ -1742,8 +1550,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage>
 // EQUAL INTERACTIVE SUMMARY CARDS
 // =============================================================================
 
-class _EqualSummaryCards
-    extends StatelessWidget {
+class _EqualSummaryCards extends StatelessWidget {
   final List<Widget> cards;
 
   const _EqualSummaryCards({
@@ -1754,15 +1561,10 @@ class _EqualSummaryCards
     List<Widget> children,
   ) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0;
-            i < children.length;
-            i++) ...[
-          if (i > 0)
-            const SizedBox(width: 12),
-
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
           Expanded(
             child: SizedBox(
               height: 118,
@@ -1776,18 +1578,13 @@ class _EqualSummaryCards
 
   @override
   Widget build(BuildContext context) {
-    final width =
-        MediaQuery.sizeOf(context).width;
+    final width = MediaQuery.sizeOf(context).width;
 
     if (width < 650) {
       return Column(
         children: [
-          for (var i = 0;
-              i < cards.length;
-              i++) ...[
-            if (i > 0)
-              const SizedBox(height: 10),
-
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               height: 112,
@@ -1816,8 +1613,7 @@ class _EqualSummaryCards
   }
 }
 
-class _InteractiveSummaryCard
-    extends StatelessWidget {
+class _InteractiveSummaryCard extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
@@ -1838,57 +1634,43 @@ class _InteractiveSummaryCard
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius:
-          BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        hoverColor: AppColors.primary
-            .withValues(
+        hoverColor: AppColors.primary.withValues(
           alpha: 0.04,
         ),
         child: AnimatedContainer(
-          duration:
-              const Duration(
+          duration: const Duration(
             milliseconds: 140,
           ),
           width: double.infinity,
           height: double.infinity,
-          padding:
-              const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: selected
-                ? AppColors.primary
-                    .withValues(
+                ? AppColors.primary.withValues(
                     alpha: 0.055,
                   )
                 : AppColors.card,
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected
-                  ? AppColors.primary
-                  : AppColors.border,
+              color: selected ? AppColors.primary : AppColors.border,
               width: selected ? 1.5 : 1,
             ),
           ),
           child: Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.primary
-                      .withValues(
-                    alpha: selected
-                        ? 0.14
-                        : 0.08,
+                  color: AppColors.primary.withValues(
+                    alpha: selected ? 0.14 : 0.08,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(11),
                 ),
                 alignment: Alignment.center,
                 child: Icon(
@@ -1897,67 +1679,50 @@ class _InteractiveSummaryCard
                   color: AppColors.primary,
                 ),
               ),
-
               const SizedBox(width: 11),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       value,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight:
-                            FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-
                     Text(
                       label,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12.5,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-
                     const SizedBox(height: 3),
-
                     Expanded(
                       child: Text(
                         helper,
                         maxLines: 2,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 11.3,
                           height: 1.25,
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ),
-
                     Text(
-                      selected
-                          ? 'Selected'
-                          : 'Click to filter',
+                      selected ? 'Selected' : 'Click to filter',
                       style: TextStyle(
                         fontSize: 10.5,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                         color: selected
                             ? AppColors.primary
-                            : AppColors
-                                .mutedForeground,
+                            : AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1975,8 +1740,7 @@ class _InteractiveSummaryCard
 // ACTIVE FILTER BAR
 // =============================================================================
 
-class _ActiveFilterBar
-    extends StatelessWidget {
+class _ActiveFilterBar extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onClear;
@@ -1993,17 +1757,13 @@ class _ActiveFilterBar
       children: [
         Expanded(
           child: Text(
-            active
-                ? 'Showing: $label'
-                : label,
+            active ? 'Showing: $label' : label,
             style: const TextStyle(
               fontSize: 12.5,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ),
-
         if (active)
           TextButton.icon(
             onPressed: onClear,
@@ -2011,8 +1771,7 @@ class _ActiveFilterBar
               Icons.filter_alt_off_outlined,
               size: 16,
             ),
-            label:
-                const Text('Clear Filters'),
+            label: const Text('Clear Filters'),
           ),
       ],
     );
@@ -2023,8 +1782,7 @@ class _ActiveFilterBar
 // MONTHLY USAGE TABLE
 // =============================================================================
 
-class _UsageHeader
-    extends StatelessWidget {
+class _UsageHeader extends StatelessWidget {
   const _UsageHeader();
 
   @override
@@ -2043,8 +1801,7 @@ class _UsageHeader
           SizedBox(width: 12),
           Expanded(
             flex: 3,
-            child:
-                _HeaderCell('Category'),
+            child: _HeaderCell('Category'),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -2054,14 +1811,12 @@ class _UsageHeader
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Usage Records'),
+            child: _HeaderCell('Usage Records'),
           ),
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Lost'),
+            child: _HeaderCell('Lost'),
           ),
           SizedBox(width: 24),
         ],
@@ -2070,8 +1825,7 @@ class _UsageHeader
   }
 }
 
-class _UsageDesktopRow
-    extends StatelessWidget {
+class _UsageDesktopRow extends StatelessWidget {
   final MonthlyUsageRow row;
   final VoidCallback onTap;
 
@@ -2082,20 +1836,17 @@ class _UsageDesktopRow
 
   @override
   Widget build(BuildContext context) {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        hoverColor: AppColors.primary
-            .withValues(
+        hoverColor: AppColors.primary.withValues(
           alpha: 0.035,
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 13,
           ),
@@ -2105,33 +1856,25 @@ class _UsageDesktopRow
                 flex: 4,
                 child: Text(
                   row.item.itemName,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 flex: 3,
                 child: Text(
                   row.item.itemCategory,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 12.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 flex: 2,
                 child: Text(
@@ -2140,23 +1883,18 @@ class _UsageDesktopRow
                     unit,
                   ),
                   style: const TextStyle(
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 flex: 2,
                 child: Text(
                   '${row.usageEvents}',
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 flex: 2,
                 child: Text(
@@ -2166,14 +1904,11 @@ class _UsageDesktopRow
                   ),
                 ),
               ),
-
               const SizedBox(width: 6),
-
               const Icon(
                 Icons.chevron_right,
                 size: 18,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ],
           ),
@@ -2183,8 +1918,7 @@ class _UsageDesktopRow
   }
 }
 
-class _UsageMobileRow
-    extends StatelessWidget {
+class _UsageMobileRow extends StatelessWidget {
   final MonthlyUsageRow row;
   final VoidCallback onTap;
 
@@ -2195,19 +1929,16 @@ class _UsageMobileRow
 
   @override
   Widget build(BuildContext context) {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding:
-              const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(15),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -2216,34 +1947,26 @@ class _UsageMobileRow
                       row.item.itemName,
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-
                   const Icon(
                     Icons.chevron_right,
                     size: 18,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ],
               ),
-
               const SizedBox(height: 2),
-
               Text(
                 row.item.itemCategory,
                 style: const TextStyle(
                   fontSize: 11.5,
-                  color:
-                      AppColors.mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               Wrap(
                 spacing: 18,
                 runSpacing: 8,
@@ -2257,8 +1980,7 @@ class _UsageMobileRow
                   ),
                   _MiniMetric(
                     label: 'Usage Records',
-                    value:
-                        '${row.usageEvents}',
+                    value: '${row.usageEvents}',
                   ),
                   _MiniMetric(
                     label: 'Lost',
@@ -2281,8 +2003,7 @@ class _UsageMobileRow
 // ROP TABLE
 // =============================================================================
 
-class _RopHeader
-    extends StatelessWidget {
+class _RopHeader extends StatelessWidget {
   const _RopHeader();
 
   @override
@@ -2301,14 +2022,12 @@ class _RopHeader
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Current'),
+            child: _HeaderCell('Current'),
           ),
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Usage'),
+            child: _HeaderCell('Usage'),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -2318,14 +2037,12 @@ class _RopHeader
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Suggested'),
+            child: _HeaderCell('Suggested'),
           ),
           SizedBox(width: 12),
           SizedBox(
             width: 90,
-            child:
-                _HeaderCell('Priority'),
+            child: _HeaderCell('Priority'),
           ),
           SizedBox(width: 12),
           SizedBox(width: 72),
@@ -2335,8 +2052,7 @@ class _RopHeader
   }
 }
 
-class _RopDesktopRow
-    extends StatelessWidget {
+class _RopDesktopRow extends StatelessWidget {
   final ReplenishmentItem row;
   final VoidCallback onDetails;
 
@@ -2347,12 +2063,10 @@ class _RopDesktopRow
 
   @override
   Widget build(BuildContext context) {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 12,
       ),
@@ -2361,47 +2075,37 @@ class _RopDesktopRow
           Expanded(
             flex: 4,
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   row.item.itemName,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontWeight:
-                        FontWeight.w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 const SizedBox(height: 3),
-
                 Wrap(
                   spacing: 6,
                   runSpacing: 4,
-                  crossAxisAlignment:
-                      WrapCrossAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       row.item.itemCategory,
                       style: const TextStyle(
                         fontSize: 11.5,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                     _SettingsBadge(
-                      custom:
-                          row.usesCustomRop,
+                      custom: row.usesCustomRop,
                     ),
                   ],
                 ),
               ],
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             flex: 2,
             child: Text(
@@ -2411,9 +2115,7 @@ class _RopDesktopRow
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             flex: 2,
             child: Text(
@@ -2423,9 +2125,7 @@ class _RopDesktopRow
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             flex: 2,
             child: Text(
@@ -2434,14 +2134,11 @@ class _RopDesktopRow
                 unit,
               ),
               style: const TextStyle(
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             flex: 2,
             child: Text(
@@ -2450,23 +2147,18 @@ class _RopDesktopRow
                 unit,
               ),
               style: const TextStyle(
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           SizedBox(
             width: 90,
             child: _PriorityBadge(
               priority: row.priority,
             ),
           ),
-
           const SizedBox(width: 12),
-
           SizedBox(
             width: 72,
             child: TextButton(
@@ -2480,8 +2172,7 @@ class _RopDesktopRow
   }
 }
 
-class _RopMobileRow
-    extends StatelessWidget {
+class _RopMobileRow extends StatelessWidget {
   final ReplenishmentItem row;
   final VoidCallback onDetails;
 
@@ -2492,15 +2183,12 @@ class _RopMobileRow
 
   @override
   Widget build(BuildContext context) {
-    final unit =
-        row.item.purchaseUnitAbbr;
+    final unit = row.item.purchaseUnitAbbr;
 
     return Padding(
-      padding:
-          const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(15),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -2509,20 +2197,16 @@ class _RopMobileRow
                   row.item.itemName,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-
               _PriorityBadge(
                 priority: row.priority,
               ),
             ],
           ),
-
           const SizedBox(height: 4),
-
           Wrap(
             spacing: 6,
             runSpacing: 4,
@@ -2531,19 +2215,15 @@ class _RopMobileRow
                 row.item.itemCategory,
                 style: const TextStyle(
                   fontSize: 11.5,
-                  color:
-                      AppColors.mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
               _SettingsBadge(
-                custom:
-                    row.usesCustomRop,
+                custom: row.usesCustomRop,
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
           Wrap(
             spacing: 18,
             runSpacing: 8,
@@ -2578,9 +2258,7 @@ class _RopMobileRow
               ),
             ],
           ),
-
           const SizedBox(height: 8),
-
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
@@ -2589,8 +2267,7 @@ class _RopMobileRow
                 Icons.info_outline,
                 size: 16,
               ),
-              label:
-                  const Text('Details'),
+              label: const Text('Details'),
             ),
           ),
         ],
@@ -2599,8 +2276,7 @@ class _RopMobileRow
   }
 }
 
-class _SettingsBadge
-    extends StatelessWidget {
+class _SettingsBadge extends StatelessWidget {
   final bool custom;
 
   const _SettingsBadge({
@@ -2610,8 +2286,7 @@ class _SettingsBadge
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 7,
         vertical: 2,
       ),
@@ -2621,26 +2296,21 @@ class _SettingsBadge
                 alpha: 0.10,
               )
             : AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         custom ? 'Custom' : 'Default',
         style: TextStyle(
           fontSize: 10,
-          fontWeight:
-              FontWeight.w600,
-          color: custom
-              ? AppColors.primary
-              : AppColors.mutedForeground,
+          fontWeight: FontWeight.w600,
+          color: custom ? AppColors.primary : AppColors.mutedForeground,
         ),
       ),
     );
   }
 }
 
-class _PriorityBadge
-    extends StatelessWidget {
+class _PriorityBadge extends StatelessWidget {
   final ReplenishmentPriority priority;
 
   const _PriorityBadge({
@@ -2649,12 +2319,10 @@ class _PriorityBadge
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) =
-        _priorityMeta(priority);
+    final (label, color) = _priorityMeta(priority);
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 9,
         vertical: 4,
       ),
@@ -2662,16 +2330,14 @@ class _PriorityBadge
         color: color.withValues(
           alpha: 0.12,
         ),
-        borderRadius:
-            BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 11.5,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
           color: color,
         ),
       ),
@@ -2785,8 +2451,7 @@ class _UsageMetricCard extends StatelessWidget {
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -2797,8 +2462,7 @@ class _UsageMetricCard extends StatelessWidget {
                   color: accent.withValues(
                     alpha: 0.12,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 alignment: Alignment.center,
                 child: Icon(
@@ -2836,8 +2500,7 @@ class _UsageMetricCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11.3,
                 height: 1.35,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
@@ -2862,19 +2525,15 @@ class _StockMovementBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = usedQty + lossQty;
 
-    final usedFraction =
-        total <= 0 ? 0.0 : usedQty / total;
+    final usedFraction = total <= 0 ? 0.0 : usedQty / total;
 
-    final lossFraction =
-        total <= 0 ? 0.0 : lossQty / total;
+    final lossFraction = total <= 0 ? 0.0 : lossQty / total;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
-          borderRadius:
-              BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(999),
           child: Container(
             height: 12,
             color: AppColors.border,
@@ -2884,22 +2543,16 @@ class _StockMovementBar extends StatelessWidget {
                     children: [
                       if (usedFraction > 0)
                         Expanded(
-                          flex: (usedFraction * 1000)
-                              .round()
-                              .clamp(1, 1000),
+                          flex: (usedFraction * 1000).round().clamp(1, 1000),
                           child: Container(
-                            color:
-                                AppColors.primary,
+                            color: AppColors.primary,
                           ),
                         ),
                       if (lossFraction > 0)
                         Expanded(
-                          flex: (lossFraction * 1000)
-                              .round()
-                              .clamp(1, 1000),
+                          flex: (lossFraction * 1000).round().clamp(1, 1000),
                           child: Container(
-                            color:
-                                AppColors.stockOut,
+                            color: AppColors.stockOut,
                           ),
                         ),
                     ],
@@ -2914,14 +2567,12 @@ class _StockMovementBar extends StatelessWidget {
             _LegendValue(
               color: AppColors.primary,
               label: 'Used',
-              value:
-                  '${_reportQtyNumber(usedQty)} $unit',
+              value: '${_reportQtyNumber(usedQty)} $unit',
             ),
             _LegendValue(
               color: AppColors.stockOut,
               label: 'Lost',
-              value:
-                  '${_reportQtyNumber(lossQty)} $unit',
+              value: '${_reportQtyNumber(lossQty)} $unit',
             ),
           ],
         ),
@@ -3014,8 +2665,7 @@ class _ExplainedCountRow extends StatelessWidget {
               color: accent.withValues(
                 alpha: 0.09,
               ),
-              borderRadius:
-                  BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(9),
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -3027,8 +2677,7 @@ class _ExplainedCountRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
@@ -3044,8 +2693,7 @@ class _ExplainedCountRow extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 11.2,
                     height: 1.3,
-                    color:
-                        AppColors.mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
@@ -3070,8 +2718,7 @@ class _ExplainedCountRow extends StatelessWidget {
 // COMMON
 // =============================================================================
 
-class _DialogSectionTitle
-    extends StatelessWidget {
+class _DialogSectionTitle extends StatelessWidget {
   final String text;
 
   const _DialogSectionTitle(
@@ -3081,24 +2728,21 @@ class _DialogSectionTitle
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 5,
       ),
       child: Text(
         text,
         style: const TextStyle(
           fontSize: 12.5,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _HeaderCell
-    extends StatelessWidget {
+class _HeaderCell extends StatelessWidget {
   final String label;
 
   const _HeaderCell(this.label);
@@ -3109,17 +2753,14 @@ class _HeaderCell
       label,
       style: const TextStyle(
         fontSize: 11.5,
-        fontWeight:
-            FontWeight.w700,
-        color:
-            AppColors.mutedForeground,
+        fontWeight: FontWeight.w700,
+        color: AppColors.mutedForeground,
       ),
     );
   }
 }
 
-class _MiniMetric
-    extends StatelessWidget {
+class _MiniMetric extends StatelessWidget {
   final String label;
   final String value;
 
@@ -3133,26 +2774,22 @@ class _MiniMetric
     return SizedBox(
       width: 126,
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: const TextStyle(
               fontSize: 10.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            overflow:
-                TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12.5,
-              fontWeight:
-                  FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -3161,8 +2798,7 @@ class _MiniMetric
   }
 }
 
-class _DetailLine
-    extends StatelessWidget {
+class _DetailLine extends StatelessWidget {
   final String label;
   final String value;
   final bool strong;
@@ -3176,36 +2812,29 @@ class _DetailLine
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: 5,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Text(
               label,
               style: const TextStyle(
                 fontSize: 12.5,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.end,
               style: TextStyle(
                 fontSize: 12.5,
-                fontWeight: strong
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+                fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ),
@@ -3215,8 +2844,7 @@ class _DetailLine
   }
 }
 
-class _EmptyState
-    extends StatelessWidget {
+class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
@@ -3235,15 +2863,13 @@ class _EmptyState
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 24,
         vertical: 48,
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.border,
         ),
@@ -3253,42 +2879,30 @@ class _EmptyState
           Icon(
             icon,
             size: 34,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
-
           const SizedBox(height: 9),
-
           Text(
             title,
-            textAlign:
-                TextAlign.center,
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             message,
-            textAlign:
-                TextAlign.center,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 12.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
-
-          if (actionLabel != null &&
-              onAction != null) ...[
+          if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: onAction,
-              child:
-                  Text(actionLabel!),
+              child: Text(actionLabel!),
             ),
           ],
         ],
@@ -3328,13 +2942,10 @@ String _reportQtyNumber(
   }
 
   if (value.abs() < 0.005) {
-    return value.isNegative
-        ? '>-0.01'
-        : '<0.01';
+    return value.isNegative ? '>-0.01' : '<0.01';
   }
 
-  final rounded =
-      value.toStringAsFixed(2);
+  final rounded = value.toStringAsFixed(2);
 
   return rounded
       .replaceFirst(

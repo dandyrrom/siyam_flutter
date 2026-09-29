@@ -54,8 +54,7 @@ class AuditEntry {
   // physically received stock on-site. Keep those concepts separate.
   // -------------------------------------------------------------------------
 
-  Map<String, dynamic>? get latestValues =>
-      newValues ?? oldValues;
+  Map<String, dynamic>? get latestValues => newValues ?? oldValues;
 
   String? get receivedBy {
     final value = latestValues?['receivedby'];

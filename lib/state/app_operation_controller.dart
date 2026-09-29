@@ -9,8 +9,7 @@ import 'package:flutter/scheduler.dart';
 class AppOperationController extends ChangeNotifier {
   AppOperationController._();
 
-  static final AppOperationController instance =
-      AppOperationController._();
+  static final AppOperationController instance = AppOperationController._();
 
   final Map<int, String> _activeOperations = <int, String>{};
 

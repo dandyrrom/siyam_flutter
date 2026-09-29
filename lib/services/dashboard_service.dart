@@ -134,7 +134,8 @@ class DashboardPeriodStats {
 /// (arrow+percent label, direction) for a period-over-period change, or
 /// null when there's no prior-period data to compare against (dividing by
 /// a zero prior would be a nonsensical "+inf%").
-({String label, bool isUp, bool isFlat})? percentChange(int current, int prior) {
+({String label, bool isUp, bool isFlat})? percentChange(
+    int current, int prior) {
   if (prior == 0) {
     return current == 0 ? (label: '–0%', isUp: false, isFlat: true) : null;
   }
@@ -225,8 +226,7 @@ class MockDashboardService implements DashboardService {
   final MockDatabase _db = MockDatabase.instance;
 
   DashboardStockAlert _alertFromRow(ItemRow row) {
-    final unit =
-        firstWhereOrNull(_db.units, (u) => u.id == row.purchaseUnitId);
+    final unit = firstWhereOrNull(_db.units, (u) => u.id == row.purchaseUnitId);
     return DashboardStockAlert(
       itemId: row.id,
       itemName: row.name,
@@ -254,7 +254,8 @@ class MockDashboardService implements DashboardService {
     return ManagerDashboardStats(
       totalAnimals: _db.pets.length,
       totalSuppliers: _db.suppliers.length,
-      pendingSubmissions: _db.submissions.where((s) => s.status == 'pending').length,
+      pendingSubmissions:
+          _db.submissions.where((s) => s.status == 'pending').length,
       staffAccounts: _db.users.where((u) => u.role == AppRole.staff).length,
       totalItems: _db.items.length,
       zeroStockCount: zeroStockItems.length,
@@ -281,7 +282,8 @@ class MockDashboardService implements DashboardService {
       }
       if (priority == null) continue;
 
-      final unit = firstWhereOrNull(_db.units, (u) => u.id == row.purchaseUnitId);
+      final unit =
+          firstWhereOrNull(_db.units, (u) => u.id == row.purchaseUnitId);
       alerts.add(ReplenishmentAlert(
         itemId: row.id,
         itemName: row.name,
@@ -358,7 +360,8 @@ class MockDashboardService implements DashboardService {
     int donorsFor(List<DonationRow> list) =>
         list.map((d) => d.donorId ?? d.donorName ?? d.id).toSet().length;
     int largestDropoffFor(List<DonationRow> list) => list
-        .fold(0.0, (max, d) => donationTotal(d.id) > max ? donationTotal(d.id) : max)
+        .fold(0.0,
+            (max, d) => donationTotal(d.id) > max ? donationTotal(d.id) : max)
         .round();
 
     return DashboardPeriodStats(
@@ -388,25 +391,29 @@ class MockDashboardService implements DashboardService {
   @override
   Future<StaffDashboardStats> fetchStaffStats() async {
     final alerts = await fetchReplenishmentAlerts();
-    final outOfStockCount =
-        alerts.where((a) => a.priority == ReplenishmentPriority.critical).length;
+    final outOfStockCount = alerts
+        .where((a) => a.priority == ReplenishmentPriority.critical)
+        .length;
     final lowStockCount =
         alerts.where((a) => a.priority == ReplenishmentPriority.high).length;
     final needsRestockCount =
         alerts.where((a) => a.priority == ReplenishmentPriority.medium).length;
 
-    final pending = _db.submissions.where((s) => s.status == 'pending').toList();
+    final pending =
+        _db.submissions.where((s) => s.status == 'pending').toList();
     final now = DateTime.now();
     final pendingScheduled = pending
         .where((s) => s.schedDate != null && !s.schedDate!.isBefore(now))
         .length;
-    final pendingOverdue =
-        pending.where((s) => s.schedDate != null && s.schedDate!.isBefore(now)).length;
+    final pendingOverdue = pending
+        .where((s) => s.schedDate != null && s.schedDate!.isBefore(now))
+        .length;
     final pendingUnscheduled = pending.where((s) => s.schedDate == null).length;
 
     DateTime? mostRecentDelivery;
     for (final p in _db.purchases) {
-      if (mostRecentDelivery == null || p.receivedDate.isAfter(mostRecentDelivery)) {
+      if (mostRecentDelivery == null ||
+          p.receivedDate.isAfter(mostRecentDelivery)) {
         mostRecentDelivery = p.receivedDate;
       }
     }

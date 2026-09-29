@@ -13,9 +13,7 @@ import 'supabase/supabase_inventory_service_history_fixed.dart';
 /// depending on [kUseMock].
 abstract interface class InventoryService {
   factory InventoryService() =>
-      kUseMock
-          ? MockInventoryService()
-          : SupabaseInventoryService();
+      kUseMock ? MockInventoryService() : SupabaseInventoryService();
 
   Future<List<InventoryItem>> fetchItems();
 
@@ -135,7 +133,6 @@ abstract interface class InventoryService {
     // STOCK OUT UNIT
     // ========================================================================
     required QtyUnit qtyUnit,
-
     required StockOutReason reason,
     required String recordedByUserId,
   });
@@ -158,10 +155,8 @@ abstract interface class InventoryService {
 // MOCK INVENTORY SERVICE
 // =============================================================================
 
-class MockInventoryService
-    implements InventoryService {
-  final MockDatabase _db =
-      MockDatabase.instance;
+class MockInventoryService implements InventoryService {
+  final MockDatabase _db = MockDatabase.instance;
 
   // ==========================================================================
   // CONVERT MOCK ROW → INVENTORY ITEM
@@ -170,13 +165,11 @@ class MockInventoryService
   InventoryItem _toInventoryItem(
     ItemRow row,
   ) {
-    final hasPurchaseHistory =
-        _db.purchaseItems.any(
+    final hasPurchaseHistory = _db.purchaseItems.any(
       (p) => p.itemId == row.id,
     );
 
-    final hasDonationHistory =
-        _db.donationItems.any(
+    final hasDonationHistory = _db.donationItems.any(
       (d) => d.itemId == row.id,
     );
 
@@ -208,149 +201,91 @@ class MockInventoryService
     //
     //   purchase-unit equivalent = 0.5 bag
     //
-    final lifetimeStockOutQty =
-        _db.stockOuts
-            .where(
-              (s) => s.itemId == row.id,
-            )
-            .fold<double>(
-              0.0,
-              (sum, stockOut) {
-                if (stockOut.qtyUnit ==
-                        QtyUnit.packageUnit &&
-                    row.packageQuantity !=
-                        null &&
-                    row.packageQuantity! >
-                        0) {
-                  return sum +
-                      (stockOut.qty /
-                          row.packageQuantity!);
-                }
+    final lifetimeStockOutQty = _db.stockOuts
+        .where(
+      (s) => s.itemId == row.id,
+    )
+        .fold<double>(
+      0.0,
+      (sum, stockOut) {
+        if (stockOut.qtyUnit == QtyUnit.packageUnit &&
+            row.packageQuantity != null &&
+            row.packageQuantity! > 0) {
+          return sum + (stockOut.qty / row.packageQuantity!);
+        }
 
-                return sum +
-                    stockOut.qty;
-              },
-            );
+        return sum + stockOut.qty;
+      },
+    );
 
-    final lifetimeTreatmentQty =
-        _db.treatmentItems
-            .where(
-              (t) => t.itemId == row.id,
-            )
-            .fold<double>(
-              0.0,
-              (
-                sum,
-                treatment,
-              ) =>
-                  sum +
-                  treatment.dispensedQty,
-            );
+    final lifetimeTreatmentQty = _db.treatmentItems
+        .where(
+          (t) => t.itemId == row.id,
+        )
+        .fold<double>(
+          0.0,
+          (
+            sum,
+            treatment,
+          ) =>
+              sum + treatment.dispensedQty,
+        );
 
-    final pCategory =
-        firstWhereOrNull(
+    final pCategory = firstWhereOrNull(
       _db.primaryCategories,
-      (c) =>
-          c.id == row.pCategoryId,
+      (c) => c.id == row.pCategoryId,
     );
 
-    final sCategory =
-        row.sCategoryId == null
-            ? null
-            : firstWhereOrNull(
-                _db.subcategories,
-                (c) =>
-                    c.id ==
-                    row.sCategoryId,
-              );
+    final sCategory = row.sCategoryId == null
+        ? null
+        : firstWhereOrNull(
+            _db.subcategories,
+            (c) => c.id == row.sCategoryId,
+          );
 
-    final purchaseUnit =
-        firstWhereOrNull(
+    final purchaseUnit = firstWhereOrNull(
       _db.units,
-      (u) =>
-          u.id ==
-          row.purchaseUnitId,
+      (u) => u.id == row.purchaseUnitId,
     );
 
-    final packageUnit =
-        row.packageUnitId == null
-            ? null
-            : firstWhereOrNull(
-                _db.units,
-                (u) =>
-                    u.id ==
-                    row.packageUnitId,
-              );
+    final packageUnit = row.packageUnitId == null
+        ? null
+        : firstWhereOrNull(
+            _db.units,
+            (u) => u.id == row.packageUnitId,
+          );
 
-    final dispenseUnit =
-        row.dispenseUnitId == null
-            ? null
-            : firstWhereOrNull(
-                _db.units,
-                (u) =>
-                    u.id ==
-                    row.dispenseUnitId,
-              );
+    final dispenseUnit = row.dispenseUnitId == null
+        ? null
+        : firstWhereOrNull(
+            _db.units,
+            (u) => u.id == row.dispenseUnitId,
+          );
 
     return InventoryItem(
       itemId: row.id,
       itemName: row.name,
-
-      pCategoryId:
-          row.pCategoryId,
-      pCategoryName:
-          pCategory?.type ??
-          'Unknown category',
-
-      sCategoryId:
-          row.sCategoryId,
-      sCategoryName:
-          sCategory?.type,
-
-      purchaseUnitId:
-          row.purchaseUnitId,
-      purchaseUnitAbbr:
-          purchaseUnit?.abbrName ??
-          '',
-
-      packageUnitId:
-          row.packageUnitId,
-      packageUnitAbbr:
-          packageUnit?.abbrName,
-
-      packageQuantity:
-          row.packageQuantity,
-
-      dispenseUnitId:
-          row.dispenseUnitId,
-      dispenseUnitAbbr:
-          dispenseUnit?.abbrName,
-
-      stockQty:
-          row.purchaseStocks,
-
-      packageStockQty:
-          row.packageStocks,
-
-      totalPackageStockIns:
-          row.totalPackageStockIns,
-
-      stockCountMode:
-          stockCountModeFromString(
+      pCategoryId: row.pCategoryId,
+      pCategoryName: pCategory?.type ?? 'Unknown category',
+      sCategoryId: row.sCategoryId,
+      sCategoryName: sCategory?.type,
+      purchaseUnitId: row.purchaseUnitId,
+      purchaseUnitAbbr: purchaseUnit?.abbrName ?? '',
+      packageUnitId: row.packageUnitId,
+      packageUnitAbbr: packageUnit?.abbrName,
+      packageQuantity: row.packageQuantity,
+      dispenseUnitId: row.dispenseUnitId,
+      dispenseUnitAbbr: dispenseUnit?.abbrName,
+      stockQty: row.purchaseStocks,
+      packageStockQty: row.packageStocks,
+      totalPackageStockIns: row.totalPackageStockIns,
+      stockCountMode: stockCountModeFromString(
         row.stockCountMode,
       ),
-
-      hasPurchaseHistory:
-          hasPurchaseHistory,
-
-      hasDonationHistory:
-          hasDonationHistory,
-
-      lifetimeStockOutQty:
-          lifetimeStockOutQty,
-
-      lifetimeTreatmentQty:
-          lifetimeTreatmentQty,
+      hasPurchaseHistory: hasPurchaseHistory,
+      hasDonationHistory: hasDonationHistory,
+      lifetimeStockOutQty: lifetimeStockOutQty,
+      lifetimeTreatmentQty: lifetimeTreatmentQty,
     );
   }
 
@@ -361,8 +296,7 @@ class MockInventoryService
   ItemRow _requireRow(
     String itemId,
   ) {
-    final row =
-        firstWhereOrNull(
+    final row = firstWhereOrNull(
       _db.items,
       (i) => i.id == itemId,
     );
@@ -383,15 +317,12 @@ class MockInventoryService
   String _userName(
     String userId,
   ) {
-    final user =
-        firstWhereOrNull(
+    final user = firstWhereOrNull(
       _db.users,
-      (u) =>
-          u.userId == userId,
+      (u) => u.userId == userId,
     );
 
-    return user?.fullName ??
-        'Unknown user';
+    return user?.fullName ?? 'Unknown user';
   }
 
   // ==========================================================================
@@ -418,18 +349,15 @@ class MockInventoryService
   // ==========================================================================
 
   @override
-  Future<List<InventoryItem>>
-      fetchItems() async {
-    final list =
-        _db.items
-            .map(
-              _toInventoryItem,
-            )
-            .toList();
+  Future<List<InventoryItem>> fetchItems() async {
+    final list = _db.items
+        .map(
+          _toInventoryItem,
+        )
+        .toList();
 
     list.sort(
-      (a, b) =>
-          a.itemName.compareTo(
+      (a, b) => a.itemName.compareTo(
         b.itemName,
       ),
     );
@@ -445,8 +373,7 @@ class MockInventoryService
   Future<InventoryItem?> fetchItem(
     String itemId,
   ) async {
-    final row =
-        firstWhereOrNull(
+    final row = firstWhereOrNull(
       _db.items,
       (i) => i.id == itemId,
     );
@@ -474,50 +401,28 @@ class MockInventoryService
     StockCountMode? stockCountMode,
     double initialQty = 0,
   }) async {
-    final row =
-        ItemRow(
+    final row = ItemRow(
       id: newMockId('item'),
       name: itemName,
-
-      pCategoryId:
-          pCategoryId,
-
-      sCategoryId:
-          sCategoryId,
-
-      purchaseUnitId:
-          purchaseUnitId,
-
-      packageUnitId:
-          packageUnitId,
-
-      packageQuantity:
-          packageQuantity,
-
-      dispenseUnitId:
-          dispenseUnitId,
-
-      purchaseStocks:
-          initialQty,
-
+      pCategoryId: pCategoryId,
+      sCategoryId: sCategoryId,
+      purchaseUnitId: purchaseUnitId,
+      packageUnitId: packageUnitId,
+      packageQuantity: packageQuantity,
+      dispenseUnitId: dispenseUnitId,
+      purchaseStocks: initialQty,
       packageStocks:
-          packageQuantity == null
-              ? null
-              : initialQty *
-                  packageQuantity,
-
-      stockCountMode:
-          stockCountMode == null
-              ? null
-              : stockCountModeToString(
-                  stockCountMode,
-                ),
+          packageQuantity == null ? null : initialQty * packageQuantity,
+      stockCountMode: stockCountMode == null
+          ? null
+          : stockCountModeToString(
+              stockCountMode,
+            ),
     );
 
     _db.items.add(row);
 
-    DataChangeBus.instance
-        .ping();
+    DataChangeBus.instance.ping();
 
     return _toInventoryItem(
       row,
@@ -529,8 +434,7 @@ class MockInventoryService
   // ==========================================================================
 
   @override
-  Future<InventoryItem>
-      updateDetails({
+  Future<InventoryItem> updateDetails({
     required String itemId,
     String? itemName,
     String? pCategoryId,
@@ -538,18 +442,14 @@ class MockInventoryService
     String? purchaseUnitId,
     StockCountMode? stockCountMode,
   }) async {
-    final row =
-        _requireRow(itemId);
+    final row = _requireRow(itemId);
 
     if (itemName != null) {
       row.name = itemName;
     }
 
-    if (pCategoryId != null &&
-        pCategoryId !=
-            row.pCategoryId) {
-      row.pCategoryId =
-          pCategoryId;
+    if (pCategoryId != null && pCategoryId != row.pCategoryId) {
+      row.pCategoryId = pCategoryId;
 
       // The old subcategory may belong to the previous
       // primary category, so clear it.
@@ -557,26 +457,20 @@ class MockInventoryService
     }
 
     if (sCategoryId != null) {
-      row.sCategoryId =
-          sCategoryId;
+      row.sCategoryId = sCategoryId;
     }
 
-    if (purchaseUnitId !=
-        null) {
-      row.purchaseUnitId =
-          purchaseUnitId;
+    if (purchaseUnitId != null) {
+      row.purchaseUnitId = purchaseUnitId;
     }
 
-    if (stockCountMode !=
-        null) {
-      row.stockCountMode =
-          stockCountModeToString(
+    if (stockCountMode != null) {
+      row.stockCountMode = stockCountModeToString(
         stockCountMode,
       );
     }
 
-    DataChangeBus.instance
-        .ping();
+    DataChangeBus.instance.ping();
 
     return _toInventoryItem(
       row,
@@ -595,17 +489,13 @@ class MockInventoryService
   /// When an item has a package breakdown, package stock is moved by the
   /// corresponding amount as well.
   @override
-  Future<InventoryItem>
-      adjustStock({
+  Future<InventoryItem> adjustStock({
     required String itemId,
     required double delta,
   }) async {
-    final row =
-        _requireRow(itemId);
+    final row = _requireRow(itemId);
 
-    final next =
-        row.purchaseStocks +
-        delta;
+    final next = row.purchaseStocks + delta;
 
     if (next < 0) {
       throw Exception(
@@ -614,27 +504,16 @@ class MockInventoryService
       );
     }
 
-    row.purchaseStocks =
-        next;
+    row.purchaseStocks = next;
 
-    if (row.packageQuantity !=
-        null) {
-      final currentPackage =
-          row.packageStocks ??
-          (
-            row.purchaseStocks -
-                delta
-          ) *
-              row.packageQuantity!;
+    if (row.packageQuantity != null) {
+      final currentPackage = row.packageStocks ??
+          (row.purchaseStocks - delta) * row.packageQuantity!;
 
-      row.packageStocks =
-          currentPackage +
-          delta *
-              row.packageQuantity!;
+      row.packageStocks = currentPackage + delta * row.packageQuantity!;
     }
 
-    DataChangeBus.instance
-        .ping();
+    DataChangeBus.instance.ping();
 
     return _toInventoryItem(
       row,
@@ -655,26 +534,18 @@ class MockInventoryService
   ///
   /// It deliberately does NOT change purchase_stocks.
   @override
-  Future<InventoryItem>
-      deductPackageStock({
+  Future<InventoryItem> deductPackageStock({
     required String itemId,
     required double delta,
   }) async {
-    final row =
-        _requireRow(itemId);
+    final row = _requireRow(itemId);
 
-    final current =
-        row.packageStocks ??
-        (
-          row.packageQuantity ==
-                  null
-              ? 0
-              : row.purchaseStocks *
-                  row.packageQuantity!
-        );
+    final current = row.packageStocks ??
+        (row.packageQuantity == null
+            ? 0
+            : row.purchaseStocks * row.packageQuantity!);
 
-    final next =
-        current + delta;
+    final next = current + delta;
 
     if (next < 0) {
       throw Exception(
@@ -683,11 +554,9 @@ class MockInventoryService
       );
     }
 
-    row.packageStocks =
-        next;
+    row.packageStocks = next;
 
-    DataChangeBus.instance
-        .ping();
+    DataChangeBus.instance.ping();
 
     return _toInventoryItem(
       row,
@@ -704,17 +573,13 @@ class MockInventoryService
     required double qty,
     required QtyUnit qtyUnit,
   }) async {
-    final row =
-        _requireRow(itemId);
+    final row = _requireRow(itemId);
 
     // ========================================================================
     // WHOLE-CONTAINER STOCK IN
     // ========================================================================
 
-    if (qtyUnit ==
-            QtyUnit.purchaseUnit ||
-        row.packageQuantity ==
-            null) {
+    if (qtyUnit == QtyUnit.purchaseUnit || row.packageQuantity == null) {
       return adjustStock(
         itemId: itemId,
         delta: qty,
@@ -737,20 +602,13 @@ class MockInventoryService
     // Only package stock changes.
     //
     final current =
-        row.packageStocks ??
-        (
-          row.purchaseStocks *
-          row.packageQuantity!
-        );
+        row.packageStocks ?? (row.purchaseStocks * row.packageQuantity!);
 
-    row.packageStocks =
-        current + qty;
+    row.packageStocks = current + qty;
 
-    row.totalPackageStockIns +=
-        qty;
+    row.totalPackageStockIns += qty;
 
-    DataChangeBus.instance
-        .ping();
+    DataChangeBus.instance.ping();
 
     return _toInventoryItem(
       row,
@@ -773,50 +631,37 @@ class MockInventoryService
     String itemId,
     double canonicalQty,
   ) {
-    final batches =
-        <
-            (
-              DateTime?,
-              double Function(),
-              void Function(double),
-            )
-        >[
-      for (final p
-          in _db.purchaseItems.where(
-        (p) =>
-            p.itemId == itemId,
+    final batches = <(
+      DateTime?,
+      double Function(),
+      void Function(double),
+    )>[
+      for (final p in _db.purchaseItems.where(
+        (p) => p.itemId == itemId,
       ))
         (
           p.expiryDate,
           () => p.qtyRemaining,
-          (v) =>
-              p.qtyRemaining = v,
+          (v) => p.qtyRemaining = v,
         ),
-
-      for (final d
-          in _db.donationItems.where(
-        (d) =>
-            d.itemId == itemId,
+      for (final d in _db.donationItems.where(
+        (d) => d.itemId == itemId,
       ))
         (
           d.expiryDate,
           () => d.qtyRemaining,
-          (v) =>
-              d.qtyRemaining = v,
+          (v) => d.qtyRemaining = v,
         ),
     ]..sort(
         (
           a,
           b,
         ) {
-          final aExpiry =
-              a.$1;
+          final aExpiry = a.$1;
 
-          final bExpiry =
-              b.$1;
+          final bExpiry = b.$1;
 
-          if (aExpiry == null &&
-              bExpiry == null) {
+          if (aExpiry == null && bExpiry == null) {
             return 0;
           }
 
@@ -834,8 +679,7 @@ class MockInventoryService
         },
       );
 
-    var remaining =
-        canonicalQty;
+    var remaining = canonicalQty;
 
     for (final (
           _,
@@ -846,17 +690,13 @@ class MockInventoryService
         break;
       }
 
-      final available =
-          getRemaining();
+      final available = getRemaining();
 
       if (available <= 0) {
         continue;
       }
 
-      final draw =
-          remaining < available
-              ? remaining
-              : available;
+      final draw = remaining < available ? remaining : available;
 
       setRemaining(
         available - draw,
@@ -871,21 +711,18 @@ class MockInventoryService
   // ==========================================================================
 
   @override
-  Future<InventoryItem>
-      deductFefo({
+  Future<InventoryItem> deductFefo({
     required String itemId,
     required double qty,
   }) async {
-    final row =
-        _requireRow(itemId);
+    final row = _requireRow(itemId);
 
     _drainBatchesFefo(
       itemId,
       qty,
     );
 
-    if (row.packageQuantity !=
-        null) {
+    if (row.packageQuantity != null) {
       return deductPackageStock(
         itemId: itemId,
         delta: -qty,
@@ -911,7 +748,6 @@ class MockInventoryService
     // STOCK OUT UNIT
     // ========================================================================
     required QtyUnit qtyUnit,
-
     required StockOutReason reason,
     required String recordedByUserId,
   }) async {
@@ -921,11 +757,9 @@ class MockInventoryService
       );
     }
 
-    final row =
-        _requireRow(itemId);
+    final row = _requireRow(itemId);
 
-    final item =
-        _toInventoryItem(row);
+    final item = _toInventoryItem(row);
 
     // =========================================================================
     // PACKAGE-UNIT STOCK OUT
@@ -947,16 +781,12 @@ class MockInventoryService
     //   package stock = 5 kg
     //   whole-container stock is NOT decremented
     //
-    if (qtyUnit ==
-        QtyUnit.packageUnit) {
+    if (qtyUnit == QtyUnit.packageUnit) {
       // ======================================================================
       // PACKAGE UNIT MUST EXIST
       // ======================================================================
 
-      if (row.packageQuantity ==
-              null ||
-          row.packageUnitId ==
-              null) {
+      if (row.packageQuantity == null || row.packageUnitId == null) {
         throw Exception(
           '${item.itemName} does not have a smaller '
           'package unit configured.',
@@ -964,18 +794,13 @@ class MockInventoryService
       }
 
       final currentPackage =
-          row.packageStocks ??
-          (
-            row.purchaseStocks *
-            row.packageQuantity!
-          );
+          row.packageStocks ?? (row.purchaseStocks * row.packageQuantity!);
 
       // ======================================================================
       // PACKAGE-UNIT AVAILABILITY VALIDATION
       // ======================================================================
 
-      if (qty >
-          currentPackage) {
+      if (qty > currentPackage) {
         throw Exception(
           'Not enough stock. Only '
           '${formatQty(currentPackage)} '
@@ -1004,13 +829,10 @@ class MockInventoryService
           ),
           itemId: itemId,
           qty: qty,
-          qtyUnit:
-              QtyUnit.packageUnit,
+          qtyUnit: QtyUnit.packageUnit,
           reason: reason,
-          recordedDate:
-              DateTime.now(),
-          recordedByUserId:
-              recordedByUserId,
+          recordedDate: DateTime.now(),
+          recordedByUserId: recordedByUserId,
         ),
       );
 
@@ -1059,8 +881,7 @@ class MockInventoryService
     // CHECK WHOLE-CONTAINER STOCK
     // -------------------------------------------------------------------------
 
-    if (qty >
-        row.purchaseStocks) {
+    if (qty > row.purchaseStocks) {
       throw Exception(
         'Not enough stock. Only '
         '${formatQty(row.purchaseStocks)} '
@@ -1079,11 +900,7 @@ class MockInventoryService
     // = 10 kg canonical quantity
     //
     final canonicalQty =
-        row.packageQuantity !=
-                null
-            ? qty *
-                row.packageQuantity!
-            : qty;
+        row.packageQuantity != null ? qty * row.packageQuantity! : qty;
 
     // =========================================================================
     // VALIDATE PACKAGE STOCK BEFORE REMOVING A WHOLE CONTAINER
@@ -1101,17 +918,11 @@ class MockInventoryService
     // transaction is rejected rather than allowing package stock to become
     // negative.
     //
-    if (row.packageQuantity !=
-        null) {
+    if (row.packageQuantity != null) {
       final currentPackage =
-          row.packageStocks ??
-          (
-            row.purchaseStocks *
-            row.packageQuantity!
-          );
+          row.packageStocks ?? (row.purchaseStocks * row.packageQuantity!);
 
-      if (canonicalQty >
-          currentPackage) {
+      if (canonicalQty > currentPackage) {
         throw Exception(
           'Not enough '
           '${item.packageUnitAbbr ?? 'package-unit'} '
@@ -1136,13 +947,10 @@ class MockInventoryService
         ),
         itemId: itemId,
         qty: qty,
-        qtyUnit:
-            QtyUnit.purchaseUnit,
+        qtyUnit: QtyUnit.purchaseUnit,
         reason: reason,
-        recordedDate:
-            DateTime.now(),
-        recordedByUserId:
-            recordedByUserId,
+        recordedDate: DateTime.now(),
+        recordedByUserId: recordedByUserId,
       ),
     );
 
@@ -1181,8 +989,7 @@ class MockInventoryService
       (i) => i.id == itemId,
     );
 
-    DataChangeBus.instance
-        .ping();
+    DataChangeBus.instance.ping();
   }
 
   // ==========================================================================
@@ -1200,41 +1007,29 @@ class MockInventoryService
   /// Adjustment -500 ml
   ///
   @override
-  Future<List<StockMovement>>
-      fetchStockHistory(
+  Future<List<StockMovement>> fetchStockHistory(
     String itemId,
   ) async {
-    final item =
-        await fetchItem(
+    final item = await fetchItem(
       itemId,
     );
 
-    final purchaseUnitAbbr =
-        item?.purchaseUnitAbbr ??
-        '';
+    final purchaseUnitAbbr = item?.purchaseUnitAbbr ?? '';
 
-    final packageUnitAbbr =
-        item?.packageUnitAbbr ??
-        purchaseUnitAbbr;
+    final packageUnitAbbr = item?.packageUnitAbbr ?? purchaseUnitAbbr;
 
-    final movements =
-        <StockMovement>[];
+    final movements = <StockMovement>[];
 
     // =========================================================================
     // PURCHASE MOVEMENTS
     // =========================================================================
 
-    for (final row
-        in _db.purchaseItems.where(
-      (p) =>
-          p.itemId == itemId,
+    for (final row in _db.purchaseItems.where(
+      (p) => p.itemId == itemId,
     )) {
-      final purchase =
-          firstWhereOrNull(
+      final purchase = firstWhereOrNull(
         _db.purchases,
-        (p) =>
-            p.id ==
-            row.purchaseId,
+        (p) => p.id == row.purchaseId,
       );
 
       if (purchase == null) {
@@ -1243,19 +1038,13 @@ class MockInventoryService
 
       movements.add(
         StockMovement(
-          id:
-              '${purchase.id}-${row.itemId}',
-          date:
-              purchase.receivedDate,
-          direction:
-              StockDirection.stockIn,
+          id: '${purchase.id}-${row.itemId}',
+          date: purchase.receivedDate,
+          direction: StockDirection.stockIn,
           qty: row.qty,
-          unitAbbr:
-              purchaseUnitAbbr,
-          typeLabel:
-              'Purchased',
-          recordedByName:
-              _userName(
+          unitAbbr: purchaseUnitAbbr,
+          typeLabel: 'Purchased',
+          recordedByName: _userName(
             purchase.recordedByUserId,
           ),
         ),
@@ -1266,17 +1055,12 @@ class MockInventoryService
     // DONATION MOVEMENTS
     // =========================================================================
 
-    for (final row
-        in _db.donationItems.where(
-      (d) =>
-          d.itemId == itemId,
+    for (final row in _db.donationItems.where(
+      (d) => d.itemId == itemId,
     )) {
-      final donation =
-          firstWhereOrNull(
+      final donation = firstWhereOrNull(
         _db.donations,
-        (d) =>
-            d.id ==
-            row.donId,
+        (d) => d.id == row.donId,
       );
 
       if (donation == null) {
@@ -1285,25 +1069,15 @@ class MockInventoryService
 
       movements.add(
         StockMovement(
-          id:
-              '${donation.id}-${row.itemId}',
-          date:
-              donation.receivedDate,
-          direction:
-              StockDirection.stockIn,
+          id: '${donation.id}-${row.itemId}',
+          date: donation.receivedDate,
+          direction: StockDirection.stockIn,
           qty: row.qty,
-
-          unitAbbr:
-              row.qtyUnit ==
-                      QtyUnit.packageUnit
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
-
-          typeLabel:
-              'Donated',
-
-          recordedByName:
-              _userName(
+          unitAbbr: row.qtyUnit == QtyUnit.packageUnit
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
+          typeLabel: 'Donated',
+          recordedByName: _userName(
             donation.recordedByUserId,
           ),
         ),
@@ -1314,49 +1088,30 @@ class MockInventoryService
     // TREATMENT MOVEMENTS
     // =========================================================================
 
-    for (final row
-        in _db.treatmentItems.where(
-      (t) =>
-          t.itemId == itemId,
+    for (final row in _db.treatmentItems.where(
+      (t) => t.itemId == itemId,
     )) {
-      final treatment =
-          firstWhereOrNull(
+      final treatment = firstWhereOrNull(
         _db.treatments,
-        (t) =>
-            t.id ==
-            row.treatId,
+        (t) => t.id == row.treatId,
       );
 
-      final unit =
-          firstWhereOrNull(
+      final unit = firstWhereOrNull(
         _db.units,
-        (u) =>
-            u.id ==
-            row.dispenseUnitId,
+        (u) => u.id == row.dispenseUnitId,
       );
 
       movements.add(
         StockMovement(
-          id:
-              '${row.treatId}-${row.itemId}',
-          date:
-              row.consumedDate,
-          direction:
-              StockDirection.stockOut,
-          qty:
-              row.dispensedQty,
-          unitAbbr:
-              unit?.abbrName ??
-              purchaseUnitAbbr,
-          typeLabel:
-              'Treatment',
-          treatmentId:
-              row.treatId,
-          treatmentName:
-              treatment?.name ??
-              'Unknown treatment',
-          recordedByName:
-              _userName(
+          id: '${row.treatId}-${row.itemId}',
+          date: row.consumedDate,
+          direction: StockDirection.stockOut,
+          qty: row.dispensedQty,
+          unitAbbr: unit?.abbrName ?? purchaseUnitAbbr,
+          typeLabel: 'Treatment',
+          treatmentId: row.treatId,
+          treatmentName: treatment?.name ?? 'Unknown treatment',
+          recordedByName: _userName(
             row.recordedByUserId,
           ),
         ),
@@ -1384,36 +1139,28 @@ class MockInventoryService
     //
     // 3 kg
     //
-    for (final row
-        in _db.stockOuts.where(
-      (s) =>
-          s.itemId == itemId,
+    for (final row in _db.stockOuts.where(
+      (s) => s.itemId == itemId,
     )) {
       movements.add(
         StockMovement(
           id: row.id,
-          date:
-              row.recordedDate,
-          direction:
-              StockDirection.stockOut,
+          date: row.recordedDate,
+          direction: StockDirection.stockOut,
           qty: row.qty,
 
           // ===================================================================
           // CORRECT STOCK OUT UNIT DISPLAY
           // ===================================================================
-          unitAbbr:
-              row.qtyUnit ==
-                      QtyUnit.packageUnit
-                  ? packageUnitAbbr
-                  : purchaseUnitAbbr,
+          unitAbbr: row.qtyUnit == QtyUnit.packageUnit
+              ? packageUnitAbbr
+              : purchaseUnitAbbr,
 
-          typeLabel:
-              _stockOutReasonLabel(
+          typeLabel: _stockOutReasonLabel(
             row.reason,
           ),
 
-          recordedByName:
-              _userName(
+          recordedByName: _userName(
             row.recordedByUserId,
           ),
         ),
@@ -1421,8 +1168,7 @@ class MockInventoryService
     }
 
     movements.sort(
-      (a, b) =>
-          b.date.compareTo(
+      (a, b) => b.date.compareTo(
         a.date,
       ),
     );
@@ -1435,12 +1181,10 @@ class MockInventoryService
   // ==========================================================================
 
   @override
-  Future<List<DateTime>>
-      fetchStockOutDates() async {
+  Future<List<DateTime>> fetchStockOutDates() async {
     return _db.stockOuts
         .map(
-          (s) =>
-              s.recordedDate,
+          (s) => s.recordedDate,
         )
         .toList();
   }

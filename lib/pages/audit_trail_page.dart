@@ -45,8 +45,7 @@ class AuditTrailPage extends StatefulWidget {
   const AuditTrailPage({super.key});
 
   @override
-  State<AuditTrailPage> createState() =>
-      _AuditTrailPageState();
+  State<AuditTrailPage> createState() => _AuditTrailPageState();
 }
 
 class _AuditTrailPageState extends State<AuditTrailPage>
@@ -83,16 +82,12 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     'Medical',
   ];
 
-  AppUser? get _currentUser =>
-      context.read<AuthController>().profile;
+  AppUser? get _currentUser => context.read<AuthController>().profile;
 
-  bool get _isStaff =>
-      _currentUser?.role == AppRole.staff;
+  bool get _isStaff => _currentUser?.role == AppRole.staff;
 
   List<String> get _visibleModuleOptions =>
-      _isStaff
-          ? _staffModuleOptions
-          : _managerModuleOptions;
+      _isStaff ? _staffModuleOptions : _managerModuleOptions;
 
   @override
   void initState() {
@@ -144,22 +139,14 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     }
 
     try {
-      final user =
-          context.read<AuthController>().profile;
+      final user = context.read<AuthController>().profile;
 
-      final isStaff =
-          user?.role == AppRole.staff;
+      final isStaff = user?.role == AppRole.staff;
 
-      final entries =
-          await _service.fetchEntries(
-        actorUserId:
-            isStaff ? user!.userId : null,
-        modules:
-            isStaff
-                ? _staffModuleOptions
-                : null,
-        includeChangeDetails:
-            !isStaff,
+      final entries = await _service.fetchEntries(
+        actorUserId: isStaff ? user!.userId : null,
+        modules: isStaff ? _staffModuleOptions : null,
+        includeChangeDetails: !isStaff,
       );
 
       if (!mounted) return;
@@ -182,8 +169,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
       if (!silent) {
         setState(() {
-          _error =
-              'Could not load audit trail: $e';
+          _error = 'Could not load audit trail: $e';
           _loading = false;
         });
       }
@@ -215,8 +201,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       );
     }
 
-    if (_period ==
-        _AuditPeriod.sevenDays) {
+    if (_period == _AuditPeriod.sevenDays) {
       return !date.isBefore(
         _todayStart.subtract(
           const Duration(days: 6),
@@ -224,8 +209,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       );
     }
 
-    if (_period ==
-        _AuditPeriod.thirtyDays) {
+    if (_period == _AuditPeriod.thirtyDays) {
       return !date.isBefore(
         _todayStart.subtract(
           const Duration(days: 29),
@@ -237,17 +221,14 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   }
 
   List<AuditEntry> get _filtered {
-    final query =
-        _search.trim().toLowerCase();
+    final query = _search.trim().toLowerCase();
 
     return _entries.where((entry) {
-      if (_moduleFilter != null &&
-          entry.module != _moduleFilter) {
+      if (_moduleFilter != null && entry.module != _moduleFilter) {
         return false;
       }
 
-      if (_actionFilter != null &&
-          entry.action != _actionFilter) {
+      if (_actionFilter != null && entry.action != _actionFilter) {
         return false;
       }
 
@@ -288,22 +269,16 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   List<AuditEntry> get _pageEntries {
     final rows = _filtered;
 
-    final safePage =
-        _page.clamp(
+    final safePage = _page.clamp(
       0,
       _pageCount - 1,
     );
 
-    final start =
-        safePage * _pageSize;
+    final start = safePage * _pageSize;
 
-    final proposedEnd =
-        start + _pageSize;
+    final proposedEnd = start + _pageSize;
 
-    final end =
-        proposedEnd > rows.length
-            ? rows.length
-            : proposedEnd;
+    final end = proposedEnd > rows.length ? rows.length : proposedEnd;
 
     if (start >= end) {
       return const [];
@@ -337,23 +312,20 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   // SUMMARY COUNTS
   // ===========================================================================
 
-  int get _todayCount =>
-      _entries
-          .where(
-            (entry) =>
-                !entry.createdAt.isBefore(
-              _todayStart,
-            ),
-          )
-          .length;
+  int get _todayCount => _entries
+      .where(
+        (entry) => !entry.createdAt.isBefore(
+          _todayStart,
+        ),
+      )
+      .length;
 
   int _moduleCount(
     String module,
   ) {
     return _entries
         .where(
-          (entry) =>
-              entry.module == module,
+          (entry) => entry.module == module,
         )
         .length;
   }
@@ -362,10 +334,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     String module,
   ) {
     setState(() {
-      _moduleFilter =
-          _moduleFilter == module
-              ? null
-              : module;
+      _moduleFilter = _moduleFilter == module ? null : module;
 
       _period = _AuditPeriod.all;
       _page = 0;
@@ -375,9 +344,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   void _selectTodayCard() {
     setState(() {
       _period =
-          _period == _AuditPeriod.today
-              ? _AuditPeriod.all
-              : _AuditPeriod.today;
+          _period == _AuditPeriod.today ? _AuditPeriod.all : _AuditPeriod.today;
 
       _moduleFilter = null;
       _page = 0;
@@ -390,24 +357,22 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
   @override
   Widget build(BuildContext context) {
- if (_loading && _entries.isEmpty) {
-  return const PageLoading(
-    message: 'Loading audit trail',
-  );
-}
+    if (_loading && _entries.isEmpty) {
+      return const PageLoading(
+        message: 'Loading audit trail',
+      );
+    }
 
     if (_error != null) {
       return Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _error!,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 12),
@@ -425,56 +390,37 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     }
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _isStaff
-              ? 'My Activity'
-              : 'Audit Trail',
+          _isStaff ? 'My Activity' : 'Audit Trail',
           style: const TextStyle(
             fontSize: 24,
-            fontWeight:
-                FontWeight.w800,
+            fontWeight: FontWeight.w800,
           ),
         ),
-
         const SizedBox(height: 3),
-
         Text(
           _isStaff
               ? 'Review the inventory and medical actions recorded under your account.'
               : 'Review important actions and changes made in SIYAM.',
           style: const TextStyle(
             fontSize: 13,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
-
         const SizedBox(height: 18),
-
         _buildSummaryCards(),
-
         const SizedBox(height: 18),
-
         _buildFilters(),
-
         const SizedBox(height: 14),
-
         if (_hasFilters)
           _ActiveFilterSummary(
-            resultCount:
-                _filtered.length,
-            onClear:
-                _resetFilters,
+            resultCount: _filtered.length,
+            onClear: _resetFilters,
           ),
-
-        if (_hasFilters)
-          const SizedBox(height: 12),
-
+        if (_hasFilters) const SizedBox(height: 12),
         _buildList(),
-
         if (_filtered.isNotEmpty) ...[
           const SizedBox(height: 12),
           _buildPagination(),
@@ -493,45 +439,27 @@ class _AuditTrailPageState extends State<AuditTrailPage>
         icon: Icons.today_outlined,
         value: '$_todayCount',
         label: 'Today',
-        helper:
-            _isStaff
-                ? 'Your actions today'
-                : 'Actions recorded today',
-        selected:
-            _period == _AuditPeriod.today,
+        helper: _isStaff ? 'Your actions today' : 'Actions recorded today',
+        selected: _period == _AuditPeriod.today,
         onTap: _selectTodayCard,
       ),
       _AuditSummaryCard(
-        icon:
-            Icons.inventory_2_outlined,
-        value:
-            '${_moduleCount('Inventory')}',
+        icon: Icons.inventory_2_outlined,
+        value: '${_moduleCount('Inventory')}',
         label: 'Inventory',
-        helper:
-            _isStaff
-                ? 'Your inventory actions'
-                : 'Stock and item actions',
-        selected:
-            _moduleFilter == 'Inventory',
-        onTap: () =>
-            _selectModuleCard(
+        helper: _isStaff ? 'Your inventory actions' : 'Stock and item actions',
+        selected: _moduleFilter == 'Inventory',
+        onTap: () => _selectModuleCard(
           'Inventory',
         ),
       ),
       _AuditSummaryCard(
-        icon:
-            Icons.medical_services_outlined,
-        value:
-            '${_moduleCount('Medical')}',
+        icon: Icons.medical_services_outlined,
+        value: '${_moduleCount('Medical')}',
         label: 'Medical',
-        helper:
-            _isStaff
-                ? 'Your treatment actions'
-                : 'Treatment actions',
-        selected:
-            _moduleFilter == 'Medical',
-        onTap: () =>
-            _selectModuleCard(
+        helper: _isStaff ? 'Your treatment actions' : 'Treatment actions',
+        selected: _moduleFilter == 'Medical',
+        onTap: () => _selectModuleCard(
           'Medical',
         ),
       ),
@@ -540,19 +468,12 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     if (!_isStaff) {
       cards.add(
         _AuditSummaryCard(
-          icon:
-              Icons.settings_outlined,
-          value:
-              '${_moduleCount('Configuration')}',
-          label:
-              'Configuration',
-          helper:
-              'Settings and registry changes',
-          selected:
-              _moduleFilter ==
-              'Configuration',
-          onTap: () =>
-              _selectModuleCard(
+          icon: Icons.settings_outlined,
+          value: '${_moduleCount('Configuration')}',
+          label: 'Configuration',
+          helper: 'Settings and registry changes',
+          selected: _moduleFilter == 'Configuration',
+          onTap: () => _selectModuleCard(
             'Configuration',
           ),
         ),
@@ -574,11 +495,9 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   // ===========================================================================
 
   Widget _buildFilters() {
-    final width =
-        MediaQuery.sizeOf(context).width;
+    final width = MediaQuery.sizeOf(context).width;
 
-    final narrow =
-        width < 1180;
+    final narrow = width < 1180;
 
     final search = TextField(
       controller: _searchCtrl,
@@ -588,28 +507,26 @@ class _AuditTrailPageState extends State<AuditTrailPage>
           Icons.search,
           size: 18,
         ),
-        suffixIcon:
-            _search.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Clear search',
-                    onPressed: () {
-                      _searchCtrl.clear();
+        suffixIcon: _search.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                onPressed: () {
+                  _searchCtrl.clear();
 
-                      setState(() {
-                        _search = '';
-                        _page = 0;
-                      });
-                    },
-                    icon: const Icon(
-                      Icons.close,
-                      size: 18,
-                    ),
-                  ),
-        hintText:
-            _isStaff
-                ? 'Search your activity, item, or treatment'
-                : 'Search user, action, item, animal, supplier',
+                  setState(() {
+                    _search = '';
+                    _page = 0;
+                  });
+                },
+                icon: const Icon(
+                  Icons.close,
+                  size: 18,
+                ),
+              ),
+        hintText: _isStaff
+            ? 'Search your activity, item, or treatment'
+            : 'Search user, action, item, animal, supplier',
       ),
       onChanged: (value) {
         setState(() {
@@ -619,18 +536,14 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       },
     );
 
-    final module =
-        AppDropdown<String?>(
-      label:
-          _moduleFilter ??
-          'All modules',
+    final module = AppDropdown<String?>(
+      label: _moduleFilter ?? 'All modules',
       options: [
         const AppDropdownOption<String?>(
           null,
           'All modules',
         ),
-        for (final value
-            in _visibleModuleOptions)
+        for (final value in _visibleModuleOptions)
           AppDropdownOption<String?>(
             value,
             value,
@@ -644,15 +557,13 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       },
     );
 
-    final action =
-        AppDropdown<String?>(
-      label:
-          _actionFilter == null
-              ? 'All actions'
-              : _actionLabel(
-                  _actionFilter!,
-                  isStaff: _isStaff,
-                ),
+    final action = AppDropdown<String?>(
+      label: _actionFilter == null
+          ? 'All actions'
+          : _actionLabel(
+              _actionFilter!,
+              isStaff: _isStaff,
+            ),
       options: [
         const AppDropdownOption<String?>(
           null,
@@ -668,9 +579,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
         ),
         AppDropdownOption<String?>(
           'DELETE',
-          _isStaff
-              ? 'Removed'
-              : 'Archived',
+          _isStaff ? 'Removed' : 'Archived',
         ),
       ],
       onSelect: (value) {
@@ -681,8 +590,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       },
     );
 
-    final period =
-        AppDropdown<_AuditPeriod>(
+    final period = AppDropdown<_AuditPeriod>(
       label: _periodLabel(_period),
       options: const [
         AppDropdownOption(
@@ -712,16 +620,14 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
     if (narrow) {
       return Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           search,
           const SizedBox(height: 10),
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            crossAxisAlignment:
-                WrapCrossAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               module,
               action,
@@ -733,8 +639,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     }
 
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: search,
@@ -758,10 +663,8 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
     if (_entries.isEmpty) {
       return const _AuditEmptyState(
-        icon:
-            Icons.fact_check_outlined,
-        title:
-            'No audit activity yet',
+        icon: Icons.fact_check_outlined,
+        title: 'No audit activity yet',
         message:
             'New actions will appear here after the Audit Trail migration is installed.',
       );
@@ -771,48 +674,34 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       return _AuditEmptyState(
         icon: Icons.search_off,
         title: 'No matching activity',
-        message:
-            'Try another search or clear the selected filters.',
+        message: 'Try another search or clear the selected filters.',
         actionLabel: 'Clear Filters',
         onAction: _resetFilters,
       );
     }
 
-    final mobile =
-        MediaQuery.sizeOf(context)
-                .width <
-            820;
+    final mobile = MediaQuery.sizeOf(context).width < 820;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Column(
         children: [
-          if (!mobile)
-            const _AuditHeader(),
-
-          if (!mobile)
-            const Divider(height: 1),
-
-          for (var i = 0;
-              i < rows.length;
-              i++) ...[
-            if (i > 0)
-              const Divider(height: 1),
-
+          if (!mobile) const _AuditHeader(),
+          if (!mobile) const Divider(height: 1),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const Divider(height: 1),
             if (mobile)
               _AuditMobileRow(
                 entry: rows[i],
                 isStaff: _isStaff,
-                onTap: () =>
-                    _showDetails(
+                onTap: () => _showDetails(
                   rows[i],
                 ),
               )
@@ -820,8 +709,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
               _AuditDesktopRow(
                 entry: rows[i],
                 isStaff: _isStaff,
-                onTap: () =>
-                    _showDetails(
+                onTap: () => _showDetails(
                   rows[i],
                 ),
               ),
@@ -838,8 +726,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   Future<void> _showDetails(
     AuditEntry entry,
   ) async {
-    final changes =
-        _changedFields(entry);
+    final changes = _changedFields(entry);
 
     await showDialog<void>(
       context: context,
@@ -848,49 +735,40 @@ class _AuditTrailPageState extends State<AuditTrailPage>
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
           ),
-          titlePadding:
-              const EdgeInsets.fromLTRB(
+          titlePadding: const EdgeInsets.fromLTRB(
             22,
             20,
             22,
             0,
           ),
-          contentPadding:
-              const EdgeInsets.fromLTRB(
+          contentPadding: const EdgeInsets.fromLTRB(
             22,
             14,
             22,
             8,
           ),
           title: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 entry.summary,
                 style: const TextStyle(
                   fontSize: 19,
-                  fontWeight:
-                      FontWeight.w800,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Wrap(
                 spacing: 7,
                 runSpacing: 6,
                 children: [
                   _ModuleBadge(
-                    module:
-                        entry.module,
+                    module: entry.module,
                   ),
                   _ActionBadge(
-                    action:
-                        entry.action,
+                    action: entry.action,
                     isStaff: _isStaff,
                   ),
                 ],
@@ -899,126 +777,84 @@ class _AuditTrailPageState extends State<AuditTrailPage>
           ),
           content: SizedBox(
             width: 520,
-            child:
-                SingleChildScrollView(
+            child: SingleChildScrollView(
               child: Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _SectionTitle(
                     'Action Details',
                   ),
-
                   _DetailRow(
-                    label:
-                        'Performed by',
-                    value:
-                        entry.actorName,
+                    label: 'Performed by',
+                    value: entry.actorName,
                   ),
-
                   _DetailRow(
                     label: 'Role',
-                    value:
-                        entry.actorRole,
+                    value: entry.actorRole,
                   ),
-
                   if (entry.receivedBy != null)
                     _DetailRow(
-                      label:
-                          'Received by',
-                      value:
-                          entry.receivedBy!,
+                      label: 'Received by',
+                      value: entry.receivedBy!,
                     ),
-
                   _DetailRow(
                     label: 'Module',
-                    value:
-                        entry.module,
+                    value: entry.module,
                   ),
-
                   _DetailRow(
                     label: 'Action',
-                    value:
-                        _actionLabel(
+                    value: _actionLabel(
                       entry.action,
                       isStaff: _isStaff,
                     ),
                   ),
-
                   _DetailRow(
-                    label:
-                        'Date & time',
-                    value:
-                        _formatDateTime(
+                    label: 'Date & time',
+                    value: _formatDateTime(
                       entry.createdAt,
                     ),
                   ),
-
-                  if (entry.entityLabel !=
-                          null &&
-                      entry.entityLabel!
-                          .trim()
-                          .isNotEmpty)
+                  if (entry.entityLabel != null &&
+                      entry.entityLabel!.trim().isNotEmpty)
                     _AuditEntityContext(
-                      entityType:
-                          entry.entityType,
-                      entityLabel:
-                          entry.entityLabel!,
+                      entityType: entry.entityType,
+                      entityLabel: entry.entityLabel!,
                     ),
-
-                  if (!_isStaff &&
-                      entry.isUpdate &&
-                      changes.isNotEmpty) ...[
+                  if (!_isStaff && entry.isUpdate && changes.isNotEmpty) ...[
                     const SizedBox(
                       height: 16,
                     ),
                     const _SectionTitle(
                       'What changed',
                     ),
-                    for (final change
-                        in changes)
+                    for (final change in changes)
                       _ChangeRow(
-                        label:
-                            change.label,
-                        before:
-                            change.before,
-                        after:
-                            change.after,
+                        label: change.label,
+                        before: change.before,
+                        after: change.after,
                       ),
                   ],
-
                   const SizedBox(height: 14),
-
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.all(
+                    padding: const EdgeInsets.all(
                       12,
                     ),
-                    decoration:
-                        BoxDecoration(
-                      color:
-                          AppColors.secondary,
-                      borderRadius:
-                          BorderRadius
-                              .circular(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary,
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color:
-                            AppColors.border,
+                        color: AppColors.border,
                       ),
                     ),
                     child: Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(
                           Icons.info_outline,
                           size: 16,
-                          color:
-                              AppColors.primary,
+                          color: AppColors.primary,
                         ),
                         const SizedBox(width: 7),
                         Expanded(
@@ -1028,13 +864,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
                                 : 'Performed by is the signed-in account that carried out or recorded the action in SIYAM. '
                                     'For stock-in records, Received by is the person who physically received the supplies on-site. '
                                     'These can be different people.',
-                            style:
-                                const TextStyle(
-                              fontSize:
-                                  11.5,
+                            style: const TextStyle(
+                              fontSize: 11.5,
                               height: 1.4,
-                              color: AppColors
-                                  .mutedForeground,
+                              color: AppColors.mutedForeground,
                             ),
                           ),
                         ),
@@ -1045,8 +878,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
               ),
             ),
           ),
-          actionsPadding:
-              const EdgeInsets.fromLTRB(
+          actionsPadding: const EdgeInsets.fromLTRB(
             18,
             0,
             18,
@@ -1054,12 +886,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.of(
+              onPressed: () => Navigator.of(
                 dialogContext,
               ).pop(),
-              child:
-                  const Text('Close'),
+              child: const Text('Close'),
             ),
           ],
         );
@@ -1074,14 +904,11 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   List<_AuditChange> _changedFields(
     AuditEntry entry,
   ) {
-    final oldValues =
-        entry.oldValues;
+    final oldValues = entry.oldValues;
 
-    final newValues =
-        entry.newValues;
+    final newValues = entry.newValues;
 
-    if (oldValues == null ||
-        newValues == null) {
+    if (oldValues == null || newValues == null) {
       return const [];
     }
 
@@ -1090,8 +917,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       ...newValues.keys,
     };
 
-    final rows =
-        <_AuditChange>[];
+    final rows = <_AuditChange>[];
 
     for (final key in keys) {
       if (_hiddenChangeKeys.contains(
@@ -1100,11 +926,9 @@ class _AuditTrailPageState extends State<AuditTrailPage>
         continue;
       }
 
-      final before =
-          oldValues[key];
+      final before = oldValues[key];
 
-      final after =
-          newValues[key];
+      final after = newValues[key];
 
       if (_sameValue(
         before,
@@ -1115,19 +939,15 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 
       rows.add(
         _AuditChange(
-          label:
-              _fieldLabel(key),
-          before:
-              _displayValue(before),
-          after:
-              _displayValue(after),
+          label: _fieldLabel(key),
+          before: _displayValue(before),
+          after: _displayValue(after),
         ),
       );
     }
 
     rows.sort(
-      (a, b) => a.label
-          .compareTo(b.label),
+      (a, b) => a.label.compareTo(b.label),
     );
 
     return rows;
@@ -1137,8 +957,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     dynamic a,
     dynamic b,
   ) {
-    return a?.toString() ==
-        b?.toString();
+    return a?.toString() == b?.toString();
   }
 
   String _displayValue(
@@ -1149,13 +968,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     }
 
     if (value is bool) {
-      return value
-          ? 'Yes'
-          : 'No';
+      return value ? 'Yes' : 'No';
     }
 
-    final text =
-        value.toString().trim();
+    final text = value.toString().trim();
 
     if (text.isEmpty) {
       return 'None';
@@ -1164,8 +980,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
     return text;
   }
 
-  static const Set<String>
-      _hiddenChangeKeys = {
+  static const Set<String> _hiddenChangeKeys = {
     'id',
     'itemid',
     'petid',
@@ -1202,34 +1017,23 @@ class _AuditTrailPageState extends State<AuditTrailPage>
       'breed': 'Breed',
       'owner': 'Owner',
       'gender': 'Gender',
-      'spayed_neutered':
-          'Spayed / neutered',
-      'contactnum':
-          'Contact number',
-      'contacttel':
-          'Telephone',
+      'spayed_neutered': 'Spayed / neutered',
+      'contactnum': 'Contact number',
+      'contacttel': 'Telephone',
       'address': 'Address',
       'type': 'Name',
-      'abbr_name':
-          'Unit abbreviation',
-      'low_stock_threshold':
-          'Low-stock threshold',
-      'expiration_warning_days':
-          'Expiration warning days',
-      'default_lead_time_days':
-          'Default lead time',
-      'default_safety_stock_qty':
-          'Default safety stock',
-      'lead_time_days':
-          'Lead time',
-      'safety_stock_qty':
-          'Safety stock',
+      'abbr_name': 'Unit abbreviation',
+      'low_stock_threshold': 'Low-stock threshold',
+      'expiration_warning_days': 'Expiration warning days',
+      'default_lead_time_days': 'Default lead time',
+      'default_safety_stock_qty': 'Default safety stock',
+      'lead_time_days': 'Lead time',
+      'safety_stock_qty': 'Safety stock',
       'notes': 'Notes',
       'reason': 'Reason',
     };
 
-    final known =
-        labels[key];
+    final known = labels[key];
 
     if (known != null) {
       return known;
@@ -1239,12 +1043,10 @@ class _AuditTrailPageState extends State<AuditTrailPage>
         .replaceAll('_', ' ')
         .split(' ')
         .where(
-          (word) =>
-              word.isNotEmpty,
+          (word) => word.isNotEmpty,
         )
         .map(
-          (word) =>
-              '${word[0].toUpperCase()}'
+          (word) => '${word[0].toUpperCase()}'
               '${word.substring(1)}',
         )
         .join(' ');
@@ -1255,21 +1057,13 @@ class _AuditTrailPageState extends State<AuditTrailPage>
   // ===========================================================================
 
   Widget _buildPagination() {
-    final total =
-        _filtered.length;
+    final total = _filtered.length;
 
-    final start =
-        total == 0
-            ? 0
-            : (_page * _pageSize) + 1;
+    final start = total == 0 ? 0 : (_page * _pageSize) + 1;
 
-    final proposedEnd =
-        (_page + 1) * _pageSize;
+    final proposedEnd = (_page + 1) * _pageSize;
 
-    final end =
-        proposedEnd > total
-            ? total
-            : proposedEnd;
+    final end = proposedEnd > total ? total : proposedEnd;
 
     return Row(
       children: [
@@ -1278,44 +1072,35 @@ class _AuditTrailPageState extends State<AuditTrailPage>
             '$start-$end of $total actions',
             style: const TextStyle(
               fontSize: 12,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ),
-
         TextButton.icon(
-          onPressed:
-              _page <= 0
-                  ? null
-                  : () {
-                      setState(() {
-                        _page--;
-                      });
-                    },
+          onPressed: _page <= 0
+              ? null
+              : () {
+                  setState(() {
+                    _page--;
+                  });
+                },
           icon: const Icon(
             Icons.chevron_left,
             size: 17,
           ),
-          label:
-              const Text('Previous'),
+          label: const Text('Previous'),
         ),
-
         const SizedBox(width: 4),
-
         Container(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 5,
           ),
           decoration: BoxDecoration(
-            color: AppColors.primary
-                .withValues(
+            color: AppColors.primary.withValues(
               alpha: 0.10,
             ),
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               999,
             ),
           ),
@@ -1323,28 +1108,21 @@ class _AuditTrailPageState extends State<AuditTrailPage>
             '${_page + 1} / $_pageCount',
             style: const TextStyle(
               fontSize: 11.5,
-              fontWeight:
-                  FontWeight.w700,
-              color:
-                  AppColors.primary,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
             ),
           ),
         ),
-
         const SizedBox(width: 4),
-
         TextButton(
-          onPressed:
-              _page >=
-                      _pageCount - 1
-                  ? null
-                  : () {
-                      setState(() {
-                        _page++;
-                      });
-                    },
-          child:
-              const Text('Next'),
+          onPressed: _page >= _pageCount - 1
+              ? null
+              : () {
+                  setState(() {
+                    _page++;
+                  });
+                },
+          child: const Text('Next'),
         ),
       ],
     );
@@ -1355,8 +1133,7 @@ class _AuditTrailPageState extends State<AuditTrailPage>
 // SUMMARY CARD GRID
 // =============================================================================
 
-class _AuditCardGrid
-    extends StatelessWidget {
+class _AuditCardGrid extends StatelessWidget {
   final List<Widget> cards;
 
   const _AuditCardGrid({
@@ -1367,14 +1144,10 @@ class _AuditCardGrid
     List<Widget> children,
   ) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0;
-            i < children.length;
-            i++) ...[
-          if (i > 0)
-            const SizedBox(width: 12),
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
           Expanded(
             child: SizedBox(
               height: 112,
@@ -1388,20 +1161,15 @@ class _AuditCardGrid
 
   @override
   Widget build(BuildContext context) {
-    final width =
-        MediaQuery.sizeOf(context).width;
+    final width = MediaQuery.sizeOf(context).width;
 
     if (width < 650) {
       return Column(
         children: [
-          for (var i = 0;
-              i < cards.length;
-              i++) ...[
-            if (i > 0)
-              const SizedBox(height: 10),
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
             SizedBox(
-              width:
-                  double.infinity,
+              width: double.infinity,
               height: 108,
               child: cards[i],
             ),
@@ -1428,8 +1196,7 @@ class _AuditCardGrid
   }
 }
 
-class _AuditSummaryCard
-    extends StatelessWidget {
+class _AuditSummaryCard extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
@@ -1450,42 +1217,32 @@ class _AuditSummaryCard
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius:
-          BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(16),
-        hoverColor: AppColors.primary
-            .withValues(
+        borderRadius: BorderRadius.circular(16),
+        hoverColor: AppColors.primary.withValues(
           alpha: 0.04,
         ),
         child: AnimatedContainer(
-          duration:
-              const Duration(
+          duration: const Duration(
             milliseconds: 140,
           ),
           width: double.infinity,
           height: double.infinity,
-          padding:
-              const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: selected
-                ? AppColors.primary
-                    .withValues(
+                ? AppColors.primary.withValues(
                     alpha: 0.055,
                   )
                 : AppColors.card,
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               16,
             ),
             border: Border.all(
-              color: selected
-                  ? AppColors.primary
-                  : AppColors.border,
-              width:
-                  selected ? 1.5 : 1,
+              color: selected ? AppColors.primary : AppColors.border,
+              width: selected ? 1.5 : 1,
             ),
           ),
           child: Row(
@@ -1493,53 +1250,37 @@ class _AuditSummaryCard
               Container(
                 width: 38,
                 height: 38,
-                decoration:
-                    BoxDecoration(
-                  color: AppColors.primary
-                      .withValues(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(
                     alpha: 0.10,
                   ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(11),
+                  borderRadius: BorderRadius.circular(11),
                 ),
-                alignment:
-                    Alignment.center,
+                alignment: Alignment.center,
                 child: Icon(
                   icon,
                   size: 19,
-                  color:
-                      AppColors.primary,
+                  color: AppColors.primary,
                 ),
               ),
-
               const SizedBox(width: 11),
-
               Expanded(
                 child: Column(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       value,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
-                        fontWeight:
-                            FontWeight
-                                .w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     Text(
                       label,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 12.5,
-                        fontWeight:
-                            FontWeight
-                                .w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(
@@ -1548,14 +1289,10 @@ class _AuditSummaryCard
                     Text(
                       helper,
                       maxLines: 2,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1573,8 +1310,7 @@ class _AuditSummaryCard
 // FILTER SUMMARY
 // =============================================================================
 
-class _ActiveFilterSummary
-    extends StatelessWidget {
+class _ActiveFilterSummary extends StatelessWidget {
   final int resultCount;
   final VoidCallback onClear;
 
@@ -1593,8 +1329,7 @@ class _ActiveFilterSummary
             '${resultCount == 1 ? 'action' : 'actions'}',
             style: const TextStyle(
               fontSize: 12.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ),
@@ -1604,8 +1339,7 @@ class _ActiveFilterSummary
             Icons.filter_alt_off_outlined,
             size: 16,
           ),
-          label:
-              const Text('Clear Filters'),
+          label: const Text('Clear Filters'),
         ),
       ],
     );
@@ -1616,8 +1350,7 @@ class _ActiveFilterSummary
 // DESKTOP / MOBILE ROWS
 // =============================================================================
 
-class _AuditHeader
-    extends StatelessWidget {
+class _AuditHeader extends StatelessWidget {
   const _AuditHeader();
 
   @override
@@ -1631,32 +1364,27 @@ class _AuditHeader
         children: [
           Expanded(
             flex: 5,
-            child:
-                _HeaderCell('Activity'),
+            child: _HeaderCell('Activity'),
           ),
           SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child:
-                _HeaderCell('Performed By'),
+            child: _HeaderCell('Performed By'),
           ),
           SizedBox(width: 12),
           SizedBox(
             width: 110,
-            child:
-                _HeaderCell('Module'),
+            child: _HeaderCell('Module'),
           ),
           SizedBox(width: 12),
           SizedBox(
             width: 100,
-            child:
-                _HeaderCell('Action'),
+            child: _HeaderCell('Action'),
           ),
           SizedBox(width: 12),
           SizedBox(
             width: 150,
-            child:
-                _HeaderCell('Date & Time'),
+            child: _HeaderCell('Date & Time'),
           ),
           SizedBox(width: 22),
         ],
@@ -1665,8 +1393,7 @@ class _AuditHeader
   }
 }
 
-class _AuditDesktopRow
-    extends StatelessWidget {
+class _AuditDesktopRow extends StatelessWidget {
   final AuditEntry entry;
   final bool isStaff;
   final VoidCallback onTap;
@@ -1683,13 +1410,11 @@ class _AuditDesktopRow
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        hoverColor: AppColors.primary
-            .withValues(
+        hoverColor: AppColors.primary.withValues(
           alpha: 0.035,
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 13,
           ),
@@ -1698,37 +1423,28 @@ class _AuditDesktopRow
               Expanded(
                 flex: 5,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       entry.summary,
                       maxLines: 2,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 13,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (entry.entityLabel !=
-                            null &&
-                        entry.entityLabel!
-                            .trim()
-                            .isNotEmpty) ...[
+                    if (entry.entityLabel != null &&
+                        entry.entityLabel!.trim().isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        entry.entityType ==
-                                'purchase'
+                        entry.entityType == 'purchase'
                             ? 'Stocked items: ${entry.entityLabel!}'
                             : entry.entityLabel!,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 11.5,
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ],
@@ -1736,37 +1452,29 @@ class _AuditDesktopRow
                       const SizedBox(height: 2),
                       Text(
                         'Received by: ${entry.receivedBy}',
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 11.2,
-                          fontWeight:
-                              FontWeight.w500,
-                          color: AppColors
-                              .mutedForeground,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 flex: 2,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       entry.actorName,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12.5,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 1),
@@ -1774,37 +1482,28 @@ class _AuditDesktopRow
                       entry.actorRole,
                       style: const TextStyle(
                         fontSize: 10.8,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
               SizedBox(
                 width: 110,
                 child: _ModuleBadge(
-                  module:
-                      entry.module,
+                  module: entry.module,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               SizedBox(
                 width: 100,
                 child: _ActionBadge(
-                  action:
-                      entry.action,
+                  action: entry.action,
                   isStaff: isStaff,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               SizedBox(
                 width: 150,
                 child: Text(
@@ -1813,19 +1512,15 @@ class _AuditDesktopRow
                   ),
                   style: const TextStyle(
                     fontSize: 11.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ),
-
               const SizedBox(width: 4),
-
               const Icon(
                 Icons.chevron_right,
                 size: 18,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ],
           ),
@@ -1835,8 +1530,7 @@ class _AuditDesktopRow
   }
 }
 
-class _AuditMobileRow
-    extends StatelessWidget {
+class _AuditMobileRow extends StatelessWidget {
   final AuditEntry entry;
   final bool isStaff;
   final VoidCallback onTap;
@@ -1854,105 +1548,82 @@ class _AuditMobileRow
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding:
-              const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(15),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
                       entry.summary,
                       style: const TextStyle(
                         fontSize: 13.5,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   const Icon(
                     Icons.chevron_right,
                     size: 18,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ],
               ),
-
               if (entry.entityLabel != null &&
-                  entry.entityLabel!
-                      .trim()
-                      .isNotEmpty) ...[
+                  entry.entityLabel!.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  entry.entityType ==
-                          'purchase'
+                  entry.entityType == 'purchase'
                       ? 'Stocked items: ${entry.entityLabel!}'
                       : entry.entityLabel!,
                   style: const TextStyle(
                     fontSize: 11.5,
-                    color:
-                        AppColors.mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
-
               const SizedBox(height: 7),
-
               Wrap(
                 spacing: 7,
                 runSpacing: 6,
                 children: [
                   _ModuleBadge(
-                    module:
-                        entry.module,
+                    module: entry.module,
                   ),
                   _ActionBadge(
-                    action:
-                        entry.action,
+                    action: entry.action,
                     isStaff: isStaff,
                   ),
                 ],
               ),
-
               const SizedBox(height: 9),
-
               Text(
                 '${entry.actorName} · ${entry.actorRole}',
                 style: const TextStyle(
                   fontSize: 11.5,
-                  fontWeight:
-                      FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-
               const SizedBox(height: 2),
-
               Text(
                 _formatDateTime(
                   entry.createdAt,
                 ),
                 style: const TextStyle(
                   fontSize: 11.2,
-                  color:
-                      AppColors.mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
-
               if (entry.receivedBy != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Received by: ${entry.receivedBy}',
                   style: const TextStyle(
                     fontSize: 11.2,
-                    fontWeight:
-                        FontWeight.w500,
-                    color:
-                        AppColors.mutedForeground,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
@@ -1968,8 +1639,7 @@ class _AuditMobileRow
 // BADGES
 // =============================================================================
 
-class _ModuleBadge
-    extends StatelessWidget {
+class _ModuleBadge extends StatelessWidget {
   final String module;
 
   const _ModuleBadge({
@@ -1979,35 +1649,29 @@ class _ModuleBadge
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 8,
         vertical: 4,
       ),
       decoration: BoxDecoration(
         color: AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         module,
-        overflow:
-            TextOverflow.ellipsis,
+        overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 10.5,
-          fontWeight:
-              FontWeight.w600,
-          color:
-              AppColors.mutedForeground,
+          fontWeight: FontWeight.w600,
+          color: AppColors.mutedForeground,
         ),
       ),
     );
   }
 }
 
-class _ActionBadge
-    extends StatelessWidget {
+class _ActionBadge extends StatelessWidget {
   final String action;
   final bool isStaff;
 
@@ -2018,15 +1682,13 @@ class _ActionBadge
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) =
-        _actionMeta(
+    final (label, color) = _actionMeta(
       action,
       isStaff: isStaff,
     );
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 8,
         vertical: 4,
       ),
@@ -2034,18 +1696,15 @@ class _ActionBadge
         color: color.withValues(
           alpha: 0.10,
         ),
-        borderRadius:
-            BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        overflow:
-            TextOverflow.ellipsis,
+        overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 10.5,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
           color: color,
         ),
       ),
@@ -2057,8 +1716,7 @@ class _ActionBadge
 // DETAIL HELPERS
 // =============================================================================
 
-class _SectionTitle
-    extends StatelessWidget {
+class _SectionTitle extends StatelessWidget {
   final String text;
 
   const _SectionTitle(this.text);
@@ -2066,24 +1724,21 @@ class _SectionTitle
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 6,
       ),
       child: Text(
         text,
         style: const TextStyle(
           fontSize: 12.5,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _AuditEntityContext
-    extends StatelessWidget {
+class _AuditEntityContext extends StatelessWidget {
   final String entityType;
   final String entityLabel;
 
@@ -2094,24 +1749,19 @@ class _AuditEntityContext
 
   @override
   Widget build(BuildContext context) {
-    final clean =
-        entityLabel.trim();
+    final clean = entityLabel.trim();
 
-    if (entityType ==
-        'treatment_item') {
-      final fields =
-          _parseContextFields(clean);
+    if (entityType == 'treatment_item') {
+      final fields = _parseContextFields(clean);
 
       if (fields.isNotEmpty) {
         return Padding(
-          padding:
-              const EdgeInsets.only(
+          padding: const EdgeInsets.only(
             top: 8,
             bottom: 5,
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _SectionTitle(
                 'Treatment details',
@@ -2127,14 +1777,12 @@ class _AuditEntityContext
 
     if (entityType == 'purchase') {
       return Padding(
-        padding:
-            const EdgeInsets.only(
+        padding: const EdgeInsets.only(
           top: 8,
           bottom: 5,
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _SectionTitle(
               'Stocked items',
@@ -2148,12 +1796,11 @@ class _AuditEntityContext
     }
 
     if (entityType == 'treatment') {
-      final animal =
-          clean.startsWith(
+      final animal = clean.startsWith(
         'Animal: ',
       )
-              ? clean.substring(8)
-              : clean;
+          ? clean.substring(8)
+          : clean;
 
       return _DetailRow(
         label: 'Animal',
@@ -2167,32 +1814,25 @@ class _AuditEntityContext
     );
   }
 
-  List<_ContextField>
-      _parseContextFields(
+  List<_ContextField> _parseContextFields(
     String value,
   ) {
     final parts = value
         .split(' · ')
         .map(
-          (part) =>
-              part.trim(),
+          (part) => part.trim(),
         )
         .where(
-          (part) =>
-              part.isNotEmpty,
+          (part) => part.isNotEmpty,
         )
         .toList();
 
-    final fields =
-        <_ContextField>[];
+    final fields = <_ContextField>[];
 
     for (final part in parts) {
-      final separator =
-          part.indexOf(':');
+      final separator = part.indexOf(':');
 
-      if (separator <= 0 ||
-          separator >=
-              part.length - 1) {
+      if (separator <= 0 || separator >= part.length - 1) {
         continue;
       }
 
@@ -2209,15 +1849,11 @@ class _AuditEntityContext
           )
           .trim();
 
-      if (rawLabel.isEmpty ||
-          fieldValue.isEmpty) {
+      if (rawLabel.isEmpty || fieldValue.isEmpty) {
         continue;
       }
 
-      final label =
-          rawLabel == 'Qty'
-              ? 'Quantity'
-              : rawLabel;
+      final label = rawLabel == 'Qty' ? 'Quantity' : rawLabel;
 
       fields.add(
         _ContextField(
@@ -2241,8 +1877,7 @@ class _ContextField {
   });
 }
 
-class _ContextCard
-    extends StatelessWidget {
+class _ContextCard extends StatelessWidget {
   final List<_ContextField> fields;
 
   const _ContextCard({
@@ -2253,24 +1888,20 @@ class _ContextCard
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 14,
         vertical: 8,
       ),
       decoration: BoxDecoration(
         color: AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Column(
         children: [
-          for (var i = 0;
-              i < fields.length;
-              i++) ...[
+          for (var i = 0; i < fields.length; i++) ...[
             if (i > 0)
               const Divider(
                 height: 1,
@@ -2286,8 +1917,7 @@ class _ContextCard
   }
 }
 
-class _ContextFieldRow
-    extends StatelessWidget {
+class _ContextFieldRow extends StatelessWidget {
   final _ContextField field;
 
   const _ContextFieldRow({
@@ -2297,13 +1927,11 @@ class _ContextFieldRow
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: 8,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 92,
@@ -2311,8 +1939,7 @@ class _ContextFieldRow
               field.label,
               style: const TextStyle(
                 fontSize: 12,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
@@ -2320,13 +1947,11 @@ class _ContextFieldRow
           Expanded(
             child: Text(
               field.value,
-              textAlign:
-                  TextAlign.start,
+              textAlign: TextAlign.start,
               style: const TextStyle(
                 fontSize: 12.2,
                 height: 1.35,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -2336,8 +1961,7 @@ class _ContextFieldRow
   }
 }
 
-class _ContextTextCard
-    extends StatelessWidget {
+class _ContextTextCard extends StatelessWidget {
   final String text;
 
   const _ContextTextCard({
@@ -2349,86 +1973,66 @@ class _ContextTextCard
     final items = text
         .split(',')
         .map(
-          (item) =>
-              item.trim(),
+          (item) => item.trim(),
         )
         .where(
-          (item) =>
-              item.isNotEmpty,
+          (item) => item.isNotEmpty,
         )
         .toList();
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
-      child:
-          items.length <= 1
-              ? Text(
-                  text,
-                  style:
-                      const TextStyle(
-                    fontSize: 12.2,
-                    height: 1.4,
-                    fontWeight:
-                        FontWeight.w600,
-                  ),
-                )
-              : Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final item
-                        in items)
-                      Container(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal: 9,
-                          vertical: 5,
-                        ),
-                        decoration:
-                            BoxDecoration(
-                          color:
-                              AppColors.card,
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            999,
-                          ),
-                          border:
-                              Border.all(
-                            color:
-                                AppColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          item,
-                          style:
-                              const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight:
-                                FontWeight
-                                    .w600,
-                          ),
-                        ),
+      child: items.length <= 1
+          ? Text(
+              text,
+              style: const TextStyle(
+                fontSize: 12.2,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          : Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final item in items)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(
+                        999,
                       ),
-                  ],
-                ),
+                      border: Border.all(
+                        color: AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      item,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
 }
 
-class _DetailRow
-    extends StatelessWidget {
+class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
 
@@ -2440,13 +2044,11 @@ class _DetailRow
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: 5,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 4,
@@ -2454,8 +2056,7 @@ class _DetailRow
               label,
               style: const TextStyle(
                 fontSize: 12.2,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
@@ -2464,13 +2065,11 @@ class _DetailRow
             flex: 6,
             child: Text(
               value,
-              textAlign:
-                  TextAlign.start,
+              textAlign: TextAlign.start,
               style: const TextStyle(
                 fontSize: 12.2,
                 height: 1.35,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -2480,8 +2079,7 @@ class _DetailRow
   }
 }
 
-class _ChangeRow
-    extends StatelessWidget {
+class _ChangeRow extends StatelessWidget {
   final String label;
   final String before;
   final String after;
@@ -2496,36 +2094,30 @@ class _ChangeRow
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin:
-          const EdgeInsets.only(
+      margin: const EdgeInsets.only(
         bottom: 8,
       ),
-      padding:
-          const EdgeInsets.all(11),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: AppColors.secondary,
-        borderRadius:
-            BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(11),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: const TextStyle(
               fontSize: 11.8,
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 6),
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _BeforeAfter(
@@ -2537,8 +2129,7 @@ class _ChangeRow
               const Icon(
                 Icons.arrow_forward,
                 size: 15,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -2556,8 +2147,7 @@ class _ChangeRow
   }
 }
 
-class _BeforeAfter
-    extends StatelessWidget {
+class _BeforeAfter extends StatelessWidget {
   final String label;
   final String value;
   final bool strong;
@@ -2571,15 +2161,13 @@ class _BeforeAfter
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
             fontSize: 10.3,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
         ),
         const SizedBox(height: 2),
@@ -2587,10 +2175,7 @@ class _BeforeAfter
           value,
           style: TextStyle(
             fontSize: 11.5,
-            fontWeight:
-                strong
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+            fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
       ],
@@ -2598,8 +2183,7 @@ class _BeforeAfter
   }
 }
 
-class _AuditEmptyState
-    extends StatelessWidget {
+class _AuditEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
@@ -2618,15 +2202,13 @@ class _AuditEmptyState
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 24,
         vertical: 48,
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.border,
         ),
@@ -2636,35 +2218,29 @@ class _AuditEmptyState
           Icon(
             icon,
             size: 34,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
           const SizedBox(height: 9),
           Text(
             title,
             style: const TextStyle(
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             message,
-            textAlign:
-                TextAlign.center,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 12.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
-          if (actionLabel != null &&
-              onAction != null) ...[
+          if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: onAction,
-              child:
-                  Text(actionLabel!),
+              child: Text(actionLabel!),
             ),
           ],
         ],
@@ -2673,8 +2249,7 @@ class _AuditEmptyState
   }
 }
 
-class _HeaderCell
-    extends StatelessWidget {
+class _HeaderCell extends StatelessWidget {
   final String label;
 
   const _HeaderCell(this.label);
@@ -2685,10 +2260,8 @@ class _HeaderCell
       label,
       style: const TextStyle(
         fontSize: 11.5,
-        fontWeight:
-            FontWeight.w700,
-        color:
-            AppColors.mutedForeground,
+        fontWeight: FontWeight.w700,
+        color: AppColors.mutedForeground,
       ),
     );
   }
@@ -2738,9 +2311,7 @@ String _periodLabel(
 
   if (action == 'DELETE') {
     return (
-      isStaff
-          ? 'Removed'
-          : 'Archived',
+      isStaff ? 'Removed' : 'Archived',
       AppColors.stockOut,
     );
   }
@@ -2760,9 +2331,7 @@ String _actionLabel(
   }
 
   if (action == 'DELETE') {
-    return isStaff
-        ? 'Removed'
-        : 'Archived';
+    return isStaff ? 'Removed' : 'Archived';
   }
 
   return 'Updated';
@@ -2786,22 +2355,15 @@ const _monthAbbrev = [
 String _formatDateTime(
   DateTime date,
 ) {
-  final hour =
-      date.hour == 0
-          ? 12
-          : date.hour > 12
-              ? date.hour - 12
-              : date.hour;
+  final hour = date.hour == 0
+      ? 12
+      : date.hour > 12
+          ? date.hour - 12
+          : date.hour;
 
-  final minute =
-      date.minute
-          .toString()
-          .padLeft(2, '0');
+  final minute = date.minute.toString().padLeft(2, '0');
 
-  final amPm =
-      date.hour >= 12
-          ? 'PM'
-          : 'AM';
+  final amPm = date.hour >= 12 ? 'PM' : 'AM';
 
   return '${_monthAbbrev[date.month - 1]} '
       '${date.day}, ${date.year} · '

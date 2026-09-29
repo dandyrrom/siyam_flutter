@@ -29,8 +29,7 @@ class ReportsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user =
-        context.watch<AuthController>().profile;
+    final user = context.watch<AuthController>().profile;
 
     if (user == null) {
       return const Center(
@@ -51,40 +50,34 @@ class ReportsPage extends StatelessWidget {
   }
 }
 
-class _ReportsAccessDenied
-    extends StatelessWidget {
+class _ReportsAccessDenied extends StatelessWidget {
   const _ReportsAccessDenied();
 
   @override
   Widget build(BuildContext context) {
     return const Center(
       child: Column(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.lock_outline,
             size: 36,
-            color:
-                AppColors.mutedForeground,
+            color: AppColors.mutedForeground,
           ),
           SizedBox(height: 10),
           Text(
             'Reports unavailable',
             style: TextStyle(
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
           SizedBox(height: 4),
           Text(
             'Internal reports are available to Staff and Manager accounts.',
-            textAlign:
-                TextAlign.center,
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.5,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ],

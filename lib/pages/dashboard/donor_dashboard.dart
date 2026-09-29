@@ -51,20 +51,18 @@ class _DonorDashboardState extends State<DonorDashboard>
   void initState() {
     super.initState();
 
-    final donorId =
-        context.read<AuthController>().profile?.userId;
+    final donorId = context.read<AuthController>().profile?.userId;
     if (donorId != null) {
       _loadVisitState(donorId);
 
       final stats = PageSnapshotCache.instance.peek<DonorDashboardStats>(
         '${PageSnapshotCache.donorStatsPrefix}$donorId',
       );
-      final submissions = PageSnapshotCache.instance
-          .peekList<DonationSubmission>(
+      final submissions =
+          PageSnapshotCache.instance.peekList<DonationSubmission>(
         '${PageSnapshotCache.donorSubmissionsPrefix}$donorId',
       );
-      final impact = PageSnapshotCache.instance
-          .peekList<DonationImpactLine>(
+      final impact = PageSnapshotCache.instance.peekList<DonationImpactLine>(
         '${PageSnapshotCache.donorImpactPrefix}$donorId',
       );
 
@@ -89,14 +87,11 @@ class _DonorDashboardState extends State<DonorDashboard>
   Future<void> _loadVisitState(
     String donorId,
   ) async {
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
-    final visitKey =
-        'siyam_donor_visited_$donorId';
+    final visitKey = 'siyam_donor_visited_$donorId';
 
-    final hasVisited =
-        preferences.getBool(visitKey) ?? false;
+    final hasVisited = preferences.getBool(visitKey) ?? false;
 
     if (!hasVisited) {
       await preferences.setBool(
@@ -108,8 +103,7 @@ class _DonorDashboardState extends State<DonorDashboard>
     if (!mounted) return;
 
     setState(() {
-      _isReturningVisitor =
-          hasVisited;
+      _isReturningVisitor = hasVisited;
     });
   }
 
@@ -333,9 +327,7 @@ class _DonorDashboardState extends State<DonorDashboard>
         // ============================================================
 
         Text(
-          _isReturningVisitor
-              ? 'Welcome Back'
-              : 'Welcome',
+          _isReturningVisitor ? 'Welcome Back' : 'Welcome',
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
@@ -463,51 +455,39 @@ class _DonorDashboardState extends State<DonorDashboard>
             context,
             constraints,
           ) {
-            final compact =
-                constraints.maxWidth < 760;
+            final compact = constraints.maxWidth < 760;
 
             if (compact) {
               return Column(
                 children: [
                   _RecentActivityCard(
                     loading: false,
-                    submissions:
-                        recentSubmissions,
-                    statusMeta:
-                        _statusMeta,
+                    submissions: recentSubmissions,
+                    statusMeta: _statusMeta,
                   ),
-
                   const SizedBox(
                     height: 16,
                   ),
-
                   const _AboutDasCard(),
                 ],
               );
             }
 
             return Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child:
-                      _RecentActivityCard(
+                  child: _RecentActivityCard(
                     loading: false,
-                    submissions:
-                        recentSubmissions,
-                    statusMeta:
-                        _statusMeta,
+                    submissions: recentSubmissions,
+                    statusMeta: _statusMeta,
                   ),
                 ),
-
                 const SizedBox(
                   width: 16,
                 ),
-
                 const Expanded(
-                  child:
-                      _AboutDasCard(),
+                  child: _AboutDasCard(),
                 ),
               ],
             );
@@ -1578,8 +1558,7 @@ class _AboutDasCard extends StatelessWidget {
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
@@ -1587,35 +1566,28 @@ class _AboutDasCard extends StatelessWidget {
                 icon: Icons.pets_outlined,
                 color: AppColors.roleDonor,
               ),
-
               SizedBox(
                 width: 10,
               ),
-
               Expanded(
                 child: Text(
                   'About DAS',
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(
             height: 16,
           ),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(
+                borderRadius: BorderRadius.circular(
                   12,
                 ),
                 child: Image.asset(
@@ -1631,63 +1603,46 @@ class _AboutDasCard extends StatelessWidget {
                     return Container(
                       width: 58,
                       height: 58,
-                      alignment:
-                          Alignment.center,
-                      decoration:
-                          BoxDecoration(
-                        color: AppColors
-                            .roleDonor
-                            .withValues(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.roleDonor.withValues(
                           alpha: 0.08,
                         ),
-                        borderRadius:
-                            BorderRadius
-                                .circular(
+                        borderRadius: BorderRadius.circular(
                           12,
                         ),
                       ),
                       child: const Icon(
-                        Icons
-                            .pets_outlined,
-                        color: AppColors
-                            .roleDonor,
+                        Icons.pets_outlined,
+                        color: AppColors.roleDonor,
                       ),
                     );
                   },
                 ),
               ),
-
               const SizedBox(
                 width: 12,
               ),
-
               const Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Dumaguete Animal Sanctuary',
                       style: TextStyle(
                         fontSize: 13.5,
-                        fontWeight:
-                            FontWeight
-                                .w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-
                     SizedBox(
                       height: 4,
                     ),
-
                     Text(
                       'Nonprofit animal sanctuary • Founded June 2019',
                       style: TextStyle(
                         fontSize: 11.5,
                         height: 1.35,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1695,86 +1650,68 @@ class _AboutDasCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(
             height: 14,
           ),
-
           const Text(
             'Dumaguete Animal Sanctuary (DAS) was founded by Christine Askew and her husband, Robie Bernardo. The sanctuary rescues stray, abandoned, and sick animals from Dumaguete and surrounding areas, rehabilitates them, and helps provide them with new homes.',
             style: TextStyle(
               fontSize: 12,
               height: 1.5,
-              color:
-                  AppColors.foreground,
+              color: AppColors.foreground,
             ),
           ),
-
           const SizedBox(
             height: 10,
           ),
-
           const Text(
             'A growing number of rescued animals are cared for by the sanctuary’s dedicated full-time staff.',
             style: TextStyle(
               fontSize: 12,
               height: 1.5,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
-
           const SizedBox(
             height: 16,
           ),
-
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color: AppColors.roleDonor
-                  .withValues(
+              color: AppColors.roleDonor.withValues(
                 alpha: 0.05,
               ),
-              borderRadius:
-                  BorderRadius.circular(
+              borderRadius: BorderRadius.circular(
                 12,
               ),
               border: Border.all(
-                color: AppColors.roleDonor
-                    .withValues(
+                color: AppColors.roleDonor.withValues(
                   alpha: 0.14,
                 ),
               ),
             ),
             child: const Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  Icons
-                      .location_on_outlined,
+                  Icons.location_on_outlined,
                   size: 17,
-                  color:
-                      AppColors.roleDonor,
+                  color: AppColors.roleDonor,
                 ),
-
                 SizedBox(
                   width: 8,
                 ),
-
                 Expanded(
                   child: Text(
                     'Isugan Boundary Road, Cantil-e, Dumaguete City, Negros Oriental, Philippines',
                     style: TextStyle(
                       fontSize: 11.5,
                       height: 1.35,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ),

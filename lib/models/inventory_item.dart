@@ -267,8 +267,7 @@ class InventoryItem {
     }
 
     if (hasPackageBreakdown) {
-      return packageStockQty ??
-          stockQty * packageQuantity!;
+      return packageStockQty ?? stockQty * packageQuantity!;
     }
 
     return stockQty;
@@ -378,9 +377,7 @@ class InventoryItem {
   bool get isExpiringSoon {
     final days = daysUntilNearestExpiry;
 
-    return days != null &&
-        days >= 0 &&
-        days <= expiryWarningDays;
+    return days != null && days >= 0 && days <= expiryWarningDays;
   }
 
   // ===========================================================================

@@ -33,16 +33,13 @@ class StatCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        mouseCursor: onTap == null
-            ? MouseCursor.defer
-            : SystemMouseCursors.click,
+        mouseCursor:
+            onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
         borderRadius: BorderRadius.circular(20),
-        hoverColor: onTap == null
-            ? Colors.transparent
-            : accent.withValues(alpha: 0.04),
-        highlightColor: onTap == null
-            ? Colors.transparent
-            : accent.withValues(alpha: 0.08),
+        hoverColor:
+            onTap == null ? Colors.transparent : accent.withValues(alpha: 0.04),
+        highlightColor:
+            onTap == null ? Colors.transparent : accent.withValues(alpha: 0.08),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -93,7 +90,6 @@ class StatCard extends StatelessWidget {
                   color: AppColors.mutedForeground,
                 ),
               ),
-
               if (onTap != null && actionLabel != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -142,8 +138,7 @@ class StatCardRow extends StatelessWidget {
                 ? 2
                 : 1;
 
-        final cardWidth =
-            (width - (columns - 1) * 16) / columns;
+        final cardWidth = (width - (columns - 1) * 16) / columns;
 
         return Wrap(
           spacing: 16,

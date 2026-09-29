@@ -136,8 +136,7 @@ class MockTreatmentService implements TreatmentService {
 
     final occurrences = _occurrences[row.id] ?? const <TreatmentOccurrence>[];
 
-    final sorted = [...occurrences]
-      ..sort(
+    final sorted = [...occurrences]..sort(
         (a, b) => b.administeredDate.compareTo(a.administeredDate),
       );
 

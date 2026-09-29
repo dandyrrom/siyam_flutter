@@ -68,9 +68,8 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
     }
     try {
       final cache = PageSnapshotCache.instance;
-      final seededRecord = forceRefresh
-          ? null
-          : _record ?? cache.treatmentById(widget.treatId);
+      final seededRecord =
+          forceRefresh ? null : _record ?? cache.treatmentById(widget.treatId);
       final cachedItems = forceRefresh
           ? null
           : cache.peekList<InventoryItem>(PageSnapshotCache.items);
@@ -145,8 +144,8 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
 
     final performedByUserId = currentUser?.userId;
     if (performedByUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not identify the signed-in user.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not identify the signed-in user.')));
       return;
     }
 
@@ -183,7 +182,8 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             const Icon(Icons.medical_services_outlined,
                 size: 40, color: AppColors.mutedForeground),
             const SizedBox(height: 12),
-            const Text('Treatment not found', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Treatment not found',
+                style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => context.go('/medical-records'),
@@ -205,16 +205,19 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             onPressed: () => context.go('/medical-records'),
             icon: const Icon(Icons.arrow_back, size: 16),
             label: const Text('Back to Medical Records'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.mutedForeground),
+            style: TextButton.styleFrom(
+                foregroundColor: AppColors.mutedForeground),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(_speciesIcon(record.petSpecies), size: 22, color: AppColors.mutedForeground),
+              Icon(_speciesIcon(record.petSpecies),
+                  size: 22, color: AppColors.mutedForeground),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(record.treatName,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.w800)),
               ),
             ],
           ),
@@ -223,20 +226,22 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             record.petBreed == null || record.petBreed!.isEmpty
                 ? record.petName
                 : '${record.petName} · ${record.petBreed}',
-            style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground),
+            style:
+                const TextStyle(fontSize: 13, color: AppColors.mutedForeground),
           ),
           const SizedBox(height: 24),
-
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _FieldBlock(label: 'Performed by', value: record.performedByName),
+                child: _FieldBlock(
+                    label: 'Performed by', value: record.performedByName),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _FieldBlock(
-                    label: 'Date administered', value: _formatDate(record.recDate)),
+                    label: 'Date administered',
+                    value: _formatDate(record.recDate)),
               ),
             ],
           ),
@@ -245,11 +250,14 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _FieldBlock(label: 'Recorded by', value: record.recordedByName),
+                child: _FieldBlock(
+                    label: 'Recorded by', value: record.recordedByName),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _FieldBlock(label: 'Recorded date', value: _formatDate(record.loggedDate)),
+                child: _FieldBlock(
+                    label: 'Recorded date',
+                    value: _formatDate(record.loggedDate)),
               ),
             ],
           ),
@@ -258,14 +266,14 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             _FieldBlock(label: 'Notes', value: record.notes!),
           ],
           const SizedBox(height: 24),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Items Used',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               TextButton.icon(
-                onPressed: (_addingItem || _items.isEmpty) ? null : _openAddItemDialog,
+                onPressed:
+                    (_addingItem || _items.isEmpty) ? null : _openAddItemDialog,
                 icon: _addingItem
                     ? const SizedBox(
                         width: 14,
@@ -288,7 +296,8 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text('No inventory items were logged for this treatment.',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.mutedForeground)),
+                  style: TextStyle(
+                      fontSize: 12.5, color: AppColors.mutedForeground)),
             )
           else
             Container(
@@ -302,7 +311,8 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
                   for (var i = 0; i < _itemsUsed.length; i++) ...[
                     if (i > 0) const Divider(height: 1),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -312,11 +322,13 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(_itemsUsed[i].itemName,
-                                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 2),
                                 Text('Given by ${_itemsUsed[i].givenBy}',
                                     style: const TextStyle(
-                                        fontSize: 12, color: AppColors.mutedForeground)),
+                                        fontSize: 12,
+                                        color: AppColors.mutedForeground)),
                               ],
                             ),
                           ),
@@ -324,21 +336,25 @@ class _TreatmentDetailPageState extends State<TreatmentDetailPage>
                             flex: 2,
                             child: Text(
                                 '${formatQty(_itemsUsed[i].dispensedQty)} ${_itemsUsed[i].dispenseUnitAbbr}',
-                                style: const TextStyle(fontWeight: FontWeight.w600)),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
                           ),
                           Expanded(
                             flex: 3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('Given ${_formatDate(_itemsUsed[i].consumedDate)}',
+                                Text(
+                                    'Given ${_formatDate(_itemsUsed[i].consumedDate)}',
                                     style: const TextStyle(
-                                        fontSize: 12, color: AppColors.mutedForeground)),
+                                        fontSize: 12,
+                                        color: AppColors.mutedForeground)),
                                 Text(
                                     'Recorded by ${_itemsUsed[i].recordedByName} · ${_formatDate(_itemsUsed[i].recordedDate)}',
                                     textAlign: TextAlign.end,
                                     style: const TextStyle(
-                                        fontSize: 12, color: AppColors.mutedForeground)),
+                                        fontSize: 12,
+                                        color: AppColors.mutedForeground)),
                               ],
                             ),
                           ),
@@ -391,8 +407,18 @@ class _FieldBlock extends StatelessWidget {
 }
 
 const _monthAbbrev = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _formatDate(DateTime date) =>
@@ -428,7 +454,8 @@ class _AddTreatmentItemDialog extends StatefulWidget {
   });
 
   @override
-  State<_AddTreatmentItemDialog> createState() => _AddTreatmentItemDialogState();
+  State<_AddTreatmentItemDialog> createState() =>
+      _AddTreatmentItemDialogState();
 }
 
 class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
@@ -451,7 +478,8 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
   /// Mirrors AddTreatmentPage's `_inputFromItem` -- the dose unit is fixed
   /// to the item's own configuration, not a per-transaction choice.
   TreatmentItemInput _inputFromItem(InventoryItem item, double qty) {
-    final doseUnitId = item.dispenseUnitId ?? item.packageUnitId ?? item.purchaseUnitId;
+    final doseUnitId =
+        item.dispenseUnitId ?? item.packageUnitId ?? item.purchaseUnitId;
     final doseUnitAbbr =
         item.dispenseUnitAbbr ?? item.packageUnitAbbr ?? item.purchaseUnitAbbr;
     return TreatmentItemInput(
@@ -506,13 +534,15 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
   @override
   Widget build(BuildContext context) {
     final item = _selectedItem;
-    final priorDoses = item == null ? null : widget.existingByItemId[item.itemId];
+    final priorDoses =
+        item == null ? null : widget.existingByItemId[item.itemId];
     final mostRecentDose = priorDoses == null || priorDoses.isEmpty
         ? null
-        : priorDoses.reduce(
-            (a, b) => a.consumedDate.isAfter(b.consumedDate) ? a : b);
-    final doseUnitAbbr =
-        item?.dispenseUnitAbbr ?? item?.packageUnitAbbr ?? item?.purchaseUnitAbbr;
+        : priorDoses
+            .reduce((a, b) => a.consumedDate.isAfter(b.consumedDate) ? a : b);
+    final doseUnitAbbr = item?.dispenseUnitAbbr ??
+        item?.packageUnitAbbr ??
+        item?.purchaseUnitAbbr;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -530,7 +560,8 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
                 controller: _itemCtrl,
                 options: widget.items,
                 displayStringForOption: (i) => i.itemName,
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
                 onSelected: (picked) => setState(() {
                   _selectedItem = picked;
                   _qtyCtrl.text = '1';
@@ -544,19 +575,23 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
                   'recently ${formatQty(mostRecentDose.dispensedQty)} '
                   '${mostRecentDose.dispenseUnitAbbr} on ${_formatDate(mostRecentDose.consumedDate)}. '
                   'This will be logged as a separate, additional dose.',
-                  style: const TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+                  style: const TextStyle(
+                      fontSize: 11.5, color: AppColors.mutedForeground),
                 ),
               ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _qtyCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                    labelText: doseUnitAbbr == null ? 'Dose' : 'Dose ($doseUnitAbbr)'),
+                    labelText:
+                        doseUnitAbbr == null ? 'Dose' : 'Dose ($doseUnitAbbr)'),
                 validator: (v) {
                   final n = double.tryParse(v ?? '');
                   if (n == null || n <= 0) return 'Invalid';
-                  if (n > _maxDoseQty) return 'Only ${formatQty(_maxDoseQty)} left';
+                  if (n > _maxDoseQty)
+                    return 'Only ${formatQty(_maxDoseQty)} left';
                   return null;
                 },
               ),
@@ -580,8 +615,8 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
                             ? 'Will deduct from stock'
                             : 'Logged only — no stock conversion available for this '
                                 'item\'s dispense unit',
-                        style:
-                            const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.mutedForeground),
                       ),
                     ),
                   ],
@@ -591,13 +626,15 @@ class _AddTreatmentItemDialogState extends State<_AddTreatmentItemDialog> {
               TextFormField(
                 controller: _administeredByCtrl,
                 decoration: const InputDecoration(labelText: 'Administered by'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
               InkWell(
                 onTap: _pickDate,
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Date administered'),
+                  decoration:
+                      const InputDecoration(labelText: 'Date administered'),
                   child: Text(_formatDate(_dateAdministered)),
                 ),
               ),

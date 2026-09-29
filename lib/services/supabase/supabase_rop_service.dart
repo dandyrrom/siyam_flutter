@@ -20,14 +20,11 @@ import '../rop_service.dart';
 // =============================================================================
 
 class SupabaseRopService implements RopService {
-  final SupabaseClient _client =
-      Supabase.instance.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  static const String _table =
-      'item_rop_settings';
+  static const String _table = 'item_rop_settings';
 
-  static const String _columns =
-      'itemid, lead_time_days, safety_stock_qty';
+  static const String _columns = 'itemid, lead_time_days, safety_stock_qty';
 
   // ===========================================================================
   // VALIDATION
@@ -62,9 +59,7 @@ class SupabaseRopService implements RopService {
 
   @override
   Future<List<ItemRopSettings>> fetchOverrides() async {
-    final rows = await _client
-        .from(_table)
-        .select(_columns);
+    final rows = await _client.from(_table).select(_columns);
 
     return rows
         .map(
@@ -119,9 +114,7 @@ class SupabaseRopService implements RopService {
         .eq('itemid', itemId)
         .maybeSingle();
 
-    final now = DateTime.now()
-        .toUtc()
-        .toIso8601String();
+    final now = DateTime.now().toUtc().toIso8601String();
 
     Map<String, dynamic> row;
 
@@ -182,10 +175,7 @@ class SupabaseRopService implements RopService {
   Future<void> deleteOverride(
     String itemId,
   ) async {
-    await _client
-        .from(_table)
-        .delete()
-        .eq('itemid', itemId);
+    await _client.from(_table).delete().eq('itemid', itemId);
 
     DataChangeBus.instance.ping();
   }

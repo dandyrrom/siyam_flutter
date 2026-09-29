@@ -26,14 +26,12 @@ class PurchaseTransPage extends StatefulWidget {
   });
 
   @override
-  State<PurchaseTransPage> createState() =>
-      _PurchaseTransPageState();
+  State<PurchaseTransPage> createState() => _PurchaseTransPageState();
 }
 
 class _PurchaseTransPageState extends State<PurchaseTransPage>
     with DataBusRefreshMixin<PurchaseTransPage> {
-  final SupplierService _service =
-      SupplierService();
+  final SupplierService _service = SupplierService();
 
   PurchaseOrder? _order;
   List<OrderLineItem> _items = [];
@@ -60,8 +58,7 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
   }
 
   @override
-  void onExternalDataChanged() =>
-      _load(silent: true, forceRefresh: true);
+  void onExternalDataChanged() => _load(silent: true, forceRefresh: true);
 
   Future<void> _load({
     bool silent = false,
@@ -76,17 +73,15 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seededOrder = forceRefresh
-          ? null
-          : _order ?? cache.purchaseOrderById(widget.purId);
+      final seededOrder =
+          forceRefresh ? null : _order ?? cache.purchaseOrderById(widget.purId);
       final cachedItems = forceRefresh
           ? null
           : cache.peekList<OrderLineItem>(
               'purchase.orderItems.${widget.purId}',
             );
 
-      final results =
-          await Future.wait<Object?>([
+      final results = await Future.wait<Object?>([
         seededOrder != null
             ? Future<PurchaseOrder?>.value(seededOrder)
             : _service.fetchPurchaseOrder(
@@ -101,14 +96,11 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
 
       if (!mounted) return;
 
-      final order =
-          results[0] as PurchaseOrder?;
+      final order = results[0] as PurchaseOrder?;
 
       setState(() {
         _order = order;
-        _items =
-            results[1]
-                as List<OrderLineItem>;
+        _items = results[1] as List<OrderLineItem>;
         _notFound = order == null;
         _loading = false;
       });
@@ -135,27 +127,23 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
     if (_notFound || _order == null) {
       return Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.receipt_long_outlined,
               size: 40,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
             const SizedBox(height: 12),
             const Text(
               'Purchase record not found',
               style: TextStyle(
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () =>
-                  context.go(
+              onPressed: () => context.go(
                 '/purchase-orders',
               ),
               child: const Text(
@@ -169,27 +157,20 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
 
     final order = _order!;
 
-    final total =
-        _items.fold<double>(
+    final total = _items.fold<double>(
       0,
-      (sum, item) =>
-          sum +
-          item.qty *
-              item.unitCost,
+      (sum, item) => sum + item.qty * item.unitCost,
     );
 
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(
+      constraints: const BoxConstraints(
         maxWidth: 720,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () =>
-                context.go(
+            onPressed: () => context.go(
               '/purchase-orders',
             ),
             icon: const Icon(
@@ -200,37 +181,28 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
               'Back to Purchases & Replenishment',
             ),
             style: TextButton.styleFrom(
-              foregroundColor:
-                  AppColors
-                      .mutedForeground,
+              foregroundColor: AppColors.mutedForeground,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             order.suppName,
             style: const TextStyle(
               fontSize: 24,
-              fontWeight:
-                  FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
-
           const SizedBox(height: 20),
-
           LayoutBuilder(
             builder: (
               context,
               constraints,
             ) {
-              if (constraints.maxWidth <
-                  520) {
+              if (constraints.maxWidth < 520) {
                 return Column(
                   children: [
                     _FieldBlock(
-                      label:
-                          'Date received',
+                      label: 'Date received',
                       value: _formatDate(
                         order.receivedDate,
                       ),
@@ -239,37 +211,26 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                       height: 14,
                     ),
                     _FieldBlock(
-                      label:
-                          'Received by',
-                      value: order
-                              .receivedBy
-                              .isEmpty
-                          ? '—'
-                          : order
-                              .receivedBy,
+                      label: 'Received by',
+                      value: order.receivedBy.isEmpty ? '—' : order.receivedBy,
                     ),
                     const SizedBox(
                       height: 14,
                     ),
                     _FieldBlock(
-                      label:
-                          'Recorded by',
-                      value:
-                          order.buyerName,
+                      label: 'Recorded by',
+                      value: order.buyerName,
                     ),
                   ],
                 );
               }
 
               return Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: _FieldBlock(
-                      label:
-                          'Date received',
+                      label: 'Date received',
                       value: _formatDate(
                         order.receivedDate,
                       ),
@@ -280,14 +241,8 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                   ),
                   Expanded(
                     child: _FieldBlock(
-                      label:
-                          'Received by',
-                      value: order
-                              .receivedBy
-                              .isEmpty
-                          ? '—'
-                          : order
-                              .receivedBy,
+                      label: 'Received by',
+                      value: order.receivedBy.isEmpty ? '—' : order.receivedBy,
                     ),
                   ),
                   const SizedBox(
@@ -295,26 +250,20 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                   ),
                   Expanded(
                     child: _FieldBlock(
-                      label:
-                          'Recorded by',
-                      value:
-                          order.buyerName,
+                      label: 'Recorded by',
+                      value: order.buyerName,
                     ),
                   ),
                 ],
               );
             },
           ),
-
           const SizedBox(height: 24),
-
           const _SectionLabel('Items'),
-
           Container(
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.border,
               ),
@@ -322,8 +271,7 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
             child: Column(
               children: [
                 const Padding(
-                  padding:
-                      EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
@@ -331,13 +279,11 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                     children: [
                       Expanded(
                         flex: 3,
-                        child:
-                            _HeaderCell('Item'),
+                        child: _HeaderCell('Item'),
                       ),
                       Expanded(
                         flex: 2,
-                        child:
-                            _HeaderCell('Qty'),
+                        child: _HeaderCell('Qty'),
                       ),
                       Expanded(
                         flex: 2,
@@ -354,32 +300,25 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                     ],
                   ),
                 ),
-
                 const Divider(height: 1),
-
                 if (_items.isEmpty)
                   const Padding(
-                    padding:
-                        EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                       vertical: 24,
                     ),
                     child: Center(
                       child: Text(
                         'No items logged for this purchase.',
                         style: TextStyle(
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ),
                   )
                 else
-                  for (final item
-                      in _items)
+                  for (final item in _items)
                     Padding(
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
@@ -389,9 +328,7 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                             flex: 3,
                             child: Text(
                               item.itemName,
-                              overflow:
-                                  TextOverflow
-                                      .ellipsis,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Expanded(
@@ -410,47 +347,33 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
                             flex: 2,
                             child: Text(
                               '₱${(item.qty * item.unitCost).toStringAsFixed(2)}',
-                              style:
-                                  const TextStyle(
-                                fontWeight:
-                                    FontWeight
-                                        .w600,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-
                 const Divider(height: 1),
-
                 Padding(
-                  padding:
-                      const EdgeInsets
-                          .symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                   child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment
-                            .spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'Total',
                         style: TextStyle(
-                          fontWeight:
-                              FontWeight
-                                  .w700,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
                         '₱${total.toStringAsFixed(2)}',
-                        style:
-                            const TextStyle(
-                          fontWeight:
-                              FontWeight
-                                  .w800,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
                           fontSize: 16,
                         ),
                       ),
@@ -466,8 +389,7 @@ class _PurchaseTransPageState extends State<PurchaseTransPage>
   }
 }
 
-class _SectionLabel
-    extends StatelessWidget {
+class _SectionLabel extends StatelessWidget {
   final String text;
 
   const _SectionLabel(this.text);
@@ -475,24 +397,21 @@ class _SectionLabel
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 10,
       ),
       child: Text(
         text,
         style: const TextStyle(
           fontSize: 15,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _FieldBlock
-    extends StatelessWidget {
+class _FieldBlock extends StatelessWidget {
   final String label;
   final String value;
 
@@ -504,37 +423,31 @@ class _FieldBlock
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding:
-              const EdgeInsets.only(
+          padding: const EdgeInsets.only(
             bottom: 6,
           ),
           child: Text(
             label.toUpperCase(),
             style: const TextStyle(
               fontSize: 11,
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ),
         Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 12,
           ),
           decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius:
-                BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: AppColors.border,
               width: 1.5,
@@ -544,8 +457,7 @@ class _FieldBlock
             value,
             style: const TextStyle(
               fontSize: 14,
-              fontWeight:
-                  FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -554,8 +466,7 @@ class _FieldBlock
   }
 }
 
-class _HeaderCell
-    extends StatelessWidget {
+class _HeaderCell extends StatelessWidget {
   final String label;
 
   const _HeaderCell(this.label);
@@ -566,10 +477,8 @@ class _HeaderCell
       label,
       style: const TextStyle(
         fontSize: 12.5,
-        fontWeight:
-            FontWeight.w600,
-        color:
-            AppColors.mutedForeground,
+        fontWeight: FontWeight.w600,
+        color: AppColors.mutedForeground,
       ),
     );
   }

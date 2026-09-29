@@ -20,8 +20,7 @@ class DonatePage extends StatefulWidget {
   const DonatePage({super.key});
 
   @override
-  State<DonatePage> createState() =>
-      _DonatePageState();
+  State<DonatePage> createState() => _DonatePageState();
 }
 
 class _DonatePageState extends State<DonatePage>
@@ -30,27 +29,21 @@ class _DonatePageState extends State<DonatePage>
   // SERVICES
   // ==========================================================================
 
-  final DonationService _service =
-      DonationService();
+  final DonationService _service = DonationService();
 
-  final DashboardService _dashboardService =
-      DashboardService();
+  final DashboardService _dashboardService = DashboardService();
 
-  final SupabaseClient _client =
-      Supabase.instance.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  final ImagePicker _imagePicker =
-      ImagePicker();
+  final ImagePicker _imagePicker = ImagePicker();
 
   // ==========================================================================
   // FORM
   // ==========================================================================
 
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _notesCtrl =
-      TextEditingController();
+  final TextEditingController _notesCtrl = TextEditingController();
 
   DateTime? _schedDate;
 
@@ -99,8 +92,7 @@ class _DonatePageState extends State<DonatePage>
               rop.ReplenishmentPriority.critical =>
                 ReplenishmentPriority.critical,
               rop.ReplenishmentPriority.high => ReplenishmentPriority.high,
-              rop.ReplenishmentPriority.medium =>
-                ReplenishmentPriority.medium,
+              rop.ReplenishmentPriority.medium => ReplenishmentPriority.medium,
             },
           ),
       ];
@@ -127,9 +119,7 @@ class _DonatePageState extends State<DonatePage>
   // ==========================================================================
 
   bool get _fromCurrentlyNeeded {
-    return GoRouterState.of(context)
-            .uri
-            .queryParameters['from'] ==
+    return GoRouterState.of(context).uri.queryParameters['from'] ==
         'currently-needed';
   }
 
@@ -156,9 +146,7 @@ class _DonatePageState extends State<DonatePage>
     }
 
     try {
-      final needs =
-          await _dashboardService
-              .fetchReplenishmentAlerts();
+      final needs = await _dashboardService.fetchReplenishmentAlerts();
 
       if (!mounted) return;
 
@@ -173,8 +161,7 @@ class _DonatePageState extends State<DonatePage>
       if (!mounted) return;
 
       setState(() {
-        _needsError =
-            'Could not load currently needed items.';
+        _needsError = 'Could not load currently needed items.';
 
         _needsLoading = false;
       });
@@ -188,18 +175,12 @@ class _DonatePageState extends State<DonatePage>
   // ==========================================================================
 
   Future<void> _showAllNeededItems() async {
-    final screenSize =
-        MediaQuery.sizeOf(context);
+    final screenSize = MediaQuery.sizeOf(context);
 
-    final dialogWidth =
-        screenSize.width < 560
-            ? screenSize.width - 32
-            : 520.0;
+    final dialogWidth = screenSize.width < 560 ? screenSize.width - 32 : 520.0;
 
     final dialogHeight =
-        screenSize.height < 640
-            ? screenSize.height - 48
-            : 560.0;
+        screenSize.height < 640 ? screenSize.height - 48 : 560.0;
 
     await showDialog<void>(
       context: context,
@@ -207,10 +188,8 @@ class _DonatePageState extends State<DonatePage>
         dialogContext,
       ) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
               18,
             ),
           ),
@@ -224,8 +203,7 @@ class _DonatePageState extends State<DonatePage>
                 // ============================================================
 
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     20,
                     18,
                     10,
@@ -236,69 +214,47 @@ class _DonatePageState extends State<DonatePage>
                       Container(
                         width: 36,
                         height: 36,
-                        decoration:
-                            BoxDecoration(
-                          color: AppColors
-                              .warning
-                              .withValues(
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(
                             alpha: 0.10,
                           ),
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
+                          borderRadius: BorderRadius.circular(
                             10,
                           ),
                         ),
-                        child:
-                            const Icon(
-                          Icons
-                              .priority_high_rounded,
+                        child: const Icon(
+                          Icons.priority_high_rounded,
                           size: 19,
-                          color: AppColors
-                              .warning,
+                          color: AppColors.warning,
                         ),
                       ),
-
                       const SizedBox(
                         width: 10,
                       ),
-
                       const Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Currently Needed',
-                              style:
-                                  TextStyle(
-                                fontSize:
-                                    16,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-
                             SizedBox(
                               height: 2,
                             ),
-
                             Text(
                               'Items currently needed by the sanctuary.',
-                              style:
-                                  TextStyle(
-                                fontSize:
-                                    11.5,
-                                color: AppColors
-                                    .mutedForeground,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ],
                         ),
                       ),
-
                       IconButton(
                         tooltip: 'Close',
                         onPressed: () {
@@ -306,8 +262,7 @@ class _DonatePageState extends State<DonatePage>
                             dialogContext,
                           ).pop();
                         },
-                        icon:
-                            const Icon(
+                        icon: const Icon(
                           Icons.close,
                           size: 20,
                         ),
@@ -332,60 +287,43 @@ class _DonatePageState extends State<DonatePage>
                 //
 
                 Expanded(
-                  child: _currentNeeds
-                          .isEmpty
+                  child: _currentNeeds.isEmpty
                       ? const Center(
                           child: Padding(
-                            padding:
-                                EdgeInsets
-                                    .all(
+                            padding: EdgeInsets.all(
                               24,
                             ),
                             child: Text(
                               'There are no currently needed items at the moment.',
-                              textAlign:
-                                  TextAlign
-                                      .center,
-                              style:
-                                  TextStyle(
-                                fontSize:
-                                    12.5,
-                                color: AppColors
-                                    .mutedForeground,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ),
                         )
                       : ListView.separated(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal:
-                                18,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
                             vertical: 8,
                           ),
-                          itemCount:
-                              _currentNeeds
-                                  .length,
-                          separatorBuilder:
-                              (
+                          itemCount: _currentNeeds.length,
+                          separatorBuilder: (
                             context,
                             index,
                           ) =>
-                                  const Divider(
+                              const Divider(
                             height: 1,
                           ),
                           itemBuilder: (
                             context,
                             index,
                           ) {
-                            final item =
-                                _currentNeeds[
-                                    index];
+                            final item = _currentNeeds[index];
 
                             return _NeededItemRow(
-                              item:
-                                  item,
+                              item: item,
                             );
                           },
                         ),
@@ -400,8 +338,7 @@ class _DonatePageState extends State<DonatePage>
                 // ============================================================
 
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 18,
                     vertical: 12,
                   ),
@@ -411,23 +348,19 @@ class _DonatePageState extends State<DonatePage>
                         child: Text(
                           '${_currentNeeds.length} '
                           '${_currentNeeds.length == 1 ? 'item' : 'items'} currently needed',
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 11.5,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ),
-
                       TextButton(
                         onPressed: () {
                           Navigator.of(
                             dialogContext,
                           ).pop();
                         },
-                        child:
-                            const Text(
+                        child: const Text(
                           'Close',
                         ),
                       ),
@@ -447,14 +380,11 @@ class _DonatePageState extends State<DonatePage>
   // ==========================================================================
 
   Future<void> _pickDate() async {
-    final now =
-        DateTime.now();
+    final now = DateTime.now();
 
-    final picked =
-        await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
-      initialDate:
-          _schedDate ??
+      initialDate: _schedDate ??
           now.add(
             const Duration(
               days: 1,
@@ -486,8 +416,7 @@ class _DonatePageState extends State<DonatePage>
     ImageSource source,
   ) async {
     try {
-      final picked =
-          await _imagePicker.pickImage(
+      final picked = await _imagePicker.pickImage(
         source: source,
         imageQuality: 85,
       );
@@ -496,19 +425,16 @@ class _DonatePageState extends State<DonatePage>
         return;
       }
 
-      final bytes =
-          await picked.readAsBytes();
+      final bytes = await picked.readAsBytes();
 
       if (!mounted) return;
 
       setState(() {
         _proofImage = picked;
 
-        _proofImageBytes =
-            bytes;
+        _proofImageBytes = bytes;
 
-        _proofImageError =
-            false;
+        _proofImageError = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -556,24 +482,15 @@ class _DonatePageState extends State<DonatePage>
       );
     }
 
-    final extension =
-        _proofImage!.name.contains('.')
-            ? _proofImage!.name
-                .split('.')
-                .last
-                .toLowerCase()
-            : 'jpg';
+    final extension = _proofImage!.name.contains('.')
+        ? _proofImage!.name.split('.').last.toLowerCase()
+        : 'jpg';
 
-    final fileName =
-        '${DateTime.now().millisecondsSinceEpoch}.$extension';
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}.$extension';
 
-    final storagePath =
-        '$donorId/$fileName';
+    final storagePath = '$donorId/$fileName';
 
-    final bytes =
-        _proofImageBytes ??
-        await _proofImage!
-            .readAsBytes();
+    final bytes = _proofImageBytes ?? await _proofImage!.readAsBytes();
 
     await _client.storage
         .from(
@@ -582,8 +499,7 @@ class _DonatePageState extends State<DonatePage>
         .uploadBinary(
           storagePath,
           bytes,
-          fileOptions:
-              const FileOptions(
+          fileOptions: const FileOptions(
             upsert: false,
           ),
         );
@@ -596,8 +512,7 @@ class _DonatePageState extends State<DonatePage>
   // ==========================================================================
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!
-        .validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -627,8 +542,7 @@ class _DonatePageState extends State<DonatePage>
 
     if (_proofImage == null) {
       setState(() {
-        _proofImageError =
-            true;
+        _proofImageError = true;
       });
 
       ScaffoldMessenger.of(
@@ -646,16 +560,11 @@ class _DonatePageState extends State<DonatePage>
 
     if (_proofImageError) {
       setState(() {
-        _proofImageError =
-            false;
+        _proofImageError = false;
       });
     }
 
-    final donorId =
-        context
-            .read<AuthController>()
-            .profile
-            ?.userId;
+    final donorId = context.read<AuthController>().profile?.userId;
 
     if (donorId == null) {
       ScaffoldMessenger.of(
@@ -672,32 +581,21 @@ class _DonatePageState extends State<DonatePage>
     }
 
     setState(() {
-      _submitting =
-          true;
+      _submitting = true;
     });
 
     try {
-      final proofPath =
-          await _uploadProofImage(
+      final proofPath = await _uploadProofImage(
         donorId,
       );
 
       // Current Needs are display-only.
       // Nothing is added to Notes.
       await _service.createSubmission(
-        donorId:
-            donorId,
-        schedDate:
-            _schedDate,
-        proofImg:
-            proofPath,
-        notes:
-            _notesCtrl.text
-                    .trim()
-                    .isEmpty
-                ? null
-                : _notesCtrl.text
-                    .trim(),
+        donorId: donorId,
+        schedDate: _schedDate,
+        proofImg: proofPath,
+        notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       );
 
       if (!mounted) return;
@@ -734,8 +632,7 @@ class _DonatePageState extends State<DonatePage>
     } finally {
       if (mounted) {
         setState(() {
-          _submitting =
-              false;
+          _submitting = false;
         });
       }
     }
@@ -746,199 +643,148 @@ class _DonatePageState extends State<DonatePage>
   // ==========================================================================
 
   Widget _buildCurrentlyNeededCard() {
-    final preview =
-        _currentNeeds.take(3).toList();
+    final preview = _currentNeeds.take(3).toList();
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(
+      padding: const EdgeInsets.all(
         16,
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           16,
         ),
         border: Border.all(
-          color:
-              _fromCurrentlyNeeded
-                  ? AppColors.roleDonor
-                      .withValues(
-                    alpha: 0.40,
-                  )
-                  : AppColors.border,
+          color: _fromCurrentlyNeeded
+              ? AppColors.roleDonor.withValues(
+                  alpha: 0.40,
+                )
+              : AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
                 width: 34,
                 height: 34,
-                decoration:
-                    BoxDecoration(
-                  color: AppColors
-                      .warning
-                      .withValues(
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(
                     alpha: 0.10,
                   ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(
+                  borderRadius: BorderRadius.circular(
                     9,
                   ),
                 ),
-                child:
-                    const Icon(
-                  Icons
-                      .priority_high_rounded,
+                child: const Icon(
+                  Icons.priority_high_rounded,
                   size: 18,
-                  color:
-                      AppColors.warning,
+                  color: AppColors.warning,
                 ),
               ),
-
               const SizedBox(
                 width: 9,
               ),
-
               const Expanded(
                 child: Text(
                   'Currently Needed',
                   style: TextStyle(
                     fontSize: 14.5,
-                    fontWeight:
-                        FontWeight
-                            .w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(
             height: 6,
           ),
-
           const Text(
             'Items the sanctuary currently needs.',
             style: TextStyle(
               fontSize: 11.5,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
-
           const SizedBox(
             height: 14,
           ),
-
           if (_needsLoading)
             const Padding(
-              padding:
-                  EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 vertical: 20,
               ),
               child: Center(
-                child:
-                    CircularProgressIndicator(
+                child: CircularProgressIndicator(
                   strokeWidth: 2,
                 ),
               ),
             )
-          else if (_needsError !=
-              null)
+          else if (_needsError != null)
             Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _needsError!,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 11.5,
-                    color: AppColors
-                        .destructive,
+                    color: AppColors.destructive,
                   ),
                 ),
-
                 const SizedBox(
                   height: 8,
                 ),
-
                 OutlinedButton(
-                  onPressed:
-                      _loadCurrentNeeds,
-                  child:
-                      const Text(
+                  onPressed: _loadCurrentNeeds,
+                  child: const Text(
                     'Retry',
                   ),
                 ),
               ],
             )
-          else if (_currentNeeds
-              .isEmpty)
+          else if (_currentNeeds.isEmpty)
             const Padding(
-              padding:
-                  EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 vertical: 12,
               ),
               child: Text(
                 'Supply needs are currently covered.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             )
           else ...[
-            for (var i = 0;
-                i < preview.length;
-                i++) ...[
+            for (var i = 0; i < preview.length; i++) ...[
               if (i > 0)
                 const Divider(
                   height: 16,
                 ),
-
               _NeededItemRow(
-                item:
-                    preview[i],
+                item: preview[i],
                 compact: true,
               ),
             ],
-
-            if (_currentNeeds.length >
-                3) ...[
+            if (_currentNeeds.length > 3) ...[
               const SizedBox(
                 height: 12,
               ),
-
               const Divider(
                 height: 1,
               ),
-
               const SizedBox(
                 height: 7,
               ),
-
               SizedBox(
-                width:
-                    double.infinity,
-                child:
-                    TextButton.icon(
-                  onPressed:
-                      _showAllNeededItems,
-                  icon:
-                      const Icon(
-                    Icons
-                        .list_alt_outlined,
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _showAllNeededItems,
+                  icon: const Icon(
+                    Icons.list_alt_outlined,
                     size: 16,
                   ),
                   label: Text(
@@ -965,18 +811,15 @@ class _DonatePageState extends State<DonatePage>
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           16,
         ),
         border: Border.all(
-          color:
-              AppColors.border,
+          color: AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
@@ -984,123 +827,95 @@ class _DonatePageState extends State<DonatePage>
                 width: 34,
                 height: 34,
                 child: DecoratedBox(
-                  decoration:
-                      BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Color(
                       0x147C9A68,
                     ),
-                    borderRadius:
-                        BorderRadius.all(
+                    borderRadius: BorderRadius.all(
                       Radius.circular(
                         9,
                       ),
                     ),
                   ),
                   child: Icon(
-                    Icons
-                        .location_on_outlined,
+                    Icons.location_on_outlined,
                     size: 18,
-                    color:
-                        AppColors.roleDonor,
+                    color: AppColors.roleDonor,
                   ),
                 ),
               ),
-
               SizedBox(
                 width: 9,
               ),
-
               Expanded(
                 child: Text(
                   'Drop-off Location',
                   style: TextStyle(
                     fontSize: 14.5,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(
             height: 10,
           ),
-
           const Text(
             'Dumaguete Animal Sanctuary',
             style: TextStyle(
               fontSize: 12.5,
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
-
           const SizedBox(
             height: 4,
           ),
-
           const Text(
             'Cantil-e–Isugan Road, Purok Maabi Abihon, Upper Cantil-e / Isugan, Bacong, Negros Oriental, Philippines',
             style: TextStyle(
               fontSize: 11.5,
               height: 1.35,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
-
           const SizedBox(
             height: 12,
           ),
-
           const Divider(
             height: 1,
           ),
-
           const SizedBox(
             height: 12,
           ),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Icon(
-                Icons
-                    .my_location_outlined,
+                Icons.my_location_outlined,
                 size: 16,
-                color:
-                    AppColors.roleDonor,
+                color: AppColors.roleDonor,
               ),
-
               const SizedBox(
                 width: 8,
               ),
-
               const Expanded(
                 child: Text(
                   'Coordinates: 9.32241, 123.300601',
                   style: TextStyle(
                     fontSize: 11.5,
                     height: 1.35,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ),
-
               IconButton(
-                tooltip:
-                    'Copy coordinates',
-                visualDensity:
-                    VisualDensity.compact,
-                onPressed:
-                    () async {
+                tooltip: 'Copy coordinates',
+                visualDensity: VisualDensity.compact,
+                onPressed: () async {
                   await Clipboard.setData(
                     const ClipboardData(
-                      text:
-                          '9.32241, 123.300601',
+                      text: '9.32241, 123.300601',
                     ),
                   );
 
@@ -1115,52 +930,41 @@ class _DonatePageState extends State<DonatePage>
                       content: Text(
                         'Coordinates copied. You can paste them into Google Maps.',
                       ),
-                      duration:
-                          Duration(
+                      duration: Duration(
                         seconds: 2,
                       ),
                     ),
                   );
                 },
                 icon: const Icon(
-                  Icons
-                      .content_copy_outlined,
+                  Icons.content_copy_outlined,
                   size: 16,
-                  color:
-                      AppColors.roleDonor,
+                  color: AppColors.roleDonor,
                 ),
               ),
             ],
           ),
-
           const SizedBox(
             height: 10,
           ),
-
           const Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                Icons
-                    .directions_outlined,
+                Icons.directions_outlined,
                 size: 16,
-                color:
-                    AppColors.roleDonor,
+                color: AppColors.roleDonor,
               ),
-
               SizedBox(
                 width: 8,
               ),
-
               Expanded(
                 child: Text(
                   'From Bacong, head toward Valencia. Before the Bria / Lumina Homes development, turn onto the small rough road toward Cantil-e. The sanctuary is about 300 meters along on the right, marked by a big blue gate.',
                   style: TextStyle(
                     fontSize: 11.5,
                     height: 1.35,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ),
@@ -1179,35 +983,29 @@ class _DonatePageState extends State<DonatePage>
     bool isMobile,
   ) {
     return Container(
-      width:
-          double.infinity,
+      width: double.infinity,
       padding: EdgeInsets.all(
         isMobile ? 16 : 22,
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           18,
         ),
         border: Border.all(
-          color:
-              AppColors.border,
+          color: AppColors.border,
         ),
       ),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Donation Details',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight:
-                    FontWeight
-                        .w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
 
@@ -1220,12 +1018,9 @@ class _DonatePageState extends State<DonatePage>
             // ================================================================
 
             const _FieldTitle(
-              icon: Icons
-                  .calendar_today_outlined,
-              title:
-                  'Preferred Drop-off',
-              helper:
-                  'When do you plan to bring your donation?',
+              icon: Icons.calendar_today_outlined,
+              title: 'Preferred Drop-off',
+              helper: 'When do you plan to bring your donation?',
             ),
 
             const SizedBox(
@@ -1233,60 +1028,37 @@ class _DonatePageState extends State<DonatePage>
             ),
 
             InkWell(
-              borderRadius:
-                  BorderRadius.circular(
+              borderRadius: BorderRadius.circular(
                 12,
               ),
-              onTap:
-                  _submitting
-                      ? null
-                      : _pickDate,
-              child:
-                  InputDecorator(
-                decoration:
-                    InputDecoration(
-                  prefixIcon:
-                      const Icon(
-                    Icons
-                        .event_outlined,
+              onTap: _submitting ? null : _pickDate,
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(
+                    Icons.event_outlined,
                     size: 19,
                   ),
-                  suffixIcon:
-                      const Icon(
-                    Icons
-                        .expand_more,
+                  suffixIcon: const Icon(
+                    Icons.expand_more,
                     size: 20,
                   ),
-                  errorText:
-                      _schedDateError
-                          ? 'Preferred drop-off date is required.'
-                          : null,
+                  errorText: _schedDateError
+                      ? 'Preferred drop-off date is required.'
+                      : null,
                 ),
                 child: Text(
-                  _schedDate ==
-                          null
+                  _schedDate == null
                       ? 'Select a date'
                       : _formatLongDate(
                           _schedDate!,
                         ),
-                  style:
-                      TextStyle(
-                    fontSize:
-                        13.5,
+                  style: TextStyle(
+                    fontSize: 13.5,
                     fontWeight:
-                        _schedDate ==
-                                null
-                            ? FontWeight
-                                .w400
-                            : FontWeight
-                                .w600,
-                    color:
-                        _schedDate ==
-                                null
-                            ? AppColors
-                                .mutedForeground
-                            : AppColors
-                                .foreground,
+                        _schedDate == null ? FontWeight.w400 : FontWeight.w600,
+                    color: _schedDate == null
+                        ? AppColors.mutedForeground
+                        : AppColors.foreground,
                   ),
                 ),
               ),
@@ -1301,14 +1073,11 @@ class _DonatePageState extends State<DonatePage>
             // ================================================================
 
             _FieldTitle(
-              icon: Icons
-                  .photo_camera_outlined,
-              title:
-                  'Donation Photo',
-              helper:
-                  _cameraAvailable
-                      ? 'Take a photo or choose one from your gallery.'
-                      : 'Upload a clear photo of the items.',
+              icon: Icons.photo_camera_outlined,
+              title: 'Donation Photo',
+              helper: _cameraAvailable
+                  ? 'Take a photo or choose one from your gallery.'
+                  : 'Upload a clear photo of the items.',
             ),
 
             const SizedBox(
@@ -1320,54 +1089,36 @@ class _DonatePageState extends State<DonatePage>
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed:
-                          _submitting
-                              ? null
-                              : _takeProofPhoto,
+                      onPressed: _submitting ? null : _takeProofPhoto,
                       icon: const Icon(
-                        Icons
-                            .photo_camera_outlined,
+                        Icons.photo_camera_outlined,
                         size: 18,
                       ),
                       label: const Text(
                         'Camera',
                       ),
-                      style:
-                          OutlinedButton
-                              .styleFrom(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 12,
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(
                     width: 10,
                   ),
-
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed:
-                          _submitting
-                              ? null
-                              : _pickProofImage,
+                      onPressed: _submitting ? null : _pickProofImage,
                       icon: const Icon(
-                        Icons
-                            .photo_library_outlined,
+                        Icons.photo_library_outlined,
                         size: 18,
                       ),
                       label: const Text(
                         'Gallery',
                       ),
-                      style:
-                          OutlinedButton
-                              .styleFrom(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 12,
                         ),
                       ),
@@ -1375,249 +1126,145 @@ class _DonatePageState extends State<DonatePage>
                   ),
                 ],
               ),
-
               const SizedBox(
                 height: 10,
               ),
             ],
 
             InkWell(
-              borderRadius:
-                  BorderRadius.circular(
+              borderRadius: BorderRadius.circular(
                 14,
               ),
-              onTap:
-                  _submitting
-                      ? null
-                      : _pickProofImage,
-              child:
-                  AnimatedContainer(
-                duration:
-                    const Duration(
-                  milliseconds:
-                      150,
+              onTap: _submitting ? null : _pickProofImage,
+              child: AnimatedContainer(
+                duration: const Duration(
+                  milliseconds: 150,
                 ),
-                width:
-                    double.infinity,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors.card,
-                  borderRadius:
-                      BorderRadius
-                          .circular(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(
                     14,
                   ),
                   border: Border.all(
-                    color:
-                        _proofImageError
-                            ? AppColors
-                                .destructive
-                            : _proofImage ==
-                                    null
-                                ? AppColors
-                                    .border
-                                : AppColors
-                                    .sageGreen,
-                    width:
-                        _proofImageError ||
-                                _proofImage !=
-                                    null
-                            ? 1.4
-                            : 1,
+                    color: _proofImageError
+                        ? AppColors.destructive
+                        : _proofImage == null
+                            ? AppColors.border
+                            : AppColors.sageGreen,
+                    width: _proofImageError || _proofImage != null ? 1.4 : 1,
                   ),
                 ),
-                child:
-                    _proofImageBytes ==
-                            null
-                        ? Padding(
-                            padding:
-                                EdgeInsets
-                                    .symmetric(
-                              vertical:
-                                  isMobile
-                                      ? 28
-                                      : 34,
-                              horizontal:
-                                  18,
+                child: _proofImageBytes == null
+                    ? Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: isMobile ? 28 : 34,
+                          horizontal: 18,
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.roleDonor.withValues(
+                                  alpha: 0.10,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  13,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.add_photo_alternate_outlined,
+                                size: 25,
+                                color: _proofImageError
+                                    ? AppColors.destructive
+                                    : AppColors.roleDonor,
+                              ),
                             ),
-                            child:
-                                Column(
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            Text(
+                              'Choose a photo',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: _proofImageError
+                                    ? AppColors.destructive
+                                    : AppColors.foreground,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 3,
+                            ),
+                            const Text(
+                              'Tap to browse your device',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.mutedForeground,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(
+                                13,
+                              ),
+                            ),
+                            child: Image.memory(
+                              _proofImageBytes!,
+                              width: double.infinity,
+                              height: isMobile ? 190 : 230,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 11,
+                            ),
+                            child: Row(
                               children: [
-                                Container(
-                                  width:
-                                      48,
-                                  height:
-                                      48,
-                                  decoration:
-                                      BoxDecoration(
-                                    color: AppColors
-                                        .roleDonor
-                                        .withValues(
-                                      alpha:
-                                          0.10,
-                                    ),
-                                    borderRadius:
-                                        BorderRadius
-                                            .circular(
-                                      13,
+                                const Icon(
+                                  Icons.check_circle_outline,
+                                  size: 18,
+                                  color: AppColors.sageGreen,
+                                ),
+                                const SizedBox(
+                                  width: 8,
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    _proofImage!.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  child:
-                                      Icon(
-                                    Icons
-                                        .add_photo_alternate_outlined,
-                                    size:
-                                        25,
-                                    color:
-                                        _proofImageError
-                                            ? AppColors
-                                                .destructive
-                                            : AppColors
-                                                .roleDonor,
-                                  ),
                                 ),
-
                                 const SizedBox(
-                                  height:
-                                      10,
+                                  width: 10,
                                 ),
-
-                                Text(
-                                  'Choose a photo',
-                                  style:
-                                      TextStyle(
-                                    fontSize:
-                                        14,
-                                    fontWeight:
-                                        FontWeight
-                                            .w700,
-                                    color:
-                                        _proofImageError
-                                            ? AppColors
-                                                .destructive
-                                            : AppColors
-                                                .foreground,
-                                  ),
-                                ),
-
-                                const SizedBox(
-                                  height:
-                                      3,
-                                ),
-
                                 const Text(
-                                  'Tap to browse your device',
-                                  style:
-                                      TextStyle(
-                                    fontSize:
-                                        12,
-                                    color: AppColors
-                                        .mutedForeground,
+                                  'Change',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.sageGreen,
                                   ),
                                 ),
                               ],
                             ),
-                          )
-                        : Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .stretch,
-                            children: [
-                              ClipRRect(
-                                borderRadius:
-                                    const BorderRadius
-                                        .vertical(
-                                  top:
-                                      Radius
-                                          .circular(
-                                    13,
-                                  ),
-                                ),
-                                child:
-                                    Image.memory(
-                                  _proofImageBytes!,
-                                  width:
-                                      double
-                                          .infinity,
-                                  height:
-                                      isMobile
-                                          ? 190
-                                          : 230,
-                                  fit:
-                                      BoxFit
-                                          .cover,
-                                ),
-                              ),
-
-                              Padding(
-                                padding:
-                                    const EdgeInsets
-                                        .symmetric(
-                                  horizontal:
-                                      14,
-                                  vertical:
-                                      11,
-                                ),
-                                child:
-                                    Row(
-                                  children: [
-                                    const Icon(
-                                      Icons
-                                          .check_circle_outline,
-                                      size:
-                                          18,
-                                      color: AppColors
-                                          .sageGreen,
-                                    ),
-
-                                    const SizedBox(
-                                      width:
-                                          8,
-                                    ),
-
-                                    Expanded(
-                                      child:
-                                          Text(
-                                        _proofImage!
-                                            .name,
-                                        overflow:
-                                            TextOverflow
-                                                .ellipsis,
-                                        style:
-                                            const TextStyle(
-                                          fontSize:
-                                              12.5,
-                                          fontWeight:
-                                              FontWeight
-                                                  .w500,
-                                        ),
-                                      ),
-                                    ),
-
-                                    const SizedBox(
-                                      width:
-                                          10,
-                                    ),
-
-                                    const Text(
-                                      'Change',
-                                      style:
-                                          TextStyle(
-                                        fontSize:
-                                            12.5,
-                                        fontWeight:
-                                            FontWeight
-                                                .w600,
-                                        color: AppColors
-                                            .sageGreen,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ),
+                        ],
+                      ),
               ),
             ),
 
@@ -1625,37 +1272,24 @@ class _DonatePageState extends State<DonatePage>
               const SizedBox(
                 height: 7,
               ),
-
               const Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons
-                        .error_outline,
+                    Icons.error_outline,
                     size: 15,
-                    color:
-                        AppColors
-                            .destructive,
+                    color: AppColors.destructive,
                   ),
-
                   SizedBox(
                     width: 6,
                   ),
-
                   Expanded(
                     child: Text(
                       'Donation photo is required.',
-                      style:
-                          TextStyle(
-                        fontSize:
-                            11.5,
-                        fontWeight:
-                            FontWeight
-                                .w500,
-                        color: AppColors
-                            .destructive,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.destructive,
                       ),
                     ),
                   ),
@@ -1672,12 +1306,9 @@ class _DonatePageState extends State<DonatePage>
             // ================================================================
 
             const _FieldTitle(
-              icon:
-                  Icons.notes_outlined,
-              title:
-                  'Notes',
-              helper:
-                  'Optional details for shelter Manager.',
+              icon: Icons.notes_outlined,
+              title: 'Notes',
+              helper: 'Optional details for shelter Manager.',
             ),
 
             const SizedBox(
@@ -1685,16 +1316,12 @@ class _DonatePageState extends State<DonatePage>
             ),
 
             TextFormField(
-              controller:
-                  _notesCtrl,
+              controller: _notesCtrl,
               minLines: 3,
               maxLines: 4,
-              enabled:
-                  !_submitting,
-              decoration:
-                  const InputDecoration(
-                hintText:
-                    'Add a short note',
+              enabled: !_submitting,
+              decoration: const InputDecoration(
+                hintText: 'Add a short note',
               ),
             ),
 
@@ -1707,65 +1334,42 @@ class _DonatePageState extends State<DonatePage>
             // ================================================================
 
             Container(
-              width:
-                  double.infinity,
-              padding:
-                  const EdgeInsets
-                      .symmetric(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 12,
               ),
-              decoration:
-                  BoxDecoration(
-                color: AppColors
-                    .roleDonor
-                    .withValues(
+              decoration: BoxDecoration(
+                color: AppColors.roleDonor.withValues(
                   alpha: 0.05,
                 ),
-                borderRadius:
-                    BorderRadius
-                        .circular(
+                borderRadius: BorderRadius.circular(
                   12,
                 ),
-                border:
-                    Border.all(
-                  color: AppColors
-                      .roleDonor
-                      .withValues(
+                border: Border.all(
+                  color: AppColors.roleDonor.withValues(
                     alpha: 0.16,
                   ),
                 ),
               ),
-              child:
-                  const Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons
-                        .check_circle_outline,
+                    Icons.check_circle_outline,
                     size: 18,
-                    color:
-                        AppColors
-                            .roleDonor,
+                    color: AppColors.roleDonor,
                   ),
-
                   SizedBox(
                     width: 9,
                   ),
-
                   Expanded(
                     child: Text(
                       'Manager will review your request. Track its progress anytime in My Donations.',
-                      style:
-                          TextStyle(
-                        fontSize:
-                            12.5,
-                        height:
-                            1.35,
-                        color: AppColors
-                            .mutedForeground,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        height: 1.35,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ),
@@ -1782,49 +1386,28 @@ class _DonatePageState extends State<DonatePage>
             // ================================================================
 
             SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  ElevatedButton.icon(
-                onPressed:
-                    _submitting
-                        ? null
-                        : _submit,
-                icon:
-                    _submitting
-                        ? const SizedBox(
-                            width:
-                                17,
-                            height:
-                                17,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth:
-                                  2,
-                              color:
-                                  Colors
-                                      .white,
-                            ),
-                          )
-                        : const Icon(
-                            Icons
-                                .send_outlined,
-                            size:
-                                18,
-                          ),
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _submitting ? null : _submit,
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 17,
+                        height: 17,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.send_outlined,
+                        size: 18,
+                      ),
                 label: Text(
-                  _submitting
-                      ? 'Submitting…'
-                      : 'Submit Donation Request',
+                  _submitting ? 'Submitting…' : 'Submit Donation Request',
                 ),
-                style:
-                    ElevatedButton
-                        .styleFrom(
-                  padding:
-                      const EdgeInsets
-                          .symmetric(
-                    vertical:
-                        15,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
                   ),
                 ),
               ),
@@ -1843,35 +1426,29 @@ class _DonatePageState extends State<DonatePage>
   Widget build(
     BuildContext context,
   ) {
-    final screenWidth =
-        MediaQuery.sizeOf(
+    final screenWidth = MediaQuery.sizeOf(
       context,
     ).width;
 
-    final compact =
-        screenWidth < 900;
+    final compact = screenWidth < 900;
 
     // If the donor came specifically from Currently Needed,
     // let the list finish loading first.
-    if (_fromCurrentlyNeeded &&
-        _needsLoading) {
+    if (_fromCurrentlyNeeded && _needsLoading) {
       return const SizedBox(
         height: 320,
         child: Center(
-          child:
-              CircularProgressIndicator(),
+          child: CircularProgressIndicator(),
         ),
       );
     }
 
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(
+      constraints: const BoxConstraints(
         maxWidth: 1080,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ================================================================
           // HEADER
@@ -1881,8 +1458,7 @@ class _DonatePageState extends State<DonatePage>
             'Make a Donation',
             style: TextStyle(
               fontSize: 24,
-              fontWeight:
-                  FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
 
@@ -1894,8 +1470,7 @@ class _DonatePageState extends State<DonatePage>
             'Help support the animals in our care.',
             style: TextStyle(
               fontSize: 13,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
 
@@ -1904,8 +1479,7 @@ class _DonatePageState extends State<DonatePage>
           ),
 
           _DonationStepBar(
-            isMobile:
-                compact,
+            isMobile: compact,
           ),
 
           const SizedBox(
@@ -1918,17 +1492,13 @@ class _DonatePageState extends State<DonatePage>
 
           if (compact) ...[
             _buildCurrentlyNeededCard(),
-
             const SizedBox(
               height: 16,
             ),
-
             _buildDropOffLocationCard(),
-
             const SizedBox(
               height: 16,
             ),
-
             _buildDonationForm(
               true,
             ),
@@ -1938,31 +1508,24 @@ class _DonatePageState extends State<DonatePage>
             // ==============================================================
 
             Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child:
-                      _buildDonationForm(
+                  child: _buildDonationForm(
                     false,
                   ),
                 ),
-
                 const SizedBox(
                   width: 18,
                 ),
-
                 SizedBox(
                   width: 300,
                   child: Column(
                     children: [
                       _buildCurrentlyNeededCard(),
-
                       const SizedBox(
                         height: 16,
                       ),
-
                       _buildDropOffLocationCard(),
                     ],
                   ),
@@ -1983,8 +1546,7 @@ class _DonatePageState extends State<DonatePage>
 // CURRENTLY NEEDED ITEM ROW
 // ============================================================================
 
-class _NeededItemRow
-    extends StatelessWidget {
+class _NeededItemRow extends StatelessWidget {
   final ReplenishmentAlert item;
 
   final bool compact;
@@ -2006,108 +1568,75 @@ class _NeededItemRow
     );
 
     return Padding(
-      padding:
-          EdgeInsets.symmetric(
-        vertical:
-            compact ? 3 : 10,
+      padding: EdgeInsets.symmetric(
+        vertical: compact ? 3 : 10,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 8,
             height: 8,
-            margin:
-                const EdgeInsets.only(
+            margin: const EdgeInsets.only(
               top: 5,
             ),
-            decoration:
-                BoxDecoration(
+            decoration: BoxDecoration(
               color: color,
-              shape:
-                  BoxShape.circle,
+              shape: BoxShape.circle,
             ),
           ),
-
           const SizedBox(
             width: 9,
           ),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.itemName,
-                  maxLines:
-                      compact ? 1 : 2,
-                  overflow:
-                      TextOverflow
-                          .ellipsis,
-                  style:
-                      const TextStyle(
+                  maxLines: compact ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     fontSize: 12.5,
-                    fontWeight:
-                        FontWeight
-                            .w600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 const SizedBox(
                   height: 2,
                 ),
-
                 Text(
-                  item.stockQty <=
-                          0
+                  item.stockQty <= 0
                       ? 'Currently out of stock'
                       : '${_formatQty(item.stockQty)} ${item.unitAbbr} remaining',
-                  style:
-                      const TextStyle(
-                    fontSize:
-                        10.8,
-                    color: AppColors
-                        .mutedForeground,
+                  style: const TextStyle(
+                    fontSize: 10.8,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(
             width: 8,
           ),
-
           Container(
-            padding:
-                const EdgeInsets
-                    .symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 7,
               vertical: 3,
             ),
-            decoration:
-                BoxDecoration(
-              color:
-                  color.withValues(
+            decoration: BoxDecoration(
+              color: color.withValues(
                 alpha: 0.10,
               ),
-              borderRadius:
-                  BorderRadius
-                      .circular(
+              borderRadius: BorderRadius.circular(
                 999,
               ),
             ),
             child: Text(
               label,
-              style:
-                  TextStyle(
+              style: TextStyle(
                 fontSize: 9.5,
-                fontWeight:
-                    FontWeight
-                        .w600,
+                fontWeight: FontWeight.w600,
                 color: color,
               ),
             ),
@@ -2122,8 +1651,7 @@ class _NeededItemRow
 // FIELD TITLE
 // ============================================================================
 
-class _FieldTitle
-    extends StatelessWidget {
+class _FieldTitle extends StatelessWidget {
   final IconData icon;
 
   final String title;
@@ -2141,66 +1669,47 @@ class _FieldTitle
     BuildContext context,
   ) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 32,
           height: 32,
-          decoration:
-              BoxDecoration(
-            color: AppColors
-                .roleDonor
-                .withValues(
+          decoration: BoxDecoration(
+            color: AppColors.roleDonor.withValues(
               alpha: 0.08,
             ),
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               9,
             ),
           ),
           child: Icon(
             icon,
             size: 17,
-            color:
-                AppColors.roleDonor,
+            color: AppColors.roleDonor,
           ),
         ),
-
         const SizedBox(
           width: 10,
         ),
-
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style:
-                    const TextStyle(
-                  fontSize:
-                      13.5,
-                  fontWeight:
-                      FontWeight
-                          .w700,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-
               const SizedBox(
                 height: 1,
               ),
-
               Text(
                 helper,
-                style:
-                    const TextStyle(
-                  fontSize:
-                      11.5,
-                  color: AppColors
-                      .mutedForeground,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ],
@@ -2215,8 +1724,7 @@ class _FieldTitle
 // DONATION STEP BAR
 // ============================================================================
 
-class _DonationStepBar
-    extends StatelessWidget {
+class _DonationStepBar extends StatelessWidget {
   final bool isMobile;
 
   const _DonationStepBar({
@@ -2229,57 +1737,39 @@ class _DonationStepBar
   ) {
     return Container(
       width: double.infinity,
-      padding:
-          EdgeInsets.symmetric(
-        horizontal:
-            isMobile ? 12 : 22,
-        vertical:
-            isMobile ? 12 : 14,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 22,
+        vertical: isMobile ? 12 : 14,
       ),
-      decoration:
-          BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           14,
         ),
         border: Border.all(
-          color:
-              AppColors.border,
+          color: AppColors.border,
         ),
       ),
       child: Row(
         children: [
           Expanded(
             child: _MiniStep(
-              number:
-                  '1',
-              label: isMobile
-                  ? 'Date'
-                  : 'Choose Date',
+              number: '1',
+              label: isMobile ? 'Date' : 'Choose Date',
             ),
           ),
-
           const _StepLine(),
-
           Expanded(
             child: _MiniStep(
-              number:
-                  '2',
-              label: isMobile
-                  ? 'Photo'
-                  : 'Add Photo',
+              number: '2',
+              label: isMobile ? 'Photo' : 'Add Photo',
             ),
           ),
-
           const _StepLine(),
-
           const Expanded(
             child: _MiniStep(
-              number:
-                  '3',
-              label:
-                  'Submit',
+              number: '3',
+              label: 'Submit',
             ),
           ),
         ],
@@ -2292,8 +1782,7 @@ class _DonationStepBar
 // MINI STEP
 // ============================================================================
 
-class _MiniStep
-    extends StatelessWidget {
+class _MiniStep extends StatelessWidget {
   final String number;
 
   final String label;
@@ -2308,50 +1797,35 @@ class _MiniStep
     BuildContext context,
   ) {
     return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
           width: 27,
           height: 27,
-          alignment:
-              Alignment.center,
-          decoration:
-              const BoxDecoration(
-            color:
-                AppColors.roleDonor,
-            shape:
-                BoxShape.circle,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.roleDonor,
+            shape: BoxShape.circle,
           ),
           child: Text(
             number,
-            style:
-                const TextStyle(
+            style: const TextStyle(
               fontSize: 11.5,
-              fontWeight:
-                  FontWeight.w700,
-              color:
-                  Colors.white,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
         ),
-
         const SizedBox(
           width: 7,
         ),
-
         Flexible(
           child: Text(
             label,
-            overflow:
-                TextOverflow
-                    .ellipsis,
-            style:
-                const TextStyle(
-              fontSize:
-                  12.5,
-              fontWeight:
-                  FontWeight.w600,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -2364,8 +1838,7 @@ class _MiniStep
 // STEP LINE
 // ============================================================================
 
-class _StepLine
-    extends StatelessWidget {
+class _StepLine extends StatelessWidget {
   const _StepLine();
 
   @override
@@ -2375,12 +1848,10 @@ class _StepLine
     return Container(
       width: 22,
       height: 1,
-      margin:
-          const EdgeInsets.symmetric(
+      margin: const EdgeInsets.symmetric(
         horizontal: 6,
       ),
-      color:
-          AppColors.border,
+      color: AppColors.border,
     );
   }
 }
@@ -2416,11 +1887,8 @@ class _StepLine
 String _formatQty(
   double value,
 ) {
-  if (value ==
-      value.roundToDouble()) {
-    return value
-        .toInt()
-        .toString();
+  if (value == value.roundToDouble()) {
+    return value.toInt().toString();
   }
 
   return value

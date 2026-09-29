@@ -118,8 +118,7 @@ abstract interface class DonationService {
 class MockDonationService implements DonationService {
   final MockDatabase _db = MockDatabase.instance;
 
-  final InventoryService _inventoryService =
-      MockInventoryService();
+  final InventoryService _inventoryService = MockInventoryService();
 
   String? _userName(
     String? userId,
@@ -142,29 +141,19 @@ class MockDonationService implements DonationService {
     return DonationSubmission(
       subId: row.id,
       donorId: row.donorId,
-      donorName:
-          _userName(row.donorId) ??
-          'Unknown donor',
-      updatedByUserId:
-          row.updatedByUserId,
-      updatedByName:
-          _userName(
-            row.updatedByUserId,
-          ),
-      status:
-          submissionStatusFromString(
+      donorName: _userName(row.donorId) ?? 'Unknown donor',
+      updatedByUserId: row.updatedByUserId,
+      updatedByName: _userName(
+        row.updatedByUserId,
+      ),
+      status: submissionStatusFromString(
         row.status,
       ),
-      schedDate:
-          row.schedDate,
-      dateSub:
-          row.dateSub,
-      dateReceived:
-          row.dateReceived,
-      proofImg:
-          row.proofImg,
-      notes:
-          row.notes,
+      schedDate: row.schedDate,
+      dateSub: row.dateSub,
+      dateReceived: row.dateReceived,
+      proofImg: row.proofImg,
+      notes: row.notes,
     );
   }
 
@@ -175,16 +164,13 @@ class MockDonationService implements DonationService {
     final rows = donorId == null
         ? _db.submissions
         : _db.submissions.where(
-            (s) =>
-                s.donorId == donorId,
+            (s) => s.donorId == donorId,
           );
 
-    final list =
-        rows.map(_toDonationSubmission).toList();
+    final list = rows.map(_toDonationSubmission).toList();
 
     list.sort(
-      (a, b) =>
-          b.dateSub.compareTo(
+      (a, b) => b.dateSub.compareTo(
         a.dateSub,
       ),
     );
@@ -216,22 +202,15 @@ class MockDonationService implements DonationService {
     String? notes,
   }) async {
     final row = SubmissionRow(
-      id:
-          newMockId(
+      id: newMockId(
         'submission',
       ),
-      donorId:
-          donorId,
-      status:
-          'pending',
-      schedDate:
-          schedDate,
-      dateSub:
-          DateTime.now(),
-      proofImg:
-          proofImg,
-      notes:
-          notes,
+      donorId: donorId,
+      status: 'pending',
+      schedDate: schedDate,
+      dateSub: DateTime.now(),
+      proofImg: proofImg,
+      notes: notes,
     );
 
     _db.submissions.add(
@@ -262,13 +241,11 @@ class MockDonationService implements DonationService {
       );
     }
 
-    row.status =
-        submissionStatusToString(
+    row.status = submissionStatusToString(
       status,
     );
 
-    row.updatedByUserId =
-        updatedByUserId;
+    row.updatedByUserId = updatedByUserId;
 
     DataChangeBus.instance.ping();
   }
@@ -279,12 +256,9 @@ class MockDonationService implements DonationService {
     required String updatedByUserId,
   }) {
     return updateSubmissionStatus(
-      subId:
-          subId,
-      status:
-          SubmissionStatus.rejected,
-      updatedByUserId:
-          updatedByUserId,
+      subId: subId,
+      status: SubmissionStatus.rejected,
+      updatedByUserId: updatedByUserId,
     );
   }
 
@@ -298,31 +272,20 @@ class MockDonationService implements DonationService {
     required DonationType type,
     DateTime? receivedDate,
   }) async {
-    final donationRow =
-        DonationRow(
-      id:
-          newMockId(
+    final donationRow = DonationRow(
+      id: newMockId(
         'donation',
       ),
-      type:
-          donationTypeToString(
+      type: donationTypeToString(
         type,
       ),
-      donorId:
-          donorId,
-      donorName:
-          donorName,
-      subId:
-          subId,
-      receivedBy:
-          receivedBy,
-      receivedDate:
-          receivedDate ??
-          DateTime.now(),
-      recordedByUserId:
-          recordedByUserId,
-      recordedDate:
-          DateTime.now(),
+      donorId: donorId,
+      donorName: donorName,
+      subId: subId,
+      receivedBy: receivedBy,
+      receivedDate: receivedDate ?? DateTime.now(),
+      recordedByUserId: recordedByUserId,
+      recordedDate: DateTime.now(),
     );
 
     _db.donations.add(
@@ -334,47 +297,33 @@ class MockDonationService implements DonationService {
         continue;
       }
 
-      final invItem =
-          await _inventoryService.fetchItem(
+      final invItem = await _inventoryService.fetchItem(
         item.itemId,
       );
 
-      final packageQuantity =
-          invItem?.packageQuantity;
+      final packageQuantity = invItem?.packageQuantity;
 
-      final qtyRemaining =
-          packageQuantity == null
+      final qtyRemaining = packageQuantity == null
+          ? item.qty
+          : item.qtyUnit == QtyUnit.packageUnit
               ? item.qty
-              : item.qtyUnit ==
-                      QtyUnit.packageUnit
-                  ? item.qty
-                  : item.qty *
-                      packageQuantity;
+              : item.qty * packageQuantity;
 
       _db.donationItems.add(
         DonationItemRow(
-          donId:
-              donationRow.id,
-          itemId:
-              item.itemId,
-          qty:
-              item.qty,
-          qtyUnit:
-              item.qtyUnit,
-          expiryDate:
-              item.expiryDate,
-          qtyRemaining:
-              qtyRemaining,
+          donId: donationRow.id,
+          itemId: item.itemId,
+          qty: item.qty,
+          qtyUnit: item.qtyUnit,
+          expiryDate: item.expiryDate,
+          qtyRemaining: qtyRemaining,
         ),
       );
 
       await _inventoryService.stockIn(
-        itemId:
-            item.itemId,
-        qty:
-            item.qty,
-        qtyUnit:
-            item.qtyUnit,
+        itemId: item.itemId,
+        qty: item.qty,
+        qtyUnit: item.qtyUnit,
       );
     }
 
@@ -402,29 +351,20 @@ class MockDonationService implements DonationService {
       );
     }
 
-    row.status =
-        'stocked';
+    row.status = 'stocked';
 
-    row.updatedByUserId =
-        updatedByUserId;
+    row.updatedByUserId = updatedByUserId;
 
     DataChangeBus.instance.ping();
 
     await _createDonationAndItems(
-      subId:
-          subId,
-      donorId:
-          donorId,
-      recordedByUserId:
-          updatedByUserId,
-      receivedBy:
-          receivedBy,
-      items:
-          items,
-      type:
-          type,
-      receivedDate:
-          receivedDate,
+      subId: subId,
+      donorId: donorId,
+      recordedByUserId: updatedByUserId,
+      receivedBy: receivedBy,
+      items: items,
+      type: type,
+      receivedDate: receivedDate,
     );
   }
 
@@ -443,11 +383,9 @@ class MockDonationService implements DonationService {
       );
     }
 
-    row.dateReceived =
-        DateTime.now();
+    row.dateReceived = DateTime.now();
 
-    row.status =
-        'received';
+    row.status = 'received';
 
     DataChangeBus.instance.ping();
   }
@@ -463,20 +401,13 @@ class MockDonationService implements DonationService {
     DateTime? receivedDate,
   }) {
     return _createDonationAndItems(
-      donorId:
-          donorId,
-      donorName:
-          donorName,
-      recordedByUserId:
-          recordedByUserId,
-      receivedBy:
-          receivedBy,
-      items:
-          items,
-      type:
-          type,
-      receivedDate:
-          receivedDate,
+      donorId: donorId,
+      donorName: donorName,
+      recordedByUserId: recordedByUserId,
+      receivedBy: receivedBy,
+      items: items,
+      type: type,
+      receivedDate: receivedDate,
     );
   }
 
@@ -484,8 +415,7 @@ class MockDonationService implements DonationService {
   Future<List<DateTime>> fetchDonationDates() async {
     return _db.donations
         .map(
-          (d) =>
-              d.receivedDate,
+          (d) => d.receivedDate,
         )
         .toList();
   }
@@ -494,8 +424,7 @@ class MockDonationService implements DonationService {
   Future<List<DonationLineItem>> fetchReceivedItems(
     String subId,
   ) async {
-    final donation =
-        firstWhereOrNull(
+    final donation = firstWhereOrNull(
       _db.donations,
       (d) => d.subId == subId,
     );
@@ -504,33 +433,23 @@ class MockDonationService implements DonationService {
       return [];
     }
 
-    final rows =
-        _db.donationItems.where(
-      (di) =>
-          di.donId == donation.id,
+    final rows = _db.donationItems.where(
+      (di) => di.donId == donation.id,
     );
 
-    final result =
-        <DonationLineItem>[];
+    final result = <DonationLineItem>[];
 
     for (final row in rows) {
-      final item =
-          await _inventoryService.fetchItem(
+      final item = await _inventoryService.fetchItem(
         row.itemId,
       );
 
       result.add(
         DonationLineItem(
-          itemId:
-              row.itemId,
-          itemName:
-              item?.itemName ??
-              'Unknown item',
-          itemUom:
-              item?.itemUom ??
-              '',
-          qty:
-              row.qty,
+          itemId: row.itemId,
+          itemName: item?.itemName ?? 'Unknown item',
+          itemUom: item?.itemUom ?? '',
+          qty: row.qty,
         ),
       );
     }
@@ -539,18 +458,15 @@ class MockDonationService implements DonationService {
   }
 
   @override
-  Future<List<DonationSubmission>>
-      fetchLinkableSubmissions() async {
-    final subs =
-        await fetchSubmissions();
+  Future<List<DonationSubmission>> fetchLinkableSubmissions() async {
+    final subs = await fetchSubmissions();
 
-    final linkedIds =
-        _db.donations
-            .map(
-              (d) => d.subId,
-            )
-            .whereType<String>()
-            .toSet();
+    final linkedIds = _db.donations
+        .map(
+          (d) => d.subId,
+        )
+        .whereType<String>()
+        .toSet();
 
     return subs
         .where(
@@ -558,8 +474,7 @@ class MockDonationService implements DonationService {
               !linkedIds.contains(
                 s.subId,
               ) &&
-              s.status ==
-                  SubmissionStatus.received,
+              s.status == SubmissionStatus.received,
         )
         .toList();
   }
@@ -572,83 +487,64 @@ class MockDonationService implements DonationService {
   Future<MonthlyDonorSummary> fetchMonthlyDonorSummary(
     DateTime month,
   ) async {
-    final start =
-        DateTime(
+    final start = DateTime(
       month.year,
       month.month,
       1,
     );
 
-    final end =
-        DateTime(
+    final end = DateTime(
       month.year,
       month.month + 1,
       1,
     );
 
-    final donations =
-        _db.donations
-            .where(
-              (donation) =>
-                  !donation.receivedDate
-                      .isBefore(start) &&
-                  donation.receivedDate
-                      .isBefore(end),
-            )
-            .toList();
+    final donations = _db.donations
+        .where(
+          (donation) =>
+              !donation.receivedDate.isBefore(start) &&
+              donation.receivedDate.isBefore(end),
+        )
+        .toList();
 
-    final donorNames =
-        <String>{};
+    final donorNames = <String>{};
 
-    var itemsDonated =
-        0.0;
+    var itemsDonated = 0.0;
 
     for (final donation in donations) {
-      final name =
-          donation.donorId != null
-              ? _userName(
-                  donation.donorId,
-                )
-              : donation.donorName;
+      final name = donation.donorId != null
+          ? _userName(
+              donation.donorId,
+            )
+          : donation.donorName;
 
-      final cleaned =
-          name?.trim() ?? '';
+      final cleaned = name?.trim() ?? '';
 
-      if (cleaned.isNotEmpty &&
-          cleaned != 'Unknown donor') {
+      if (cleaned.isNotEmpty && cleaned != 'Unknown donor') {
         donorNames.add(
           cleaned,
         );
       }
 
-      for (final item
-          in _db.donationItems) {
-        if (item.donId ==
-            donation.id) {
-          itemsDonated +=
-              item.qty;
+      for (final item in _db.donationItems) {
+        if (item.donId == donation.id) {
+          itemsDonated += item.qty;
         }
       }
     }
 
-    final sortedNames =
-        donorNames.toList()
-          ..sort(
-            (a, b) =>
-                a.toLowerCase().compareTo(
+    final sortedNames = donorNames.toList()
+      ..sort(
+        (a, b) => a.toLowerCase().compareTo(
               b.toLowerCase(),
             ),
-          );
+      );
 
     return MonthlyDonorSummary(
-      month:
-          start,
-      donorNames:
-          sortedNames,
-      donationCount:
-          donations.length,
-      itemsDonated:
-          itemsDonated.round(),
+      month: start,
+      donorNames: sortedNames,
+      donationCount: donations.length,
+      itemsDonated: itemsDonated.round(),
     );
   }
 }

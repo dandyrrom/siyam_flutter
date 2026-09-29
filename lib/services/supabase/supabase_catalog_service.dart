@@ -58,8 +58,9 @@ class SupabaseCatalogService implements CatalogService {
   }
 
   Future<List<Subcategory>> _loadSubcategories(String? pCategoryId) async {
-    var query =
-        _client.from('subcategory').select('id, p_category, type, requires_expiry');
+    var query = _client
+        .from('subcategory')
+        .select('id, p_category, type, requires_expiry');
     if (pCategoryId != null) {
       query = query.eq('p_category', pCategoryId);
     }
@@ -85,9 +86,7 @@ class SupabaseCatalogService implements CatalogService {
   Future<PrimaryCategory> createPrimaryCategory(String type) async {
     final cleanType = type.trim();
 
-    final existing = await _client
-        .from('primary_category')
-        .select('id, type');
+    final existing = await _client.from('primary_category').select('id, type');
 
     final duplicate = existing.any(
       (row) =>
@@ -154,9 +153,7 @@ class SupabaseCatalogService implements CatalogService {
     final cleanName = name.trim();
     final cleanAbbr = abbrName.trim();
 
-    final existing = await _client
-        .from('units')
-        .select('id, name, abbr_name');
+    final existing = await _client.from('units').select('id, name, abbr_name');
 
     final duplicateName = existing.any(
       (row) =>
@@ -203,9 +200,7 @@ class SupabaseCatalogService implements CatalogService {
     final cleanName = name.trim();
     final cleanAbbr = abbrName.trim();
 
-    final existing = await _client
-        .from('units')
-        .select('id, name, abbr_name');
+    final existing = await _client.from('units').select('id, name, abbr_name');
 
     final duplicateName = existing.any(
       (row) =>
@@ -293,9 +288,7 @@ class SupabaseCatalogService implements CatalogService {
   }) async {
     final cleanType = type.trim();
 
-    final existing = await _client
-        .from('primary_category')
-        .select('id, type');
+    final existing = await _client.from('primary_category').select('id, type');
 
     final duplicate = existing.any(
       (row) =>

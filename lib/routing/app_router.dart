@@ -71,8 +71,7 @@ GoRouter buildRouter(
   return GoRouter(
     initialLocation: '/login',
 
-    refreshListenable:
-        authState.routerRefreshListenable,
+    refreshListenable: authState.routerRefreshListenable,
 
     // ========================================================================
     // AUTH + ROLE REDIRECT
@@ -82,17 +81,13 @@ GoRouter buildRouter(
       context,
       state,
     ) {
-      final status =
-          authState.status;
+      final status = authState.status;
 
-      final loggedIn =
-          authState.isAuthenticated;
+      final loggedIn = authState.isAuthenticated;
 
-      final currentPath =
-          state.matchedLocation;
+      final currentPath = state.matchedLocation;
 
-      final goingToPublic =
-          _publicPaths.contains(
+      final goingToPublic = _publicPaths.contains(
         currentPath,
       );
 
@@ -100,8 +95,7 @@ GoRouter buildRouter(
       // 1. AUTH IS STILL BEING RESOLVED
       // ----------------------------------------------------------------------
 
-      if (status ==
-          AuthStatus.unknown) {
+      if (status == AuthStatus.unknown) {
         return null;
       }
 
@@ -121,15 +115,13 @@ GoRouter buildRouter(
       // 3. AUTHENTICATED USER NEEDS A PROFILE
       // ----------------------------------------------------------------------
 
-      final userRole =
-          authState.profile?.role;
+      final userRole = authState.profile?.role;
 
       if (userRole == null) {
         return null;
       }
 
-      final homeRoute =
-          _homeForRole(userRole);
+      final homeRoute = _homeForRole(userRole);
 
       // ----------------------------------------------------------------------
       // 4. LOGGED-IN USER VISITS LOGIN / REGISTER
@@ -143,10 +135,7 @@ GoRouter buildRouter(
       // 5. PREVENT DONORS FROM OPENING STAFF DASHBOARD
       // ----------------------------------------------------------------------
 
-      if (userRole ==
-              AppRole.donor &&
-          currentPath ==
-              '/dashboard') {
+      if (userRole == AppRole.donor && currentPath == '/dashboard') {
         return '/donor';
       }
 
@@ -154,9 +143,7 @@ GoRouter buildRouter(
       // 6. PREVENT STAFF/MANAGER FROM OPENING DONOR DASHBOARD
       // ----------------------------------------------------------------------
 
-      if (userRole !=
-              AppRole.donor &&
-          currentPath == '/donor') {
+      if (userRole != AppRole.donor && currentPath == '/donor') {
         return '/dashboard';
       }
 
@@ -164,28 +151,25 @@ GoRouter buildRouter(
       // 7. ROLE GATE
       // ----------------------------------------------------------------------
 
-final allowedRoles =
-    rolesAllowedFor(
-  currentPath,
-);
+      final allowedRoles = rolesAllowedFor(
+        currentPath,
+      );
 
 // Manager is allowed to use the inventory Add Item page
 // only when it is part of the Donation workflow.
 //
 // This keeps the normal Inventory module Staff-only.
-final managerDonationStockIn =
-    userRole == AppRole.manager &&
-    currentPath == '/inventory/add' &&
-    state.uri.queryParameters['type'] ==
-        'donated';
+      final managerDonationStockIn = userRole == AppRole.manager &&
+          currentPath == '/inventory/add' &&
+          state.uri.queryParameters['type'] == 'donated';
 
-if (!managerDonationStockIn &&
-    allowedRoles != null &&
-    !allowedRoles.contains(
-      userRole,
-    )) {
-  return homeRoute;
-}
+      if (!managerDonationStockIn &&
+          allowedRoles != null &&
+          !allowedRoles.contains(
+            userRole,
+          )) {
+        return homeRoute;
+      }
 
       return null;
     },
@@ -232,8 +216,7 @@ if (!managerDonationStockIn &&
           child,
         ) {
           return AppShell(
-            currentPath:
-                state.matchedLocation,
+            currentPath: state.matchedLocation,
             child: child,
           );
         },
@@ -291,15 +274,9 @@ if (!managerDonationStockIn &&
             ) =>
                 NoTransitionPage(
               child: AddItemPage(
-                itemId: state
-                    .uri
-                    .queryParameters['itemId'],
-                type: state
-                    .uri
-                    .queryParameters['type'],
-                subId: state
-                    .uri
-                    .queryParameters['subId'],
+                itemId: state.uri.queryParameters['itemId'],
+                type: state.uri.queryParameters['type'],
+                subId: state.uri.queryParameters['subId'],
               ),
             ),
           ),
@@ -312,8 +289,7 @@ if (!managerDonationStockIn &&
             ) =>
                 NoTransitionPage(
               child: InventoryItemPage(
-                itemId: state
-                    .pathParameters['id']!,
+                itemId: state.pathParameters['id']!,
               ),
             ),
           ),
@@ -340,10 +316,8 @@ if (!managerDonationStockIn &&
               state,
             ) =>
                 NoTransitionPage(
-              child:
-                  SubmissionDetailPage(
-                subId: state
-                    .pathParameters['id']!,
+              child: SubmissionDetailPage(
+                subId: state.pathParameters['id']!,
               ),
             ),
           ),
@@ -375,15 +349,13 @@ if (!managerDonationStockIn &&
           ),
 
           GoRoute(
-            path:
-                '/donation-history',
+            path: '/donation-history',
             pageBuilder: (
               context,
               state,
             ) =>
                 const NoTransitionPage(
-              child:
-                  DonorDonationsPage(),
+              child: DonorDonationsPage(),
             ),
           ),
 
@@ -395,29 +367,25 @@ if (!managerDonationStockIn &&
           // ==================================================================
 
           GoRoute(
-            path:
-                '/purchase-orders',
+            path: '/purchase-orders',
             pageBuilder: (
               context,
               state,
             ) =>
                 const NoTransitionPage(
-              child:
-                  PurchaseOrdersPage(),
+              child: PurchaseOrdersPage(),
             ),
           ),
 
           GoRoute(
-            path:
-                '/purchase-orders/:id',
+            path: '/purchase-orders/:id',
             pageBuilder: (
               context,
               state,
             ) =>
                 NoTransitionPage(
               child: PurchaseTransPage(
-                purId: state
-                    .pathParameters['id']!,
+                purId: state.pathParameters['id']!,
               ),
             ),
           ),
@@ -459,67 +427,52 @@ if (!managerDonationStockIn &&
           // ==================================================================
 
           GoRoute(
-            path:
-                '/medical-records',
+            path: '/medical-records',
             pageBuilder: (
               context,
               state,
             ) =>
                 const NoTransitionPage(
-              child:
-                  MedicalRecordsPage(),
+              child: MedicalRecordsPage(),
             ),
           ),
-GoRoute(
-  path:
-      '/medical-records/add',
-  pageBuilder: (
-    context,
-    state,
-  ) =>
-      NoTransitionPage(
-    child: AddTreatmentPage(
-      prefillItemId: state
-          .uri
-          .queryParameters['itemId'],
-      prefillQty: state
-          .uri
-          .queryParameters['qty'],
-      followUpTreatId: state
-          .uri
-          .queryParameters['followUpTreatId'],
-    ),
-  ),
-),
-
           GoRoute(
-            path:
-                '/medical-records/pet/:petId',
+            path: '/medical-records/add',
             pageBuilder: (
               context,
               state,
             ) =>
                 NoTransitionPage(
-              child:
-                  AnimalMedicalHistoryPage(
-                petId: state
-                    .pathParameters['petId']!,
+              child: AddTreatmentPage(
+                prefillItemId: state.uri.queryParameters['itemId'],
+                prefillQty: state.uri.queryParameters['qty'],
+                followUpTreatId: state.uri.queryParameters['followUpTreatId'],
               ),
             ),
           ),
 
           GoRoute(
-            path:
-                '/medical-records/:id',
+            path: '/medical-records/pet/:petId',
             pageBuilder: (
               context,
               state,
             ) =>
                 NoTransitionPage(
-              child:
-                  TreatmentDetailPage(
-                treatId: state
-                    .pathParameters['id']!,
+              child: AnimalMedicalHistoryPage(
+                petId: state.pathParameters['petId']!,
+              ),
+            ),
+          ),
+
+          GoRoute(
+            path: '/medical-records/:id',
+            pageBuilder: (
+              context,
+              state,
+            ) =>
+                NoTransitionPage(
+              child: TreatmentDetailPage(
+                treatId: state.pathParameters['id']!,
               ),
             ),
           ),
@@ -535,8 +488,7 @@ GoRoute(
               state,
             ) =>
                 const NoTransitionPage(
-              child:
-                  AnimalRecordsPage(),
+              child: AnimalRecordsPage(),
             ),
           ),
 
@@ -596,32 +548,25 @@ GoRoute(
               state,
             ) =>
                 const NoTransitionPage(
-              child:
-                  NotificationsPage(),
+              child: NotificationsPage(),
             ),
           ),
 
           GoRoute(
-            path:
-                '/notifications/:kind/:id',
+            path: '/notifications/:kind/:id',
             pageBuilder: (
               context,
               state,
             ) {
-              final kind =
-                  NotifKindRoute
-                          .fromRouteSegment(
-                        state.pathParameters[
-                            'kind']!,
-                      ) ??
-                      NotifKind.zeroStock;
+              final kind = NotifKindRoute.fromRouteSegment(
+                    state.pathParameters['kind']!,
+                  ) ??
+                  NotifKind.zeroStock;
 
               return NoTransitionPage(
-                child:
-                    NotificationDetailPage(
+                child: NotificationDetailPage(
                   kind: kind,
-                  itemId: state
-                      .pathParameters['id']!,
+                  itemId: state.pathParameters['id']!,
                 ),
               );
             },

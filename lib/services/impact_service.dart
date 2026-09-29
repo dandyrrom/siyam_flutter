@@ -28,12 +28,15 @@ class MockImpactService implements ImpactService {
 
   @override
   Future<List<DonationImpactLine>> fetchDonorImpact(String donorId) async {
-    final donorDonationIds =
-        _db.donations.where((d) => d.donorId == donorId).map((d) => d.id).toSet();
+    final donorDonationIds = _db.donations
+        .where((d) => d.donorId == donorId)
+        .map((d) => d.id)
+        .toSet();
     if (donorDonationIds.isEmpty) return [];
 
-    final donorDonationItems =
-        _db.donationItems.where((di) => donorDonationIds.contains(di.donId)).toList();
+    final donorDonationItems = _db.donationItems
+        .where((di) => donorDonationIds.contains(di.donId))
+        .toList();
     final itemIds = donorDonationItems.map((di) => di.itemId).toSet();
 
     final result = <DonationImpactLine>[];
@@ -43,7 +46,8 @@ class MockImpactService implements ImpactService {
       final (ledger, quantityPrecise) = _computeItemLedger(item);
 
       for (final di in donorDonationItems.where((d) => d.itemId == itemId)) {
-        final donation = firstWhereOrNull(_db.donations, (d) => d.id == di.donId);
+        final donation =
+            firstWhereOrNull(_db.donations, (d) => d.id == di.donId);
         if (donation == null) continue;
         final res = ledger['${di.donId}-${di.itemId}'];
         if (res == null) continue;
@@ -58,7 +62,11 @@ class MockImpactService implements ImpactService {
                 ledgerResult: res,
                 packageQuantity: item.packageQuantity!,
               )
-            : (used: res.used, discarded: res.discarded, remaining: res.remaining);
+            : (
+                used: res.used,
+                discarded: res.discarded,
+                remaining: res.remaining
+              );
 
         result.add(DonationImpactLine(
           itemId: item.itemId,
@@ -94,13 +102,16 @@ class MockImpactService implements ImpactService {
   /// [ImpactEvent.consumesCapacity]): the system knows the item was used and
   /// can say so, it just can't measure how much, so only real stock-outs
   /// (waste/expired/adjustment) mark a batch as depleted for these items.
-  (Map<String, ImpactBatchResult>, bool) _computeItemLedger(InventoryItem item) {
-    final quantityMode = item.packageQuantity != null && item.stockOutIsDeductible;
+  (Map<String, ImpactBatchResult>, bool) _computeItemLedger(
+      InventoryItem item) {
+    final quantityMode =
+        item.packageQuantity != null && item.stockOutIsDeductible;
     final packageQty = item.packageQuantity ?? 1;
 
     final batches = <ImpactBatch>[];
     for (final row in _db.purchaseItems.where((p) => p.itemId == item.itemId)) {
-      final purchase = firstWhereOrNull(_db.purchases, (p) => p.id == row.purchaseId);
+      final purchase =
+          firstWhereOrNull(_db.purchases, (p) => p.id == row.purchaseId);
       if (purchase == null) continue;
       batches.add(ImpactBatch(
         id: '${row.purchaseId}-${row.itemId}',
@@ -109,7 +120,8 @@ class MockImpactService implements ImpactService {
       ));
     }
     for (final row in _db.donationItems.where((d) => d.itemId == item.itemId)) {
-      final donation = firstWhereOrNull(_db.donations, (d) => d.id == row.donId);
+      final donation =
+          firstWhereOrNull(_db.donations, (d) => d.id == row.donId);
       if (donation == null) continue;
       batches.add(ImpactBatch(
         id: '${row.donId}-${row.itemId}',
@@ -119,8 +131,10 @@ class MockImpactService implements ImpactService {
     }
 
     final events = <ImpactEvent>[];
-    for (final row in _db.treatmentItems.where((t) => t.itemId == item.itemId)) {
-      final treatment = firstWhereOrNull(_db.treatments, (t) => t.id == row.treatId);
+    for (final row
+        in _db.treatmentItems.where((t) => t.itemId == item.itemId)) {
+      final treatment =
+          firstWhereOrNull(_db.treatments, (t) => t.id == row.treatId);
       if (treatment == null) continue;
       final pet = firstWhereOrNull(_db.pets, (p) => p.petId == treatment.petId);
       events.add(ImpactEvent(

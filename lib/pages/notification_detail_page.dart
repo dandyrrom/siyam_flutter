@@ -15,8 +15,7 @@ import '../state/data_bus.dart';
 import '../state/page_snapshot_cache.dart';
 import '../widgets/notification_alerts.dart';
 
-class NotificationDetailPage
-    extends StatefulWidget {
+class NotificationDetailPage extends StatefulWidget {
   final NotifKind kind;
   final String itemId;
 
@@ -27,24 +26,16 @@ class NotificationDetailPage
   });
 
   @override
-  State<NotificationDetailPage>
-      createState() =>
-          _NotificationDetailPageState();
+  State<NotificationDetailPage> createState() => _NotificationDetailPageState();
 }
 
-class _NotificationDetailPageState
-    extends State<NotificationDetailPage>
-    with
-        DataBusRefreshMixin<
-            NotificationDetailPage> {
-  final InventoryService _inventoryService =
-      InventoryService();
+class _NotificationDetailPageState extends State<NotificationDetailPage>
+    with DataBusRefreshMixin<NotificationDetailPage> {
+  final InventoryService _inventoryService = InventoryService();
 
-  final DashboardService _dashboardService =
-      DashboardService();
+  final DashboardService _dashboardService = DashboardService();
 
-  final ReplenishmentService _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
 
   InventoryItem? _item;
   ExpiryAlert? _expiryAlert;
@@ -55,18 +46,10 @@ class _NotificationDetailPageState
   bool _activeAlert = true;
 
   bool get _isManager =>
-      context
-          .read<AuthController>()
-          .profile
-          ?.role ==
-      AppRole.manager;
+      context.read<AuthController>().profile?.role == AppRole.manager;
 
   bool get _canOpenInventory =>
-      context
-          .read<AuthController>()
-          .profile
-          ?.role ==
-      AppRole.staff;
+      context.read<AuthController>().profile?.role == AppRole.staff;
 
   @override
   void initState() {
@@ -100,9 +83,8 @@ class _NotificationDetailPageState
 
     try {
       final cache = PageSnapshotCache.instance;
-      final seededItem = forceRefresh
-          ? null
-          : _item ?? cache.itemById(widget.itemId);
+      final seededItem =
+          forceRefresh ? null : _item ?? cache.itemById(widget.itemId);
       final cachedStats = forceRefresh
           ? null
           : cache.peek<ManagerDashboardStats>(
@@ -130,14 +112,11 @@ class _NotificationDetailPageState
 
       if (!mounted) return;
 
-      final item =
-          results[0] as InventoryItem?;
+      final item = results[0] as InventoryItem?;
 
-      final stats =
-          results[1] as ManagerDashboardStats;
+      final stats = results[1] as ManagerDashboardStats;
 
-      final replenishmentRows =
-          results[2] as List<ReplenishmentItem>;
+      final replenishmentRows = results[2] as List<ReplenishmentItem>;
 
       ReplenishmentItem? replenishment;
 
@@ -153,31 +132,21 @@ class _NotificationDetailPageState
 
       switch (widget.kind) {
         case NotifKind.zeroStock:
-          activeAlert =
-              stats.zeroStockItems.any(
-            (alert) =>
-                alert.itemId ==
-                widget.itemId,
+          activeAlert = stats.zeroStockItems.any(
+            (alert) => alert.itemId == widget.itemId,
           );
           break;
 
         case NotifKind.lowStock:
-          activeAlert =
-              stats.lowStockItems.any(
-            (alert) =>
-                alert.itemId ==
-                widget.itemId,
+          activeAlert = stats.lowStockItems.any(
+            (alert) => alert.itemId == widget.itemId,
           );
           break;
 
         case NotifKind.expiredStock:
-          for (final alert
-              in stats.expiringSoonItems) {
-            if (alert.itemId ==
-                    widget.itemId &&
-                alert.kind ==
-                    ExpiryAlertKind
-                        .expiredStock) {
+          for (final alert in stats.expiringSoonItems) {
+            if (alert.itemId == widget.itemId &&
+                alert.kind == ExpiryAlertKind.expiredStock) {
               expiryAlert = alert;
               activeAlert = true;
               break;
@@ -186,13 +155,9 @@ class _NotificationDetailPageState
           break;
 
         case NotifKind.expiry:
-          for (final alert
-              in stats.expiringSoonItems) {
-            if (alert.itemId ==
-                    widget.itemId &&
-                alert.kind ==
-                    ExpiryAlertKind
-                        .expiringSoon) {
+          for (final alert in stats.expiringSoonItems) {
+            if (alert.itemId == widget.itemId &&
+                alert.kind == ExpiryAlertKind.expiringSoon) {
               expiryAlert = alert;
               activeAlert = true;
               break;
@@ -232,42 +197,31 @@ class _NotificationDetailPageState
     if (_notFound || _item == null) {
       return Center(
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons
-                  .notifications_off_outlined,
+              Icons.notifications_off_outlined,
               size: 40,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
-
             const SizedBox(height: 12),
-
             const Text(
               'Notification not found',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
               ),
             ),
-
             const SizedBox(height: 4),
-
             const Text(
               'The inventory item may have been removed.',
               style: TextStyle(
                 fontSize: 12.5,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
-
             const SizedBox(height: 12),
-
             TextButton(
-              onPressed: () =>
-                  context.go(
+              onPressed: () => context.go(
                 '/notifications',
               ),
               child: const Text(
@@ -287,15 +241,12 @@ class _NotificationDetailPageState
 
     if (!_activeAlert) {
       return ConstrainedBox(
-        constraints:
-            const BoxConstraints(maxWidth: 640),
+        constraints: const BoxConstraints(maxWidth: 640),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextButton.icon(
-              onPressed: () =>
-                  context.go(
+              onPressed: () => context.go(
                 '/notifications',
               ),
               icon: const Icon(
@@ -306,17 +257,13 @@ class _NotificationDetailPageState
                 'Back to Notifications',
               ),
             ),
-
             const SizedBox(height: 16),
-
             Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius:
-                    BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: AppColors.border,
                 ),
@@ -324,47 +271,34 @@ class _NotificationDetailPageState
               child: Column(
                 children: [
                   const Icon(
-                    Icons
-                        .check_circle_outline,
+                    Icons.check_circle_outline,
                     size: 34,
-                    color:
-                        AppColors.roleManager,
+                    color: AppColors.roleManager,
                   ),
-
                   const SizedBox(height: 10),
-
                   const Text(
                     'This alert is no longer active',
                     style: TextStyle(
-                      fontWeight:
-                          FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   const Text(
                     'The inventory condition has already changed or been resolved.',
-                    textAlign:
-                        TextAlign.center,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
-
                   if (_canOpenInventory) ...[
                     const SizedBox(height: 14),
-
                     OutlinedButton.icon(
-                      onPressed: () =>
-                          context.push(
+                      onPressed: () => context.push(
                         '/inventory/${item.itemId}',
                       ),
                       icon: const Icon(
-                        Icons
-                            .inventory_2_outlined,
+                        Icons.inventory_2_outlined,
                         size: 16,
                       ),
                       label: const Text(
@@ -381,15 +315,12 @@ class _NotificationDetailPageState
     }
 
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(maxWidth: 640),
+      constraints: const BoxConstraints(maxWidth: 640),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
-            onPressed: () =>
-                context.go(
+            onPressed: () => context.go(
               '/notifications',
             ),
             icon: const Icon(
@@ -400,8 +331,7 @@ class _NotificationDetailPageState
               'Back to Notifications',
             ),
             style: TextButton.styleFrom(
-              foregroundColor:
-                  AppColors.mutedForeground,
+              foregroundColor: AppColors.mutedForeground,
             ),
           ),
 
@@ -426,8 +356,7 @@ class _NotificationDetailPageState
           Text(
             item.itemCategory,
             style: const TextStyle(
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
 
@@ -435,21 +364,17 @@ class _NotificationDetailPageState
 
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.border,
               ),
             ),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children:
-                  _detailRows(item),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _detailRows(item),
             ),
           ),
 
@@ -459,41 +384,32 @@ class _NotificationDetailPageState
 
           if (_guidanceText != null) ...[
             const SizedBox(height: 12),
-
             Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _guidanceColor
-                    .withValues(alpha: 0.08),
-                borderRadius:
-                    BorderRadius.circular(12),
+                color: _guidanceColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _guidanceColor
-                      .withValues(alpha: 0.2),
+                  color: _guidanceColor.withValues(alpha: 0.2),
                 ),
               ),
               child: Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     _guidanceIcon,
                     size: 17,
                     color: _guidanceColor,
                   ),
-
                   const SizedBox(width: 8),
-
                   Expanded(
                     child: Text(
                       _guidanceText!,
                       style: TextStyle(
                         fontSize: 12.5,
                         height: 1.4,
-                        color:
-                            _guidanceColor,
+                        color: _guidanceColor,
                       ),
                     ),
                   ),
@@ -504,12 +420,10 @@ class _NotificationDetailPageState
 
           if (_canOpenInventory) ...[
             const SizedBox(height: 20),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () =>
-                    context.push(
+                onPressed: () => context.push(
                   '/inventory/${item.itemId}',
                 ),
                 icon: const Icon(
@@ -517,9 +431,7 @@ class _NotificationDetailPageState
                   size: 16,
                 ),
                 label: Text(
-                  widget.kind ==
-                          NotifKind
-                              .expiredStock
+                  widget.kind == NotifKind.expiredStock
                       ? 'View Item & Remove Expired Stock'
                       : 'View Inventory Item',
                 ),
@@ -541,8 +453,7 @@ class _NotificationDetailPageState
     final rows = <Widget>[
       _DetailRow(
         label: 'Available stock',
-        value:
-            '${formatQty(item.currentUsableStockQty)} '
+        value: '${formatQty(item.currentUsableStockQty)} '
             '${item.currentUsableStockUnit}',
       ),
     ];
@@ -551,22 +462,19 @@ class _NotificationDetailPageState
       rows.add(
         _DetailRow(
           label: 'Equivalent',
-          value:
-              '${formatQty(item.currentPurchaseUnitEquivalent)} '
+          value: '${formatQty(item.currentPurchaseUnitEquivalent)} '
               '${item.purchaseUnitAbbr}',
         ),
       );
     }
 
-    if (widget.kind == NotifKind.lowStock &&
-        _replenishment != null) {
+    if (widget.kind == NotifKind.lowStock && _replenishment != null) {
       final rop = _replenishment!;
 
       rows.add(
         _DetailRow(
           label: 'Reorder point (ROP)',
-          value:
-              '${formatQty(rop.reorderPoint)} '
+          value: '${formatQty(rop.reorderPoint)} '
               '${item.purchaseUnitAbbr}',
         ),
       );
@@ -574,8 +482,7 @@ class _NotificationDetailPageState
       rows.add(
         _DetailRow(
           label: '30-day usage',
-          value:
-              '${formatQty(rop.usage30PurchaseUnits)} '
+          value: '${formatQty(rop.usage30PurchaseUnits)} '
               '${item.purchaseUnitAbbr}',
         ),
       );
@@ -583,8 +490,7 @@ class _NotificationDetailPageState
       rows.add(
         _DetailRow(
           label: 'Average daily usage',
-          value:
-              '${formatQty(rop.averageDailyUsage)} '
+          value: '${formatQty(rop.averageDailyUsage)} '
               '${item.purchaseUnitAbbr}/day',
         ),
       );
@@ -592,8 +498,7 @@ class _NotificationDetailPageState
       rows.add(
         _DetailRow(
           label: 'Lead time',
-          value:
-              '${rop.leadTimeDays} '
+          value: '${rop.leadTimeDays} '
               'day${rop.leadTimeDays == 1 ? '' : 's'}',
         ),
       );
@@ -601,20 +506,17 @@ class _NotificationDetailPageState
       rows.add(
         _DetailRow(
           label: 'Safety stock',
-          value:
-              '${formatQty(rop.safetyStockQty)} '
+          value: '${formatQty(rop.safetyStockQty)} '
               '${item.purchaseUnitAbbr}',
         ),
       );
     }
 
-    if (widget.kind ==
-        NotifKind.expiredStock) {
+    if (widget.kind == NotifKind.expiredStock) {
       rows.add(
         _DetailRow(
           label: 'Expired stock',
-          value:
-              '${formatQty(item.expiredBatchStockQty)} '
+          value: '${formatQty(item.expiredBatchStockQty)} '
               '${item.currentUsableStockUnit}',
         ),
       );
@@ -632,36 +534,29 @@ class _NotificationDetailPageState
         rows.add(
           _DetailRow(
             label: 'Status',
-            value:
-                formatExpirySubtitle(
-              _expiryAlert!
-                  .daysUntilExpiry,
+            value: formatExpirySubtitle(
+              _expiryAlert!.daysUntilExpiry,
             ),
           ),
         );
       }
     }
 
-    if (widget.kind ==
-            NotifKind.expiry &&
-        _expiryAlert != null) {
+    if (widget.kind == NotifKind.expiry && _expiryAlert != null) {
       final alert = _expiryAlert!;
 
       rows.add(
         _DetailRow(
           label: 'Nearest batch expiry',
-          value:
-              _formatDate(alert.expiryDate),
+          value: _formatDate(alert.expiryDate),
         ),
       );
 
-      if (alert.qty != null &&
-          alert.unitAbbr != null) {
+      if (alert.qty != null && alert.unitAbbr != null) {
         rows.add(
           _DetailRow(
             label: 'Batch stock',
-            value:
-                '${formatQty(alert.qty!)} '
+            value: '${formatQty(alert.qty!)} '
                 '${alert.unitAbbr}',
           ),
         );
@@ -670,8 +565,7 @@ class _NotificationDetailPageState
       rows.add(
         _DetailRow(
           label: 'Status',
-          value:
-              formatExpirySubtitle(
+          value: formatExpirySubtitle(
             alert.daysUntilExpiry,
           ),
         ),
@@ -679,15 +573,12 @@ class _NotificationDetailPageState
     }
 
     return [
-      for (var i = 0;
-          i < rows.length;
-          i++) ...[
+      for (var i = 0; i < rows.length; i++) ...[
         if (i > 0)
           const Divider(
             height: 20,
             color: AppColors.border,
           ),
-
         rows[i],
       ],
     ];
@@ -721,26 +612,17 @@ class _NotificationDetailPageState
 
   Color get _guidanceColor {
     return switch (widget.kind) {
-      NotifKind.expiredStock ||
-      NotifKind.zeroStock =>
-        AppColors.destructive,
-      NotifKind.expiry ||
-      NotifKind.lowStock =>
-        AppColors.warning,
+      NotifKind.expiredStock || NotifKind.zeroStock => AppColors.destructive,
+      NotifKind.expiry || NotifKind.lowStock => AppColors.warning,
     };
   }
 
   IconData get _guidanceIcon {
     return switch (widget.kind) {
-      NotifKind.expiredStock =>
-        Icons.event_busy_outlined,
-      NotifKind.expiry =>
-        Icons.schedule_outlined,
-      NotifKind.zeroStock =>
-        Icons
-            .remove_shopping_cart_outlined,
-      NotifKind.lowStock =>
-        Icons.warning_amber_outlined,
+      NotifKind.expiredStock => Icons.event_busy_outlined,
+      NotifKind.expiry => Icons.schedule_outlined,
+      NotifKind.zeroStock => Icons.remove_shopping_cart_outlined,
+      NotifKind.lowStock => Icons.warning_amber_outlined,
     };
   }
 }
@@ -810,8 +692,7 @@ class _StatusBanner extends StatelessWidget {
         color: accent.withValues(
           alpha: 0.12,
         ),
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -821,9 +702,7 @@ class _StatusBanner extends StatelessWidget {
             size: 16,
             color: accent,
           ),
-
           const SizedBox(width: 6),
-
           Text(
             label,
             style: TextStyle(
@@ -854,22 +733,18 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
             label,
             style: const TextStyle(
               fontSize: 13,
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ),
-
         const SizedBox(width: 16),
-
         Expanded(
           child: Text(
             value,

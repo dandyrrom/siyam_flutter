@@ -215,10 +215,8 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().profile;
 
-    final parts = currentPath
-        .split('/')
-        .where((part) => part.isNotEmpty)
-        .toList();
+    final parts =
+        currentPath.split('/').where((part) => part.isNotEmpty).toList();
 
     return Container(
       height: 64,
@@ -257,20 +255,14 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                     size: 16,
                     color: AppColors.mutedForeground,
                   ),
-
-                  for (var index = 0;
-                      index < parts.length;
-                      index++) ...[
+                  for (var index = 0; index < parts.length; index++) ...[
                     const SizedBox(width: 6),
-
                     const Icon(
                       Icons.chevron_right,
                       size: 14,
                       color: AppColors.mutedForeground,
                     ),
-
                     const SizedBox(width: 6),
-
                     _BreadcrumbLabel(
                       isLast: index == parts.length - 1,
                       child: _isInventoryItemSegment(
@@ -329,9 +321,7 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 8),
-
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -388,11 +378,8 @@ class _BreadcrumbLabel extends StatelessWidget {
     return DefaultTextStyle(
       style: TextStyle(
         fontSize: 13.5,
-        fontWeight:
-            isLast ? FontWeight.w600 : FontWeight.w400,
-        color: isLast
-            ? AppColors.foreground
-            : AppColors.mutedForeground,
+        fontWeight: isLast ? FontWeight.w600 : FontWeight.w400,
+        color: isLast ? AppColors.foreground : AppColors.mutedForeground,
       ),
       child: child,
     );

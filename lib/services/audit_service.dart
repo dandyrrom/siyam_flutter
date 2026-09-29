@@ -21,8 +21,7 @@ import '../state/page_snapshot_cache.dart';
 // =============================================================================
 
 class AuditService {
-  final SupabaseClient _client =
-      Supabase.instance.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
   Future<List<AuditEntry>> fetchEntries({
     int limit = 500,
@@ -57,147 +56,89 @@ class AuditService {
     //
     // Staff still do NOT receive these maps in AuditEntry when
     // includeChangeDetails is false.
-    const selectedColumns =
-        'auditid, actor_user_id, module, action, '
+    const selectedColumns = 'auditid, actor_user_id, module, action, '
         'entity_type, entity_id, entity_label, summary, '
         'old_values, new_values, createdat';
 
-    var auditQuery =
-        _client
-            .from('audit_log')
-            .select(selectedColumns);
+    var auditQuery = _client.from('audit_log').select(selectedColumns);
 
-    final cleanActorId =
-        actorUserId?.trim();
+    final cleanActorId = actorUserId?.trim();
 
-    if (cleanActorId != null &&
-        cleanActorId.isNotEmpty) {
-      auditQuery =
-          auditQuery.eq(
+    if (cleanActorId != null && cleanActorId.isNotEmpty) {
+      auditQuery = auditQuery.eq(
         'actor_user_id',
         cleanActorId,
       );
     }
 
-    if (modules != null &&
-        modules.isNotEmpty) {
-      auditQuery =
-          auditQuery.inFilter(
+    if (modules != null && modules.isNotEmpty) {
+      auditQuery = auditQuery.inFilter(
         'module',
         modules,
       );
     }
 
-    final results =
-        await Future.wait<Object?>([
+    final results = await Future.wait<Object?>([
       auditQuery
           .order(
             'createdat',
             ascending: false,
           )
           .limit(limit),
-
-      _client
-          .from('users')
-          .select(
+      _client.from('users').select(
             'id, fname, lname, role',
           ),
-
-      _client
-          .from('item')
-          .select('id, name'),
-
-      _client
-          .from('supplier')
-          .select('id, name'),
-
-      _client
-          .from('pet')
-          .select('id, name'),
-
-      _client
-          .from('purchase_item')
-          .select('purchaseid, itemid'),
-
-      _client
-          .from('treatment')
-          .select('id, name, petid'),
-
-      _client
-          .from('treatment_item')
-          .select(
+      _client.from('item').select('id, name'),
+      _client.from('supplier').select('id, name'),
+      _client.from('pet').select('id, name'),
+      _client.from('purchase_item').select('purchaseid, itemid'),
+      _client.from('treatment').select('id, name, petid'),
+      _client.from('treatment_item').select(
             'treatmentitemid, treatid, itemid, dispensed_qty, dispense_unit',
           ),
-
-      _client
-          .from('units')
-          .select('id, abbr_name'),
+      _client.from('units').select('id, abbr_name'),
     ]);
 
-    final auditRows =
-        results[0] as List<dynamic>;
+    final auditRows = results[0] as List<dynamic>;
 
-    final userRows =
-        results[1] as List<dynamic>;
+    final userRows = results[1] as List<dynamic>;
 
-    final itemRows =
-        results[2] as List<dynamic>;
+    final itemRows = results[2] as List<dynamic>;
 
-    final supplierRows =
-        results[3] as List<dynamic>;
+    final supplierRows = results[3] as List<dynamic>;
 
-    final petRows =
-        results[4] as List<dynamic>;
+    final petRows = results[4] as List<dynamic>;
 
-    final purchaseItemRows =
-        results[5] as List<dynamic>;
+    final purchaseItemRows = results[5] as List<dynamic>;
 
-    final treatmentRows =
-        results[6] as List<dynamic>;
+    final treatmentRows = results[6] as List<dynamic>;
 
-    final treatmentItemRows =
-        results[7] as List<dynamic>;
+    final treatmentItemRows = results[7] as List<dynamic>;
 
-    final unitRows =
-        results[8] as List<dynamic>;
+    final unitRows = results[8] as List<dynamic>;
 
-    final users =
-        <String, ({String name, String role})>{};
+    final users = <String, ({String name, String role})>{};
 
     for (final raw in userRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final id =
-          row['id'] as String;
+      final id = row['id'] as String;
 
-      final first =
-          (row['fname'] as String?) ?? '';
+      final first = (row['fname'] as String?) ?? '';
 
-      final last =
-          (row['lname'] as String?) ?? '';
+      final last = (row['lname'] as String?) ?? '';
 
-      final name =
-          '$first $last'.trim();
+      final name = '$first $last'.trim();
 
       users[id] = (
-        name:
-            name.isEmpty
-                ? 'Unknown user'
-                : name,
-        role:
-            ((row['role'] as Object?)
-                        ?.toString() ??
-                    '')
-                .trim(),
+        name: name.isEmpty ? 'Unknown user' : name,
+        role: ((row['role'] as Object?)?.toString() ?? '').trim(),
       );
     }
 
     final items = <String, String>{
       for (final raw in itemRows)
-        (raw['id'] as String):
-            ((raw['name'] as String?) ??
-                'Unknown item'),
+        (raw['id'] as String): ((raw['name'] as String?) ?? 'Unknown item'),
     };
 
     // ==========================================================================
@@ -209,29 +150,22 @@ class AuditService {
     // Resolve those item names here so My Activity can show what was stocked.
     // ==========================================================================
 
-    final purchaseItems =
-        <String, List<String>>{};
+    final purchaseItems = <String, List<String>>{};
 
     for (final raw in purchaseItemRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final purchaseId =
-          row['purchaseid'] as String?;
+      final purchaseId = row['purchaseid'] as String?;
 
-      final itemId =
-          row['itemid'] as String?;
+      final itemId = row['itemid'] as String?;
 
-      if (purchaseId == null ||
-          itemId == null) {
+      if (purchaseId == null || itemId == null) {
         continue;
       }
 
-      final itemName =
-          items[itemId] ?? 'Unknown item';
+      final itemName = items[itemId] ?? 'Unknown item';
 
-      final names =
-          purchaseItems.putIfAbsent(
+      final names = purchaseItems.putIfAbsent(
         purchaseId,
         () => <String>[],
       );
@@ -241,12 +175,9 @@ class AuditService {
       }
     }
 
-    for (final names
-        in purchaseItems.values) {
+    for (final names in purchaseItems.values) {
       names.sort(
-        (a, b) => a
-            .toLowerCase()
-            .compareTo(
+        (a, b) => a.toLowerCase().compareTo(
               b.toLowerCase(),
             ),
       );
@@ -254,16 +185,12 @@ class AuditService {
 
     final suppliers = <String, String>{
       for (final raw in supplierRows)
-        (raw['id'] as String):
-            ((raw['name'] as String?) ??
-                'Unknown supplier'),
+        (raw['id'] as String): ((raw['name'] as String?) ?? 'Unknown supplier'),
     };
 
     final pets = <String, String>{
       for (final raw in petRows)
-        (raw['id'] as String):
-            ((raw['name'] as String?) ??
-                'Unknown animal'),
+        (raw['id'] as String): ((raw['name'] as String?) ?? 'Unknown animal'),
     };
 
     // ==========================================================================
@@ -283,185 +210,117 @@ class AuditService {
 
     final units = <String, String>{
       for (final raw in unitRows)
-        (raw['id'] as String):
-            ((raw['abbr_name'] as String?) ?? ''),
+        (raw['id'] as String): ((raw['abbr_name'] as String?) ?? ''),
     };
 
-    final treatments =
-        <String, ({String name, String petName})>{};
+    final treatments = <String, ({String name, String petName})>{};
 
     for (final raw in treatmentRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final treatmentId =
-          row['id'] as String;
+      final treatmentId = row['id'] as String;
 
-      final petId =
-          row['petid'] as String?;
+      final petId = row['petid'] as String?;
 
-      final treatmentName =
-          ((row['name'] as String?) ?? '')
-              .trim();
+      final treatmentName = ((row['name'] as String?) ?? '').trim();
 
       treatments[treatmentId] = (
-        name:
-            treatmentName.isEmpty
-                ? 'Treatment'
-                : treatmentName,
-        petName:
-            petId == null
-                ? 'Unknown animal'
-                : (pets[petId] ??
-                    'Unknown animal'),
+        name: treatmentName.isEmpty ? 'Treatment' : treatmentName,
+        petName: petId == null
+            ? 'Unknown animal'
+            : (pets[petId] ?? 'Unknown animal'),
       );
     }
 
-    final treatmentItems =
-        <String, String>{};
+    final treatmentItems = <String, String>{};
 
     for (final raw in treatmentItemRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final treatmentItemId =
-          row['treatmentitemid'] as String?;
+      final treatmentItemId = row['treatmentitemid'] as String?;
 
-      final treatmentId =
-          row['treatid'] as String?;
+      final treatmentId = row['treatid'] as String?;
 
-      final itemId =
-          row['itemid'] as String?;
+      final itemId = row['itemid'] as String?;
 
-      if (treatmentItemId == null ||
-          treatmentId == null ||
-          itemId == null) {
+      if (treatmentItemId == null || treatmentId == null || itemId == null) {
         continue;
       }
 
-      final treatment =
-          treatments[treatmentId];
+      final treatment = treatments[treatmentId];
 
-      final treatmentName =
-          treatment?.name ?? 'Treatment';
+      final treatmentName = treatment?.name ?? 'Treatment';
 
-      final petName =
-          treatment?.petName ??
-              'Unknown animal';
+      final petName = treatment?.petName ?? 'Unknown animal';
 
-      final itemName =
-          items[itemId] ?? 'Unknown item';
+      final itemName = items[itemId] ?? 'Unknown item';
 
-      final qty =
-          (row['dispensed_qty'] as num?)
-                  ?.toDouble() ??
-              0;
+      final qty = (row['dispensed_qty'] as num?)?.toDouble() ?? 0;
 
-      final dispenseUnitId =
-          row['dispense_unit'] as String?;
+      final dispenseUnitId = row['dispense_unit'] as String?;
 
       final unitAbbr =
-          dispenseUnitId == null
-              ? ''
-              : (units[dispenseUnitId] ?? '');
+          dispenseUnitId == null ? '' : (units[dispenseUnitId] ?? '');
 
-      final qtyLabel =
-          _formatAuditQty(qty);
+      final qtyLabel = _formatAuditQty(qty);
 
       final quantityText =
-          unitAbbr.trim().isEmpty
-              ? qtyLabel
-              : '$qtyLabel $unitAbbr';
+          unitAbbr.trim().isEmpty ? qtyLabel : '$qtyLabel $unitAbbr';
 
-      treatmentItems[treatmentItemId] =
-          'Animal: $petName · '
+      treatmentItems[treatmentItemId] = 'Animal: $petName · '
           'Treatment: $treatmentName · '
           'Item used: $itemName · '
           'Qty: $quantityText';
     }
 
-    final entries =
-        <AuditEntry>[];
+    final entries = <AuditEntry>[];
 
     for (final raw in auditRows) {
-      final row =
-          Map<String, dynamic>.from(raw);
+      final row = Map<String, dynamic>.from(raw);
 
-      final actorId =
-          row['actor_user_id']
-              as String?;
+      final actorId = row['actor_user_id'] as String?;
 
-      final actor =
-          actorId == null
-              ? null
-              : users[actorId];
+      final actor = actorId == null ? null : users[actorId];
 
-      final internalOldValues =
-          _jsonMap(
+      final internalOldValues = _jsonMap(
         row['old_values'],
       );
 
-      final internalNewValues =
-          _jsonMap(
+      final internalNewValues = _jsonMap(
         row['new_values'],
       );
 
-      final entityType =
-          (row['entity_type']
-                  as String?) ??
-              '';
+      final entityType = (row['entity_type'] as String?) ?? '';
 
-      final entityId =
-          row['entity_id']
-              as String?;
+      final entityId = row['entity_id'] as String?;
 
-      var entityLabel =
-          row['entity_label']
-              as String?;
+      var entityLabel = row['entity_label'] as String?;
 
-      final resolvedEntityLabel =
-          _resolveEntityLabel(
-        entityType:
-            entityType,
-        entityId:
-            entityId,
-        oldValues:
-            internalOldValues,
-        newValues:
-            internalNewValues,
-        items:
-            items,
-        suppliers:
-            suppliers,
-        pets:
-            pets,
-        purchaseItems:
-            purchaseItems,
-        treatments:
-            treatments,
-        treatmentItems:
-            treatmentItems,
-        units:
-            units,
+      final resolvedEntityLabel = _resolveEntityLabel(
+        entityType: entityType,
+        entityId: entityId,
+        oldValues: internalOldValues,
+        newValues: internalNewValues,
+        items: items,
+        suppliers: suppliers,
+        pets: pets,
+        purchaseItems: purchaseItems,
+        treatments: treatments,
+        treatmentItems: treatmentItems,
+        units: units,
       );
 
       if (entityType == 'purchase' ||
           entityType == 'treatment' ||
           entityType == 'treatment_item') {
-        entityLabel =
-            resolvedEntityLabel ??
-                entityLabel;
+        entityLabel = resolvedEntityLabel ?? entityLabel;
       } else {
-        entityLabel ??=
-            resolvedEntityLabel;
+        entityLabel ??= resolvedEntityLabel;
       }
 
-      var summary =
-          (row['summary'] as String?) ??
-              'System activity';
+      var summary = (row['summary'] as String?) ?? 'System activity';
 
-      summary =
-          _enhanceSummary(
+      summary = _enhanceSummary(
         summary,
         entityType,
         entityLabel,
@@ -469,46 +328,22 @@ class AuditService {
 
       entries.add(
         AuditEntry(
-          auditId:
-              row['auditid']
-                  as String,
-          actorUserId:
-              actorId,
-          actorName:
-              actor?.name ??
-                  'System',
-          actorRole:
-              _roleLabel(
+          auditId: row['auditid'] as String,
+          actorUserId: actorId,
+          actorName: actor?.name ?? 'System',
+          actorRole: _roleLabel(
             actor?.role ?? '',
           ),
-          module:
-              (row['module']
-                      as String?) ??
-                  'System',
-          action:
-              (row['action']
-                      as String?) ??
-                  'UPDATE',
-          entityType:
-              entityType,
-          entityId:
-              entityId,
-          entityLabel:
-              entityLabel,
-          summary:
-              summary,
-          oldValues:
-              includeChangeDetails
-                  ? internalOldValues
-                  : null,
-          newValues:
-              includeChangeDetails
-                  ? internalNewValues
-                  : null,
-          createdAt:
-              DateTime.parse(
-            row['createdat']
-                as String,
+          module: (row['module'] as String?) ?? 'System',
+          action: (row['action'] as String?) ?? 'UPDATE',
+          entityType: entityType,
+          entityId: entityId,
+          entityLabel: entityLabel,
+          summary: summary,
+          oldValues: includeChangeDetails ? internalOldValues : null,
+          newValues: includeChangeDetails ? internalNewValues : null,
+          createdAt: DateTime.parse(
+            row['createdat'] as String,
           ).toLocal(),
         ),
       );
@@ -524,8 +359,7 @@ class AuditService {
       return null;
     }
 
-    if (value
-        is Map<String, dynamic>) {
+    if (value is Map<String, dynamic>) {
       return value;
     }
 
@@ -541,38 +375,26 @@ class AuditService {
   String? _resolveEntityLabel({
     required String entityType,
     required String? entityId,
-    required Map<String, dynamic>?
-        oldValues,
-    required Map<String, dynamic>?
-        newValues,
+    required Map<String, dynamic>? oldValues,
+    required Map<String, dynamic>? newValues,
     required Map<String, String> items,
     required Map<String, String> suppliers,
     required Map<String, String> pets,
-    required Map<String, List<String>>
-        purchaseItems,
-    required Map<
-        String,
-        ({String name, String petName})>
-        treatments,
-    required Map<String, String>
-        treatmentItems,
+    required Map<String, List<String>> purchaseItems,
+    required Map<String, ({String name, String petName})> treatments,
+    required Map<String, String> treatmentItems,
     required Map<String, String> units,
   }) {
-    if (entityType == 'purchase' &&
-        entityId != null) {
-      final stockedItems =
-          purchaseItems[entityId];
+    if (entityType == 'purchase' && entityId != null) {
+      final stockedItems = purchaseItems[entityId];
 
-      if (stockedItems != null &&
-          stockedItems.isNotEmpty) {
+      if (stockedItems != null && stockedItems.isNotEmpty) {
         return stockedItems.join(', ');
       }
     }
 
-    if (entityType == 'treatment' &&
-        entityId != null) {
-      final treatment =
-          treatments[entityId];
+    if (entityType == 'treatment' && entityId != null) {
+      final treatment = treatments[entityId];
 
       if (treatment != null) {
         return 'Animal: ${treatment.petName}';
@@ -582,79 +404,56 @@ class AuditService {
     // Try the generic audit entity id directly against treatment_item PKs.
     // This does not depend on the exact entity_type text used by the trigger.
     if (entityId != null) {
-      final context =
-          treatmentItems[entityId];
+      final context = treatmentItems[entityId];
 
-      if (context != null &&
-          context.trim().isNotEmpty) {
+      if (context != null && context.trim().isNotEmpty) {
         return context;
       }
     }
 
-    final data =
-        newValues ?? oldValues;
+    final data = newValues ?? oldValues;
 
     if (data == null) {
       return null;
     }
 
     // Live SIYAM treatment_item primary key.
-    final treatmentItemId =
-        data['treatmentitemid'] as String?;
+    final treatmentItemId = data['treatmentitemid'] as String?;
 
     if (treatmentItemId != null) {
-      final context =
-          treatmentItems[treatmentItemId];
+      final context = treatmentItems[treatmentItemId];
 
-      if (context != null &&
-          context.trim().isNotEmpty) {
+      if (context != null && context.trim().isNotEmpty) {
         return context;
       }
     }
 
     // Fallback for audit rows where entity_id is missing or generic.
     // The audit payload still contains the real treatment/item relationship.
-    final treatmentId =
-        data['treatid'] as String?;
+    final treatmentId = data['treatid'] as String?;
 
-    final itemId =
-        data['itemid'] as String?;
+    final itemId = data['itemid'] as String?;
 
-    if (treatmentId != null &&
-        itemId != null) {
-      final treatment =
-          treatments[treatmentId];
+    if (treatmentId != null && itemId != null) {
+      final treatment = treatments[treatmentId];
 
-      final treatmentName =
-          treatment?.name ?? 'Treatment';
+      final treatmentName = treatment?.name ?? 'Treatment';
 
-      final petName =
-          treatment?.petName ??
-              'Unknown animal';
+      final petName = treatment?.petName ?? 'Unknown animal';
 
-      final itemName =
-          items[itemId] ?? 'Unknown item';
+      final itemName = items[itemId] ?? 'Unknown item';
 
-      final qty =
-          (data['dispensed_qty'] as num?)
-                  ?.toDouble() ??
-              0;
+      final qty = (data['dispensed_qty'] as num?)?.toDouble() ?? 0;
 
-      final dispenseUnitId =
-          data['dispense_unit'] as String?;
+      final dispenseUnitId = data['dispense_unit'] as String?;
 
       final unitAbbr =
-          dispenseUnitId == null
-              ? ''
-              : (units[dispenseUnitId] ?? '');
+          dispenseUnitId == null ? '' : (units[dispenseUnitId] ?? '');
 
-      final qtyLabel =
-          _formatAuditQty(qty);
+      final qtyLabel = _formatAuditQty(qty);
 
       final quantityText =
-          unitAbbr.trim().isEmpty
-              ? qtyLabel
-              : '$qtyLabel $unitAbbr';
+          unitAbbr.trim().isEmpty ? qtyLabel : '$qtyLabel $unitAbbr';
 
       return 'Animal: $petName · '
           'Treatment: $treatmentName · '
@@ -662,13 +461,11 @@ class AuditService {
           'Qty: $quantityText';
     }
 
-    if (itemId != null &&
-        items.containsKey(itemId)) {
+    if (itemId != null && items.containsKey(itemId)) {
       return items[itemId];
     }
 
-    final suppId =
-        data['suppid'] as String?;
+    final suppId = data['suppid'] as String?;
 
     if (suppId != null &&
         suppliers.containsKey(
@@ -677,26 +474,19 @@ class AuditService {
       return suppliers[suppId];
     }
 
-    final petId =
-        data['petid'] as String?;
+    final petId = data['petid'] as String?;
 
-    if (petId != null &&
-        pets.containsKey(petId)) {
+    if (petId != null && pets.containsKey(petId)) {
       return pets[petId];
     }
 
     if (entityType == 'pet') {
-      return (data['name']
-                  as String?) ??
-          (data['petname']
-              as String?);
+      return (data['name'] as String?) ?? (data['petname'] as String?);
     }
 
-    return (data['name']
-                as String?) ??
+    return (data['name'] as String?) ??
         (data['type'] as String?) ??
-        (data['abbr_name']
-            as String?);
+        (data['abbr_name'] as String?);
   }
 
   String _enhanceSummary(
@@ -704,14 +494,11 @@ class AuditService {
     String entityType,
     String? label,
   ) {
-    if (label == null ||
-        label.trim().isEmpty) {
+    if (label == null || label.trim().isEmpty) {
       return summary;
     }
 
-    if (summary
-        .toLowerCase()
-        .contains(
+    if (summary.toLowerCase().contains(
           label.toLowerCase(),
         )) {
       return summary;
@@ -753,8 +540,7 @@ class AuditService {
   String _roleLabel(
     String raw,
   ) {
-    final value =
-        raw.trim().toLowerCase();
+    final value = raw.trim().toLowerCase();
 
     if (value.isEmpty) {
       return 'System';

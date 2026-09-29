@@ -92,8 +92,7 @@ class Pet {
       gender: petGenderFromString(
         map['gender'] as String? ?? 'male',
       ),
-      spayedNeutered:
-          map['spayed_neutered'] as bool? ?? false,
+      spayedNeutered: map['spayed_neutered'] as bool? ?? false,
       status: petStatusFromString(
         map['status'] as String? ?? 'healthy',
       ),

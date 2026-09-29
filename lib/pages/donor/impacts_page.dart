@@ -8,6 +8,7 @@ import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
 import '../../state/page_snapshot_cache.dart';
 import '../../widgets/page_loading.dart';
+
 /// Donor-facing page for showing donation acknowledgments and impact updates.
 ///
 /// Internal inventory details such as remaining stock, waste, expiration,
@@ -44,11 +45,9 @@ class _ImpactsPageState extends State<ImpactsPage>
   void initState() {
     super.initState();
 
-    final donorId =
-        context.read<AuthController>().profile?.userId;
+    final donorId = context.read<AuthController>().profile?.userId;
     if (donorId != null) {
-      final cached = PageSnapshotCache.instance
-          .peekList<DonationImpactLine>(
+      final cached = PageSnapshotCache.instance.peekList<DonationImpactLine>(
         '${PageSnapshotCache.donorImpactPrefix}$donorId',
       );
       if (cached != null) {
@@ -178,11 +177,11 @@ class _ImpactsPageState extends State<ImpactsPage>
 
   @override
   Widget build(BuildContext context) {
-if (_loading && _lines.isEmpty) {
-  return const PageLoading(
-    message: 'Loading your donation impacts',
-  );
-}
+    if (_loading && _lines.isEmpty) {
+      return const PageLoading(
+        message: 'Loading your donation impacts',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -209,15 +208,13 @@ if (_loading && _lines.isEmpty) {
     //
     // Treatment means the donated item was used in animal treatment.
     // Adjustment is also treated as general shelter usage for now.
-    final impactedDonations =
-        _lines.where(_hasImpact).length;
+    final impactedDonations = _lines.where(_hasImpact).length;
 
     // Gets only treatment-related impact records.
-    final treatmentContributions = _lines
-        .expand((line) => line.contributions)
-        .where(
-          (c) => c.kind == ImpactEventKind.treatment,
-        );
+    final treatmentContributions =
+        _lines.expand((line) => line.contributions).where(
+              (c) => c.kind == ImpactEventKind.treatment,
+            );
 
     // Counts unique treatments that were supported by donor items.
     final treatmentCount = treatmentContributions
@@ -270,13 +267,10 @@ if (_loading && _lines.isEmpty) {
                       label: 'Items Donated',
                       description: 'View all donations',
                       value: '${_lines.length}',
-                      icon:
-                          Icons.volunteer_activism_outlined,
+                      icon: Icons.volunteer_activism_outlined,
                       accent: AppColors.roleDonor,
-                      selected:
-                          _filter == _ImpactFilter.all,
-                      onTap: () =>
-                          _setFilter(_ImpactFilter.all),
+                      selected: _filter == _ImpactFilter.all,
+                      onTap: () => _setFilter(_ImpactFilter.all),
                     ),
                   ),
                   SizedBox(
@@ -289,10 +283,8 @@ if (_loading && _lines.isEmpty) {
                       value: '$impactedDonations',
                       icon: Icons.favorite_outline,
                       accent: AppColors.primary,
-                      selected:
-                          _filter == _ImpactFilter.used,
-                      onTap: () =>
-                          _setFilter(_ImpactFilter.used),
+                      selected: _filter == _ImpactFilter.used,
+                      onTap: () => _setFilter(_ImpactFilter.used),
                     ),
                   ),
                   SizedBox(
@@ -303,11 +295,9 @@ if (_loading && _lines.isEmpty) {
                       label: 'Treatments Helped',
                       description: 'Used for animal care',
                       value: '$treatmentCount',
-                      icon:
-                          Icons.medical_services_outlined,
+                      icon: Icons.medical_services_outlined,
                       accent: AppColors.roleStaff,
-                      selected:
-                          _filter == _ImpactFilter.treatment,
+                      selected: _filter == _ImpactFilter.treatment,
                       onTap: () => _setFilter(
                         _ImpactFilter.treatment,
                       ),
@@ -324,18 +314,13 @@ if (_loading && _lines.isEmpty) {
                     label: 'Items Donated',
                     description: 'View all donations',
                     value: '${_lines.length}',
-                    icon:
-                        Icons.volunteer_activism_outlined,
+                    icon: Icons.volunteer_activism_outlined,
                     accent: AppColors.roleDonor,
-                    selected:
-                        _filter == _ImpactFilter.all,
-                    onTap: () =>
-                        _setFilter(_ImpactFilter.all),
+                    selected: _filter == _ImpactFilter.all,
+                    onTap: () => _setFilter(_ImpactFilter.all),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: _ImpactFilterCard(
                     label: 'Donations Used',
@@ -343,25 +328,19 @@ if (_loading && _lines.isEmpty) {
                     value: '$impactedDonations',
                     icon: Icons.favorite_outline,
                     accent: AppColors.primary,
-                    selected:
-                        _filter == _ImpactFilter.used,
-                    onTap: () =>
-                        _setFilter(_ImpactFilter.used),
+                    selected: _filter == _ImpactFilter.used,
+                    onTap: () => _setFilter(_ImpactFilter.used),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: _ImpactFilterCard(
                     label: 'Treatments Helped',
                     description: 'Used for animal care',
                     value: '$treatmentCount',
-                    icon:
-                        Icons.medical_services_outlined,
+                    icon: Icons.medical_services_outlined,
                     accent: AppColors.roleStaff,
-                    selected:
-                        _filter == _ImpactFilter.treatment,
+                    selected: _filter == _ImpactFilter.treatment,
                     onTap: () => _setFilter(
                       _ImpactFilter.treatment,
                     ),
@@ -549,18 +528,15 @@ class _ImpactFilterCard extends StatefulWidget {
   });
 
   @override
-  State<_ImpactFilterCard> createState() =>
-      _ImpactFilterCardState();
+  State<_ImpactFilterCard> createState() => _ImpactFilterCardState();
 }
 
-class _ImpactFilterCardState
-    extends State<_ImpactFilterCard> {
+class _ImpactFilterCardState extends State<_ImpactFilterCard> {
   bool _hovering = false;
 
   @override
   Widget build(BuildContext context) {
-    final highlighted =
-        widget.selected || _hovering;
+    final highlighted = widget.selected || _hovering;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -587,16 +563,14 @@ class _ImpactFilterCardState
                     alpha: 0.08,
                   )
                 : AppColors.card,
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: highlighted
                   ? widget.accent.withValues(
                       alpha: 0.65,
                     )
                   : AppColors.border,
-              width:
-                  widget.selected ? 1.5 : 1,
+              width: widget.selected ? 1.5 : 1,
             ),
           ),
           child: Row(
@@ -608,8 +582,7 @@ class _ImpactFilterCardState
                   color: widget.accent.withValues(
                     alpha: 0.10,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   widget.icon,
@@ -617,47 +590,34 @@ class _ImpactFilterCardState
                   color: widget.accent,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.label,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight:
-                            widget.selected
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                        color:
-                            AppColors.foreground,
+                            widget.selected ? FontWeight.w700 : FontWeight.w600,
+                        color: AppColors.foreground,
                       ),
                     ),
-
                     const SizedBox(height: 2),
-
                     Text(
                       widget.description,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
               Text(
                 widget.value,
                 style: TextStyle(
@@ -693,17 +653,13 @@ class _ImpactCard extends StatelessWidget {
     // Adjustment = treated as general shelter usage for now.
     //
     // Waste and expired stock are intentionally not shown to donors.
-    final impactUpdates =
-        line.contributions.where((c) {
-      if (c.kind ==
-          ImpactEventKind.treatment) {
+    final impactUpdates = line.contributions.where((c) {
+      if (c.kind == ImpactEventKind.treatment) {
         return true;
       }
 
-      if (c.kind ==
-              ImpactEventKind.stockOut &&
-          c.stockOutReason ==
-              StockOutReason.adjustment) {
+      if (c.kind == ImpactEventKind.stockOut &&
+          c.stockOutReason == StockOutReason.adjustment) {
         return true;
       }
 
@@ -715,40 +671,32 @@ class _ImpactCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Displays the donated item's name and date received.
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.roleDonor
-                      .withValues(alpha: 0.1),
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: AppColors.roleDonor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
-                  Icons
-                      .volunteer_activism_outlined,
+                  Icons.volunteer_activism_outlined,
                   size: 20,
                   color: AppColors.roleDonor,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Text(
                   line.itemName,
@@ -758,14 +706,11 @@ class _ImpactCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               Text(
-                _formatDate(
-                    line.receivedDate),
+                _formatDate(line.receivedDate),
                 style: const TextStyle(
                   fontSize: 12.5,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ],
@@ -778,8 +723,7 @@ class _ImpactCard extends StatelessWidget {
           // This thank-you message is always shown after the donation
           // has been successfully received and stocked in.
           _ImpactMessage(
-            icon:
-                Icons.check_circle_outline,
+            icon: Icons.check_circle_outline,
             color: AppColors.roleDonor,
             title: 'Donation Received',
             message:
@@ -791,16 +735,13 @@ class _ImpactCard extends StatelessWidget {
 
           // Displays another message whenever the donated item has a
           // meaningful usage event such as Treatment or Adjustment.
-          for (final impact
-              in impactUpdates) ...[
+          for (final impact in impactUpdates) ...[
             const SizedBox(height: 14),
             _ImpactMessage(
               icon: Icons.favorite,
               color: AppColors.primary,
-              title:
-                  'Your Donation Made an Impact!',
-              message:
-                  'The ${line.itemName} you donated was put to use at '
+              title: 'Your Donation Made an Impact!',
+              message: 'The ${line.itemName} you donated was put to use at '
                   'Dumaguete Animal Sanctuary. Thank you for your contribution '
                   'and for helping us continue caring for the animals.',
               date: impact.date,
@@ -816,8 +757,7 @@ class _ImpactCard extends StatelessWidget {
 ///
 /// Used for both the initial "Donation Received" acknowledgment and later
 /// donation impact updates.
-class _ImpactMessage
-    extends StatelessWidget {
+class _ImpactMessage extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String title;
@@ -835,17 +775,14 @@ class _ImpactMessage
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color:
-                color.withValues(alpha: 0.1),
-            borderRadius:
-                BorderRadius.circular(10),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
@@ -853,48 +790,38 @@ class _ImpactMessage
             color: color,
           ),
         ),
-
         const SizedBox(width: 12),
-
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Expanded(
                     child: Text(
                       title,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   Text(
                     _formatDate(date),
-                    style:
-                        const TextStyle(
+                    style: const TextStyle(
                       fontSize: 11.5,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 5),
-
               Text(
                 message,
                 style: const TextStyle(
                   fontSize: 13,
                   height: 1.4,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ],

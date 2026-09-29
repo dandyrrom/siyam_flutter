@@ -122,8 +122,7 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
   @override
   void onExternalDataChanged() => _load(silent: true);
 
-  bool get _hasActiveFilters =>
-      _search.isNotEmpty || _priorityFilter != null;
+  bool get _hasActiveFilters => _search.isNotEmpty || _priorityFilter != null;
 
   void _resetFilters() {
     setState(() {
@@ -190,7 +189,8 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
   String _expiryLabel(_ReplenishmentRow row) {
     final expiry = row.nearestExpiry;
     if (expiry == null) return 'No batch on file';
-    final warningDays = MockDatabase.instance.systemSettings.expirationWarningDays;
+    final warningDays =
+        MockDatabase.instance.systemSettings.expirationWarningDays;
     final days = expiry.difference(DateTime.now()).inDays;
     if (days < 0) return 'Expired ${-days}d ago';
     if (days <= warningDays) return 'Expires in ${days}d';
@@ -200,7 +200,8 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
   bool _expiryIsUrgent(_ReplenishmentRow row) {
     final expiry = row.nearestExpiry;
     if (expiry == null) return false;
-    final warningDays = MockDatabase.instance.systemSettings.expirationWarningDays;
+    final warningDays =
+        MockDatabase.instance.systemSettings.expirationWarningDays;
     return expiry.difference(DateTime.now()).inDays <= warningDays;
   }
 
@@ -235,10 +236,10 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
         const SizedBox(height: 2),
         Text(
           '${_rows.length} items need restocking',
-          style: const TextStyle(fontSize: 13, color: AppColors.mutedForeground),
+          style:
+              const TextStyle(fontSize: 13, color: AppColors.mutedForeground),
         ),
         const SizedBox(height: 20),
-
         Container(
           decoration: BoxDecoration(
             color: AppColors.card,
@@ -282,8 +283,8 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(16)),
-                            borderSide:
-                                BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: BorderSide(
+                                color: AppColors.primary, width: 1.5),
                           ),
                         ),
                       ),
@@ -305,7 +306,8 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
                     if (_hasActiveFilters)
                       TextButton.icon(
                         onPressed: _resetFilters,
-                        icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
+                        icon:
+                            const Icon(Icons.filter_alt_off_outlined, size: 16),
                         label: const Text('Reset Filters'),
                       ),
                   ],
@@ -328,7 +330,8 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
                         SizedBox(height: 4),
                         Text('All items are above their stock thresholds.',
                             style: TextStyle(
-                                fontSize: 12.5, color: AppColors.mutedForeground)),
+                                fontSize: 12.5,
+                                color: AppColors.mutedForeground)),
                       ],
                     ),
                   ),
@@ -383,9 +386,9 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
                   ],
                 ),
                 const Divider(height: 1),
-
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Wrap(
                     alignment: WrapAlignment.spaceBetween,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -408,15 +411,17 @@ class _ReplenishmentPageState extends State<ReplenishmentPage>
                             }),
                           ),
                           const SizedBox(width: 8),
-                          const Text('Per Page', style: TextStyle(fontSize: 12.5)),
+                          const Text('Per Page',
+                              style: TextStyle(fontSize: 12.5)),
                         ],
                       ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TextButton.icon(
-                            onPressed:
-                                _page > 0 ? () => setState(() => _page--) : null,
+                            onPressed: _page > 0
+                                ? () => setState(() => _page--)
+                                : null,
                             icon: const Icon(Icons.chevron_left, size: 16),
                             label: const Text('Previous'),
                           ),
@@ -484,7 +489,9 @@ class _ReplenishmentRowTile extends StatelessWidget {
           ),
           child: Text(priorityLabel,
               style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: priorityColor)),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: priorityColor)),
         );
 
     final qtyToBuyText = row.qtyToBuy > 0
@@ -508,7 +515,8 @@ class _ReplenishmentRowTile extends StatelessWidget {
                 child: Text(item.itemName,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w600, color: AppColors.foreground)),
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.foreground)),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -531,8 +539,9 @@ class _ReplenishmentRowTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: expiryColor,
-                        fontWeight:
-                            expiryIsUrgent ? FontWeight.w600 : FontWeight.w400)),
+                        fontWeight: expiryIsUrgent
+                            ? FontWeight.w600
+                            : FontWeight.w400)),
               ),
             ],
           ),

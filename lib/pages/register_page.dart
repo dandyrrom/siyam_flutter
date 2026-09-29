@@ -16,35 +16,25 @@ class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() =>
-      _RegisterPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState
-    extends State<RegisterPage> {
-  final _formKey =
-      GlobalKey<FormState>();
+class _RegisterPageState extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
 
-  final _confirmFieldKey =
-      GlobalKey<FormFieldState<String>>();
+  final _confirmFieldKey = GlobalKey<FormFieldState<String>>();
 
-  final _firstName =
-      TextEditingController();
+  final _firstName = TextEditingController();
 
-  final _lastName =
-      TextEditingController();
+  final _lastName = TextEditingController();
 
-  final _email =
-      TextEditingController();
+  final _email = TextEditingController();
 
-  final _phone =
-      TextEditingController();
+  final _phone = TextEditingController();
 
-  final _password =
-      TextEditingController();
+  final _password = TextEditingController();
 
-  final _confirm =
-      TextEditingController();
+  final _confirm = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
@@ -72,10 +62,10 @@ class _RegisterPageState
     // Flutter's EditableText silently no-ops copy/cut while obscureText is
     // true, so Ctrl/Cmd+C leaves the previous clipboard contents in place.
     // Handle copy ourselves from the real controller text.
-    _passwordFocus.onKeyEvent = (node, event) =>
-        _handleObscuredFieldCopyKeyEvent(event, _password);
-    _confirmFocus.onKeyEvent = (node, event) =>
-        _handleObscuredFieldCopyKeyEvent(event, _confirm);
+    _passwordFocus.onKeyEvent =
+        (node, event) => _handleObscuredFieldCopyKeyEvent(event, _password);
+    _confirmFocus.onKeyEvent =
+        (node, event) => _handleObscuredFieldCopyKeyEvent(event, _confirm);
   }
 
   void _watchBlur(
@@ -99,10 +89,9 @@ class _RegisterPageState
       return KeyEventResult.ignored;
     }
 
-    final isCopyChord =
-        event.logicalKey == LogicalKeyboardKey.keyC &&
-            (HardwareKeyboard.instance.isControlPressed ||
-                HardwareKeyboard.instance.isMetaPressed);
+    final isCopyChord = event.logicalKey == LogicalKeyboardKey.keyC &&
+        (HardwareKeyboard.instance.isControlPressed ||
+            HardwareKeyboard.instance.isMetaPressed);
 
     if (!isCopyChord) {
       return KeyEventResult.ignored;
@@ -129,8 +118,7 @@ class _RegisterPageState
   ) {
     final value = editableTextState.textEditingValue;
     final selection = value.selection;
-    final hasSelection =
-        selection.isValid && !selection.isCollapsed;
+    final hasSelection = selection.isValid && !selection.isCollapsed;
 
     final items = List<ContextMenuButtonItem>.from(
       editableTextState.contextMenuButtonItems,
@@ -186,26 +174,21 @@ class _RegisterPageState
   // PASSWORD RULES
   // ==========================================================================
 
-  bool get _hasMinLength =>
-      _password.text.length >= 8;
+  bool get _hasMinLength => _password.text.length >= 8;
 
-  bool get _hasUppercase =>
-      RegExp(r'[A-Z]').hasMatch(
+  bool get _hasUppercase => RegExp(r'[A-Z]').hasMatch(
         _password.text,
       );
 
-  bool get _hasLowercase =>
-      RegExp(r'[a-z]').hasMatch(
+  bool get _hasLowercase => RegExp(r'[a-z]').hasMatch(
         _password.text,
       );
 
-  bool get _hasNumber =>
-      RegExp(r'[0-9]').hasMatch(
+  bool get _hasNumber => RegExp(r'[0-9]').hasMatch(
         _password.text,
       );
 
-  bool get _hasSymbol =>
-      RegExp(
+  bool get _hasSymbol => RegExp(
         r'[!@#$%^&*()_\-+=\[\]{};:,.?/~]',
       ).hasMatch(
         _password.text,
@@ -221,8 +204,7 @@ class _RegisterPageState
   String? _validateStrongPassword(
     String? value,
   ) {
-    final password =
-        value ?? '';
+    final password = value ?? '';
 
     if (password.isEmpty) {
       return 'Password is required';
@@ -238,13 +220,11 @@ class _RegisterPageState
   String? _validateConfirmPassword(
     String? value,
   ) {
-    if (value == null ||
-        value.isEmpty) {
+    if (value == null || value.isEmpty) {
       return 'Please confirm your password';
     }
 
-    if (value !=
-        _password.text) {
+    if (value != _password.text) {
       return 'Passwords do not match';
     }
 
@@ -254,8 +234,7 @@ class _RegisterPageState
   String? _validateName(
     String? value,
   ) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
 
@@ -278,32 +257,20 @@ class _RegisterPageState
       });
     });
 
-    final valid =
-        _formKey.currentState
-                ?.validate() ??
-            false;
+    final valid = _formKey.currentState?.validate() ?? false;
 
     if (!valid) {
       return;
     }
 
-    final auth =
-        context.read<AuthController>();
+    final auth = context.read<AuthController>();
 
-    final success =
-        await auth.registerDonor(
-      firstName:
-          _firstName.text.trim(),
-      lastName:
-          _lastName.text.trim(),
-      email:
-          _email.text.trim(),
-      password:
-          _password.text,
-      contactNum:
-          _phone.text.trim().isEmpty
-              ? null
-              : _phone.text.trim(),
+    final success = await auth.registerDonor(
+      firstName: _firstName.text.trim(),
+      lastName: _lastName.text.trim(),
+      email: _email.text.trim(),
+      password: _password.text,
+      contactNum: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     );
 
     if (!mounted) {
@@ -314,16 +281,13 @@ class _RegisterPageState
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
           'Account created. Please confirm your email before signing in.',
         ),
-        backgroundColor:
-            AppColors.sageGreen,
-        duration:
-            Duration(seconds: 2),
+        backgroundColor: AppColors.sageGreen,
+        duration: Duration(seconds: 2),
       ),
     );
 
@@ -350,52 +314,38 @@ class _RegisterPageState
       hintText: hintText,
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor:
-          AppColors.catGray.withValues(
+      fillColor: AppColors.catGray.withValues(
         alpha: 0.28,
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(
+      contentPadding: const EdgeInsets.symmetric(
         horizontal: 20,
         vertical: 16,
       ),
       border: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(28),
         borderSide: BorderSide.none,
       ),
-      enabledBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(28),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
         borderSide: BorderSide.none,
       ),
-      focusedBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(28),
-        borderSide:
-            const BorderSide(
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(
           color: AppColors.sageGreen,
           width: 1.5,
         ),
       ),
-      errorBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(28),
-        borderSide:
-            const BorderSide(
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(
           color: AppColors.coralRed,
           width: 1.4,
         ),
       ),
-      focusedErrorBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(28),
-        borderSide:
-            const BorderSide(
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(
           color: AppColors.coralRed,
           width: 1.6,
         ),
@@ -420,27 +370,22 @@ class _RegisterPageState
   }
 
   Widget _nameField({
-    required TextEditingController
-        controller,
+    required TextEditingController controller,
     required String hint,
-    required Iterable<String>
-        autofillHints,
+    required Iterable<String> autofillHints,
     required FocusNode focusNode,
     required String field,
   }) {
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
-      textCapitalization:
-          TextCapitalization.words,
-      textInputAction:
-          TextInputAction.next,
+      textCapitalization: TextCapitalization.words,
+      textInputAction: TextInputAction.next,
       autofillHints: autofillHints,
       decoration: _decoration(
         hintText: hint,
       ),
-      validator: (value) =>
-          _validateIfTouched(
+      validator: (value) => _validateIfTouched(
         field,
         value,
         _validateName,
@@ -454,12 +399,10 @@ class _RegisterPageState
 
   @override
   Widget build(BuildContext context) {
-    final auth =
-        context.watch<AuthController>();
+    final auth = context.watch<AuthController>();
 
     return Scaffold(
-      backgroundColor:
-          AppColors.cream,
+      backgroundColor: AppColors.cream,
       appBar: const PublicNavBar(
         currentPath: '/register',
       ),
@@ -471,23 +414,17 @@ class _RegisterPageState
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight:
-                    viewportConstraints
-                        .maxHeight,
+                minHeight: viewportConstraints.maxHeight,
               ),
               child: Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets
-                        .symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 48,
                 ),
-                alignment:
-                    Alignment.topCenter,
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(
+                  constraints: const BoxConstraints(
                     maxWidth: 480,
                   ),
                   child: AutofillGroup(
@@ -498,35 +435,26 @@ class _RegisterPageState
                         // ====================================================
 
                         Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment
-                                  .center,
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Image.asset(
                               'assets/das-no-bg.png',
                               height: 72,
-                              fit: BoxFit
-                                  .contain,
+                              fit: BoxFit.contain,
                             ),
                             const SizedBox(
                               width: 16,
                             ),
                             ClipRRect(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
+                              borderRadius: BorderRadius.circular(
                                 16,
                               ),
-                              child:
-                                  Image.asset(
+                              child: Image.asset(
                                 'assets/branding/pet-house-green.png',
                                 width: 72,
                                 height: 72,
-                                fit:
-                                    BoxFit.cover,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ],
@@ -538,14 +466,11 @@ class _RegisterPageState
 
                         const Text(
                           'Create your account',
-                          textAlign:
-                              TextAlign.center,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 30,
-                            fontWeight:
-                                FontWeight.w800,
-                            color: AppColors
-                                .deepBrown,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.deepBrown,
                           ),
                         ),
 
@@ -564,9 +489,7 @@ class _RegisterPageState
                         Form(
                           key: _formKey,
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .stretch,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // ----------------------------------------------
                               // NAME
@@ -577,46 +500,31 @@ class _RegisterPageState
                                   context,
                                   constraints,
                                 ) {
-                                  final stacked =
-                                      constraints
-                                              .maxWidth <
-                                          420;
+                                  final stacked = constraints.maxWidth < 420;
 
                                   if (stacked) {
                                     return Column(
                                       children: [
                                         _nameField(
-                                          controller:
-                                              _firstName,
-                                          hint:
-                                              'First name',
-                                          autofillHints:
-                                              const [
-                                            AutofillHints
-                                                .givenName,
+                                          controller: _firstName,
+                                          hint: 'First name',
+                                          autofillHints: const [
+                                            AutofillHints.givenName,
                                           ],
-                                          focusNode:
-                                              _firstNameFocus,
-                                          field:
-                                              'firstName',
+                                          focusNode: _firstNameFocus,
+                                          field: 'firstName',
                                         ),
                                         const SizedBox(
                                           height: 16,
                                         ),
                                         _nameField(
-                                          controller:
-                                              _lastName,
-                                          hint:
-                                              'Last name',
-                                          autofillHints:
-                                              const [
-                                            AutofillHints
-                                                .familyName,
+                                          controller: _lastName,
+                                          hint: 'Last name',
+                                          autofillHints: const [
+                                            AutofillHints.familyName,
                                           ],
-                                          focusNode:
-                                              _lastNameFocus,
-                                          field:
-                                              'lastName',
+                                          focusNode: _lastNameFocus,
+                                          field: 'lastName',
                                         ),
                                       ],
                                     );
@@ -624,46 +532,31 @@ class _RegisterPageState
 
                                   return Row(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
-                                        child:
-                                            _nameField(
-                                          controller:
-                                              _firstName,
-                                          hint:
-                                              'First name',
-                                          autofillHints:
-                                              const [
-                                            AutofillHints
-                                                .givenName,
+                                        child: _nameField(
+                                          controller: _firstName,
+                                          hint: 'First name',
+                                          autofillHints: const [
+                                            AutofillHints.givenName,
                                           ],
-                                          focusNode:
-                                              _firstNameFocus,
-                                          field:
-                                              'firstName',
+                                          focusNode: _firstNameFocus,
+                                          field: 'firstName',
                                         ),
                                       ),
                                       const SizedBox(
                                         width: 12,
                                       ),
                                       Expanded(
-                                        child:
-                                            _nameField(
-                                          controller:
-                                              _lastName,
-                                          hint:
-                                              'Last name',
-                                          autofillHints:
-                                              const [
-                                            AutofillHints
-                                                .familyName,
+                                        child: _nameField(
+                                          controller: _lastName,
+                                          hint: 'Last name',
+                                          autofillHints: const [
+                                            AutofillHints.familyName,
                                           ],
-                                          focusNode:
-                                              _lastNameFocus,
-                                          field:
-                                              'lastName',
+                                          focusNode: _lastNameFocus,
+                                          field: 'lastName',
                                         ),
                                       ),
                                     ],
@@ -680,29 +573,18 @@ class _RegisterPageState
                               // ----------------------------------------------
 
                               TextFormField(
-                                controller:
-                                    _email,
-                                focusNode:
-                                    _emailFocus,
-                                keyboardType:
-                                    TextInputType
-                                        .emailAddress,
-                                textInputAction:
-                                    TextInputAction
-                                        .next,
-                                autofillHints:
-                                    const [
-                                  AutofillHints
-                                      .email,
+                                controller: _email,
+                                focusNode: _emailFocus,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [
+                                  AutofillHints.email,
                                 ],
                                 autocorrect: false,
-                                decoration:
-                                    _decoration(
-                                  hintText:
-                                      'Email address',
+                                decoration: _decoration(
+                                  hintText: 'Email address',
                                 ),
-                                validator: (value) =>
-                                    _validateIfTouched(
+                                validator: (value) => _validateIfTouched(
                                   'email',
                                   value,
                                   validateEmail,
@@ -718,30 +600,18 @@ class _RegisterPageState
                               // ----------------------------------------------
 
                               TextFormField(
-                                controller:
-                                    _phone,
-                                focusNode:
-                                    _phoneFocus,
-                                keyboardType:
-                                    TextInputType
-                                        .phone,
-                                textInputAction:
-                                    TextInputAction
-                                        .next,
-                                autofillHints:
-                                    const [
-                                  AutofillHints
-                                      .telephoneNumber,
+                                controller: _phone,
+                                focusNode: _phoneFocus,
+                                keyboardType: TextInputType.phone,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [
+                                  AutofillHints.telephoneNumber,
                                 ],
-                                inputFormatters:
-                                    phoneInputFormatters,
-                                decoration:
-                                    _decoration(
-                                  hintText:
-                                      '09XXXXXXXXX (optional)',
+                                inputFormatters: phoneInputFormatters,
+                                decoration: _decoration(
+                                  hintText: '09XXXXXXXXX (optional)',
                                 ),
-                                validator: (value) =>
-                                    _validateIfTouched(
+                                validator: (value) => _validateIfTouched(
                                   'phone',
                                   value,
                                   validatePhoneNumber,
@@ -757,58 +627,39 @@ class _RegisterPageState
                               // ----------------------------------------------
 
                               TextFormField(
-                                controller:
-                                    _password,
-                                focusNode:
-                                    _passwordFocus,
-                                obscureText:
-                                    _obscurePassword,
-                                textInputAction:
-                                    TextInputAction
-                                        .next,
-                                autofillHints:
-                                    const [
-                                  AutofillHints
-                                      .newPassword,
+                                controller: _password,
+                                focusNode: _passwordFocus,
+                                obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [
+                                  AutofillHints.newPassword,
                                 ],
                                 autocorrect: false,
-                                enableSuggestions:
-                                    false,
-                                contextMenuBuilder:
-                                    _passwordContextMenuBuilder,
-                                decoration:
-                                    _decoration(
-                                  hintText:
-                                      'Create a strong password',
-                                  suffixIcon:
-                                      IconButton(
-                                    tooltip:
-                                        _obscurePassword
-                                            ? 'Show password'
-                                            : 'Hide password',
+                                enableSuggestions: false,
+                                contextMenuBuilder: _passwordContextMenuBuilder,
+                                decoration: _decoration(
+                                  hintText: 'Create a strong password',
+                                  suffixIcon: IconButton(
+                                    tooltip: _obscurePassword
+                                        ? 'Show password'
+                                        : 'Hide password',
                                     icon: Icon(
                                       _obscurePassword
-                                          ? Icons
-                                              .visibility_off_outlined
-                                          : Icons
-                                              .visibility_outlined,
-                                      color: AppColors
-                                          .deepBrown,
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: AppColors.deepBrown,
                                       size: 20,
                                     ),
-                                    onPressed:
-                                        () {
+                                    onPressed: () {
                                       setState(
                                         () {
-                                          _obscurePassword =
-                                              !_obscurePassword;
+                                          _obscurePassword = !_obscurePassword;
                                         },
                                       );
                                     },
                                   ),
                                 ),
-                                validator: (value) =>
-                                    _validateIfTouched(
+                                validator: (value) => _validateIfTouched(
                                   'password',
                                   value,
                                   _validateStrongPassword,
@@ -824,23 +675,17 @@ class _RegisterPageState
                               // setState on every keystroke made fields sticky
                               // on web.
                               ListenableBuilder(
-                                listenable:
-                                    _password,
+                                listenable: _password,
                                 builder: (
                                   context,
                                   _,
                                 ) {
                                   return _PasswordRequirements(
-                                    hasMinLength:
-                                        _hasMinLength,
-                                    hasUppercase:
-                                        _hasUppercase,
-                                    hasLowercase:
-                                        _hasLowercase,
-                                    hasNumber:
-                                        _hasNumber,
-                                    hasSymbol:
-                                        _hasSymbol,
+                                    hasMinLength: _hasMinLength,
+                                    hasUppercase: _hasUppercase,
+                                    hasLowercase: _hasLowercase,
+                                    hasNumber: _hasNumber,
+                                    hasSymbol: _hasSymbol,
                                   );
                                 },
                               ),
@@ -854,85 +699,59 @@ class _RegisterPageState
                               // ----------------------------------------------
 
                               TextFormField(
-                                key:
-                                    _confirmFieldKey,
-                                controller:
-                                    _confirm,
-                                focusNode:
-                                    _confirmFocus,
-                                obscureText:
-                                    _obscureConfirm,
-                                textInputAction:
-                                    TextInputAction
-                                        .done,
-                                autofillHints:
-                                    const [
-                                  AutofillHints
-                                      .newPassword,
+                                key: _confirmFieldKey,
+                                controller: _confirm,
+                                focusNode: _confirmFocus,
+                                obscureText: _obscureConfirm,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [
+                                  AutofillHints.newPassword,
                                 ],
                                 autocorrect: false,
-                                enableSuggestions:
-                                    false,
-                                contextMenuBuilder:
-                                    _passwordContextMenuBuilder,
-                                decoration:
-                                    _decoration(
-                                  hintText:
-                                      'Confirm password',
-                                  suffixIcon:
-                                      IconButton(
-                                    tooltip:
-                                        _obscureConfirm
-                                            ? 'Show password'
-                                            : 'Hide password',
+                                enableSuggestions: false,
+                                contextMenuBuilder: _passwordContextMenuBuilder,
+                                decoration: _decoration(
+                                  hintText: 'Confirm password',
+                                  suffixIcon: IconButton(
+                                    tooltip: _obscureConfirm
+                                        ? 'Show password'
+                                        : 'Hide password',
                                     icon: Icon(
                                       _obscureConfirm
-                                          ? Icons
-                                              .visibility_off_outlined
-                                          : Icons
-                                              .visibility_outlined,
-                                      color: AppColors
-                                          .deepBrown,
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: AppColors.deepBrown,
                                       size: 20,
                                     ),
-                                    onPressed:
-                                        () {
+                                    onPressed: () {
                                       setState(
                                         () {
-                                          _obscureConfirm =
-                                              !_obscureConfirm;
+                                          _obscureConfirm = !_obscureConfirm;
                                         },
                                       );
                                     },
                                   ),
                                 ),
-                                validator: (value) =>
-                                    _validateIfTouched(
+                                validator: (value) => _validateIfTouched(
                                   'confirm',
                                   value,
                                   _validateConfirmPassword,
                                 ),
-                                onFieldSubmitted:
-                                    (_) {
-                                  if (!auth
-                                      .isBusy) {
+                                onFieldSubmitted: (_) {
+                                  if (!auth.isBusy) {
                                     _handleSubmit();
                                   }
                                 },
                               ),
 
-                              if (auth
-                                      .errorMessage !=
-                                  null) ...[
+                              if (auth.errorMessage != null) ...[
                                 const SizedBox(
                                   height: 10,
                                 ),
                                 Text(
                                   auth.errorMessage!,
-                                  style:
-                                      const TextStyle(
-                                    color: AppColors
-                                        .coralRed,
+                                  style: const TextStyle(
+                                    color: AppColors.coralRed,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -947,83 +766,52 @@ class _RegisterPageState
                               // ----------------------------------------------
 
                               Container(
-                                decoration:
-                                    BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
                                     28,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors
-                                          .sageGreen
-                                          .withValues(
-                                        alpha:
-                                            0.35,
+                                      color: AppColors.sageGreen.withValues(
+                                        alpha: 0.35,
                                       ),
-                                      blurRadius:
-                                          22,
-                                      spreadRadius:
-                                          1,
-                                      offset:
-                                          const Offset(
+                                      blurRadius: 22,
+                                      spreadRadius: 1,
+                                      offset: const Offset(
                                         0,
                                         10,
                                       ),
                                     ),
                                   ],
                                 ),
-                                child:
-                                    ElevatedButton(
-                                  onPressed:
-                                      auth.isBusy
-                                          ? null
-                                          : _handleSubmit,
-                                  style:
-                                      ElevatedButton
-                                          .styleFrom(
-                                    backgroundColor:
-                                        AppColors
-                                            .sageGreen,
-                                    foregroundColor:
-                                        Colors.white,
+                                child: ElevatedButton(
+                                  onPressed: auth.isBusy ? null : _handleSubmit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.sageGreen,
+                                    foregroundColor: Colors.white,
                                     elevation: 0,
-                                    padding:
-                                        const EdgeInsets
-                                            .symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                       vertical: 18,
                                     ),
-                                    shape:
-                                        RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius
-                                              .circular(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
                                         28,
                                       ),
                                     ),
                                   ),
-                                  child: auth
-                                          .isBusy
+                                  child: auth.isBusy
                                       ? const SizedBox(
-                                          height:
-                                              18,
-                                          width:
-                                              18,
-                                          child:
-                                              CircularProgressIndicator(
-                                            strokeWidth:
-                                                2,
-                                            color:
-                                                Colors.white,
+                                          height: 18,
+                                          width: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
                                           ),
                                         )
                                       : const Text(
                                           'Create Account',
-                                          style:
-                                              TextStyle(
-                                            fontWeight:
-                                                FontWeight.w700,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
                                 ),
@@ -1037,60 +825,40 @@ class _RegisterPageState
                         ),
 
                         Wrap(
-                          alignment:
-                              WrapAlignment
-                                  .center,
-                          crossAxisAlignment:
-                              WrapCrossAlignment
-                                  .center,
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           spacing: 2,
                           children: [
                             const Text(
                               'Already have an account?',
                               style: TextStyle(
                                 fontSize: 13.5,
-                                color: AppColors
-                                    .deepBrown,
+                                color: AppColors.deepBrown,
                               ),
                             ),
                             TextButton(
-                              onPressed:
-                                  auth.isBusy
-                                      ? null
-                                      : () => context
-                                          .go(
-                                          '/login',
-                                        ),
-                              style:
-                                  TextButton
-                                      .styleFrom(
-                                foregroundColor:
-                                    AppColors
-                                        .sageGreen,
-                                padding:
-                                    const EdgeInsets
-                                        .symmetric(
+                              onPressed: auth.isBusy
+                                  ? null
+                                  : () => context.go(
+                                        '/login',
+                                      ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.sageGreen,
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 5,
                                   vertical: 2,
                                 ),
-                                minimumSize:
-                                    const Size(
+                                minimumSize: const Size(
                                   0,
                                   0,
                                 ),
-                                tapTargetSize:
-                                    MaterialTapTargetSize
-                                        .shrinkWrap,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child:
-                                  const Text(
+                              child: const Text(
                                 'Sign in',
-                                style:
-                                    TextStyle(
+                                style: TextStyle(
                                   fontSize: 13.5,
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -1113,8 +881,7 @@ class _RegisterPageState
 // PASSWORD REQUIREMENTS
 // =============================================================================
 
-class _PasswordRequirements
-    extends StatelessWidget {
+class _PasswordRequirements extends StatelessWidget {
   final bool hasMinLength;
   final bool hasUppercase;
   final bool hasLowercase;
@@ -1132,51 +899,40 @@ class _PasswordRequirements
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.catGray
-            .withValues(
+        color: AppColors.catGray.withValues(
           alpha: 0.15,
         ),
-        borderRadius:
-            BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Password requirements',
             style: TextStyle(
               fontSize: 11.5,
-              fontWeight:
-                  FontWeight.w700,
-              color:
-                  AppColors.deepBrown,
+              fontWeight: FontWeight.w700,
+              color: AppColors.deepBrown,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Wrap(
             spacing: 12,
             runSpacing: 7,
             children: [
               _PasswordRule(
                 met: hasMinLength,
-                label:
-                    '8+ characters',
+                label: '8+ characters',
               ),
               _PasswordRule(
                 met: hasUppercase,
-                label:
-                    'Uppercase letter',
+                label: 'Uppercase letter',
               ),
               _PasswordRule(
                 met: hasLowercase,
-                label:
-                    'Lowercase letter',
+                label: 'Lowercase letter',
               ),
               _PasswordRule(
                 met: hasNumber,
@@ -1194,8 +950,7 @@ class _PasswordRequirements
   }
 }
 
-class _PasswordRule
-    extends StatelessWidget {
+class _PasswordRule extends StatelessWidget {
   final bool met;
   final String label;
 
@@ -1206,19 +961,13 @@ class _PasswordRule
 
   @override
   Widget build(BuildContext context) {
-    final color = met
-        ? AppColors.sageGreen
-        : AppColors.mutedForeground;
+    final color = met ? AppColors.sageGreen : AppColors.mutedForeground;
 
     return Row(
-      mainAxisSize:
-          MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          met
-              ? Icons
-                  .check_circle
-              : Icons.circle_outlined,
+          met ? Icons.check_circle : Icons.circle_outlined,
           size: 14,
           color: color,
         ),
@@ -1227,9 +976,7 @@ class _PasswordRule
           label,
           style: TextStyle(
             fontSize: 10.8,
-            fontWeight: met
-                ? FontWeight.w600
-                : FontWeight.w400,
+            fontWeight: met ? FontWeight.w600 : FontWeight.w400,
             color: color,
           ),
         ),

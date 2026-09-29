@@ -106,7 +106,9 @@ Map<String, ImpactBatchResult> runFifoLedger({
   final remaining = {for (final b in sortedBatches) b.id: b.qty};
   final used = {for (final b in sortedBatches) b.id: 0.0};
   final discarded = {for (final b in sortedBatches) b.id: 0.0};
-  final contributions = {for (final b in sortedBatches) b.id: <ImpactContribution>[]};
+  final contributions = {
+    for (final b in sortedBatches) b.id: <ImpactContribution>[]
+  };
 
   const epsilon = 1e-9;
   var queueIndex = 0;
@@ -132,10 +134,12 @@ Map<String, ImpactBatchResult> runFifoLedger({
   for (final event in sortedEvents) {
     // Advance past any already-exhausted batches to find the current front
     // of the queue, regardless of whether this event will draw from it.
-    while (queueIndex < sortedBatches.length && remaining[sortedBatches[queueIndex].id]! <= epsilon) {
+    while (queueIndex < sortedBatches.length &&
+        remaining[sortedBatches[queueIndex].id]! <= epsilon) {
       queueIndex++;
     }
-    if (queueIndex >= sortedBatches.length) continue; // nothing left to attribute to
+    if (queueIndex >= sortedBatches.length)
+      continue; // nothing left to attribute to
 
     if (!event.consumesCapacity) {
       // Non-deductible treatment usage: attaches to the current batch as a
@@ -199,8 +203,15 @@ Map<String, ImpactBatchResult> runFifoLedger({
   required ImpactBatchResult ledgerResult,
   required double packageQuantity,
 }) {
-  final sealedRemaining = (ledgerResult.remaining / packageQuantity).floorToDouble();
-  final discardedUnits = (ledgerResult.discarded / packageQuantity).roundToDouble();
-  final usedUnits = (donatedQty - discardedUnits - sealedRemaining).clamp(0.0, donatedQty);
-  return (used: usedUnits, discarded: discardedUnits, remaining: sealedRemaining);
+  final sealedRemaining =
+      (ledgerResult.remaining / packageQuantity).floorToDouble();
+  final discardedUnits =
+      (ledgerResult.discarded / packageQuantity).roundToDouble();
+  final usedUnits =
+      (donatedQty - discardedUnits - sealedRemaining).clamp(0.0, donatedQty);
+  return (
+    used: usedUnits,
+    discarded: discardedUnits,
+    remaining: sealedRemaining
+  );
 }

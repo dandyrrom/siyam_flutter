@@ -17,9 +17,7 @@ import 'backend.dart';
 /// - default safety stock
 abstract interface class SettingsService {
   factory SettingsService() =>
-      kUseMock
-          ? MockSettingsService()
-          : SupabaseSettingsService();
+      kUseMock ? MockSettingsService() : SupabaseSettingsService();
 
   Future<SystemSettings> fetchSettings();
 
@@ -51,8 +49,7 @@ abstract interface class SettingsService {
 // =============================================================================
 
 class MockSettingsService implements SettingsService {
-  final MockDatabase _db =
-      MockDatabase.instance;
+  final MockDatabase _db = MockDatabase.instance;
 
   // Mock-only fallbacks for the new fields.
   int _defaultLeadTimeDays = 7;
@@ -60,14 +57,10 @@ class MockSettingsService implements SettingsService {
 
   SystemSettings _toSettings() {
     return SystemSettings(
-      lowStockThreshold:
-          _db.systemSettings.lowStockThreshold,
-      expirationWarningDays:
-          _db.systemSettings.expirationWarningDays,
-      defaultLeadTimeDays:
-          _defaultLeadTimeDays,
-      defaultSafetyStockQty:
-          _defaultSafetyStockQty,
+      lowStockThreshold: _db.systemSettings.lowStockThreshold,
+      expirationWarningDays: _db.systemSettings.expirationWarningDays,
+      defaultLeadTimeDays: _defaultLeadTimeDays,
+      defaultSafetyStockQty: _defaultSafetyStockQty,
     );
   }
 
@@ -83,20 +76,16 @@ class MockSettingsService implements SettingsService {
     int? defaultLeadTimeDays,
     double? defaultSafetyStockQty,
   }) async {
-    _db.systemSettings.lowStockThreshold =
-        lowStockThreshold;
+    _db.systemSettings.lowStockThreshold = lowStockThreshold;
 
-    _db.systemSettings.expirationWarningDays =
-        expirationWarningDays;
+    _db.systemSettings.expirationWarningDays = expirationWarningDays;
 
     if (defaultLeadTimeDays != null) {
-      _defaultLeadTimeDays =
-          defaultLeadTimeDays;
+      _defaultLeadTimeDays = defaultLeadTimeDays;
     }
 
     if (defaultSafetyStockQty != null) {
-      _defaultSafetyStockQty =
-          defaultSafetyStockQty;
+      _defaultSafetyStockQty = defaultSafetyStockQty;
     }
 
     DataChangeBus.instance.ping();
@@ -113,11 +102,9 @@ class MockSettingsService implements SettingsService {
 // =============================================================================
 
 class SupabaseSettingsService implements SettingsService {
-  final SupabaseClient _client =
-      Supabase.instance.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  static const String _columns =
-      'low_stock_threshold, '
+  static const String _columns = 'low_stock_threshold, '
       'expiration_warning_days, '
       'default_lead_time_days, '
       'default_safety_stock_qty';
@@ -130,21 +117,11 @@ class SupabaseSettingsService implements SettingsService {
     Map<String, dynamic> row,
   ) {
     return SystemSettings(
-      lowStockThreshold:
-          (row['low_stock_threshold'] as num)
-              .toDouble(),
-
-      expirationWarningDays:
-          (row['expiration_warning_days'] as num)
-              .toInt(),
-
-      defaultLeadTimeDays:
-          (row['default_lead_time_days'] as num)
-              .toInt(),
-
+      lowStockThreshold: (row['low_stock_threshold'] as num).toDouble(),
+      expirationWarningDays: (row['expiration_warning_days'] as num).toInt(),
+      defaultLeadTimeDays: (row['default_lead_time_days'] as num).toInt(),
       defaultSafetyStockQty:
-          (row['default_safety_stock_qty'] as num)
-              .toDouble(),
+          (row['default_safety_stock_qty'] as num).toDouble(),
     );
   }
 
@@ -190,20 +167,16 @@ class SupabaseSettingsService implements SettingsService {
     // -------------------------------------------------------------------------
 
     final updates = <String, dynamic>{
-      'low_stock_threshold':
-          lowStockThreshold,
-      'expiration_warning_days':
-          expirationWarningDays,
+      'low_stock_threshold': lowStockThreshold,
+      'expiration_warning_days': expirationWarningDays,
     };
 
     if (defaultLeadTimeDays != null) {
-      updates['default_lead_time_days'] =
-          defaultLeadTimeDays;
+      updates['default_lead_time_days'] = defaultLeadTimeDays;
     }
 
     if (defaultSafetyStockQty != null) {
-      updates['default_safety_stock_qty'] =
-          defaultSafetyStockQty;
+      updates['default_safety_stock_qty'] = defaultSafetyStockQty;
     }
 
     final row = await _client

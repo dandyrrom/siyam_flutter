@@ -34,38 +34,30 @@ class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() =>
-      _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState
-    extends State<SettingsPage>
+class _SettingsPageState extends State<SettingsPage>
     with DataBusRefreshMixin<SettingsPage> {
-  final SettingsService _service =
-      SettingsService();
+  final SettingsService _service = SettingsService();
 
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   // ===========================================================================
   // INVENTORY ALERT CONTROLLERS
   // ===========================================================================
 
-  final _lowStockCtrl =
-      TextEditingController();
+  final _lowStockCtrl = TextEditingController();
 
-  final _expiryDaysCtrl =
-      TextEditingController();
+  final _expiryDaysCtrl = TextEditingController();
 
   // ===========================================================================
   // ROP DEFAULT CONTROLLERS
   // ===========================================================================
 
-  final _defaultLeadTimeCtrl =
-      TextEditingController();
+  final _defaultLeadTimeCtrl = TextEditingController();
 
-  final _defaultSafetyStockCtrl =
-      TextEditingController();
+  final _defaultSafetyStockCtrl = TextEditingController();
 
   // These hold the SAVED values from Supabase.
   //
@@ -125,49 +117,38 @@ class _SettingsPageState
     }
 
     try {
-      final settings =
-          await _service.fetchSettings();
+      final settings = await _service.fetchSettings();
 
       if (!mounted) return;
 
       setState(() {
-        _lowStockCtrl.text =
-            formatQty(
+        _lowStockCtrl.text = formatQty(
           settings.lowStockThreshold,
         );
 
-        _expiryDaysCtrl.text =
-            settings.expirationWarningDays
-                .toString();
+        _expiryDaysCtrl.text = settings.expirationWarningDays.toString();
 
-        _defaultLeadTimeCtrl.text =
-            settings.defaultLeadTimeDays
-                .toString();
+        _defaultLeadTimeCtrl.text = settings.defaultLeadTimeDays.toString();
 
-        _defaultSafetyStockCtrl.text =
-            formatQty(
+        _defaultSafetyStockCtrl.text = formatQty(
           settings.defaultSafetyStockQty,
         );
 
-        _defaultLeadTimeDays =
-            settings.defaultLeadTimeDays;
+        _defaultLeadTimeDays = settings.defaultLeadTimeDays;
 
-        _defaultSafetyStockQty =
-            settings.defaultSafetyStockQty;
+        _defaultSafetyStockQty = settings.defaultSafetyStockQty;
 
         _loading = false;
       });
 
       // Keep the existing global threshold synchronized with the value stored
       // in Supabase when the Settings page loads.
-      lowStockPurchaseUnitThreshold =
-          settings.lowStockThreshold;
+      lowStockPurchaseUnitThreshold = settings.lowStockThreshold;
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not load settings: $e';
+        _error = 'Could not load settings: $e';
         _loading = false;
       });
     }
@@ -179,39 +160,31 @@ class _SettingsPageState
 
   // Validates and saves the system-wide inventory and ROP settings.
   Future<void> _save() async {
-    if (!_formKey.currentState!
-        .validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final lowStock =
-        double.parse(
+    final lowStock = double.parse(
       _lowStockCtrl.text.trim(),
     );
 
-    final expiryDays =
-        int.parse(
+    final expiryDays = int.parse(
       _expiryDaysCtrl.text.trim(),
     );
 
-    final leadTime =
-        int.parse(
+    final leadTime = int.parse(
       _defaultLeadTimeCtrl.text.trim(),
     );
 
-    final safetyStock =
-        double.parse(
+    final safetyStock = double.parse(
       _defaultSafetyStockCtrl.text.trim(),
     );
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) =>
-          AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20),
         ),
         title: const Text(
           'Save settings?',
@@ -226,20 +199,16 @@ class _SettingsPageState
         ),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.of(
+            onPressed: () => Navigator.of(
               dialogContext,
             ).pop(false),
-            child:
-                const Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.of(
+            onPressed: () => Navigator.of(
               dialogContext,
             ).pop(true),
-            child:
-                const Text('Confirm'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -256,41 +225,30 @@ class _SettingsPageState
     );
 
     try {
-      final settings =
-          await _service.updateSettings(
+      final settings = await _service.updateSettings(
         lowStockThreshold: lowStock,
-        expirationWarningDays:
-            expiryDays,
-        defaultLeadTimeDays:
-            leadTime,
-        defaultSafetyStockQty:
-            safetyStock,
+        expirationWarningDays: expiryDays,
+        defaultLeadTimeDays: leadTime,
+        defaultSafetyStockQty: safetyStock,
       );
 
-      lowStockPurchaseUnitThreshold =
-          settings.lowStockThreshold;
+      lowStockPurchaseUnitThreshold = settings.lowStockThreshold;
 
       if (!mounted) return;
 
       setState(() {
-        _defaultLeadTimeDays =
-            settings.defaultLeadTimeDays;
+        _defaultLeadTimeDays = settings.defaultLeadTimeDays;
 
-        _defaultSafetyStockQty =
-            settings.defaultSafetyStockQty;
+        _defaultSafetyStockQty = settings.defaultSafetyStockQty;
 
-        _defaultLeadTimeCtrl.text =
-            settings.defaultLeadTimeDays
-                .toString();
+        _defaultLeadTimeCtrl.text = settings.defaultLeadTimeDays.toString();
 
-        _defaultSafetyStockCtrl.text =
-            formatQty(
+        _defaultSafetyStockCtrl.text = formatQty(
           settings.defaultSafetyStockQty,
         );
       });
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'Settings saved.',
@@ -300,8 +258,7 @@ class _SettingsPageState
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Could not save settings: $e',
@@ -326,8 +283,7 @@ class _SettingsPageState
     String? value, {
     bool allowDecimal = true,
   }) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
 
@@ -355,8 +311,7 @@ class _SettingsPageState
     String? value, {
     bool allowDecimal = true,
   }) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
 
@@ -389,13 +344,11 @@ class _SettingsPageState
     BuildContext context,
   ) {
     return ConstrainedBox(
-      constraints:
-          const BoxConstraints(
+      constraints: const BoxConstraints(
         maxWidth: 900,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ===================================================================
           // PAGE HEADER
@@ -405,16 +358,14 @@ class _SettingsPageState
             'Settings',
             style: TextStyle(
               fontSize: 22,
-              fontWeight:
-                  FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 4),
           const Text(
             'Configure inventory alerts, reorder point settings, categories, and units.',
             style: TextStyle(
-              color:
-                  AppColors.mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
           const SizedBox(height: 20),
@@ -427,21 +378,16 @@ class _SettingsPageState
             width: double.infinity,
             child: _loading
                 ? const Center(
-                    child:
-                        CircularProgressIndicator(),
+                    child: CircularProgressIndicator(),
                   )
                 : _error != null
                     ? Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             _error!,
-                            style:
-                                const TextStyle(
-                              color: AppColors
-                                  .destructive,
+                            style: const TextStyle(
+                              color: AppColors.destructive,
                             ),
                           ),
                           const SizedBox(
@@ -456,31 +402,19 @@ class _SettingsPageState
                         ],
                       )
                     : Container(
-                        width:
-                            double.infinity,
-                        padding:
-                            const EdgeInsets
-                                .all(24),
-                        decoration:
-                            BoxDecoration(
-                          color:
-                              AppColors.card,
-                          borderRadius:
-                              BorderRadius
-                                  .circular(16),
-                          border:
-                              Border.all(
-                            color:
-                                AppColors
-                                    .border,
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.border,
                           ),
                         ),
                         child: Form(
                           key: _formKey,
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // =================================================
                               // INVENTORY ALERTS
@@ -488,11 +422,8 @@ class _SettingsPageState
 
                               const Text(
                                 'Inventory Alerts',
-                                style:
-                                    TextStyle(
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 15,
                                 ),
                               ),
@@ -501,11 +432,9 @@ class _SettingsPageState
                               ),
                               const Text(
                                 'Configure when inventory and expiry warnings appear.',
-                                style:
-                                    TextStyle(
+                                style: TextStyle(
                                   fontSize: 12.5,
-                                  color: AppColors
-                                      .mutedForeground,
+                                  color: AppColors.mutedForeground,
                                 ),
                               ),
                               const SizedBox(
@@ -513,45 +442,33 @@ class _SettingsPageState
                               ),
 
                               TextFormField(
-                                controller:
-                                    _lowStockCtrl,
+                                controller: _lowStockCtrl,
                                 keyboardType:
-                                    const TextInputType
-                                        .numberWithOptions(
+                                    const TextInputType.numberWithOptions(
                                   decimal: true,
                                 ),
-                                decoration:
-                                    const InputDecoration(
-                                  labelText:
-                                      'Low stock threshold',
+                                decoration: const InputDecoration(
+                                  labelText: 'Low stock threshold',
                                   helperText:
                                       'Usable stock at or below this purchase-unit equivalent is flagged as Low Stock.',
                                 ),
-                                validator:
-                                    _positiveNumberValidator,
+                                validator: _positiveNumberValidator,
                               ),
                               const SizedBox(
                                 height: 16,
                               ),
 
                               TextFormField(
-                                controller:
-                                    _expiryDaysCtrl,
-                                keyboardType:
-                                    TextInputType
-                                        .number,
-                                decoration:
-                                    const InputDecoration(
-                                  labelText:
-                                      'Expiration warning window (days)',
+                                controller: _expiryDaysCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Expiration warning window (days)',
                                   helperText:
                                       'Usable batches expiring within this many days are flagged as Expiring Soon.',
                                 ),
-                                validator: (v) =>
-                                    _positiveNumberValidator(
+                                validator: (v) => _positiveNumberValidator(
                                   v,
-                                  allowDecimal:
-                                      false,
+                                  allowDecimal: false,
                                 ),
                               ),
 
@@ -572,26 +489,17 @@ class _SettingsPageState
                                   Container(
                                     width: 38,
                                     height: 38,
-                                    decoration:
-                                        BoxDecoration(
-                                      color: AppColors
-                                          .secondary,
-                                      borderRadius:
-                                          BorderRadius
-                                              .circular(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary,
+                                      borderRadius: BorderRadius.circular(
                                         12,
                                       ),
                                     ),
-                                    alignment:
-                                        Alignment
-                                            .center,
-                                    child:
-                                        const Icon(
-                                      Icons
-                                          .trending_up_outlined,
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.trending_up_outlined,
                                       size: 20,
-                                      color: AppColors
-                                          .primary,
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                   const SizedBox(
@@ -600,18 +508,13 @@ class _SettingsPageState
                                   const Expanded(
                                     child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment
-                                              .start,
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Reorder Point Defaults',
-                                          style:
-                                              TextStyle(
-                                            fontWeight:
-                                                FontWeight
-                                                    .w700,
-                                            fontSize:
-                                                15,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15,
                                           ),
                                         ),
                                         SizedBox(
@@ -619,12 +522,9 @@ class _SettingsPageState
                                         ),
                                         Text(
                                           'Used when an item does not have its own ROP override.',
-                                          style:
-                                              TextStyle(
-                                            fontSize:
-                                                12.5,
-                                            color: AppColors
-                                                .mutedForeground,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: AppColors.mutedForeground,
                                           ),
                                         ),
                                       ],
@@ -638,54 +538,36 @@ class _SettingsPageState
                               ),
 
                               LayoutBuilder(
-                                builder:
-                                    (
+                                builder: (
                                   context,
                                   constraints,
                                 ) {
-                                  final isNarrow =
-                                      constraints
-                                              .maxWidth <
-                                          520;
+                                  final isNarrow = constraints.maxWidth < 520;
 
-                                  final leadTime =
-                                      TextFormField(
-                                    controller:
-                                        _defaultLeadTimeCtrl,
-                                    keyboardType:
-                                        TextInputType
-                                            .number,
-                                    decoration:
-                                        const InputDecoration(
-                                      labelText:
-                                          'Default lead time',
-                                      suffixText:
-                                          'days',
+                                  final leadTime = TextFormField(
+                                    controller: _defaultLeadTimeCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Default lead time',
+                                      suffixText: 'days',
                                       helperText:
                                           'Expected number of days before replenishment arrives.',
                                     ),
                                     validator: (v) =>
                                         _nonNegativeNumberValidator(
                                       v,
-                                      allowDecimal:
-                                          false,
+                                      allowDecimal: false,
                                     ),
                                   );
 
-                                  final safety =
-                                      TextFormField(
-                                    controller:
-                                        _defaultSafetyStockCtrl,
+                                  final safety = TextFormField(
+                                    controller: _defaultSafetyStockCtrl,
                                     keyboardType:
-                                        const TextInputType
-                                            .numberWithOptions(
-                                      decimal:
-                                          true,
+                                        const TextInputType.numberWithOptions(
+                                      decimal: true,
                                     ),
-                                    decoration:
-                                        const InputDecoration(
-                                      labelText:
-                                          'Default safety stock',
+                                    decoration: const InputDecoration(
+                                      labelText: 'Default safety stock',
                                       helperText:
                                           'Fallback buffer in each item\'s purchase unit.',
                                     ),
@@ -700,8 +582,7 @@ class _SettingsPageState
                                       children: [
                                         leadTime,
                                         const SizedBox(
-                                          height:
-                                              16,
+                                          height: 16,
                                         ),
                                         safety,
                                       ],
@@ -710,19 +591,16 @@ class _SettingsPageState
 
                                   return Row(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
-                                        child:
-                                            leadTime,
+                                        child: leadTime,
                                       ),
                                       const SizedBox(
                                         width: 16,
                                       ),
                                       Expanded(
-                                        child:
-                                            safety,
+                                        child: safety,
                                       ),
                                     ],
                                   );
@@ -734,32 +612,21 @@ class _SettingsPageState
                               ),
 
                               Container(
-                                width:
-                                    double.infinity,
-                                padding:
-                                    const EdgeInsets
-                                        .all(12),
-                                decoration:
-                                    BoxDecoration(
-                                  color: AppColors
-                                      .secondary,
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary,
+                                  borderRadius: BorderRadius.circular(
                                     12,
                                   ),
                                 ),
                                 child: const Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment
-                                          .start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Icon(
-                                      Icons
-                                          .info_outline,
+                                      Icons.info_outline,
                                       size: 17,
-                                      color: AppColors
-                                          .primary,
+                                      color: AppColors.primary,
                                     ),
                                     SizedBox(
                                       width: 8,
@@ -769,10 +636,8 @@ class _SettingsPageState
                                         'ROP = Average Daily Usage × Lead Time + Safety Stock. '
                                         'ADU uses up to 30 days of recent usage; newer items use the number '
                                         'of days since their first received stock.',
-                                        style:
-                                            TextStyle(
-                                          fontSize:
-                                              12.5,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
                                           height: 1.4,
                                         ),
                                       ),
@@ -786,34 +651,21 @@ class _SettingsPageState
                               ),
 
                               Align(
-                                alignment:
-                                    Alignment
-                                        .centerRight,
-                                child:
-                                    ElevatedButton.icon(
-                                  onPressed:
-                                      _saving
-                                          ? null
-                                          : _save,
+                                alignment: Alignment.centerRight,
+                                child: ElevatedButton.icon(
+                                  onPressed: _saving ? null : _save,
                                   icon: _saving
-                                      ? const SizedBox
-                                          .shrink()
+                                      ? const SizedBox.shrink()
                                       : const Icon(
-                                          Icons
-                                              .save_outlined,
-                                          size:
-                                              17,
+                                          Icons.save_outlined,
+                                          size: 17,
                                         ),
                                   label: _saving
                                       ? const SizedBox(
-                                          height:
-                                              16,
-                                          width:
-                                              16,
-                                          child:
-                                              CircularProgressIndicator(
-                                            strokeWidth:
-                                                2,
+                                          height: 16,
+                                          width: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
                                           ),
                                         )
                                       : const Text(
@@ -836,96 +688,88 @@ class _SettingsPageState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          // ===================================================================
-          // ITEM-SPECIFIC ROP OVERRIDES
-          // ===================================================================
+                // ===================================================================
+                // ITEM-SPECIFIC ROP OVERRIDES
+                // ===================================================================
 
-          const Text(
-            'Item ROP Overrides',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight:
-                  FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Give individual items a different lead time or safety stock when the system defaults are not appropriate.',
-            style: TextStyle(
-              color:
-                  AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 16),
+                const Text(
+                  'Item ROP Overrides',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Give individual items a different lead time or safety stock when the system defaults are not appropriate.',
+                  style: TextStyle(
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 16),
 
-          RepaintBoundary(
-            child: _RopOverridesSection(
-              defaultLeadTimeDays:
-                  _defaultLeadTimeDays,
-              defaultSafetyStockQty:
-                  _defaultSafetyStockQty,
-            ),
-          ),
+                RepaintBoundary(
+                  child: _RopOverridesSection(
+                    defaultLeadTimeDays: _defaultLeadTimeDays,
+                    defaultSafetyStockQty: _defaultSafetyStockQty,
+                  ),
+                ),
 
-          const SizedBox(height: 40),
+                const SizedBox(height: 40),
 
-          // ===================================================================
-          // CATEGORY MANAGEMENT
-          // ===================================================================
+                // ===================================================================
+                // CATEGORY MANAGEMENT
+                // ===================================================================
 
-          const Text(
-            'Category Management',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight:
-                  FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Expand a category to rename it, set its expiry requirement, and '
-            'manage its subcategories.',
-            style: TextStyle(
-              color:
-                  AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 20),
+                const Text(
+                  'Category Management',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Expand a category to rename it, set its expiry requirement, and '
+                  'manage its subcategories.',
+                  style: TextStyle(
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 20),
 
-          const RepaintBoundary(
-            child: _CategoryManagementSection(),
-          ),
+                const RepaintBoundary(
+                  child: _CategoryManagementSection(),
+                ),
 
-          const SizedBox(height: 40),
+                const SizedBox(height: 40),
 
-          // ===================================================================
-          // UNIT MANAGEMENT
-          // ===================================================================
+                // ===================================================================
+                // UNIT MANAGEMENT
+                // ===================================================================
 
-          const Text(
-            'Unit Management',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight:
-                  FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Add, rename, or delete the purchase/package/dispense units used '
-            'when stocking in items.',
-            style: TextStyle(
-              color:
-                  AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 20),
+                const Text(
+                  'Unit Management',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Add, rename, or delete the purchase/package/dispense units used '
+                  'when stocking in items.',
+                  style: TextStyle(
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 20),
 
-          const RepaintBoundary(
-            child: _UnitManagementSection(),
-          ),
+                const RepaintBoundary(
+                  child: _UnitManagementSection(),
+                ),
 
-          const SizedBox(height: 40),
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -949,8 +793,7 @@ class _RopOverridesSection extends StatefulWidget {
   });
 
   @override
-  State<_RopOverridesSection> createState() =>
-      _RopOverridesSectionState();
+  State<_RopOverridesSection> createState() => _RopOverridesSectionState();
 }
 
 class _RopOverridesSectionState extends State<_RopOverridesSection>
@@ -1898,8 +1741,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
                             child: _RopItemRow(
                               item: item,
                               ropOverride: widget.overrides[item.itemId],
-                              defaultLeadTimeDays:
-                                  widget.defaultLeadTimeDays,
+                              defaultLeadTimeDays: widget.defaultLeadTimeDays,
                               defaultSafetyStockQty:
                                   widget.defaultSafetyStockQty,
                               onEdit: () => _edit(item),
@@ -1968,8 +1810,7 @@ class _RopOverridesDialogState extends State<_RopOverridesDialog> {
 // ROP ITEM ROW
 // =============================================================================
 
-class _RopItemRow
-    extends StatelessWidget {
+class _RopItemRow extends StatelessWidget {
   final InventoryItem item;
   final ItemRopSettings? ropOverride;
 
@@ -1993,99 +1834,66 @@ class _RopItemRow
   Widget build(
     BuildContext context,
   ) {
-    final hasOverride =
-        ropOverride != null;
+    final hasOverride = ropOverride != null;
 
-    final leadTime =
-        ropOverride?.leadTimeDays ??
-            defaultLeadTimeDays;
+    final leadTime = ropOverride?.leadTimeDays ?? defaultLeadTimeDays;
 
-    final safetyStock =
-        ropOverride?.safetyStockQty ??
-            defaultSafetyStockQty;
+    final safetyStock = ropOverride?.safetyStockQty ?? defaultSafetyStockQty;
 
-    final dayLabel =
-        leadTime == 1
-            ? 'day'
-            : 'days';
+    final dayLabel = leadTime == 1 ? 'day' : 'days';
 
-    final unit =
-        item.purchaseUnitAbbr
-                .trim()
-                .isEmpty
-            ? 'purchase units'
-            : item.purchaseUnitAbbr;
+    final unit = item.purchaseUnitAbbr.trim().isEmpty
+        ? 'purchase units'
+        : item.purchaseUnitAbbr;
 
     // Builds the Custom or Default ROP status badge.
-    Widget statusBadge() =>
-        Container(
-          padding:
-              const EdgeInsets
-                  .symmetric(
+    Widget statusBadge() => Container(
+          padding: const EdgeInsets.symmetric(
             horizontal: 9,
             vertical: 4,
           ),
-          decoration:
-              BoxDecoration(
+          decoration: BoxDecoration(
             color: hasOverride
-                ? AppColors.primary
-                    .withValues(
+                ? AppColors.primary.withValues(
                     alpha: 0.10,
                   )
                 : AppColors.secondary,
-            borderRadius:
-                BorderRadius.circular(
+            borderRadius: BorderRadius.circular(
               999,
             ),
           ),
           child: Text(
-            hasOverride
-                ? 'Custom'
-                : 'Default',
+            hasOverride ? 'Custom' : 'Default',
             style: TextStyle(
               fontSize: 11.5,
-              fontWeight:
-                  FontWeight.w600,
-              color: hasOverride
-                  ? AppColors.primary
-                  : AppColors
-                      .mutedForeground,
+              fontWeight: FontWeight.w600,
+              color:
+                  hasOverride ? AppColors.primary : AppColors.mutedForeground,
             ),
           ),
         );
 
-    final details =
-        '$leadTime $dayLabel lead time • '
+    final details = '$leadTime $dayLabel lead time • '
         '${formatQty(safetyStock)} $unit safety stock';
 
     return LayoutBuilder(
-      builder:
-          (
+      builder: (
         context,
         constraints,
       ) {
-        final narrow =
-            constraints.maxWidth <
-                620;
+        final narrow = constraints.maxWidth < 620;
 
-        final information =
-            Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+        final information = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Flexible(
                   child: Text(
                     item.itemName,
-                    overflow:
-                        TextOverflow
-                            .ellipsis,
-                    style:
-                        const TextStyle(
-                      fontWeight:
-                          FontWeight
-                              .w600,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
                   ),
@@ -2101,13 +1909,10 @@ class _RopItemRow
             ),
             Text(
               item.itemCategory,
-              overflow:
-                  TextOverflow.ellipsis,
-              style:
-                  const TextStyle(
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 fontSize: 12,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(
@@ -2115,45 +1920,35 @@ class _RopItemRow
             ),
             Text(
               details,
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 12.5,
               ),
             ),
           ],
         );
 
-        final actions =
-            Wrap(
+        final actions = Wrap(
           spacing: 6,
           runSpacing: 6,
           children: [
             OutlinedButton.icon(
               onPressed: onEdit,
               icon: Icon(
-                hasOverride
-                    ? Icons
-                        .edit_outlined
-                    : Icons
-                        .add_outlined,
+                hasOverride ? Icons.edit_outlined : Icons.add_outlined,
                 size: 16,
               ),
               label: Text(
-                hasOverride
-                    ? 'Edit'
-                    : 'Add Override',
+                hasOverride ? 'Edit' : 'Add Override',
               ),
             ),
             if (hasOverride)
               TextButton.icon(
                 onPressed: onReset,
                 icon: const Icon(
-                  Icons
-                      .settings_backup_restore,
+                  Icons.settings_backup_restore,
                   size: 16,
                 ),
-                label:
-                    const Text(
+                label: const Text(
                   'Reset',
                 ),
               ),
@@ -2162,13 +1957,9 @@ class _RopItemRow
 
         if (narrow) {
           return Padding(
-            padding:
-                const EdgeInsets
-                    .all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 information,
                 const SizedBox(
@@ -2181,17 +1972,14 @@ class _RopItemRow
         }
 
         return Padding(
-          padding:
-              const EdgeInsets
-                  .symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 18,
             vertical: 14,
           ),
           child: Row(
             children: [
               Expanded(
-                child:
-                    information,
+                child: information,
               ),
               const SizedBox(
                 width: 20,
@@ -2209,8 +1997,7 @@ class _RopItemRow
 // ROP OVERRIDE DIALOG
 // =============================================================================
 
-class _RopOverrideDialog
-    extends StatefulWidget {
+class _RopOverrideDialog extends StatefulWidget {
   final InventoryItem item;
   final ItemRopSettings? existing;
 
@@ -2225,28 +2012,19 @@ class _RopOverrideDialog
   });
 
   @override
-  State<_RopOverrideDialog>
-      createState() =>
-          _RopOverrideDialogState();
+  State<_RopOverrideDialog> createState() => _RopOverrideDialogState();
 }
 
-class _RopOverrideDialogState
-    extends State<_RopOverrideDialog> {
-  final _formKey =
-      GlobalKey<FormState>();
+class _RopOverrideDialogState extends State<_RopOverrideDialog> {
+  final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController
-      _leadTimeCtrl;
+  late final TextEditingController _leadTimeCtrl;
 
-  late final TextEditingController
-      _safetyStockCtrl;
+  late final TextEditingController _safetyStockCtrl;
 
-  static const int
-      _suggestedSafetyStockDays = 3;
+  static const int _suggestedSafetyStockDays = 3;
 
-  final ReplenishmentService
-      _replenishmentService =
-      ReplenishmentService();
+  final ReplenishmentService _replenishmentService = ReplenishmentService();
 
   bool _loadingSuggestion = true;
   double? _averageDailyUsage;
@@ -2257,23 +2035,14 @@ class _RopOverrideDialogState
   void initState() {
     super.initState();
 
-    _leadTimeCtrl =
-        TextEditingController(
-      text:
-          (widget.existing
-                      ?.leadTimeDays ??
-                  widget
-                      .defaultLeadTimeDays)
-              .toString(),
+    _leadTimeCtrl = TextEditingController(
+      text: (widget.existing?.leadTimeDays ?? widget.defaultLeadTimeDays)
+          .toString(),
     );
 
-    _safetyStockCtrl =
-        TextEditingController(
+    _safetyStockCtrl = TextEditingController(
       text: formatQty(
-        widget.existing
-                ?.safetyStockQty ??
-            widget
-                .defaultSafetyStockQty,
+        widget.existing?.safetyStockQty ?? widget.defaultSafetyStockQty,
       ),
     );
 
@@ -2281,12 +2050,9 @@ class _RopOverrideDialogState
   }
 
   // Loads the selected item's current ADU for the safety-stock suggestion.
-  Future<void>
-      _loadUsageSuggestion() async {
+  Future<void> _loadUsageSuggestion() async {
     try {
-      final adu =
-          await _replenishmentService
-              .fetchAverageDailyUsage(
+      final adu = await _replenishmentService.fetchAverageDailyUsage(
         widget.item.itemId,
       );
 
@@ -2303,38 +2069,31 @@ class _RopOverrideDialogState
       setState(() {
         _averageDailyUsage = null;
         _loadingSuggestion = false;
-        _suggestionError =
-            'Usage-based suggestion is unavailable right now.';
+        _suggestionError = 'Usage-based suggestion is unavailable right now.';
       });
     }
   }
 
   // Calculates suggested safety stock as the current ADU times three days.
-  double? get
-      _suggestedSafetyStockQty {
-    final adu =
-        _averageDailyUsage;
+  double? get _suggestedSafetyStockQty {
+    final adu = _averageDailyUsage;
 
     if (adu == null || adu <= 0) {
       return null;
     }
 
-    return (adu *
-            _suggestedSafetyStockDays)
-        .ceilToDouble();
+    return (adu * _suggestedSafetyStockDays).ceilToDouble();
   }
 
   // Fills the safety-stock field with the calculated suggestion.
   void _useSuggestedSafetyStock() {
-    final suggested =
-        _suggestedSafetyStockQty;
+    final suggested = _suggestedSafetyStockQty;
 
     if (suggested == null) {
       return;
     }
 
-    _safetyStockCtrl.text =
-        formatQty(suggested);
+    _safetyStockCtrl.text = formatQty(suggested);
   }
 
   // Builds the usage-based safety-stock suggestion panel.
@@ -2349,8 +2108,7 @@ class _RopOverrideDialogState
           SizedBox(
             width: 16,
             height: 16,
-            child:
-                CircularProgressIndicator(
+            child: CircularProgressIndicator(
               strokeWidth: 2,
             ),
           ),
@@ -2360,24 +2118,20 @@ class _RopOverrideDialogState
               'Calculating a safety stock suggestion from recent usage...',
               style: TextStyle(
                 fontSize: 12.5,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
         ],
       );
-    } else if (_suggestionError !=
-        null) {
+    } else if (_suggestionError != null) {
       content = Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.info_outline,
             size: 17,
-            color: AppColors
-                .mutedForeground,
+            color: AppColors.mutedForeground,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -2386,18 +2140,15 @@ class _RopOverrideDialogState
               style: const TextStyle(
                 fontSize: 12.5,
                 height: 1.4,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
         ],
       );
     } else {
-      final adu =
-          _averageDailyUsage ?? 0;
-      final suggested =
-          _suggestedSafetyStockQty;
+      final adu = _averageDailyUsage ?? 0;
+      final suggested = _suggestedSafetyStockQty;
 
       if (suggested == null) {
         content = Text(
@@ -2411,8 +2162,7 @@ class _RopOverrideDialogState
         );
       } else {
         content = Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Usage-based suggestion',
@@ -2433,8 +2183,7 @@ class _RopOverrideDialogState
               'Suggested safety stock: ${formatQty(suggested)} $unit',
               style: const TextStyle(
                 fontSize: 13,
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 3),
@@ -2445,17 +2194,14 @@ class _RopOverrideDialogState
               style: const TextStyle(
                 fontSize: 11.8,
                 height: 1.4,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 8),
             Align(
-              alignment:
-                  Alignment.centerRight,
+              alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed:
-                    _useSuggestedSafetyStock,
+                onPressed: _useSuggestedSafetyStock,
                 child: const Text(
                   'Use suggested',
                 ),
@@ -2468,16 +2214,12 @@ class _RopOverrideDialogState
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primary
-            .withValues(alpha: 0.05),
-        borderRadius:
-            BorderRadius.circular(12),
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary
-              .withValues(alpha: 0.18),
+          color: AppColors.primary.withValues(alpha: 0.18),
         ),
       ),
       child: content,
@@ -2496,13 +2238,11 @@ class _RopOverrideDialogState
   String? _validateLeadTime(
     String? value,
   ) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
 
-    final parsed =
-        int.tryParse(
+    final parsed = int.tryParse(
       value.trim(),
     );
 
@@ -2521,13 +2261,11 @@ class _RopOverrideDialogState
   String? _validateSafetyStock(
     String? value,
   ) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
 
-    final parsed =
-        double.tryParse(
+    final parsed = double.tryParse(
       value.trim(),
     );
 
@@ -2548,18 +2286,15 @@ class _RopOverrideDialogState
 
   // Validates and returns the ROP override values to the caller.
   void _submit() {
-    if (!_formKey.currentState!
-        .validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final leadTime =
-        int.parse(
+    final leadTime = int.parse(
       _leadTimeCtrl.text.trim(),
     );
 
-    final safetyStock =
-        double.parse(
+    final safetyStock = double.parse(
       _safetyStockCtrl.text.trim(),
     );
 
@@ -2576,124 +2311,81 @@ class _RopOverrideDialogState
   Widget build(
     BuildContext context,
   ) {
-    final unit =
-        widget.item.purchaseUnitAbbr
-                .trim()
-                .isEmpty
-            ? 'purchase units'
-            : widget
-                .item
-                .purchaseUnitAbbr;
+    final unit = widget.item.purchaseUnitAbbr.trim().isEmpty
+        ? 'purchase units'
+        : widget.item.purchaseUnitAbbr;
 
-    final editing =
-        widget.existing != null;
+    final editing = widget.existing != null;
 
     return AlertDialog(
       scrollable: true,
       shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
       ),
       title: Text(
-        editing
-            ? 'Edit ROP Override'
-            : 'Add ROP Override',
+        editing ? 'Edit ROP Override' : 'Add ROP Override',
       ),
       content: SizedBox(
         width: 430,
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 widget.item.itemName,
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 widget.item.itemCategory,
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontSize: 12.5,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
               const SizedBox(height: 18),
-
               TextFormField(
-                controller:
-                    _leadTimeCtrl,
+                controller: _leadTimeCtrl,
                 autofocus: true,
-                keyboardType:
-                    TextInputType.number,
-                decoration:
-                    const InputDecoration(
-                  labelText:
-                      'Lead time',
-                  suffixText:
-                      'days',
-                  helperText:
-                      'Expected replenishment lead time for this item.',
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Lead time',
+                  suffixText: 'days',
+                  helperText: 'Expected replenishment lead time for this item.',
                 ),
-                validator:
-                    _validateLeadTime,
+                validator: _validateLeadTime,
               ),
-
               const SizedBox(height: 16),
-
               TextFormField(
-                controller:
-                    _safetyStockCtrl,
-                keyboardType:
-                    const TextInputType
-                        .numberWithOptions(
+                controller: _safetyStockCtrl,
+                keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration:
-                    InputDecoration(
-                  labelText:
-                      'Safety stock',
+                decoration: InputDecoration(
+                  labelText: 'Safety stock',
                   suffixText: unit,
                   helperText:
                       'Extra buffer kept above expected lead-time demand.',
                 ),
-                validator:
-                    _validateSafetyStock,
-                onFieldSubmitted:
-                    (_) => _submit(),
+                validator: _validateSafetyStock,
+                onFieldSubmitted: (_) => _submit(),
               ),
-
               const SizedBox(height: 16),
-
               _buildSafetyStockSuggestion(
                 unit,
               ),
-
               const SizedBox(height: 16),
-
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets
-                        .all(12),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors.secondary,
-                  borderRadius:
-                      BorderRadius
-                          .circular(12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   editing
@@ -2702,11 +2394,9 @@ class _RopOverrideDialogState
                           '${widget.defaultLeadTimeDays == 1 ? 'day' : 'days'} '
                           'lead time and ${formatQty(widget.defaultSafetyStockQty)} '
                           '$unit safety stock.',
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12.5,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                     height: 1.4,
                   ),
                 ),
@@ -2717,18 +2407,13 @@ class _RopOverrideDialogState
       ),
       actions: [
         TextButton(
-          onPressed: () =>
-              Navigator.of(context)
-                  .pop(),
-          child:
-              const Text('Cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _submit,
           child: Text(
-            editing
-                ? 'Save Changes'
-                : 'Add Override',
+            editing ? 'Save Changes' : 'Add Override',
           ),
         ),
       ],
@@ -2744,48 +2429,35 @@ class _RopOverrideDialogState
 /// optionally, per subcategory.
 ///
 /// Accordion layout: one collapsible card per primary category.
-class _CategoryManagementSection
-    extends StatefulWidget {
+class _CategoryManagementSection extends StatefulWidget {
   const _CategoryManagementSection();
 
   @override
-  State<_CategoryManagementSection>
-      createState() =>
-          _CategoryManagementSectionState();
+  State<_CategoryManagementSection> createState() =>
+      _CategoryManagementSectionState();
 }
 
-class _CategoryManagementSectionState
-    extends State<
-        _CategoryManagementSection>
+class _CategoryManagementSectionState extends State<_CategoryManagementSection>
     with DataBusRefreshMixin<_CategoryManagementSection> {
-  final CatalogService
-      _catalogService =
-      CatalogService();
+  final CatalogService _catalogService = CatalogService();
 
   bool _loading = true;
   bool _savingChanges = false;
   String? _error;
 
-  List<PrimaryCategory>
-      _primaryCategories = [];
+  List<PrimaryCategory> _primaryCategories = [];
 
-  List<Subcategory>
-      _subcategories = [];
+  List<Subcategory> _subcategories = [];
 
-  final Map<String, bool>
-      _pendingPrimary = {};
+  final Map<String, bool> _pendingPrimary = {};
 
-  final Map<String, bool?>
-      _pendingSub = {};
+  final Map<String, bool?> _pendingSub = {};
 
   // Returns the number of unsaved category-setting changes.
-  int get _pendingCount =>
-      _pendingPrimary.length +
-      _pendingSub.length;
+  int get _pendingCount => _pendingPrimary.length + _pendingSub.length;
 
   // Checks whether category-setting changes are waiting to be saved.
-  bool get _hasPendingChanges =>
-      _pendingCount > 0;
+  bool get _hasPendingChanges => _pendingCount > 0;
 
   // Initializes category management and loads category data.
   @override
@@ -2825,25 +2497,17 @@ class _CategoryManagementSectionState
     }
 
     try {
-      final results =
-          await Future.wait([
-        _catalogService
-            .fetchPrimaryCategories(),
-        _catalogService
-            .fetchSubcategories(),
+      final results = await Future.wait([
+        _catalogService.fetchPrimaryCategories(),
+        _catalogService.fetchSubcategories(),
       ]);
 
       if (!mounted) return;
 
       setState(() {
-        _primaryCategories =
-            results[0]
-                as List<
-                    PrimaryCategory>;
+        _primaryCategories = results[0] as List<PrimaryCategory>;
 
-        _subcategories =
-            results[1]
-                as List<Subcategory>;
+        _subcategories = results[1] as List<Subcategory>;
 
         _pendingPrimary.clear();
         _pendingSub.clear();
@@ -2854,8 +2518,7 @@ class _CategoryManagementSectionState
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not load categories: $e';
+        _error = 'Could not load categories: $e';
         _loading = false;
       });
     }
@@ -2863,35 +2526,26 @@ class _CategoryManagementSectionState
 
   // Refreshes categories after a create, rename, or delete action.
   Future<void> _refetch() async {
-    final results =
-        await Future.wait([
-      _catalogService
-          .fetchPrimaryCategories(),
-      _catalogService
-          .fetchSubcategories(),
+    final results = await Future.wait([
+      _catalogService.fetchPrimaryCategories(),
+      _catalogService.fetchSubcategories(),
     ]);
 
     if (!mounted) return;
 
     setState(() {
-      _primaryCategories =
-          results[0]
-              as List<PrimaryCategory>;
+      _primaryCategories = results[0] as List<PrimaryCategory>;
 
-      _subcategories =
-          results[1]
-              as List<Subcategory>;
+      _subcategories = results[1] as List<Subcategory>;
 
       _pendingPrimary.removeWhere(
-        (id, _) =>
-            !_primaryCategories.any(
+        (id, _) => !_primaryCategories.any(
           (c) => c.id == id,
         ),
       );
 
       _pendingSub.removeWhere(
-        (id, _) =>
-            !_subcategories.any(
+        (id, _) => !_subcategories.any(
           (s) => s.id == id,
         ),
       );
@@ -2899,15 +2553,12 @@ class _CategoryManagementSectionState
   }
 
   // Creates a new primary inventory category.
-  Future<void>
-      _addPrimaryCategory() async {
+  Future<void> _addPrimaryCategory() async {
     await _promptForName(
       context: context,
       title: 'Add Category',
       label: 'Category name',
-      onSubmit: (name) =>
-          _catalogService
-              .createPrimaryCategory(
+      onSubmit: (name) => _catalogService.createPrimaryCategory(
         name,
       ),
     );
@@ -2921,12 +2572,9 @@ class _CategoryManagementSectionState
   ) async {
     await _promptForName(
       context: context,
-      title:
-          'Add Subcategory to ${parent.type}',
+      title: 'Add Subcategory to ${parent.type}',
       label: 'Subcategory name',
-      onSubmit: (name) =>
-          _catalogService
-              .createSubcategory(
+      onSubmit: (name) => _catalogService.createSubcategory(
         pCategoryId: parent.id,
         type: name,
       ),
@@ -2936,13 +2584,11 @@ class _CategoryManagementSectionState
   }
 
   // Renames an existing primary inventory category.
-  Future<void>
-      _renamePrimaryCategory(
+  Future<void> _renamePrimaryCategory(
     PrimaryCategory category,
     String newName,
   ) async {
-    await _catalogService
-        .renamePrimaryCategory(
+    await _catalogService.renamePrimaryCategory(
       id: category.id,
       type: newName,
     );
@@ -2955,8 +2601,7 @@ class _CategoryManagementSectionState
     Subcategory sub,
     String newName,
   ) async {
-    await _catalogService
-        .renameSubcategory(
+    await _catalogService.renameSubcategory(
       id: sub.id,
       type: newName,
     );
@@ -2965,12 +2610,10 @@ class _CategoryManagementSectionState
   }
 
   // Deletes a primary category after confirmation.
-  Future<void>
-      _deletePrimaryCategory(
+  Future<void> _deletePrimaryCategory(
     PrimaryCategory category,
   ) async {
-    final confirmed =
-        await _confirmDelete(
+    final confirmed = await _confirmDelete(
       context: context,
       title: 'Delete category?',
       message:
@@ -2981,8 +2624,7 @@ class _CategoryManagementSectionState
     if (!confirmed) return;
 
     try {
-      await _catalogService
-          .deletePrimaryCategory(
+      await _catalogService.deletePrimaryCategory(
         category.id,
       );
 
@@ -2990,8 +2632,7 @@ class _CategoryManagementSectionState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             '"${category.type}" deleted.',
@@ -3003,8 +2644,7 @@ class _CategoryManagementSectionState
 
       await _showErrorDialog(
         context,
-        title:
-            'Could not delete "${category.type}"',
+        title: 'Could not delete "${category.type}"',
         error: e,
       );
     }
@@ -3014,11 +2654,9 @@ class _CategoryManagementSectionState
   Future<void> _deleteSubcategory(
     Subcategory sub,
   ) async {
-    final confirmed =
-        await _confirmDelete(
+    final confirmed = await _confirmDelete(
       context: context,
-      title:
-          'Delete subcategory?',
+      title: 'Delete subcategory?',
       message:
           'This will permanently delete "${sub.type}". Any items under it must be '
           'reassigned or removed first.',
@@ -3027,8 +2665,7 @@ class _CategoryManagementSectionState
     if (!confirmed) return;
 
     try {
-      await _catalogService
-          .deleteSubcategory(
+      await _catalogService.deleteSubcategory(
         sub.id,
       );
 
@@ -3036,8 +2673,7 @@ class _CategoryManagementSectionState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             '"${sub.type}" deleted.',
@@ -3049,8 +2685,7 @@ class _CategoryManagementSectionState
 
       await _showErrorDialog(
         context,
-        title:
-            'Could not delete "${sub.type}"',
+        title: 'Could not delete "${sub.type}"',
         error: e,
       );
     }
@@ -3060,34 +2695,26 @@ class _CategoryManagementSectionState
   bool _effectivePrimary(
     PrimaryCategory c,
   ) =>
-      _pendingPrimary[c.id] ??
-      c.requiresExpiry;
+      _pendingPrimary[c.id] ?? c.requiresExpiry;
 
   // Returns the staged or saved expiry setting for a subcategory.
   bool? _effectiveSub(
     Subcategory s,
   ) =>
-      _pendingSub.containsKey(s.id)
-          ? _pendingSub[s.id]
-          : s.requiresExpiry;
+      _pendingSub.containsKey(s.id) ? _pendingSub[s.id] : s.requiresExpiry;
 
   // Resolves the final expiry requirement inherited by a subcategory.
   bool _resolvedSub(
     Subcategory s,
   ) {
-    final raw =
-        _effectiveSub(s);
+    final raw = _effectiveSub(s);
 
     if (raw != null) {
       return raw;
     }
 
-    final parent =
-        _primaryCategories
-            .firstWhere(
-      (c) =>
-          c.id ==
-          s.pCategoryId,
+    final parent = _primaryCategories.firstWhere(
+      (c) => c.id == s.pCategoryId,
     );
 
     return _effectivePrimary(
@@ -3107,14 +2734,12 @@ class _CategoryManagementSectionState
     bool value,
   ) {
     setState(() {
-      if (value ==
-          category.requiresExpiry) {
+      if (value == category.requiresExpiry) {
         _pendingPrimary.remove(
           category.id,
         );
       } else {
-        _pendingPrimary[
-            category.id] = value;
+        _pendingPrimary[category.id] = value;
       }
     });
   }
@@ -3125,14 +2750,12 @@ class _CategoryManagementSectionState
     bool? value,
   ) {
     setState(() {
-      if (value ==
-          sub.requiresExpiry) {
+      if (value == sub.requiresExpiry) {
         _pendingSub.remove(
           sub.id,
         );
       } else {
-        _pendingSub[sub.id] =
-            value;
+        _pendingSub[sub.id] = value;
       }
     });
   }
@@ -3156,59 +2779,45 @@ class _CategoryManagementSectionState
               : 'Not required';
 
   // Reviews and saves all staged category expiry-setting changes.
-  Future<void>
-      _reviewAndSave() async {
+  Future<void> _reviewAndSave() async {
     final primaryById = {
-      for (final c
-          in _primaryCategories)
-        c.id: c,
+      for (final c in _primaryCategories) c.id: c,
     };
 
     final subById = {
-      for (final s
-          in _subcategories)
-        s.id: s,
+      for (final s in _subcategories) s.id: s,
     };
 
     final changeLines = [
-      for (final entry
-          in _pendingPrimary.entries)
+      for (final entry in _pendingPrimary.entries)
         '${primaryById[entry.key]!.type}: '
             '${_label(primaryById[entry.key]!.requiresExpiry)} → '
             '${_label(entry.value)}',
-      for (final entry
-          in _pendingSub.entries)
+      for (final entry in _pendingSub.entries)
         '${primaryById[subById[entry.key]!.pCategoryId]?.type ?? 'Unknown'} '
             '> ${subById[entry.key]!.type}: '
             '${_label(subById[entry.key]!.requiresExpiry)} → '
             '${_label(entry.value)}',
     ];
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) =>
-          AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text(
           'Confirm expiry-requirement changes',
         ),
         content: SizedBox(
           width: 420,
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'This changes whether Stock In requires an expiry date for '
                 '$_pendingCount categor${_pendingCount == 1 ? 'y' : 'ies'} below. '
                 'It applies to every stock-in staff record from now on.',
-                style:
-                    const TextStyle(
-                  color: AppColors
-                      .mutedForeground,
+                style: const TextStyle(
+                  color: AppColors.mutedForeground,
                   fontSize: 13,
                 ),
               ),
@@ -3216,31 +2825,22 @@ class _CategoryManagementSectionState
                 height: 16,
               ),
               ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
+                constraints: const BoxConstraints(
                   maxHeight: 260,
                 ),
-                child:
-                    SingleChildScrollView(
+                child: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (final line
-                          in changeLines)
+                      for (final line in changeLines)
                         Padding(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
+                          padding: const EdgeInsets.symmetric(
                             vertical: 4,
                           ),
                           child: Text(
                             line,
-                            style:
-                                const TextStyle(
-                              fontSize:
-                                  13.5,
+                            style: const TextStyle(
+                              fontSize: 13.5,
                             ),
                           ),
                         ),
@@ -3253,20 +2853,16 @@ class _CategoryManagementSectionState
         ),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.of(
+            onPressed: () => Navigator.of(
               dialogContext,
             ).pop(false),
-            child:
-                const Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.of(
+            onPressed: () => Navigator.of(
               dialogContext,
             ).pop(true),
-            child:
-                const Text('Confirm'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -3280,17 +2876,13 @@ class _CategoryManagementSectionState
       () => _savingChanges = true,
     );
 
-    final errors =
-        <String>[];
+    final errors = <String>[];
 
-    for (final entry
-        in _pendingPrimary.entries) {
+    for (final entry in _pendingPrimary.entries) {
       try {
-        await _catalogService
-            .setPrimaryCategoryRequiresExpiry(
+        await _catalogService.setPrimaryCategoryRequiresExpiry(
           id: entry.key,
-          requiresExpiry:
-              entry.value,
+          requiresExpiry: entry.value,
         );
       } catch (e) {
         errors.add(
@@ -3299,14 +2891,11 @@ class _CategoryManagementSectionState
       }
     }
 
-    for (final entry
-        in _pendingSub.entries) {
+    for (final entry in _pendingSub.entries) {
       try {
-        await _catalogService
-            .setSubcategoryRequiresExpiry(
+        await _catalogService.setSubcategoryRequiresExpiry(
           id: entry.key,
-          requiresExpiry:
-              entry.value,
+          requiresExpiry: entry.value,
         );
       } catch (e) {
         errors.add(
@@ -3324,8 +2913,7 @@ class _CategoryManagementSectionState
     );
 
     if (errors.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'Category changes saved.',
@@ -3335,10 +2923,8 @@ class _CategoryManagementSectionState
     } else {
       await _showErrorDialog(
         context,
-        title:
-            'Some changes could not be saved',
-        error:
-            '${errors.length} of $_pendingCount change(s) failed:',
+        title: 'Some changes could not be saved',
+        error: '${errors.length} of $_pendingCount change(s) failed:',
         details: errors,
       );
     }
@@ -3351,8 +2937,7 @@ class _CategoryManagementSectionState
   ) {
     if (_loading && _primaryCategories.isEmpty) {
       return const Center(
-        child:
-            CircularProgressIndicator(),
+        child: CircularProgressIndicator(),
       );
     }
 
@@ -3360,36 +2945,28 @@ class _CategoryManagementSectionState
       return Text(
         _error!,
         style: const TextStyle(
-          color:
-              AppColors.destructive,
+          color: AppColors.destructive,
         ),
       );
     }
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_hasPendingChanges) ...[
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets
-                    .symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
-            decoration:
-                BoxDecoration(
-              color:
-                  AppColors.secondary,
-              borderRadius:
-                  BorderRadius.circular(
+            decoration: BoxDecoration(
+              color: AppColors.secondary,
+              borderRadius: BorderRadius.circular(
                 12,
               ),
               border: Border.all(
-                color: AppColors.primary
-                    .withValues(
+                color: AppColors.primary.withValues(
                   alpha: 0.4,
                 ),
               ),
@@ -3399,8 +2976,7 @@ class _CategoryManagementSectionState
                 const Icon(
                   Icons.edit_note,
                   size: 20,
-                  color:
-                      AppColors.primary,
+                  color: AppColors.primary,
                 ),
                 const SizedBox(
                   width: 8,
@@ -3409,20 +2985,14 @@ class _CategoryManagementSectionState
                   child: Text(
                     '$_pendingCount unsaved change${_pendingCount == 1 ? '' : 's'} -- '
                     'review before this affects Stock In.',
-                    style:
-                        const TextStyle(
-                      fontWeight:
-                          FontWeight
-                              .w600,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
                 ),
                 TextButton(
-                  onPressed:
-                      _savingChanges
-                          ? null
-                          : _discardChanges,
+                  onPressed: _savingChanges ? null : _discardChanges,
                   child: const Text(
                     'Discard',
                   ),
@@ -3431,18 +3001,13 @@ class _CategoryManagementSectionState
                   width: 8,
                 ),
                 ElevatedButton(
-                  onPressed:
-                      _savingChanges
-                          ? null
-                          : _reviewAndSave,
+                  onPressed: _savingChanges ? null : _reviewAndSave,
                   child: _savingChanges
                       ? const SizedBox(
                           height: 16,
                           width: 16,
-                          child:
-                              CircularProgressIndicator(
-                            strokeWidth:
-                                2,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
                           ),
                         )
                       : const Text(
@@ -3456,102 +3021,67 @@ class _CategoryManagementSectionState
             height: 16,
           ),
         ],
-
         Align(
-          alignment:
-              Alignment.centerRight,
-          child:
-              OutlinedButton.icon(
-            onPressed:
-                _savingChanges
-                    ? null
-                    : _addPrimaryCategory,
+          alignment: Alignment.centerRight,
+          child: OutlinedButton.icon(
+            onPressed: _savingChanges ? null : _addPrimaryCategory,
             icon: const Icon(
               Icons.add,
               size: 18,
             ),
-            label:
-                const Text(
+            label: const Text(
               'Add Category',
             ),
           ),
         ),
-
         const SizedBox(height: 12),
-
-        for (final category
-            in _primaryCategories)
+        for (final category in _primaryCategories)
           Padding(
             key: ValueKey(
               category.id,
             ),
-            padding:
-                const EdgeInsets
-                    .only(
+            padding: const EdgeInsets.only(
               bottom: 12,
             ),
-            child:
-                _PrimaryCategoryCard(
+            child: _PrimaryCategoryCard(
               category: category,
-              effectiveRequiresExpiry:
-                  _effectivePrimary(
+              effectiveRequiresExpiry: _effectivePrimary(
                 category,
               ),
-              isDirty:
-                  _pendingPrimary
-                      .containsKey(
+              isDirty: _pendingPrimary.containsKey(
                 category.id,
               ),
-              subcategories:
-                  _subcategories
-                      .where(
-                        (s) =>
-                            s.pCategoryId ==
-                            category.id,
-                      )
-                      .toList(),
-              effectiveSubValue:
-                  _resolvedSub,
-              isSubDirty: (s) =>
-                  _pendingSub
-                      .containsKey(
+              subcategories: _subcategories
+                  .where(
+                    (s) => s.pCategoryId == category.id,
+                  )
+                  .toList(),
+              effectiveSubValue: _resolvedSub,
+              isSubDirty: (s) => _pendingSub.containsKey(
                 s.id,
               ),
-              isSubOverridden:
-                  _isSubOverridden,
-              onPrimaryChanged:
-                  (v) =>
-                      _stagePrimary(
+              isSubOverridden: _isSubOverridden,
+              onPrimaryChanged: (v) => _stagePrimary(
                 category,
                 v,
               ),
-              onSubChanged:
-                  _stageSub,
-              onResetSub: (s) =>
-                  _stageSub(
+              onSubChanged: _stageSub,
+              onResetSub: (s) => _stageSub(
                 s,
                 null,
               ),
-              onRenamePrimary:
-                  (name) =>
-                      _renamePrimaryCategory(
+              onRenamePrimary: (name) => _renamePrimaryCategory(
                 category,
                 name,
               ),
-              onDeletePrimary:
-                  () =>
-                      _deletePrimaryCategory(
+              onDeletePrimary: () => _deletePrimaryCategory(
                 category,
               ),
-              onAddSubcategory:
-                  () =>
-                      _addSubcategory(
+              onAddSubcategory: () => _addSubcategory(
                 category,
               ),
-              onRenameSub:
-                  _renameSubcategory,
-              onDeleteSub:
-                  _deleteSubcategory,
+              onRenameSub: _renameSubcategory,
+              onDeleteSub: _deleteSubcategory,
             ),
           ),
       ],
@@ -3563,18 +3093,14 @@ class _CategoryManagementSectionState
 // PRIMARY CATEGORY CARD
 // =============================================================================
 
-const int
-    _kSubcategoryFilterThreshold =
-    6;
+const int _kSubcategoryFilterThreshold = 6;
 
-class _PrimaryCategoryCard
-    extends StatefulWidget {
+class _PrimaryCategoryCard extends StatefulWidget {
   final PrimaryCategory category;
   final bool effectiveRequiresExpiry;
   final bool isDirty;
 
-  final List<Subcategory>
-      subcategories;
+  final List<Subcategory> subcategories;
 
   final bool Function(
     Subcategory sub,
@@ -3588,8 +3114,7 @@ class _PrimaryCategoryCard
     Subcategory sub,
   ) isSubOverridden;
 
-  final ValueChanged<bool>
-      onPrimaryChanged;
+  final ValueChanged<bool> onPrimaryChanged;
 
   final void Function(
     Subcategory sub,
@@ -3604,11 +3129,9 @@ class _PrimaryCategoryCard
     String newName,
   ) onRenamePrimary;
 
-  final VoidCallback
-      onDeletePrimary;
+  final VoidCallback onDeletePrimary;
 
-  final VoidCallback
-      onAddSubcategory;
+  final VoidCallback onAddSubcategory;
 
   final Future<void> Function(
     Subcategory sub,
@@ -3621,40 +3144,28 @@ class _PrimaryCategoryCard
 
   const _PrimaryCategoryCard({
     required this.category,
-    required this
-        .effectiveRequiresExpiry,
+    required this.effectiveRequiresExpiry,
     required this.isDirty,
     required this.subcategories,
-    required this
-        .effectiveSubValue,
+    required this.effectiveSubValue,
     required this.isSubDirty,
-    required this
-        .isSubOverridden,
-    required this
-        .onPrimaryChanged,
+    required this.isSubOverridden,
+    required this.onPrimaryChanged,
     required this.onSubChanged,
     required this.onResetSub,
-    required this
-        .onRenamePrimary,
-    required this
-        .onDeletePrimary,
-    required this
-        .onAddSubcategory,
+    required this.onRenamePrimary,
+    required this.onDeletePrimary,
+    required this.onAddSubcategory,
     required this.onRenameSub,
     required this.onDeleteSub,
   });
 
   @override
-  State<_PrimaryCategoryCard>
-      createState() =>
-          _PrimaryCategoryCardState();
+  State<_PrimaryCategoryCard> createState() => _PrimaryCategoryCardState();
 }
 
-class _PrimaryCategoryCardState
-    extends State<
-        _PrimaryCategoryCard> {
-  final _filterCtrl =
-      TextEditingController();
+class _PrimaryCategoryCardState extends State<_PrimaryCategoryCard> {
+  final _filterCtrl = TextEditingController();
 
   String _filter = '';
   bool _expanded = false;
@@ -3666,16 +3177,13 @@ class _PrimaryCategoryCardState
     super.dispose();
   }
 
-  static Widget _dirtyDot() =>
-      Container(
+  static Widget _dirtyDot() => Container(
         width: 8,
         height: 8,
-        margin:
-            const EdgeInsets.only(
+        margin: const EdgeInsets.only(
           right: 8,
         ),
-        decoration:
-            const BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.primary,
           shape: BoxShape.circle,
         ),
@@ -3686,46 +3194,31 @@ class _PrimaryCategoryCardState
   Widget build(
     BuildContext context,
   ) {
-    final visibleSubs =
-        !_expanded
-            ? const <Subcategory>[]
-            : _filter.isEmpty
-                ? widget.subcategories
-                : widget
-                    .subcategories
-                    .where(
-                      (s) => s.type
-                          .toLowerCase()
-                          .contains(
-                            _filter
-                                .toLowerCase(),
-                          ),
-                    )
-                    .toList();
+    final visibleSubs = !_expanded
+        ? const <Subcategory>[]
+        : _filter.isEmpty
+            ? widget.subcategories
+            : widget.subcategories
+                .where(
+                  (s) => s.type.toLowerCase().contains(
+                        _filter.toLowerCase(),
+                      ),
+                )
+                .toList();
 
     return Card(
       margin: EdgeInsets.zero,
-      clipBehavior:
-          Clip.antiAlias,
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: widget.isDirty
-              ? AppColors.primary
-              : AppColors.border,
-          width:
-              widget.isDirty
-                  ? 1.5
-                  : 1,
+          color: widget.isDirty ? AppColors.primary : AppColors.border,
+          width: widget.isDirty ? 1.5 : 1,
         ),
       ),
       child: Theme(
-        data: Theme.of(context)
-            .copyWith(
-          dividerColor:
-              Colors.transparent,
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
         ),
         child: ExpansionTile(
           onExpansionChanged: (expanded) {
@@ -3733,328 +3226,235 @@ class _PrimaryCategoryCardState
               _expanded = expanded;
             });
           },
-          tilePadding:
-              const EdgeInsets.only(
+          tilePadding: const EdgeInsets.only(
             left: 16,
             right: 8,
           ),
           title: Row(
             children: [
-              if (widget.isDirty)
-                _dirtyDot(),
+              if (widget.isDirty) _dirtyDot(),
               Expanded(
-                child:
-                    _EditableLabel(
-                  value: widget
-                      .category.type,
-                  style:
-                      const TextStyle(
-                    fontWeight:
-                        FontWeight
-                            .w700,
+                child: _EditableLabel(
+                  value: widget.category.type,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
-                  onSave: widget
-                      .onRenamePrimary,
+                  onSave: widget.onRenamePrimary,
                 ),
               ),
-              if (widget
-                  .subcategories
-                  .isNotEmpty)
+              if (widget.subcategories.isNotEmpty)
                 Padding(
-                  padding:
-                      const EdgeInsets
-                          .only(
+                  padding: const EdgeInsets.only(
                     left: 8,
                   ),
                   child: Text(
                     '${widget.subcategories.length} sub'
                     '${widget.subcategories.length == 1 ? '' : 's'}',
-                    style:
-                        const TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ),
               IconButton(
                 icon: const Icon(
-                  Icons
-                      .delete_outline,
+                  Icons.delete_outline,
                   size: 20,
                 ),
-                tooltip:
-                    'Delete category',
-                onPressed: widget
-                    .onDeletePrimary,
+                tooltip: 'Delete category',
+                onPressed: widget.onDeletePrimary,
               ),
             ],
           ),
           children: !_expanded
               ? const <Widget>[]
               : [
-            SwitchListTile(
-              title: const Text(
-                'Requires expiry date',
-                style: TextStyle(
-                  fontSize: 13.5,
-                ),
-              ),
-              subtitle:
-                  const Text(
-                'Applies to items filed directly under this category.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors
-                      .mutedForeground,
-                ),
-              ),
-              value: widget
-                  .effectiveRequiresExpiry,
-              onChanged: widget
-                  .onPrimaryChanged,
-              dense: true,
-            ),
-
-            if (widget
-                    .subcategories
-                    .length >
-                _kSubcategoryFilterThreshold)
-              Padding(
-                padding:
-                    const EdgeInsets
-                        .fromLTRB(
-                  16,
-                  0,
-                  16,
-                  8,
-                ),
-                child: TextField(
-                  controller:
-                      _filterCtrl,
-                  decoration:
-                      const InputDecoration(
-                    isDense: true,
-                    prefixIcon: Icon(
-                      Icons.search,
+                  SwitchListTile(
+                    title: const Text(
+                      'Requires expiry date',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Applies to items filed directly under this category.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                    value: widget.effectiveRequiresExpiry,
+                    onChanged: widget.onPrimaryChanged,
+                    dense: true,
+                  ),
+                  if (widget.subcategories.length >
+                      _kSubcategoryFilterThreshold)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        8,
+                      ),
+                      child: TextField(
+                        controller: _filterCtrl,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          prefixIcon: Icon(
+                            Icons.search,
+                            size: 18,
+                          ),
+                          hintText: 'Filter subcategories',
+                        ),
+                        onChanged: (v) => setState(
+                          () => _filter = v,
+                        ),
+                      ),
+                    ),
+                  for (final sub in visibleSubs)
+                    ListTile(
+                      key: ValueKey(sub.id),
+                      contentPadding: const EdgeInsets.only(
+                        left: 32,
+                        right: 8,
+                      ),
+                      title: Row(
+                        children: [
+                          if (widget.isSubDirty(
+                            sub,
+                          ))
+                            _dirtyDot(),
+                          Flexible(
+                            child: _EditableLabel(
+                              value: sub.type,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                              ),
+                              onSave: (name) => widget.onRenameSub(
+                                sub,
+                                name,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.isSubOverridden(
+                            sub,
+                          ))
+                            IconButton(
+                              icon: const Icon(
+                                Icons.settings_backup_restore,
+                                size: 18,
+                              ),
+                              tooltip: 'Reset to category default',
+                              onPressed: () => widget.onResetSub(
+                                sub,
+                              ),
+                            ),
+                          SegmentedButton<bool>(
+                            style: SegmentedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                            ),
+                            segments: const [
+                              ButtonSegment(
+                                value: true,
+                                label: Text(
+                                  'Required',
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: false,
+                                label: Text(
+                                  'Not required',
+                                ),
+                              ),
+                            ],
+                            selected: {
+                              widget.effectiveSubValue(
+                                sub,
+                              ),
+                            },
+                            showSelectedIcon: false,
+                            onSelectionChanged: (selection) =>
+                                widget.onSubChanged(
+                              sub,
+                              selection.first,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                            ),
+                            tooltip: 'Delete subcategory',
+                            onPressed: () => widget.onDeleteSub(
+                              sub,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (visibleSubs.isEmpty && widget.subcategories.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        32,
+                        0,
+                        16,
+                        12,
+                      ),
+                      child: Text(
+                        'No subcategories match "$_filter".',
+                        style: const TextStyle(
+                          color: AppColors.mutedForeground,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  if (widget.subcategories.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        32,
+                        0,
+                        16,
+                        12,
+                      ),
+                      child: Text(
+                        'No subcategories yet.',
+                        style: TextStyle(
+                          color: AppColors.mutedForeground,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: 8,
+                    ),
+                    dense: true,
+                    leading: const Icon(
+                      Icons.add,
                       size: 18,
+                      color: AppColors.primary,
                     ),
-                    hintText:
-                        'Filter subcategories',
-                  ),
-                  onChanged: (v) =>
-                      setState(
-                    () => _filter = v,
-                  ),
-                ),
-              ),
-
-            for (final sub
-                in visibleSubs)
-              ListTile(
-                key:
-                    ValueKey(sub.id),
-                contentPadding:
-                    const EdgeInsets
-                        .only(
-                  left: 32,
-                  right: 8,
-                ),
-                title: Row(
-                  children: [
-                    if (widget
-                        .isSubDirty(
-                      sub,
-                    ))
-                      _dirtyDot(),
-                    Flexible(
-                      child:
-                          _EditableLabel(
-                        value:
-                            sub.type,
-                        style:
-                            const TextStyle(
-                          fontSize:
-                              13.5,
-                        ),
-                        onSave:
-                            (name) =>
-                                widget
-                                    .onRenameSub(
-                          sub,
-                          name,
-                        ),
+                    title: const Text(
+                      'Add Subcategory',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  children: [
-                    if (widget
-                        .isSubOverridden(
-                      sub,
-                    ))
-                      IconButton(
-                        icon:
-                            const Icon(
-                          Icons
-                              .settings_backup_restore,
-                          size: 18,
-                        ),
-                        tooltip:
-                            'Reset to category default',
-                        onPressed:
-                            () => widget
-                                .onResetSub(
-                          sub,
-                        ),
-                      ),
-
-                    SegmentedButton<
-                        bool>(
-                      style:
-                          SegmentedButton
-                              .styleFrom(
-                        visualDensity:
-                            VisualDensity
-                                .compact,
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal:
-                              8,
-                        ),
-                      ),
-                      segments:
-                          const [
-                        ButtonSegment(
-                          value: true,
-                          label: Text(
-                            'Required',
-                          ),
-                        ),
-                        ButtonSegment(
-                          value: false,
-                          label: Text(
-                            'Not required',
-                          ),
-                        ),
-                      ],
-                      selected: {
-                        widget
-                            .effectiveSubValue(
-                          sub,
-                        ),
-                      },
-                      showSelectedIcon:
-                          false,
-                      onSelectionChanged:
-                          (selection) =>
-                              widget
-                                  .onSubChanged(
-                        sub,
-                        selection.first,
-                      ),
-                    ),
-
-                    IconButton(
-                      icon:
-                          const Icon(
-                        Icons
-                            .delete_outline,
-                        size: 18,
-                      ),
-                      tooltip:
-                          'Delete subcategory',
-                      onPressed:
-                          () => widget
-                              .onDeleteSub(
-                        sub,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            if (visibleSubs.isEmpty &&
-                widget
-                    .subcategories
-                    .isNotEmpty)
-              Padding(
-                padding:
-                    const EdgeInsets
-                        .fromLTRB(
-                  32,
-                  0,
-                  16,
-                  12,
-                ),
-                child: Text(
-                  'No subcategories match "$_filter".',
-                  style:
-                      const TextStyle(
-                    color: AppColors
-                        .mutedForeground,
-                    fontSize: 13,
+                    onTap: widget.onAddSubcategory,
                   ),
-                ),
-              ),
-
-            if (widget
-                .subcategories
-                .isEmpty)
-              const Padding(
-                padding:
-                    EdgeInsets
-                        .fromLTRB(
-                  32,
-                  0,
-                  16,
-                  12,
-                ),
-                child: Text(
-                  'No subcategories yet.',
-                  style:
-                      TextStyle(
-                    color: AppColors
-                        .mutedForeground,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-
-            ListTile(
-              contentPadding:
-                  const EdgeInsets
-                      .only(
-                left: 16,
-                right: 16,
-                bottom: 8,
-              ),
-              dense: true,
-              leading:
-                  const Icon(
-                Icons.add,
-                size: 18,
-                color:
-                    AppColors.primary,
-              ),
-              title: const Text(
-                'Add Subcategory',
-                style: TextStyle(
-                  color:
-                      AppColors.primary,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-              onTap: widget
-                  .onAddSubcategory,
-            ),
-          ],
+                ],
         ),
       ),
     );
@@ -4065,26 +3465,18 @@ class _PrimaryCategoryCardState
 // UNIT MANAGEMENT
 // =============================================================================
 
-class _UnitManagementSection
-    extends StatefulWidget {
+class _UnitManagementSection extends StatefulWidget {
   const _UnitManagementSection();
 
   @override
-  State<_UnitManagementSection>
-      createState() =>
-          _UnitManagementSectionState();
+  State<_UnitManagementSection> createState() => _UnitManagementSectionState();
 }
 
-class _UnitManagementSectionState
-    extends State<
-        _UnitManagementSection>
+class _UnitManagementSectionState extends State<_UnitManagementSection>
     with DataBusRefreshMixin<_UnitManagementSection> {
-  final CatalogService
-      _catalogService =
-      CatalogService();
+  final CatalogService _catalogService = CatalogService();
 
-  final _filterCtrl =
-      TextEditingController();
+  final _filterCtrl = TextEditingController();
 
   bool _loading = true;
   String? _error;
@@ -4128,9 +3520,7 @@ class _UnitManagementSectionState
     }
 
     try {
-      final units =
-          await _catalogService
-              .fetchUnits();
+      final units = await _catalogService.fetchUnits();
 
       if (!mounted) return;
 
@@ -4142,8 +3532,7 @@ class _UnitManagementSectionState
       if (!mounted) return;
 
       setState(() {
-        _error =
-            'Could not load units: $e';
+        _error = 'Could not load units: $e';
         _loading = false;
       });
     }
@@ -4158,8 +3547,7 @@ class _UnitManagementSectionState
         name,
         abbr,
       ) =>
-          _catalogService
-              .createUnit(
+          _catalogService.createUnit(
         name: name,
         abbrName: abbr,
       ),
@@ -4176,14 +3564,12 @@ class _UnitManagementSectionState
       context: context,
       title: 'Edit Unit',
       initialName: unit.name,
-      initialAbbr:
-          unit.abbrName,
+      initialAbbr: unit.abbrName,
       onSubmit: (
         name,
         abbr,
       ) =>
-          _catalogService
-              .renameUnit(
+          _catalogService.renameUnit(
         id: unit.id,
         name: name,
         abbrName: abbr,
@@ -4197,19 +3583,16 @@ class _UnitManagementSectionState
   Future<void> _deleteUnit(
     Unit unit,
   ) async {
-    final confirmed =
-        await _confirmDelete(
+    final confirmed = await _confirmDelete(
       context: context,
       title: 'Delete unit?',
-      message:
-          'This will permanently delete "${unit.name}".',
+      message: 'This will permanently delete "${unit.name}".',
     );
 
     if (!confirmed) return;
 
     try {
-      await _catalogService
-          .deleteUnit(
+      await _catalogService.deleteUnit(
         unit.id,
       );
 
@@ -4217,8 +3600,7 @@ class _UnitManagementSectionState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             '"${unit.name}" deleted.',
@@ -4230,8 +3612,7 @@ class _UnitManagementSectionState
 
       await _showErrorDialog(
         context,
-        title:
-            'Could not delete "${unit.name}"',
+        title: 'Could not delete "${unit.name}"',
         error: e,
       );
     }
@@ -4244,8 +3625,7 @@ class _UnitManagementSectionState
   ) {
     if (_loading && _units.isEmpty) {
       return const Center(
-        child:
-            CircularProgressIndicator(),
+        child: CircularProgressIndicator(),
       );
     }
 
@@ -4253,58 +3633,45 @@ class _UnitManagementSectionState
       return Text(
         _error!,
         style: const TextStyle(
-          color:
-              AppColors.destructive,
+          color: AppColors.destructive,
         ),
       );
     }
 
-    final query =
-        _filter.trim().toLowerCase();
+    final query = _filter.trim().toLowerCase();
 
-    final visible =
-        query.isEmpty
-            ? _units
-            : _units
-                .where(
-                  (u) =>
-                      u.name
-                          .toLowerCase()
-                          .contains(
-                            query,
-                          ) ||
-                      u.abbrName
-                          .toLowerCase()
-                          .contains(
-                            query,
-                          ),
-                )
-                .toList();
+    final visible = query.isEmpty
+        ? _units
+        : _units
+            .where(
+              (u) =>
+                  u.name.toLowerCase().contains(
+                        query,
+                      ) ||
+                  u.abbrName.toLowerCase().contains(
+                        query,
+                      ),
+            )
+            .toList();
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Expanded(
               child: SearchBar(
-                controller:
-                    _filterCtrl,
-                hintText:
-                    'Filter units',
-                leading:
-                    const Icon(
+                controller: _filterCtrl,
+                hintText: 'Filter units',
+                leading: const Icon(
                   Icons.search,
                   size: 20,
                 ),
-                constraints:
-                    const BoxConstraints(
+                constraints: const BoxConstraints(
                   minHeight: 44,
                   maxHeight: 44,
                 ),
-                onChanged: (v) =>
-                    setState(
+                onChanged: (v) => setState(
                   () => _filter = v,
                 ),
               ),
@@ -4313,119 +3680,82 @@ class _UnitManagementSectionState
               width: 12,
             ),
             FilledButton.icon(
-              onPressed:
-                  _addUnit,
+              onPressed: _addUnit,
               icon: const Icon(
                 Icons.add,
                 size: 18,
               ),
-              label:
-                  const Text(
+              label: const Text(
                 'Add Unit',
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 12),
-
         Card(
           margin: EdgeInsets.zero,
-          clipBehavior:
-              Clip.antiAlias,
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
               16,
             ),
-            side:
-                const BorderSide(
-              color:
-                  AppColors.border,
+            side: const BorderSide(
+              color: AppColors.border,
             ),
           ),
           child: Column(
             children: [
               ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
+                constraints: const BoxConstraints(
                   maxHeight: 420,
                 ),
                 child: visible.isEmpty
                     ? Padding(
-                        padding:
-                            const EdgeInsets
-                                .all(
+                        padding: const EdgeInsets.all(
                           24,
                         ),
                         child: Text(
                           query.isEmpty
                               ? 'No units yet.'
                               : 'No units match "$_filter".',
-                          style:
-                              const TextStyle(
-                            color: AppColors
-                                .mutedForeground,
-                            fontSize:
-                                13,
+                          style: const TextStyle(
+                            color: AppColors.mutedForeground,
+                            fontSize: 13,
                           ),
                         ),
                       )
-                    : ListView
-                        .separated(
+                    : ListView.separated(
                         primary: false,
-                        shrinkWrap:
-                            true,
-                        padding:
-                            EdgeInsets
-                                .zero,
-                        itemCount:
-                            visible
-                                .length,
-                        separatorBuilder:
-                            (
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: visible.length,
+                        separatorBuilder: (
                           _,
                           __,
                         ) =>
-                                const Divider(
+                            const Divider(
                           height: 1,
                           indent: 16,
                         ),
-                        itemBuilder:
-                            (
+                        itemBuilder: (
                           context,
                           index,
                         ) {
-                          final unit =
-                              visible[
-                                  index];
+                          final unit = visible[index];
 
                           return ListTile(
-                            key:
-                                ValueKey(
+                            key: ValueKey(
                               unit.id,
                             ),
-                            leading:
-                                CircleAvatar(
-                              backgroundColor:
-                                  AppColors
-                                      .secondary,
-                              foregroundColor:
-                                  AppColors
-                                      .primary,
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.secondary,
+                              foregroundColor: AppColors.primary,
                               child: Text(
-                                unit.abbrName
-                                        .isNotEmpty
-                                    ? unit.abbrName[
-                                            0]
-                                        .toUpperCase()
+                                unit.abbrName.isNotEmpty
+                                    ? unit.abbrName[0].toUpperCase()
                                     : '?',
-                                style:
-                                    const TextStyle(
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -4434,14 +3764,9 @@ class _UnitManagementSectionState
                                 Flexible(
                                   child: Text(
                                     unit.name,
-                                    overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                    style:
-                                        const TextStyle(
-                                      fontWeight:
-                                          FontWeight
-                                              .w600,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -4452,64 +3777,39 @@ class _UnitManagementSectionState
                                   label: Text(
                                     unit.abbrName,
                                   ),
-                                  labelStyle:
-                                      const TextStyle(
-                                    fontSize:
-                                        11.5,
+                                  labelStyle: const TextStyle(
+                                    fontSize: 11.5,
                                   ),
-                                  visualDensity:
-                                      VisualDensity
-                                          .compact,
+                                  visualDensity: VisualDensity.compact,
                                   materialTapTargetSize:
-                                      MaterialTapTargetSize
-                                          .shrinkWrap,
-                                  padding:
-                                      EdgeInsets
-                                          .zero,
-                                  labelPadding:
-                                      const EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        8,
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
                                   ),
                                 ),
                               ],
                             ),
-                            trailing:
-                                Row(
-                              mainAxisSize:
-                                  MainAxisSize
-                                      .min,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon:
-                                      const Icon(
-                                    Icons
-                                        .edit_outlined,
-                                    size:
-                                        19,
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 19,
                                   ),
-                                  tooltip:
-                                      'Rename',
-                                  onPressed:
-                                      () =>
-                                          _editUnit(
+                                  tooltip: 'Rename',
+                                  onPressed: () => _editUnit(
                                     unit,
                                   ),
                                 ),
                                 IconButton(
-                                  icon:
-                                      const Icon(
-                                    Icons
-                                        .delete_outline,
-                                    size:
-                                        20,
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
                                   ),
-                                  tooltip:
-                                      'Delete unit',
-                                  onPressed:
-                                      () =>
-                                          _deleteUnit(
+                                  tooltip: 'Delete unit',
+                                  onPressed: () => _deleteUnit(
                                     unit,
                                   ),
                                 ),
@@ -4519,22 +3819,18 @@ class _UnitManagementSectionState
                         },
                       ),
               ),
-
               const Divider(
                 height: 1,
               ),
-
               ListTile(
                 dense: true,
                 title: Text(
                   query.isEmpty
                       ? '${_units.length} unit${_units.length == 1 ? '' : 's'}'
                       : '${visible.length} of ${_units.length} units',
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ),
@@ -4559,11 +3855,9 @@ Future<void> _promptForName({
     String name,
   ) onSubmit,
 }) async {
-  final name =
-      await showDialog<String>(
+  final name = await showDialog<String>(
     context: context,
-    builder: (dialogContext) =>
-        _NameDialog(
+    builder: (dialogContext) => _NameDialog(
       title: title,
       label: label,
     ),
@@ -4576,8 +3870,7 @@ Future<void> _promptForName({
       if (context.mounted) {
         await _showErrorDialog(
           context,
-          title:
-              'Could not create "$name"',
+          title: 'Could not create "$name"',
           error: e,
         );
       }
@@ -4600,12 +3893,9 @@ Future<void> _promptForUnit({
     String abbr,
   ) onSubmit,
 }) async {
-  final result =
-      await showDialog<
-          (String, String)>(
+  final result = await showDialog<(String, String)>(
     context: context,
-    builder: (dialogContext) =>
-        _UnitDialog(
+    builder: (dialogContext) => _UnitDialog(
       title: title,
       initialName: initialName,
       initialAbbr: initialAbbr,
@@ -4622,8 +3912,7 @@ Future<void> _promptForUnit({
       if (context.mounted) {
         await _showErrorDialog(
           context,
-          title:
-              'Could not save "${result.$1}"',
+          title: 'Could not save "${result.$1}"',
           error: e,
         );
       }
@@ -4635,8 +3924,7 @@ Future<void> _promptForUnit({
 // NAME DIALOG
 // =============================================================================
 
-class _NameDialog
-    extends StatefulWidget {
+class _NameDialog extends StatefulWidget {
   final String title;
   final String label;
 
@@ -4646,18 +3934,13 @@ class _NameDialog
   });
 
   @override
-  State<_NameDialog>
-      createState() =>
-          _NameDialogState();
+  State<_NameDialog> createState() => _NameDialogState();
 }
 
-class _NameDialogState
-    extends State<_NameDialog> {
-  final _ctrl =
-      TextEditingController();
+class _NameDialogState extends State<_NameDialog> {
+  final _ctrl = TextEditingController();
 
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   // Disposes the category-name input controller.
   @override
@@ -4668,8 +3951,7 @@ class _NameDialogState
 
   // Validates and returns the entered category name.
   void _submit() {
-    if (_formKey.currentState!
-        .validate()) {
+    if (_formKey.currentState!.validate()) {
       Navigator.of(context).pop(
         _ctrl.text.trim(),
       );
@@ -4682,44 +3964,30 @@ class _NameDialogState
     BuildContext context,
   ) {
     return AlertDialog(
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
-      title:
-          Text(widget.title),
+      title: Text(widget.title),
       content: Form(
         key: _formKey,
         child: TextFormField(
           controller: _ctrl,
           autofocus: true,
-          decoration:
-              InputDecoration(
-            labelText:
-                widget.label,
+          decoration: InputDecoration(
+            labelText: widget.label,
           ),
-          validator: (v) =>
-              v == null ||
-                      v.trim().isEmpty
-                  ? 'Required'
-                  : null,
-          onFieldSubmitted:
-              (_) => _submit(),
+          validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+          onFieldSubmitted: (_) => _submit(),
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () =>
-              Navigator.of(context)
-                  .pop(),
-          child:
-              const Text('Cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _submit,
-          child:
-              const Text('Create'),
+          child: const Text('Create'),
         ),
       ],
     );
@@ -4730,8 +3998,7 @@ class _NameDialogState
 // UNIT DIALOG
 // =============================================================================
 
-class _UnitDialog
-    extends StatefulWidget {
+class _UnitDialog extends StatefulWidget {
   final String title;
   final String? initialName;
   final String? initialAbbr;
@@ -4743,27 +4010,19 @@ class _UnitDialog
   });
 
   @override
-  State<_UnitDialog>
-      createState() =>
-          _UnitDialogState();
+  State<_UnitDialog> createState() => _UnitDialogState();
 }
 
-class _UnitDialogState
-    extends State<_UnitDialog> {
-  late final _nameCtrl =
-      TextEditingController(
-    text:
-        widget.initialName ?? '',
+class _UnitDialogState extends State<_UnitDialog> {
+  late final _nameCtrl = TextEditingController(
+    text: widget.initialName ?? '',
   );
 
-  late final _abbrCtrl =
-      TextEditingController(
-    text:
-        widget.initialAbbr ?? '',
+  late final _abbrCtrl = TextEditingController(
+    text: widget.initialAbbr ?? '',
   );
 
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   // Disposes the unit name and abbreviation controllers.
   @override
@@ -4775,8 +4034,7 @@ class _UnitDialogState
 
   // Validates and returns the unit name and abbreviation.
   void _submit() {
-    if (_formKey.currentState!
-        .validate()) {
+    if (_formKey.currentState!.validate()) {
       Navigator.of(context).pop(
         (
           _nameCtrl.text.trim(),
@@ -4792,77 +4050,48 @@ class _UnitDialogState
     BuildContext context,
   ) {
     return AlertDialog(
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
-      title:
-          Text(widget.title),
+      title: Text(widget.title),
       content: Form(
         key: _formKey,
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextFormField(
-              controller:
-                  _nameCtrl,
+              controller: _nameCtrl,
               autofocus: true,
-              decoration:
-                  const InputDecoration(
-                labelText:
-                    'Unit name',
+              decoration: const InputDecoration(
+                labelText: 'Unit name',
               ),
               validator: (v) =>
-                  v == null ||
-                          v
-                              .trim()
-                              .isEmpty
-                      ? 'Required'
-                      : null,
+                  v == null || v.trim().isEmpty ? 'Required' : null,
             ),
-
             const SizedBox(
               height: 12,
             ),
-
             TextFormField(
-              controller:
-                  _abbrCtrl,
-              decoration:
-                  const InputDecoration(
-                labelText:
-                    'Abbreviation',
+              controller: _abbrCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Abbreviation',
               ),
               validator: (v) =>
-                  v == null ||
-                          v
-                              .trim()
-                              .isEmpty
-                      ? 'Required'
-                      : null,
-              onFieldSubmitted:
-                  (_) => _submit(),
+                  v == null || v.trim().isEmpty ? 'Required' : null,
+              onFieldSubmitted: (_) => _submit(),
             ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () =>
-              Navigator.of(context)
-                  .pop(),
-          child:
-              const Text('Cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _submit,
           child: Text(
-            widget.initialName ==
-                    null
-                ? 'Create'
-                : 'Save',
+            widget.initialName == null ? 'Create' : 'Save',
           ),
         ),
       ],
@@ -4880,39 +4109,29 @@ Future<bool> _confirmDelete({
   required String title,
   required String message,
 }) async {
-  final confirmed =
-      await showDialog<bool>(
+  final confirmed = await showDialog<bool>(
     context: context,
-    builder: (dialogContext) =>
-        AlertDialog(
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(20),
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
       title: Text(title),
       content: Text(message),
       actions: [
         TextButton(
-          onPressed: () =>
-              Navigator.of(
+          onPressed: () => Navigator.of(
             dialogContext,
           ).pop(false),
-          child:
-              const Text('Cancel'),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
-          style:
-              ElevatedButton.styleFrom(
-            backgroundColor:
-                AppColors.destructive,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.destructive,
           ),
-          onPressed: () =>
-              Navigator.of(
+          onPressed: () => Navigator.of(
             dialogContext,
           ).pop(true),
-          child:
-              const Text('Delete'),
+          child: const Text('Delete'),
         ),
       ],
     ),
@@ -4932,99 +4151,69 @@ Future<void> _showErrorDialog(
   required Object error,
   List<String>? details,
 }) async {
-  final blockingSubs =
-      error is CategoryInUseException
-          ? error
-              .blockingSubcategoryNames
-          : const <String>[];
+  final blockingSubs = error is CategoryInUseException
+      ? error.blockingSubcategoryNames
+      : const <String>[];
 
-  final blockingItems =
-      error is CategoryInUseException
-          ? error.blockingItemNames
-          : const <String>[];
+  final blockingItems = error is CategoryInUseException
+      ? error.blockingItemNames
+      : const <String>[];
 
   await showDialog<void>(
     context: context,
-    builder: (dialogContext) =>
-        AlertDialog(
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(20),
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
       title: Text(title),
       content: ConstrainedBox(
-        constraints:
-            const BoxConstraints(
+        constraints: const BoxConstraints(
           maxWidth: 420,
           maxHeight: 320,
         ),
-        child:
-            SingleChildScrollView(
+        child: SingleChildScrollView(
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 error.toString(),
               ),
-
-              if (blockingSubs
-                  .isNotEmpty) ...[
+              if (blockingSubs.isNotEmpty) ...[
                 const SizedBox(
                   height: 12,
                 ),
                 const Text(
                   'Subcategories still present:',
-                  style:
-                      TextStyle(
-                    fontWeight:
-                        FontWeight
-                            .w600,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(
                   height: 4,
                 ),
-                for (final name
-                    in blockingSubs)
-                  Text('•  $name'),
+                for (final name in blockingSubs) Text('•  $name'),
               ],
-
-              if (blockingItems
-                  .isNotEmpty) ...[
+              if (blockingItems.isNotEmpty) ...[
                 const SizedBox(
                   height: 12,
                 ),
                 const Text(
                   'Items still assigned:',
-                  style:
-                      TextStyle(
-                    fontWeight:
-                        FontWeight
-                            .w600,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(
                   height: 4,
                 ),
-                for (final name
-                    in blockingItems)
-                  Text('•  $name'),
+                for (final name in blockingItems) Text('•  $name'),
               ],
-
-              if (details != null &&
-                  details
-                      .isNotEmpty) ...[
+              if (details != null && details.isNotEmpty) ...[
                 const SizedBox(
                   height: 12,
                 ),
-                for (final line
-                    in details)
-                  Text('•  $line'),
+                for (final line in details) Text('•  $line'),
               ],
             ],
           ),
@@ -5032,12 +4221,10 @@ Future<void> _showErrorDialog(
       ),
       actions: [
         ElevatedButton(
-          onPressed: () =>
-              Navigator.of(
+          onPressed: () => Navigator.of(
             dialogContext,
           ).pop(),
-          child:
-              const Text('OK'),
+          child: const Text('OK'),
         ),
       ],
     ),
@@ -5048,8 +4235,7 @@ Future<void> _showErrorDialog(
 // INLINE EDITABLE LABEL
 // =============================================================================
 
-class _EditableLabel
-    extends StatefulWidget {
+class _EditableLabel extends StatefulWidget {
   final String value;
   final TextStyle? style;
 
@@ -5064,37 +4250,28 @@ class _EditableLabel
   });
 
   @override
-  State<_EditableLabel>
-      createState() =>
-          _EditableLabelState();
+  State<_EditableLabel> createState() => _EditableLabelState();
 }
 
-class _EditableLabelState
-    extends State<_EditableLabel> {
+class _EditableLabelState extends State<_EditableLabel> {
   bool _editing = false;
   bool _saving = false;
 
-  late final
-      TextEditingController _ctrl =
-      TextEditingController(
+  late final TextEditingController _ctrl = TextEditingController(
     text: widget.value,
   );
 
   // Keeps the inline editor synchronized with updated widget data.
   @override
   void didUpdateWidget(
-    covariant _EditableLabel
-        oldWidget,
+    covariant _EditableLabel oldWidget,
   ) {
     super.didUpdateWidget(
       oldWidget,
     );
 
-    if (!_editing &&
-        oldWidget.value !=
-            widget.value) {
-      _ctrl.text =
-          widget.value;
+    if (!_editing && oldWidget.value != widget.value) {
+      _ctrl.text = widget.value;
     }
   }
 
@@ -5107,16 +4284,12 @@ class _EditableLabelState
 
   // Validates and saves an inline rename operation.
   Future<void> _confirm() async {
-    final newValue =
-        _ctrl.text.trim();
+    final newValue = _ctrl.text.trim();
 
-    if (newValue.isEmpty ||
-        newValue ==
-            widget.value) {
+    if (newValue.isEmpty || newValue == widget.value) {
       setState(() {
         _editing = false;
-        _ctrl.text =
-            widget.value;
+        _ctrl.text = widget.value;
       });
 
       return;
@@ -5146,8 +4319,7 @@ class _EditableLabelState
 
       await _showErrorDialog(
         context,
-        title:
-            'Could not rename to "$newValue"',
+        title: 'Could not rename to "$newValue"',
         error: e,
       );
     }
@@ -5157,8 +4329,7 @@ class _EditableLabelState
   void _cancel() {
     setState(() {
       _editing = false;
-      _ctrl.text =
-          widget.value;
+      _ctrl.text = widget.value;
     });
   }
 
@@ -5173,8 +4344,7 @@ class _EditableLabelState
           Flexible(
             child: Text(
               widget.value,
-              style:
-                  widget.style,
+              style: widget.style,
             ),
           ),
           IconButton(
@@ -5183,12 +4353,9 @@ class _EditableLabelState
               size: 15,
             ),
             tooltip: 'Rename',
-            visualDensity:
-                VisualDensity.compact,
-            onPressed: () =>
-                setState(
-              () => _editing =
-                  true,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(
+              () => _editing = true,
             ),
           ),
         ],
@@ -5201,28 +4368,22 @@ class _EditableLabelState
           child: TextField(
             controller: _ctrl,
             autofocus: true,
-            style:
-                widget.style,
-            decoration:
-                const InputDecoration(
+            style: widget.style,
+            decoration: const InputDecoration(
               isDense: true,
             ),
-            onSubmitted:
-                (_) => _confirm(),
+            onSubmitted: (_) => _confirm(),
           ),
         ),
-
         if (_saving)
           const Padding(
-            padding:
-                EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               horizontal: 8,
             ),
             child: SizedBox(
               height: 16,
               width: 16,
-              child:
-                  CircularProgressIndicator(
+              child: CircularProgressIndicator(
                 strokeWidth: 2,
               ),
             ),
@@ -5232,12 +4393,10 @@ class _EditableLabelState
             icon: const Icon(
               Icons.check,
               size: 18,
-              color:
-                  AppColors.primary,
+              color: AppColors.primary,
             ),
             tooltip: 'Save',
-            visualDensity:
-                VisualDensity.compact,
+            visualDensity: VisualDensity.compact,
             onPressed: _confirm,
           ),
           IconButton(
@@ -5246,8 +4405,7 @@ class _EditableLabelState
               size: 18,
             ),
             tooltip: 'Cancel',
-            visualDensity:
-                VisualDensity.compact,
+            visualDensity: VisualDensity.compact,
             onPressed: _cancel,
           ),
         ],

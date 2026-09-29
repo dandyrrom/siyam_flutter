@@ -44,21 +44,18 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
   // ===========================================================================
 
   Future<Map<String, String>> _historyUserNameMap() async {
-    final rows =
-        await _historyClient.from('users').select('id, fname, lname');
+    final rows = await _historyClient.from('users').select('id, fname, lname');
 
     return {
       for (final row in rows)
-        row['id'] as String:
-            '${(row['fname'] as String?) ?? ''} '
-                    '${(row['lname'] as String?) ?? ''}'
-                .trim(),
+        row['id'] as String: '${(row['fname'] as String?) ?? ''} '
+                '${(row['lname'] as String?) ?? ''}'
+            .trim(),
     };
   }
 
   Future<Map<String, String>> _historyUnitMap() async {
-    final rows =
-        await _historyClient.from('units').select('id, abbr_name');
+    final rows = await _historyClient.from('units').select('id, abbr_name');
 
     return {
       for (final row in rows)
@@ -193,8 +190,7 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
               ? packageUnitAbbr
               : purchaseUnitAbbr,
           typeLabel: 'Purchased',
-          recordedByName:
-              users[purchase['recordedby']] ?? 'Unknown user',
+          recordedByName: users[purchase['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -226,8 +222,7 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
               ? packageUnitAbbr
               : purchaseUnitAbbr,
           typeLabel: 'Donated',
-          recordedByName:
-              users[donation['recordedby']] ?? 'Unknown user',
+          recordedByName: users[donation['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -263,8 +258,7 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
           );
 
       for (final transaction in transactionRows) {
-        final treatmentItemId =
-            transaction['treatmentitemid'] as String?;
+        final treatmentItemId = transaction['treatmentitemid'] as String?;
 
         if (treatmentItemId != null) {
           deductedTreatmentItemIds.add(
@@ -275,8 +269,7 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
     }
 
     for (final row in treatmentRows) {
-      final treatmentItemId =
-          row['treatmentitemid'] as String?;
+      final treatmentItemId = row['treatmentitemid'] as String?;
 
       // A linked TREATMENT transaction means actual stock was deducted.
       // Otherwise the medication was only logged clinically.
@@ -301,14 +294,10 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
           ),
           unitAbbr: (dispenseUnit == null ? null : units[dispenseUnit]) ??
               purchaseUnitAbbr,
-          typeLabel: affectsStock
-              ? 'Treatment'
-              : 'Logged Treatment',
+          typeLabel: affectsStock ? 'Treatment' : 'Logged Treatment',
           treatmentId: row['treatid'] as String?,
-          treatmentName:
-              treatment?['name'] as String? ?? 'Unknown treatment',
-          recordedByName:
-              users[row['recordedby']] ?? 'Unknown user',
+          treatmentName: treatment?['name'] as String? ?? 'Unknown treatment',
+          recordedByName: users[row['recordedby']] ?? 'Unknown user',
         ),
       );
     }
@@ -338,8 +327,7 @@ class SupabaseInventoryService extends base.SupabaseInventoryService {
               row['reason'] as String,
             ),
           ),
-          recordedByName:
-              users[row['recordedby']] ?? 'Unknown user',
+          recordedByName: users[row['recordedby']] ?? 'Unknown user',
         ),
       );
     }

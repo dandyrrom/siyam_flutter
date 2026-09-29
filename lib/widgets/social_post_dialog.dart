@@ -16,25 +16,19 @@ String buildReplenishmentCaption(
 }) {
   final critical = alerts
       .where(
-        (alert) =>
-            alert.priority ==
-            ReplenishmentPriority.critical,
+        (alert) => alert.priority == ReplenishmentPriority.critical,
       )
       .toList();
 
   final high = alerts
       .where(
-        (alert) =>
-            alert.priority ==
-            ReplenishmentPriority.high,
+        (alert) => alert.priority == ReplenishmentPriority.high,
       )
       .toList();
 
   final medium = alerts
       .where(
-        (alert) =>
-            alert.priority ==
-            ReplenishmentPriority.medium,
+        (alert) => alert.priority == ReplenishmentPriority.medium,
       )
       .toList();
 
@@ -210,8 +204,7 @@ String buildDonorThankYouCaption({
   required DateTime month,
   required List<String> donorNames,
 }) {
-  final monthLabel =
-      '${_monthNames[month.month - 1]} ${month.year}';
+  final monthLabel = '${_monthNames[month.month - 1]} ${month.year}';
 
   final buffer = StringBuffer();
 
@@ -286,8 +279,7 @@ Future<void> showSocialPostDialog(
 // SOCIAL POST DIALOG
 // =============================================================================
 
-class _SocialPostDialog
-    extends StatefulWidget {
+class _SocialPostDialog extends StatefulWidget {
   final List<ReplenishmentAlert> alerts;
 
   const _SocialPostDialog({
@@ -295,23 +287,17 @@ class _SocialPostDialog
   });
 
   @override
-  State<_SocialPostDialog> createState() =>
-      _SocialPostDialogState();
+  State<_SocialPostDialog> createState() => _SocialPostDialogState();
 }
 
-class _SocialPostDialogState
-    extends State<_SocialPostDialog> {
-  final DonationService _donationService =
-      DonationService();
+class _SocialPostDialogState extends State<_SocialPostDialog> {
+  final DonationService _donationService = DonationService();
 
-  late final TextEditingController
-      _supplyCaptionCtrl;
+  late final TextEditingController _supplyCaptionCtrl;
 
-  late final TextEditingController
-      _donorCaptionCtrl;
+  late final TextEditingController _donorCaptionCtrl;
 
-  final TextEditingController _searchCtrl =
-      TextEditingController();
+  final TextEditingController _searchCtrl = TextEditingController();
 
   int _selectedTab = 0;
 
@@ -323,8 +309,7 @@ class _SocialPostDialogState
 
   MonthlyDonorSummary? _donorSummary;
 
-  final Set<String> _includedDonors =
-      <String>{};
+  final Set<String> _includedDonors = <String>{};
 
   bool _loadingDonors = false;
 
@@ -334,15 +319,13 @@ class _SocialPostDialogState
   void initState() {
     super.initState();
 
-    _supplyCaptionCtrl =
-        TextEditingController(
+    _supplyCaptionCtrl = TextEditingController(
       text: buildReplenishmentCaption(
         widget.alerts,
       ),
     );
 
-    _donorCaptionCtrl =
-        TextEditingController();
+    _donorCaptionCtrl = TextEditingController();
 
     _searchCtrl.addListener(
       _onSearchChanged,
@@ -385,9 +368,7 @@ class _SocialPostDialogState
       _selectedTab = tab;
     });
 
-    if (tab == 1 &&
-        _donorSummary == null &&
-        !_loadingDonors) {
+    if (tab == 1 && _donorSummary == null && !_loadingDonors) {
       _loadDonorSummary();
     }
   }
@@ -407,9 +388,7 @@ class _SocialPostDialogState
     });
 
     try {
-      final summary =
-          await _donationService
-              .fetchMonthlyDonorSummary(
+      final summary = await _donationService.fetchMonthlyDonorSummary(
         _selectedMonth,
       );
 
@@ -436,8 +415,7 @@ class _SocialPostDialogState
 
       setState(() {
         _loadingDonors = false;
-        _donorError =
-            'Could not load the donor summary for this month.';
+        _donorError = 'Could not load the donor summary for this month.';
       });
     }
   }
@@ -455,8 +433,7 @@ class _SocialPostDialogState
         )
         .toList();
 
-    _donorCaptionCtrl.text =
-        buildDonorThankYouCaption(
+    _donorCaptionCtrl.text = buildDonorThankYouCaption(
       month: _selectedMonth,
       donorNames: names,
     );
@@ -483,14 +460,9 @@ class _SocialPostDialogState
   }
 
   List<String> get _filteredDonors {
-    final donors =
-        _donorSummary?.donorNames ??
-        const <String>[];
+    final donors = _donorSummary?.donorNames ?? const <String>[];
 
-    final query =
-        _searchCtrl.text
-            .trim()
-            .toLowerCase();
+    final query = _searchCtrl.text.trim().toLowerCase();
 
     if (query.isEmpty) {
       return donors;
@@ -498,12 +470,9 @@ class _SocialPostDialogState
 
     return donors
         .where(
-          (name) =>
-              name
-                  .toLowerCase()
-                  .contains(
-                    query,
-                  ),
+          (name) => name.toLowerCase().contains(
+                query,
+              ),
         )
         .toList();
   }
@@ -513,8 +482,7 @@ class _SocialPostDialogState
   // ==========================================================================
 
   List<DateTime> get _monthOptions {
-    final current =
-        DateTime(
+    final current = DateTime(
       DateTime.now().year,
       DateTime.now().month,
       1,
@@ -522,8 +490,7 @@ class _SocialPostDialogState
 
     return List.generate(
       24,
-      (index) =>
-          DateTime(
+      (index) => DateTime(
         current.year,
         current.month - index,
         1,
@@ -538,11 +505,8 @@ class _SocialPostDialogState
       return;
     }
 
-    final sameMonth =
-        month.year ==
-                _selectedMonth.year &&
-            month.month ==
-                _selectedMonth.month;
+    final sameMonth = month.year == _selectedMonth.year &&
+        month.month == _selectedMonth.month;
 
     if (sameMonth) {
       return;
@@ -568,9 +532,7 @@ class _SocialPostDialogState
 
   Future<void> _copyCurrentCaption() async {
     final controller =
-        _selectedTab == 0
-            ? _supplyCaptionCtrl
-            : _donorCaptionCtrl;
+        _selectedTab == 0 ? _supplyCaptionCtrl : _donorCaptionCtrl;
 
     await Clipboard.setData(
       ClipboardData(
@@ -599,36 +561,23 @@ class _SocialPostDialogState
   Widget build(
     BuildContext context,
   ) {
-    final screen =
-        MediaQuery.sizeOf(
+    final screen = MediaQuery.sizeOf(
       context,
     );
-final dialogWidth =
-    screen.width < 1192
-        ? screen.width - 32
-        : 1160.0;
+    final dialogWidth = screen.width < 1192 ? screen.width - 32 : 1160.0;
 
-final dialogHeight =
-    screen.height < 832
-        ? screen.height - 32
-        : 800.0;
+    final dialogHeight = screen.height < 832 ? screen.height - 32 : 800.0;
 
-final compact =
-    dialogWidth < 780;
+    final compact = dialogWidth < 780;
 
     return Dialog(
-      backgroundColor:
-          Colors.white,
-      surfaceTintColor:
-          Colors.white,
-      insetPadding:
-          const EdgeInsets.all(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      insetPadding: const EdgeInsets.all(
         16,
       ),
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
           20,
         ),
       ),
@@ -642,8 +591,7 @@ final compact =
             // ================================================================
 
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 20,
                 18,
                 12,
@@ -654,72 +602,48 @@ final compact =
                   Container(
                     width: 40,
                     height: 40,
-                    decoration:
-                        BoxDecoration(
-                      color: AppColors
-                          .roleStaff
-                          .withValues(
-                        alpha:
-                            0.10,
+                    decoration: BoxDecoration(
+                      color: AppColors.roleStaff.withValues(
+                        alpha: 0.10,
                       ),
-                      borderRadius:
-                          BorderRadius
-                              .circular(
+                      borderRadius: BorderRadius.circular(
                         11,
                       ),
                     ),
-                    alignment:
-                        Alignment.center,
-                    child:
-                        const Icon(
-                      Icons
-                          .campaign_outlined,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.campaign_outlined,
                       size: 20,
-                      color: AppColors
-                          .roleStaff,
+                      color: AppColors.roleStaff,
                     ),
                   ),
-
                   const SizedBox(
                     width: 11,
                   ),
-
                   const Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Social Media Template',
-                          style:
-                              TextStyle(
-                            fontSize:
-                                18,
-                            fontWeight:
-                                FontWeight
-                                    .w800,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-
                         SizedBox(
                           height: 2,
                         ),
-
                         Text(
                           'Create ready-to-copy shelter posts',
-                          style:
-                              TextStyle(
-                            fontSize:
-                                11.5,
-                            color: AppColors
-                                .mutedForeground,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
                     ),
                   ),
-
                   IconButton(
                     tooltip: 'Close',
                     onPressed: () {
@@ -727,8 +651,7 @@ final compact =
                         context,
                       ).pop();
                     },
-                    icon:
-                        const Icon(
+                    icon: const Icon(
                       Icons.close,
                       size: 19,
                     ),
@@ -746,8 +669,7 @@ final compact =
             // ================================================================
 
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 18,
                 12,
                 18,
@@ -756,16 +678,10 @@ final compact =
               child: Row(
                 children: [
                   Expanded(
-                    child:
-                        _TemplateTab(
-                      label:
-                          'Supply Needs',
-                      icon:
-                          Icons
-                              .inventory_2_outlined,
-                      selected:
-                          _selectedTab ==
-                              0,
+                    child: _TemplateTab(
+                      label: 'Supply Needs',
+                      icon: Icons.inventory_2_outlined,
+                      selected: _selectedTab == 0,
                       onTap: () {
                         _changeTab(
                           0,
@@ -773,22 +689,14 @@ final compact =
                       },
                     ),
                   ),
-
                   const SizedBox(
                     width: 8,
                   ),
-
                   Expanded(
-                    child:
-                        _TemplateTab(
-                      label:
-                          'Donor Summary',
-                      icon:
-                          Icons
-                              .volunteer_activism_outlined,
-                      selected:
-                          _selectedTab ==
-                              1,
+                    child: _TemplateTab(
+                      label: 'Donor Summary',
+                      icon: Icons.volunteer_activism_outlined,
+                      selected: _selectedTab == 1,
                       onTap: () {
                         _changeTab(
                           1,
@@ -809,12 +717,11 @@ final compact =
             // ================================================================
 
             Expanded(
-              child:
-                  _selectedTab == 0
-                      ? _buildSupplyTab()
-                      : _buildDonorTab(
-                          compact,
-                        ),
+              child: _selectedTab == 0
+                  ? _buildSupplyTab()
+                  : _buildDonorTab(
+                      compact,
+                    ),
             ),
 
             const Divider(
@@ -826,16 +733,14 @@ final compact =
             // ================================================================
 
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 16,
                 8,
                 16,
                 10,
               ),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () {
@@ -843,38 +748,25 @@ final compact =
                         context,
                       ).pop();
                     },
-                    child:
-                        const Text(
+                    child: const Text(
                       'Close',
                     ),
                   ),
-
                   const SizedBox(
                     width: 6,
                   ),
-
                   ElevatedButton.icon(
-                    style:
-                        ElevatedButton
-                            .styleFrom(
-                      backgroundColor:
-                          AppColors
-                              .roleStaff,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.roleStaff,
                     ),
-                    onPressed:
-                        _selectedTab ==
-                                    1 &&
-                                _loadingDonors
-                            ? null
-                            : _copyCurrentCaption,
-                    icon:
-                        const Icon(
-                      Icons
-                          .copy_outlined,
+                    onPressed: _selectedTab == 1 && _loadingDonors
+                        ? null
+                        : _copyCurrentCaption,
+                    icon: const Icon(
+                      Icons.copy_outlined,
                       size: 16,
                     ),
-                    label:
-                        const Text(
+                    label: const Text(
                       'Copy caption',
                     ),
                   ),
@@ -893,36 +785,26 @@ final compact =
 
   Widget _buildSupplyTab() {
     return SingleChildScrollView(
-      padding:
-          const EdgeInsets.all(
+      padding: const EdgeInsets.all(
         18,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'SUPPLY NEEDS POST',
-            style:
-                TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              fontWeight:
-                  FontWeight.w700,
-              color:
-                  AppColors
-                      .mutedForeground,
-              letterSpacing:
-                  0.4,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mutedForeground,
+              letterSpacing: 0.4,
             ),
           ),
-
           const SizedBox(
             height: 6,
           ),
-
           _EditableFacebookPreview(
-            controller:
-                _supplyCaptionCtrl,
+            controller: _supplyCaptionCtrl,
             minLines: 14,
           ),
         ],
@@ -939,56 +821,41 @@ final compact =
   ) {
     if (_loadingDonors) {
       return const Center(
-        child:
-            CircularProgressIndicator(),
+        child: CircularProgressIndicator(),
       );
     }
 
     if (_donorError != null) {
       return Center(
         child: Padding(
-          padding:
-              const EdgeInsets.all(
+          padding: const EdgeInsets.all(
             24,
           ),
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
-                Icons
-                    .error_outline,
+                Icons.error_outline,
                 size: 32,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
-
               const SizedBox(
                 height: 10,
               ),
-
               Text(
                 _donorError!,
-                textAlign:
-                    TextAlign.center,
-                style:
-                    const TextStyle(
-                  fontSize:
-                      12.5,
-                  color: AppColors
-                      .mutedForeground,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.mutedForeground,
                 ),
               ),
-
               const SizedBox(
                 height: 12,
               ),
-
               OutlinedButton(
-                onPressed:
-                    _loadDonorSummary,
-                child:
-                    const Text(
+                onPressed: _loadDonorSummary,
+                child: const Text(
                   'Retry',
                 ),
               ),
@@ -998,8 +865,7 @@ final compact =
       );
     }
 
-    final summary =
-        _donorSummary;
+    final summary = _donorSummary;
 
     if (summary == null) {
       return const SizedBox.shrink();
@@ -1007,24 +873,19 @@ final compact =
 
     if (compact) {
       return SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(
+        padding: const EdgeInsets.all(
           18,
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildDonorLeftPanel(
               summary,
-              fixedHeight:
-                  false,
+              fixedHeight: false,
             ),
-
             const SizedBox(
               height: 18,
             ),
-
             _buildDonorPostPanel(),
           ],
         ),
@@ -1032,31 +893,24 @@ final compact =
     }
 
     return Padding(
-      padding:
-          const EdgeInsets.all(
+      padding: const EdgeInsets.all(
         18,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 360,
-            child:
-                _buildDonorLeftPanel(
+            child: _buildDonorLeftPanel(
               summary,
-              fixedHeight:
-                  true,
+              fixedHeight: true,
             ),
           ),
-
           const SizedBox(
             width: 18,
           ),
-
           Expanded(
-            child:
-                _buildDonorPostPanel(),
+            child: _buildDonorPostPanel(),
           ),
         ],
       ),
@@ -1072,8 +926,7 @@ final compact =
     required bool fixedHeight,
   }) {
     final content = Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ====================================================================
         // MONTH
@@ -1081,16 +934,11 @@ final compact =
 
         const Text(
           'MONTH',
-          style:
-              TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            fontWeight:
-                FontWeight.w700,
-            color:
-                AppColors
-                    .mutedForeground,
-            letterSpacing:
-                0.4,
+            fontWeight: FontWeight.w700,
+            color: AppColors.mutedForeground,
+            letterSpacing: 0.4,
           ),
         ),
 
@@ -1177,16 +1025,11 @@ final compact =
 
         const Text(
           'MONTHLY SUMMARY',
-          style:
-              TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            fontWeight:
-                FontWeight.w700,
-            color:
-                AppColors
-                    .mutedForeground,
-            letterSpacing:
-                0.4,
+            fontWeight: FontWeight.w700,
+            color: AppColors.mutedForeground,
+            letterSpacing: 0.4,
           ),
         ),
 
@@ -1197,40 +1040,27 @@ final compact =
         Row(
           children: [
             Expanded(
-              child:
-                  _SummaryCard(
-                value:
-                    '${summary.donorCount}',
-                label:
-                    'Donors',
+              child: _SummaryCard(
+                value: '${summary.donorCount}',
+                label: 'Donors',
               ),
             ),
-
             const SizedBox(
               width: 7,
             ),
-
             Expanded(
-              child:
-                  _SummaryCard(
-                value:
-                    '${summary.donationCount}',
-                label:
-                    'Donations',
+              child: _SummaryCard(
+                value: '${summary.donationCount}',
+                label: 'Donations',
               ),
             ),
-
             const SizedBox(
               width: 7,
             ),
-
             Expanded(
-              child:
-                  _SummaryCard(
-                value:
-                    '${summary.itemsDonated}',
-                label:
-                    'Items',
+              child: _SummaryCard(
+                value: '${summary.itemsDonated}',
+                label: 'Items',
               ),
             ),
           ],
@@ -1249,29 +1079,19 @@ final compact =
             const Expanded(
               child: Text(
                 'DONORS TO INCLUDE',
-                style:
-                    TextStyle(
-                  fontSize:
-                      11,
-                  fontWeight:
-                      FontWeight
-                          .w700,
-                  color: AppColors
-                      .mutedForeground,
-                  letterSpacing:
-                      0.4,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedForeground,
+                  letterSpacing: 0.4,
                 ),
               ),
             ),
-
             Text(
               '${_includedDonors.length} selected',
-              style:
-                  const TextStyle(
-                fontSize:
-                    10.5,
-                color: AppColors
-                    .mutedForeground,
+              style: const TextStyle(
+                fontSize: 10.5,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -1283,71 +1103,51 @@ final compact =
 
         if (summary.donorNames.isEmpty)
           Container(
-            width:
-                double.infinity,
-            padding:
-                const EdgeInsets.all(
+            width: double.infinity,
+            padding: const EdgeInsets.all(
               16,
             ),
-            decoration:
-                BoxDecoration(
-              color:
-                  AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(
                 12,
               ),
-              border:
-                  Border.all(
-                color:
-                    AppColors.border,
+              border: Border.all(
+                color: AppColors.border,
               ),
             ),
-            child:
-                const Text(
+            child: const Text(
               'No stocked donations were recorded for this month.',
-              textAlign:
-                  TextAlign.center,
-              style:
-                  TextStyle(
-                fontSize:
-                    12,
-                color: AppColors
-                    .mutedForeground,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.mutedForeground,
               ),
             ),
           )
         else ...[
           TextField(
-            controller:
-                _searchCtrl,
-            decoration:
-                const InputDecoration(
+            controller: _searchCtrl,
+            decoration: const InputDecoration(
               isDense: true,
-              hintText:
-                  'Search donors',
-              prefixIcon:
-                  Icon(
+              hintText: 'Search donors',
+              prefixIcon: Icon(
                 Icons.search,
                 size: 18,
               ),
             ),
           ),
-
           const SizedBox(
             height: 8,
           ),
-
           if (fixedHeight)
             Expanded(
-              child:
-                  _buildDonorList(),
+              child: _buildDonorList(),
             )
           else
             SizedBox(
               height: 230,
-              child:
-                  _buildDonorList(),
+              child: _buildDonorList(),
             ),
         ],
       ],
@@ -1358,10 +1158,8 @@ final compact =
     }
 
     return SizedBox(
-      height:
-          510,
-      child:
-          content,
+      height: 510,
+      child: content,
     );
   }
 
@@ -1372,28 +1170,20 @@ final compact =
   Widget _buildDonorList() {
     if (_filteredDonors.isEmpty) {
       return Container(
-        decoration:
-            BoxDecoration(
-          border:
-              Border.all(
-            color:
-                AppColors.border,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: AppColors.border,
           ),
-          borderRadius:
-              BorderRadius.circular(
+          borderRadius: BorderRadius.circular(
             12,
           ),
         ),
-        child:
-            const Center(
+        child: const Center(
           child: Text(
             'No donors found.',
-            style:
-                TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color:
-                  AppColors
-                      .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
           ),
         ),
@@ -1401,45 +1191,30 @@ final compact =
     }
 
     return Container(
-      decoration:
-          BoxDecoration(
-        color:
-            Colors.white,
-        border:
-            Border.all(
-          color:
-              AppColors.border,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: AppColors.border,
         ),
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           12,
         ),
       ),
-      clipBehavior:
-          Clip.antiAlias,
-      child:
-          ListView.builder(
-        padding:
-            const EdgeInsets.symmetric(
+      clipBehavior: Clip.antiAlias,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(
           vertical: 4,
         ),
-        itemCount:
-            _filteredDonors.length,
-        itemBuilder:
-            (
+        itemCount: _filteredDonors.length,
+        itemBuilder: (
           context,
           index,
         ) {
-          final name =
-              _filteredDonors[
-                  index];
+          final name = _filteredDonors[index];
 
           return CheckboxListTile(
-            dense:
-                true,
-            value:
-                _includedDonors
-                    .contains(
+            dense: true,
+            value: _includedDonors.contains(
               name,
             ),
             onChanged: (
@@ -1449,24 +1224,15 @@ final compact =
                 name,
               );
             },
-            controlAffinity:
-                ListTileControlAffinity
-                    .leading,
-            contentPadding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  8,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
             ),
-            title:
-                Text(
+            title: Text(
               name,
-              style:
-                  const TextStyle(
-                fontSize:
-                    12.5,
-                fontWeight:
-                    FontWeight
-                        .w500,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
           );
@@ -1481,51 +1247,36 @@ final compact =
 
   Widget _buildDonorPostPanel() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Row(
           children: [
             Expanded(
               child: Text(
                 'THANK-YOU POST',
-                style:
-                    TextStyle(
-                  fontSize:
-                      11,
-                  fontWeight:
-                      FontWeight
-                          .w700,
-                  color: AppColors
-                      .mutedForeground,
-                  letterSpacing:
-                      0.4,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedForeground,
+                  letterSpacing: 0.4,
                 ),
               ),
             ),
-
             Text(
               'Click the post to edit',
-              style:
-                  TextStyle(
-                fontSize:
-                    10.5,
-                color: AppColors
-                    .mutedForeground,
+              style: TextStyle(
+                fontSize: 10.5,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
         ),
-
         const SizedBox(
           height: 7,
         ),
-
         _EditableFacebookPreview(
-          controller:
-              _donorCaptionCtrl,
-          minLines:
-              22,
+          controller: _donorCaptionCtrl,
+          minLines: 22,
         ),
       ],
     );
@@ -1536,8 +1287,7 @@ final compact =
 // TEMPLATE TAB
 // =============================================================================
 
-class _TemplateTab
-    extends StatelessWidget {
+class _TemplateTab extends StatelessWidget {
   final String label;
 
   final IconData icon;
@@ -1558,90 +1308,51 @@ class _TemplateTab
     BuildContext context,
   ) {
     return InkWell(
-      onTap:
-          onTap,
-      borderRadius:
-          BorderRadius.circular(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(
         10,
       ),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(
+        padding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 10,
         ),
-        decoration:
-            BoxDecoration(
-          color:
-              selected
-                  ? AppColors
-                      .roleStaff
-                      .withValues(
-                    alpha:
-                        0.10,
-                  )
-                  : Colors
-                      .transparent,
-          borderRadius:
-              BorderRadius.circular(
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.roleStaff.withValues(
+                  alpha: 0.10,
+                )
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(
             10,
           ),
-          border:
-              Border.all(
-            color:
-                selected
-                    ? AppColors
-                        .roleStaff
-                        .withValues(
-                      alpha:
-                          0.35,
-                    )
-                    : AppColors
-                        .border,
+          border: Border.all(
+            color: selected
+                ? AppColors.roleStaff.withValues(
+                    alpha: 0.35,
+                  )
+                : AppColors.border,
           ),
         ),
         child: Row(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size:
-                  17,
-              color:
-                  selected
-                      ? AppColors
-                          .roleStaff
-                      : AppColors
-                          .mutedForeground,
+              size: 17,
+              color: selected ? AppColors.roleStaff : AppColors.mutedForeground,
             ),
-
             const SizedBox(
               width: 7,
             ),
-
             Flexible(
               child: Text(
                 label,
-                overflow:
-                    TextOverflow
-                        .ellipsis,
-                style:
-                    TextStyle(
-                  fontSize:
-                      12.5,
-                  fontWeight:
-                      selected
-                          ? FontWeight
-                              .w700
-                          : FontWeight
-                              .w600,
-                  color:
-                      selected
-                          ? AppColors
-                              .roleStaff
-                          : AppColors
-                              .foreground,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: selected ? AppColors.roleStaff : AppColors.foreground,
                 ),
               ),
             ),
@@ -1656,8 +1367,7 @@ class _TemplateTab
 // SUMMARY CARD
 // =============================================================================
 
-class _SummaryCard
-    extends StatelessWidget {
+class _SummaryCard extends StatelessWidget {
   final String value;
 
   final String label;
@@ -1672,32 +1382,20 @@ class _SummaryCard
     BuildContext context,
   ) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal:
-            8,
-        vertical:
-            11,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 11,
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors.roleStaff
-                .withValues(
-          alpha:
-              0.05,
+      decoration: BoxDecoration(
+        color: AppColors.roleStaff.withValues(
+          alpha: 0.05,
         ),
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           11,
         ),
-        border:
-            Border.all(
-          color:
-              AppColors.roleStaff
-                  .withValues(
-            alpha:
-                0.15,
+        border: Border.all(
+          color: AppColors.roleStaff.withValues(
+            alpha: 0.15,
           ),
         ),
       ),
@@ -1705,37 +1403,23 @@ class _SummaryCard
         children: [
           Text(
             value,
-            style:
-                const TextStyle(
-              fontSize:
-                  18,
-              fontWeight:
-                  FontWeight.w800,
-              color:
-                  AppColors.roleStaff,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.roleStaff,
             ),
           ),
-
           const SizedBox(
             height: 2,
           ),
-
           Text(
             label,
-            textAlign:
-                TextAlign.center,
-            maxLines:
-                1,
-            overflow:
-                TextOverflow
-                    .ellipsis,
-            style:
-                const TextStyle(
-              fontSize:
-                  10.5,
-              color:
-                  AppColors
-                      .mutedForeground,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10.5,
+              color: AppColors.mutedForeground,
             ),
           ),
         ],
@@ -1748,8 +1432,7 @@ class _SummaryCard
 // EDITABLE FACEBOOK PREVIEW
 // =============================================================================
 
-class _EditableFacebookPreview
-    extends StatelessWidget {
+class _EditableFacebookPreview extends StatelessWidget {
   final TextEditingController controller;
 
   final int minLines;
@@ -1764,108 +1447,69 @@ class _EditableFacebookPreview
     BuildContext context,
   ) {
     return Container(
-      width:
-          double.infinity,
-      decoration:
-          BoxDecoration(
-        color:
-            Colors.white,
-        border:
-            Border.all(
-          color:
-              AppColors.border,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: AppColors.border,
         ),
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           12,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ==================================================================
           // FACEBOOK-STYLE HEADER
           // ==================================================================
 
           Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  12,
-              vertical:
-                  10,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
             ),
-            decoration:
-                const BoxDecoration(
-              border:
-                  Border(
-                bottom:
-                    BorderSide(
-                  color:
-                      AppColors.border,
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: AppColors.border,
                 ),
               ),
             ),
-            child:
-                const Row(
+            child: const Row(
               children: [
                 CircleAvatar(
-                  radius:
-                      16,
-                  backgroundColor:
-                      AppColors.primary,
-                  child:
-                      Text(
+                  radius: 16,
+                  backgroundColor: AppColors.primary,
+                  child: Text(
                     'DAS',
-                    style:
-                        TextStyle(
-                      color:
-                          Colors.white,
-                      fontSize:
-                          9,
-                      fontWeight:
-                          FontWeight
-                              .w800,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-
                 SizedBox(
-                  width:
-                      10,
+                  width: 10,
                 ),
-
                 Expanded(
-                  child:
-                      Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Dumaguete Animal Sanctuary',
-                        overflow:
-                            TextOverflow
-                                .ellipsis,
-                        style:
-                            TextStyle(
-                          fontSize:
-                              13,
-                          fontWeight:
-                              FontWeight
-                                  .w700,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-
                       Text(
                         'Just now · Public',
-                        style:
-                            TextStyle(
-                          fontSize:
-                              11,
-                          color: AppColors
-                              .mutedForeground,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                     ],
@@ -1880,35 +1524,22 @@ class _EditableFacebookPreview
           // ==================================================================
 
           TextField(
-            controller:
-                controller,
-            minLines:
-                minLines,
-            maxLines:
-                minLines + 8,
-            keyboardType:
-                TextInputType.multiline,
-            style:
-                const TextStyle(
-              fontSize:
-                  12.5,
-              height:
-                  1.55,
+            controller: controller,
+            minLines: minLines,
+            maxLines: minLines + 8,
+            keyboardType: TextInputType.multiline,
+            style: const TextStyle(
+              fontSize: 12.5,
+              height: 1.55,
             ),
-            decoration:
-                const InputDecoration(
-              border:
-                  InputBorder.none,
-              focusedBorder:
-                  InputBorder.none,
-              enabledBorder:
-                  InputBorder.none,
-              contentPadding:
-                  EdgeInsets.all(
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              contentPadding: EdgeInsets.all(
                 14,
               ),
-              hintText:
-                  'Write your post...',
+              hintText: 'Write your post...',
             ),
           ),
         ],

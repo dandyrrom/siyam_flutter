@@ -137,8 +137,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage>
           .toList();
       _items = items ?? [];
       _existingTreatments =
-          cache.peekList<TreatmentRecord>(PageSnapshotCache.treatments) ??
-              [];
+          cache.peekList<TreatmentRecord>(PageSnapshotCache.treatments) ?? [];
       _loading = false;
     }
 
@@ -278,9 +277,8 @@ class _AddTreatmentPageState extends State<AddTreatmentPage>
       const Duration(days: 1),
     );
 
-    final initial = _nextFollowUpDate.isBefore(earliest)
-        ? earliest
-        : _nextFollowUpDate;
+    final initial =
+        _nextFollowUpDate.isBefore(earliest) ? earliest : _nextFollowUpDate;
 
     final picked = await showDatePicker(
       context: context,
@@ -847,9 +845,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage>
           administeredByName: _administeredByCtrl.text.trim(),
           performedByUserId: performedByUserId,
           dateAdministered: _dateAdministered,
-          notes: _notesCtrl.text.trim().isEmpty
-              ? null
-              : _notesCtrl.text.trim(),
+          notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
           items: treatmentItems,
         );
       } else {
@@ -860,9 +856,7 @@ class _AddTreatmentPageState extends State<AddTreatmentPage>
           administeredByName: _administeredByCtrl.text.trim(),
           performedByUserId: performedByUserId,
           treatName: _treatNameCtrl.text.trim(),
-          notes: _notesCtrl.text.trim().isEmpty
-              ? null
-              : _notesCtrl.text.trim(),
+          notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
           dateAdministered: _dateAdministered,
           items: treatmentItems,
           followUp: followUp,
@@ -1042,7 +1036,8 @@ class _AddTreatmentPageState extends State<AddTreatmentPage>
                             ? const TextField(
                                 enabled: false,
                                 decoration: InputDecoration(
-                                  labelText: 'Pet (none eligible for treatment)',
+                                  labelText:
+                                      'Pet (none eligible for treatment)',
                                 ),
                               )
                             : SearchSelectField<Pet>(

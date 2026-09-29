@@ -67,8 +67,7 @@ class _StaffDashboardState extends State<StaffDashboard>
         String? warning,
       })> _fetchFollowUpsSafely() async {
     try {
-      final reminders =
-          await _followUpService.fetchActionableReminders();
+      final reminders = await _followUpService.fetchActionableReminders();
 
       return (
         reminders: reminders,
@@ -128,11 +127,10 @@ class _StaffDashboardState extends State<StaffDashboard>
 
       if (!mounted) return;
 
-      final followUpResult = results[2]
-          as ({
-            List<MedicalFollowUpReminder> reminders,
-            String? warning,
-          });
+      final followUpResult = results[2] as ({
+        List<MedicalFollowUpReminder> reminders,
+        String? warning,
+      });
 
       setState(() {
         _stats = results[0] as StaffDashboardStats;
@@ -163,9 +161,8 @@ class _StaffDashboardState extends State<StaffDashboard>
 
   String get _periodWord => _period == _Period.week ? 'week' : 'month';
 
-  String get _comparisonLabel => _period == _Period.week
-      ? 'vs. previous 7 days'
-      : 'vs. previous 30 days';
+  String get _comparisonLabel =>
+      _period == _Period.week ? 'vs. previous 7 days' : 'vs. previous 30 days';
 
   int get _criticalCount => _replenishment
       .where((item) => item.priority == ReplenishmentPriority.critical)
@@ -256,168 +253,169 @@ class _StaffDashboardState extends State<StaffDashboard>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-        const DashboardHeader(
-          title: 'Staff Dashboard',
-          subtitle:
-              'Quick view of inventory, treatments, and replenishment needs.',
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 10),
-          _InlineNotice(
-            icon: Icons.warning_amber_outlined,
-            text:
-                'Some dashboard data could not refresh. Showing the last loaded values.',
-            actionLabel: 'Retry',
-            onAction: _load,
-          ),
-        ],
-        const SizedBox(height: 18),
-        _DashboardKpiGrid(
-          cards: [
-            _DashboardKpiCard(
-              icon: Icons.autorenew_outlined,
-              value: '${_replenishment.length}',
-              label: 'Stock Attention',
-              helper: 'Items currently needing closer attention',
-              accent: AppColors.primary,
-              onTap: () => _go('/purchase-orders'),
+            const DashboardHeader(
+              title: 'Staff Dashboard',
+              subtitle:
+                  'Quick view of inventory, treatments, and replenishment needs.',
             ),
-            _DashboardKpiCard(
-              icon: Icons.pets_outlined,
-              value: '${stats.animalsUnderTreatment}',
-              label: 'Animals Under Treatment',
-              helper: 'Animals currently with active medical records',
-              accent: AppColors.roleStaff,
-              onTap: () => _go('/medical-records'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            const Expanded(
-              child: _SectionHeading(
-                title: 'Operational Overview',
-                subtitle:
-                    'Activity recorded from purchases and treatments.',
-              ),
-            ),
-            if (!compact)
-              _PeriodToggle(
-                period: _period,
-                onChanged: (value) => setState(() => _period = value),
-              ),
-          ],
-        ),
-        if (compact) ...[
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _PeriodToggle(
-              period: _period,
-              onChanged: (value) => setState(() => _period = value),
-            ),
-          ),
-        ],
-        const SizedBox(height: 14),
-        if (medium)
-          Column(
-            children: [
-              _OperationalActivityCard(
-                periodStats: period,
-                periodWord: _periodWord,
-                comparisonLabel: _comparisonLabel,
-                onPurchases: () => _go('/purchase-orders'),
-                onTreatments: () => _go('/medical-records'),
-              ),
-              const SizedBox(height: 14),
-              _PriorityOverviewCard(
-                critical: _criticalCount,
-                high: _highCount,
-                medium: _mediumCount,
-                onViewAll: () => _go('/purchase-orders'),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              _InlineNotice(
+                icon: Icons.warning_amber_outlined,
+                text:
+                    'Some dashboard data could not refresh. Showing the last loaded values.',
+                actionLabel: 'Retry',
+                onAction: _load,
               ),
             ],
-          )
-        else
-          SizedBox(
-            height: 270,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            const SizedBox(height: 18),
+            _DashboardKpiGrid(
+              cards: [
+                _DashboardKpiCard(
+                  icon: Icons.autorenew_outlined,
+                  value: '${_replenishment.length}',
+                  label: 'Stock Attention',
+                  helper: 'Items currently needing closer attention',
+                  accent: AppColors.primary,
+                  onTap: () => _go('/purchase-orders'),
+                ),
+                _DashboardKpiCard(
+                  icon: Icons.pets_outlined,
+                  value: '${stats.animalsUnderTreatment}',
+                  label: 'Animals Under Treatment',
+                  helper: 'Animals currently with active medical records',
+                  accent: AppColors.roleStaff,
+                  onTap: () => _go('/medical-records'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
               children: [
-                Expanded(
-                  flex: 7,
-                  child: _OperationalActivityCard(
+                const Expanded(
+                  child: _SectionHeading(
+                    title: 'Operational Overview',
+                    subtitle:
+                        'Activity recorded from purchases and treatments.',
+                  ),
+                ),
+                if (!compact)
+                  _PeriodToggle(
+                    period: _period,
+                    onChanged: (value) => setState(() => _period = value),
+                  ),
+              ],
+            ),
+            if (compact) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _PeriodToggle(
+                  period: _period,
+                  onChanged: (value) => setState(() => _period = value),
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            if (medium)
+              Column(
+                children: [
+                  _OperationalActivityCard(
                     periodStats: period,
                     periodWord: _periodWord,
                     comparisonLabel: _comparisonLabel,
                     onPurchases: () => _go('/purchase-orders'),
                     onTreatments: () => _go('/medical-records'),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  flex: 4,
-                  child: _PriorityOverviewCard(
+                  const SizedBox(height: 14),
+                  _PriorityOverviewCard(
                     critical: _criticalCount,
                     high: _highCount,
                     medium: _mediumCount,
                     onViewAll: () => _go('/purchase-orders'),
                   ),
+                ],
+              )
+            else
+              SizedBox(
+                height: 270,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 7,
+                      child: _OperationalActivityCard(
+                        periodStats: period,
+                        periodWord: _periodWord,
+                        comparisonLabel: _comparisonLabel,
+                        onPurchases: () => _go('/purchase-orders'),
+                        onTreatments: () => _go('/medical-records'),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 4,
+                      child: _PriorityOverviewCard(
+                        critical: _criticalCount,
+                        high: _highCount,
+                        medium: _mediumCount,
+                        onViewAll: () => _go('/purchase-orders'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 20),
-        if (medium)
-          Column(
-            children: [
-              _MedicalFollowUpCard(
-                reminders: _followUpPreview,
-                totalCount: _followUps.length,
-                onViewAll: _followUps.isEmpty ? null : _openAllFollowUps,
-                onOpenReminder: _openFollowUpReminder,
               ),
-              const SizedBox(height: 14),
-              _SocialTemplateCard(alerts: _replenishment),
-            ],
-          )
-        else
-          SizedBox(
-            height: 270,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 7,
-                  child: _MedicalFollowUpCard(
+            const SizedBox(height: 20),
+            if (medium)
+              Column(
+                children: [
+                  _MedicalFollowUpCard(
                     reminders: _followUpPreview,
                     totalCount: _followUps.length,
                     onViewAll: _followUps.isEmpty ? null : _openAllFollowUps,
                     onOpenReminder: _openFollowUpReminder,
                   ),
+                  const SizedBox(height: 14),
+                  _SocialTemplateCard(alerts: _replenishment),
+                ],
+              )
+            else
+              SizedBox(
+                height: 270,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 7,
+                      child: _MedicalFollowUpCard(
+                        reminders: _followUpPreview,
+                        totalCount: _followUps.length,
+                        onViewAll:
+                            _followUps.isEmpty ? null : _openAllFollowUps,
+                        onOpenReminder: _openFollowUpReminder,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 4,
+                      child: _SocialTemplateCard(
+                        alerts: _replenishment,
+                        pinButtonToBottom: true,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  flex: 4,
-                  child: _SocialTemplateCard(
-                    alerts: _replenishment,
-                    pinButtonToBottom: true,
-                  ),
-                ),
-              ],
+              ),
+            const SizedBox(height: 18),
+            const Text(
+              'Period comparisons use recorded purchases and treatments. '
+              'Stock-attention and medical follow-up counts are current live values.',
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.45,
+                color: AppColors.mutedForeground,
+              ),
             ),
-          ),
-        const SizedBox(height: 18),
-        const Text(
-          'Period comparisons use recorded purchases and treatments. '
-          'Stock-attention and medical follow-up counts are current live values.',
-          style: TextStyle(
-            fontSize: 11.5,
-            height: 1.45,
-            color: AppColors.mutedForeground,
-          ),
-        ),
           ],
         );
       },
@@ -448,15 +446,11 @@ class _DashboardKpiGrid extends StatelessWidget {
                 : 1;
 
         final columns =
-            preferredColumns > cards.length
-                ? cards.length
-                : preferredColumns;
+            preferredColumns > cards.length ? cards.length : preferredColumns;
 
         const spacing = 12.0;
 
-        final cardWidth =
-            (width - (columns - 1) * spacing) /
-                columns;
+        final cardWidth = (width - (columns - 1) * spacing) / columns;
 
         return Wrap(
           spacing: spacing,
@@ -779,8 +773,7 @@ class _ActivityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final narrow =
-            constraints.maxWidth < 520;
+        final narrow = constraints.maxWidth < 520;
 
         final iconBox = Container(
           width: 38,
@@ -798,8 +791,7 @@ class _ActivityRow extends StatelessWidget {
         );
 
         final description = Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
@@ -814,8 +806,7 @@ class _ActivityRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11.2,
                 height: 1.35,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -823,15 +814,12 @@ class _ActivityRow extends StatelessWidget {
 
         final valueBlock = Column(
           crossAxisAlignment:
-              narrow
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.end,
+              narrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
           children: [
             Wrap(
               spacing: 7,
               runSpacing: 5,
-              crossAxisAlignment:
-                  WrapCrossAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   value,
@@ -850,8 +838,7 @@ class _ActivityRow extends StatelessWidget {
               valueLabel,
               style: const TextStyle(
                 fontSize: 10.5,
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ],
@@ -861,26 +848,21 @@ class _ActivityRow extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            hoverColor:
-                accent.withValues(alpha: 0.025),
-            borderRadius:
-                BorderRadius.circular(10),
+            hoverColor: accent.withValues(alpha: 0.025),
+            borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 vertical: 14,
               ),
               child: narrow
                   ? Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         iconBox,
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               description,
                               const SizedBox(
@@ -892,22 +874,19 @@ class _ActivityRow extends StatelessWidget {
                         ),
                         const SizedBox(width: 5),
                         const Padding(
-                          padding:
-                              EdgeInsets.only(
+                          padding: EdgeInsets.only(
                             top: 10,
                           ),
                           child: Icon(
                             Icons.chevron_right,
                             size: 18,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
                     )
                   : Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         iconBox,
                         const SizedBox(width: 12),
@@ -921,8 +900,7 @@ class _ActivityRow extends StatelessWidget {
                         const Icon(
                           Icons.chevron_right,
                           size: 18,
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ],
                     ),
@@ -1012,8 +990,7 @@ class _PriorityOverviewCard extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final narrow =
-                  constraints.maxWidth < 300;
+              final narrow = constraints.maxWidth < 300;
 
               final donut = SizedBox(
                 width: 148,
@@ -1023,35 +1000,27 @@ class _PriorityOverviewCard extends StatelessWidget {
                     critical: critical,
                     high: high,
                     medium: medium,
-                    criticalColor:
-                        AppColors.stockOut,
-                    highColor:
-                        AppColors.stockLow,
-                    mediumColor: AppColors
-                        .stockNeedsRestock,
-                    trackColor:
-                        AppColors.border,
+                    criticalColor: AppColors.stockOut,
+                    highColor: AppColors.stockLow,
+                    mediumColor: AppColors.stockNeedsRestock,
+                    trackColor: AppColors.border,
                   ),
                   child: Center(
                     child: Column(
-                      mainAxisSize:
-                          MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           '$total',
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 25,
-                            fontWeight:
-                                FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         const Text(
                           'items',
                           style: TextStyle(
                             fontSize: 10.5,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ],
@@ -1066,25 +1035,21 @@ class _PriorityOverviewCard extends StatelessWidget {
                     label: 'Critical',
                     value: critical,
                     helper: 'No usable stock',
-                    color:
-                        AppColors.stockOut,
+                    color: AppColors.stockOut,
                   ),
                   const SizedBox(height: 12),
                   _PriorityLegendRow(
                     label: 'High',
                     value: high,
                     helper: 'Well below ROP',
-                    color:
-                        AppColors.stockLow,
+                    color: AppColors.stockLow,
                   ),
                   const SizedBox(height: 12),
                   _PriorityLegendRow(
                     label: 'Medium',
                     value: medium,
-                    helper:
-                        'At or below ROP',
-                    color: AppColors
-                        .stockNeedsRestock,
+                    helper: 'At or below ROP',
+                    color: AppColors.stockNeedsRestock,
                   ),
                 ],
               );
@@ -1203,10 +1168,10 @@ class _PriorityDonutPainter extends CustomPainter {
     );
 
     final radius = math.min(
-          size.width,
-          size.height,
-        ) /
-        2 -
+              size.width,
+              size.height,
+            ) /
+            2 -
         10;
 
     final rect = Rect.fromCircle(
@@ -1551,14 +1516,11 @@ class _MedicalFollowUpDialog extends StatefulWidget {
   });
 
   @override
-  State<_MedicalFollowUpDialog> createState() =>
-      _MedicalFollowUpDialogState();
+  State<_MedicalFollowUpDialog> createState() => _MedicalFollowUpDialogState();
 }
 
-class _MedicalFollowUpDialogState
-    extends State<_MedicalFollowUpDialog> {
-  final TextEditingController _searchController =
-      TextEditingController();
+class _MedicalFollowUpDialogState extends State<_MedicalFollowUpDialog> {
+  final TextEditingController _searchController = TextEditingController();
 
   String _search = '';
   _FollowUpFilter _filter = _FollowUpFilter.all;
@@ -1574,8 +1536,7 @@ class _MedicalFollowUpDialogState
 
     return widget.reminders.where((reminder) {
       if (query.isNotEmpty) {
-        final matches =
-            reminder.petName.toLowerCase().contains(query) ||
+        final matches = reminder.petName.toLowerCase().contains(query) ||
             reminder.treatmentName.toLowerCase().contains(query);
 
         if (!matches) {
@@ -1599,10 +1560,8 @@ class _MedicalFollowUpDialogState
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    final width =
-        screen.width < 700 ? screen.width - 24 : 640.0;
-    final height =
-        screen.height < 760 ? screen.height - 24 : 690.0;
+    final width = screen.width < 700 ? screen.width - 24 : 640.0;
+    final height = screen.height < 760 ? screen.height - 24 : 690.0;
 
     final reminders = _filtered;
 
@@ -1726,8 +1685,7 @@ class _MedicalFollowUpDialogState
                         ),
                         _FilterChipButton(
                           label: 'Overdue',
-                          selected:
-                              _filter == _FollowUpFilter.overdue,
+                          selected: _filter == _FollowUpFilter.overdue,
                           onTap: () {
                             setState(() {
                               _filter = _FollowUpFilter.overdue;
@@ -1736,8 +1694,7 @@ class _MedicalFollowUpDialogState
                         ),
                         _FilterChipButton(
                           label: 'Due Soon',
-                          selected:
-                              _filter == _FollowUpFilter.dueSoon,
+                          selected: _filter == _FollowUpFilter.dueSoon,
                           onTap: () {
                             setState(() {
                               _filter = _FollowUpFilter.dueSoon;
@@ -1789,15 +1746,13 @@ class _MedicalFollowUpDialogState
                         vertical: 6,
                       ),
                       itemCount: reminders.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1),
+                      separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final reminder = reminders[index];
 
                         return _MedicalFollowUpRow(
                           reminder: reminder,
-                          onTap: () =>
-                              widget.onOpenReminder(reminder),
+                          onTap: () => widget.onOpenReminder(reminder),
                         );
                       },
                     ),
@@ -1823,9 +1778,8 @@ class _FilterChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? AppColors.primary.withValues(alpha: 0.09)
-          : Colors.white,
+      color:
+          selected ? AppColors.primary.withValues(alpha: 0.09) : Colors.white,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -1848,8 +1802,7 @@ class _FilterChipButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 10.8,
               fontWeight: FontWeight.w600,
-              color:
-                  selected ? AppColors.primary : AppColors.foreground,
+              color: selected ? AppColors.primary : AppColors.foreground,
             ),
           ),
         ),
@@ -1965,10 +1918,7 @@ class _SocialTemplateCard extends StatelessWidget {
                 ),
               ),
           ],
-          if (pinButtonToBottom)
-            const Spacer()
-          else
-            const SizedBox(height: 16),
+          if (pinButtonToBottom) const Spacer() else const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(

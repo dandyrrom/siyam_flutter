@@ -69,9 +69,7 @@ class SupabaseSupplierService implements SupplierService {
     String suppName, {
     String? excludeSuppId,
   }) async {
-    final rows = await _client
-        .from('supplier')
-        .select('id, name');
+    final rows = await _client.from('supplier').select('id, name');
 
     final targetKey = _supplierNameKey(suppName);
 
@@ -105,9 +103,7 @@ class SupabaseSupplierService implements SupplierService {
       );
 
   Future<Map<String, String>> _userNameMap() async {
-    final rows = await _client
-        .from('users')
-        .select('id, fname, lname');
+    final rows = await _client.from('users').select('id, fname, lname');
 
     return {
       for (final r in rows)
@@ -118,9 +114,7 @@ class SupabaseSupplierService implements SupplierService {
   }
 
   Future<Map<String, String>> _unitAbbrMap() async {
-    final rows = await _client
-        .from('units')
-        .select('id, abbr_name');
+    final rows = await _client.from('units').select('id, abbr_name');
 
     return {
       for (final r in rows)
@@ -243,10 +237,7 @@ class SupabaseSupplierService implements SupplierService {
 
   @override
   Future<void> deleteSupplier(String suppId) async {
-    await _client
-        .from('supplier')
-        .delete()
-        .eq('id', suppId);
+    await _client.from('supplier').delete().eq('id', suppId);
 
     DataChangeBus.instance.ping();
   }
@@ -318,7 +309,11 @@ class SupabaseSupplierService implements SupplierService {
     }
 
     final results = await Future.wait<Object?>([
-      _client.from('purchase').select(_orderColumns).eq('id', purId).maybeSingle(),
+      _client
+          .from('purchase')
+          .select(_orderColumns)
+          .eq('id', purId)
+          .maybeSingle(),
       _userNameMap(),
     ]);
 
@@ -371,9 +366,7 @@ class SupabaseSupplierService implements SupplierService {
 
   @override
   Future<List<OrderSpendEntry>> fetchOrderSpendEntries() async {
-    final rows = await _client
-        .from('purchase_item')
-        .select(
+    final rows = await _client.from('purchase_item').select(
           'qty, purchase_unit_cost, purchase(receiveddate)',
         );
 
@@ -433,11 +426,8 @@ class SupabaseSupplierService implements SupplierService {
       'receiveddate': actualReceivedDate.toUtc().toIso8601String(),
     };
 
-    final purchase = await _client
-        .from('purchase')
-        .insert(insert)
-        .select('id')
-        .single();
+    final purchase =
+        await _client.from('purchase').insert(insert).select('id').single();
 
     final purId = purchase['id'] as String;
 
@@ -492,12 +482,9 @@ class SupabaseSupplierService implements SupplierService {
             'itemid': item.itemId,
             'purchaseitemid': purchaseItemId,
             'donationitemid': null,
-            'batchcode':
-                'PUR-${purchaseItemId.substring(0, 8).toUpperCase()}',
-            'receiveddate':
-                actualReceivedDate.toUtc().toIso8601String(),
-            'expirydate':
-                item.expiryDate?.toIso8601String().split('T').first,
+            'batchcode': 'PUR-${purchaseItemId.substring(0, 8).toUpperCase()}',
+            'receiveddate': actualReceivedDate.toUtc().toIso8601String(),
+            'expirydate': item.expiryDate?.toIso8601String().split('T').first,
             'qtyreceived': batchQty,
             'qtyavailable': batchQty,
             'qtyunit': qtyUnitToString(
@@ -518,20 +505,15 @@ class SupabaseSupplierService implements SupplierService {
       // RECEIVE TRANSACTION
       // ======================================================================
 
-      await _client
-          .from('batch_transaction_log')
-          .insert({
+      await _client.from('batch_transaction_log').insert({
         'inventorybatchid': inventoryBatchId,
         'treatmentitemid': null,
         'txntype': 'RECEIVE',
         'qtychange': batchQty,
         'qtyunit': qtyUnitToString(
-          packageQuantity == null
-              ? QtyUnit.purchaseUnit
-              : QtyUnit.packageUnit,
+          packageQuantity == null ? QtyUnit.purchaseUnit : QtyUnit.packageUnit,
         ),
-        'txndate':
-            actualReceivedDate.toUtc().toIso8601String(),
+        'txndate': actualReceivedDate.toUtc().toIso8601String(),
         'performedby': recordedByUserId,
         'notes': 'Stock received from purchase $purId',
       });

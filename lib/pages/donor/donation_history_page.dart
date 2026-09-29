@@ -9,6 +9,7 @@ import '../../state/auth_state.dart';
 import '../../state/data_bus.dart';
 import '../../state/page_snapshot_cache.dart';
 import '../../widgets/page_loading.dart';
+
 // Controls the donor-friendly history filters shown at the top of the page.
 enum _DonationHistoryFilter {
   all,
@@ -39,11 +40,9 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
   void initState() {
     super.initState();
 
-    final donorId =
-        context.read<AuthController>().profile?.userId;
+    final donorId = context.read<AuthController>().profile?.userId;
     if (donorId != null) {
-      final cached = PageSnapshotCache.instance
-          .peekList<DonationSubmission>(
+      final cached = PageSnapshotCache.instance.peekList<DonationSubmission>(
         '${PageSnapshotCache.donorSubmissionsPrefix}$donorId',
       );
       if (cached != null) {
@@ -64,8 +63,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
   }
 
   Future<void> _load({bool silent = false}) async {
-    final donorId =
-        context.read<AuthController>().profile?.userId;
+    final donorId = context.read<AuthController>().profile?.userId;
 
     if (donorId == null) return;
 
@@ -78,8 +76,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
     try {
       // Gets only the logged-in donor's submissions.
-      final rows =
-          await _service.fetchSubmissions(donorId: donorId);
+      final rows = await _service.fetchSubmissions(donorId: donorId);
 
       if (!mounted) return;
 
@@ -167,18 +164,14 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
           return true;
 
         case _DonationHistoryFilter.review:
-          return submission.status ==
-              SubmissionStatus.pending;
+          return submission.status == SubmissionStatus.pending;
 
         case _DonationHistoryFilter.inProgress:
-          return submission.status ==
-                  SubmissionStatus.approved ||
-              submission.status ==
-                  SubmissionStatus.received;
+          return submission.status == SubmissionStatus.approved ||
+              submission.status == SubmissionStatus.received;
 
         case _DonationHistoryFilter.completed:
-          return submission.status ==
-              SubmissionStatus.stocked;
+          return submission.status == SubmissionStatus.stocked;
       }
     }).toList();
   }
@@ -192,8 +185,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
   Future<void> _openDetailDialog(
     DonationSubmission sub,
   ) async {
-    final bool isMobile =
-        MediaQuery.of(context).size.width < 600;
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
 
     List<DonationLineItem>? items;
     String? itemsError;
@@ -208,13 +200,10 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
           ) {
             // Completed donations can show the items that were actually
             // received and recorded by shelter staff.
-            if (sub.status ==
-                    SubmissionStatus.stocked &&
+            if (sub.status == SubmissionStatus.stocked &&
                 items == null &&
                 itemsError == null) {
-              _service
-                  .fetchReceivedItems(sub.subId)
-                  .then((rows) {
+              _service.fetchReceivedItems(sub.subId).then((rows) {
                 if (!context.mounted) return;
 
                 setDialogState(() {
@@ -224,36 +213,30 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                 if (!context.mounted) return;
 
                 setDialogState(() {
-                  itemsError =
-                      'Could not load donated items.';
+                  itemsError = 'Could not load donated items.';
                 });
               });
             }
 
-            final (statusLabel, statusColor) =
-                _statusMeta(sub.status);
+            final (statusLabel, statusColor) = _statusMeta(sub.status);
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(20),
               ),
-              titlePadding:
-                  const EdgeInsets.fromLTRB(
+              titlePadding: const EdgeInsets.fromLTRB(
                 22,
                 20,
                 12,
                 0,
               ),
-              contentPadding:
-                  const EdgeInsets.fromLTRB(
+              contentPadding: const EdgeInsets.fromLTRB(
                 22,
                 18,
                 22,
                 10,
               ),
-              actionsPadding:
-                  const EdgeInsets.fromLTRB(
+              actionsPadding: const EdgeInsets.fromLTRB(
                 16,
                 4,
                 16,
@@ -266,20 +249,16 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                     child: Text(
                       'Donation Details',
                       style: TextStyle(
-                        fontSize:
-                            isMobile ? 18 : 20,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontSize: isMobile ? 18 : 20,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-
                   IconButton(
                     tooltip: 'Close',
-                    onPressed: () =>
-                        Navigator.of(
-                          dialogContext,
-                        ).pop(),
+                    onPressed: () => Navigator.of(
+                      dialogContext,
+                    ).pop(),
                     icon: const Icon(
                       Icons.close,
                     ),
@@ -288,102 +267,71 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
               ),
 
               content: SizedBox(
-                width: isMobile
-                    ? double.infinity
-                    : 460,
+                width: isMobile ? double.infinity : 460,
                 child: SingleChildScrollView(
                   child: Column(
-                    mainAxisSize:
-                        MainAxisSize.min,
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ==============================================
                       // STATUS
                       // ==============================================
                       Container(
                         width: double.infinity,
-                        padding:
-                            const EdgeInsets.all(14),
-                        decoration:
-                            BoxDecoration(
-                          color: statusColor
-                              .withValues(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(
                             alpha: 0.06,
                           ),
-                          borderRadius:
-                              BorderRadius.circular(
-                                  12),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: statusColor
-                                .withValues(
+                            color: statusColor.withValues(
                               alpha: 0.22,
                             ),
                           ),
                         ),
                         child: Row(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
                               width: 36,
                               height: 36,
-                              decoration:
-                                  BoxDecoration(
-                                color: statusColor
-                                    .withValues(
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(
                                   alpha: 0.12,
                                 ),
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                            10),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 _statusIcon(
                                   sub.status,
                                 ),
                                 size: 19,
-                                color:
-                                    statusColor,
+                                color: statusColor,
                               ),
                             ),
-
-                            const SizedBox(
-                                width: 12),
-
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     statusLabel,
-                                    style:
-                                        TextStyle(
-                                      fontSize:
-                                          14,
-                                      fontWeight:
-                                          FontWeight
-                                              .w700,
-                                      color:
-                                          statusColor,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: statusColor,
                                     ),
                                   ),
-                                  const SizedBox(
-                                      height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
                                     _statusDescription(
                                       sub.status,
                                     ),
-                                    style:
-                                        const TextStyle(
-                                      fontSize:
-                                          12.5,
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
                                       height: 1.4,
-                                      color: AppColors
-                                          .mutedForeground,
+                                      color: AppColors.mutedForeground,
                                     ),
                                   ),
                                 ],
@@ -409,67 +357,47 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                       ),
 
                       _DetailRow(
-                        label:
-                            'Preferred drop-off',
-                        value: sub.schedDate ==
-                                null
+                        label: 'Preferred drop-off',
+                        value: sub.schedDate == null
                             ? 'Not specified'
                             : _formatDate(
                                 sub.schedDate!,
                               ),
                       ),
 
-                      if (sub.dateReceived !=
-                          null)
+                      if (sub.dateReceived != null)
                         _DetailRow(
-                          label:
-                              'Received by shelter',
+                          label: 'Received by shelter',
                           value: _formatDate(
                             sub.dateReceived!,
                           ),
                         ),
 
-                      if (sub.updatedByName !=
-                          null)
+                      if (sub.updatedByName != null)
                         _DetailRow(
                           label: 'Reviewed by',
-                          value:
-                              sub.updatedByName!,
+                          value: sub.updatedByName!,
                         ),
 
-                      if (sub.notes?.trim().isNotEmpty ??
-                          false) ...[
-                        const SizedBox(
-                            height: 10),
-
+                      if (sub.notes?.trim().isNotEmpty ?? false) ...[
+                        const SizedBox(height: 10),
                         const _DialogSectionLabel(
                           'Your Note',
                         ),
-
                         const SizedBox(height: 8),
-
                         Container(
                           width: double.infinity,
-                          padding:
-                              const EdgeInsets.all(
-                                  14),
-                          decoration:
-                              BoxDecoration(
-                            color:
-                                AppColors.card,
-                            borderRadius:
-                                BorderRadius
-                                    .circular(12),
-                            border:
-                                Border.all(
-                              color:
-                                  AppColors.border,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.card,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.border,
                             ),
                           ),
                           child: Text(
                             sub.notes!,
-                            style:
-                                const TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
                               height: 1.4,
                             ),
@@ -480,69 +408,45 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                       // ==============================================
                       // ITEMS RECEIVED
                       // ==============================================
-                      if (sub.status ==
-                          SubmissionStatus
-                              .stocked) ...[
-                        const SizedBox(
-                            height: 20),
-
+                      if (sub.status == SubmissionStatus.stocked) ...[
+                        const SizedBox(height: 20),
                         const _DialogSectionLabel(
                           'Items Received',
                         ),
-
                         const SizedBox(height: 4),
-
                         const Text(
                           'These are the items recorded by the shelter from this donation.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
-
-                        const SizedBox(
-                            height: 10),
-
+                        const SizedBox(height: 10),
                         if (itemsError != null)
                           Container(
-                            width:
-                                double.infinity,
-                            padding:
-                                const EdgeInsets
-                                    .all(12),
-                            decoration:
-                                BoxDecoration(
-                              color: AppColors
-                                  .destructive
-                                  .withValues(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.destructive.withValues(
                                 alpha: 0.06,
                               ),
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                          10),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               itemsError!,
-                              style:
-                                  const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12.5,
-                                color: AppColors
-                                    .destructive,
+                                color: AppColors.destructive,
                               ),
                             ),
                           )
                         else if (items == null)
                           const Padding(
-                            padding:
-                                EdgeInsets
-                                    .symmetric(
+                            padding: EdgeInsets.symmetric(
                               vertical: 18,
                             ),
                             child: Center(
-                              child:
-                                  CircularProgressIndicator(),
+                              child: CircularProgressIndicator(),
                             ),
                           )
                         else if (items!.isEmpty)
@@ -550,73 +454,46 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                             'No item details are available for this donation.',
                             style: TextStyle(
                               fontSize: 12.5,
-                              color: AppColors
-                                  .mutedForeground,
+                              color: AppColors.mutedForeground,
                             ),
                           )
                         else
                           Container(
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  AppColors.card,
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                          12),
-                              border:
-                                  Border.all(
-                                color:
-                                    AppColors.border,
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.border,
                               ),
                             ),
                             child: Column(
                               children: [
-                                for (var i = 0;
-                                    i <
-                                        items!
-                                            .length;
-                                    i++) ...[
+                                for (var i = 0; i < items!.length; i++) ...[
                                   if (i > 0)
                                     const Divider(
                                       height: 1,
                                     ),
-
                                   Padding(
-                                    padding:
-                                        const EdgeInsets
-                                            .symmetric(
-                                      horizontal:
-                                          14,
-                                      vertical:
-                                          12,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
                                     ),
                                     child: Row(
                                       children: [
                                         Expanded(
-                                          child:
-                                              Text(
-                                            items![i]
-                                                .itemName,
-                                            style:
-                                                const TextStyle(
-                                              fontWeight:
-                                                  FontWeight
-                                                      .w600,
+                                          child: Text(
+                                            items![i].itemName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(
-                                            width:
-                                                12),
+                                        const SizedBox(width: 12),
                                         Text(
                                           '${items![i].qty} ${items![i].itemUom}',
-                                          style:
-                                              const TextStyle(
-                                            fontSize:
-                                                12.5,
-                                            color: AppColors
-                                                .mutedForeground,
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            color: AppColors.mutedForeground,
                                           ),
                                         ),
                                       ],
@@ -650,12 +527,10 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
         return Icons.schedule_outlined;
 
       case SubmissionStatus.approved:
-        return Icons
-            .check_circle_outline;
+        return Icons.check_circle_outline;
 
       case SubmissionStatus.received:
-        return Icons
-            .local_shipping_outlined;
+        return Icons.local_shipping_outlined;
 
       case SubmissionStatus.stocked:
         return Icons.done_all_outlined;
@@ -667,14 +542,13 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool isMobile =
-        MediaQuery.of(context).size.width < 600;
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
 
-  if (_loading && _submissions.isEmpty) {
-  return const PageLoading(
-    message: 'Loading your donation records',
-  );
-}
+    if (_loading && _submissions.isEmpty) {
+      return const PageLoading(
+        message: 'Loading your donation records',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -684,8 +558,7 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
             Text(
               _error!,
               style: const TextStyle(
-                color:
-                    AppColors.mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
             const SizedBox(height: 12),
@@ -700,44 +573,35 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
     final reviewCount = _submissions
         .where(
-          (s) =>
-              s.status ==
-              SubmissionStatus.pending,
+          (s) => s.status == SubmissionStatus.pending,
         )
         .length;
 
     final inProgressCount = _submissions
         .where(
           (s) =>
-              s.status ==
-                  SubmissionStatus.approved ||
-              s.status ==
-                  SubmissionStatus.received,
+              s.status == SubmissionStatus.approved ||
+              s.status == SubmissionStatus.received,
         )
         .length;
 
     final completedCount = _submissions
         .where(
-          (s) =>
-              s.status ==
-              SubmissionStatus.stocked,
+          (s) => s.status == SubmissionStatus.stocked,
         )
         .length;
 
-    final filteredSubmissions =
-        _filteredSubmissions;
+    final filteredSubmissions = _filteredSubmissions;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ============================================================
         // HEADER
         // ============================================================
         if (isMobile)
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'My Donations',
@@ -746,21 +610,16 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                   fontWeight: FontWeight.w800,
                 ),
               ),
-
               const SizedBox(height: 4),
-
               const Text(
                 'Track your donation requests and see when your items are received by the shelter.',
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.4,
-                  color:
-                      AppColors.mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
-
               const SizedBox(height: 14),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -780,10 +639,8 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                   label: const Text(
                     'Make a Donation',
                   ),
-                  style:
-                      ElevatedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
                       vertical: 14,
                     ),
                   ),
@@ -793,24 +650,19 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
           )
         else
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'My Donations',
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 24,
-                        fontWeight:
-                            FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     SizedBox(height: 4),
@@ -818,16 +670,13 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                       'Track your donation requests and see when your items are received by the shelter.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 20),
-
               ElevatedButton.icon(
                 onPressed: () async {
                   await context.push(
@@ -859,15 +708,11 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
             context,
             constraints,
           ) {
-            final compact =
-                constraints.maxWidth < 760;
+            final compact = constraints.maxWidth < 760;
 
-            final cardWidth =
-                constraints.maxWidth < 500
-                    ? constraints.maxWidth
-                    : (constraints.maxWidth -
-                            12) /
-                        2;
+            final cardWidth = constraints.maxWidth < 500
+                ? constraints.maxWidth
+                : (constraints.maxWidth - 12) / 2;
 
             if (compact) {
               return Wrap(
@@ -876,96 +721,57 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                 children: [
                   SizedBox(
                     width: cardWidth,
-                    child:
-                        _DonationFilterCard(
-                      label:
-                          'All Donation Attempts',
-                      description:
-                          'Your complete history',
-                      value:
-                          '${_submissions.length}',
-                      icon: Icons
-                          .volunteer_activism_outlined,
-                      accent:
-                          AppColors.roleDonor,
-                      selected: _filter ==
-                          _DonationHistoryFilter
-                              .all,
-                      onTap: () =>
-                          _setFilter(
-                        _DonationHistoryFilter
-                            .all,
+                    child: _DonationFilterCard(
+                      label: 'All Donation Attempts',
+                      description: 'Your complete history',
+                      value: '${_submissions.length}',
+                      icon: Icons.volunteer_activism_outlined,
+                      accent: AppColors.roleDonor,
+                      selected: _filter == _DonationHistoryFilter.all,
+                      onTap: () => _setFilter(
+                        _DonationHistoryFilter.all,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child:
-                        _DonationFilterCard(
-                      label:
-                          'Under Review',
-                      description:
-                          'Waiting for staff review',
-                      value:
-                          '$reviewCount',
-                      icon: Icons
-                          .schedule_outlined,
-                      accent:
-                          AppColors.warning,
-                      selected: _filter ==
-                          _DonationHistoryFilter
-                              .review,
-                      onTap: () =>
-                          _setFilter(
-                        _DonationHistoryFilter
-                            .review,
+                    child: _DonationFilterCard(
+                      label: 'Under Review',
+                      description: 'Waiting for staff review',
+                      value: '$reviewCount',
+                      icon: Icons.schedule_outlined,
+                      accent: AppColors.warning,
+                      selected: _filter == _DonationHistoryFilter.review,
+                      onTap: () => _setFilter(
+                        _DonationHistoryFilter.review,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child:
-                        _DonationFilterCard(
-                      label:
-                          'In Progress',
-                      description:
-                          'Accepted or received',
-                      value:
-                          '$inProgressCount',
-                      icon: Icons
-                          .local_shipping_outlined,
-                      accent:
-                          AppColors.primary,
-                      selected: _filter ==
-                          _DonationHistoryFilter
-                              .inProgress,
-                      onTap: () =>
-                          _setFilter(
-                        _DonationHistoryFilter
-                            .inProgress,
+                    child: _DonationFilterCard(
+                      label: 'In Progress',
+                      description: 'Accepted or received',
+                      value: '$inProgressCount',
+                      icon: Icons.local_shipping_outlined,
+                      accent: AppColors.primary,
+                      selected: _filter == _DonationHistoryFilter.inProgress,
+                      onTap: () => _setFilter(
+                        _DonationHistoryFilter.inProgress,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child:
-                        _DonationFilterCard(
+                    child: _DonationFilterCard(
                       label: 'Completed',
-                      description:
-                          'Recorded by the shelter',
-                      value:
-                          '$completedCount',
-                      icon: Icons
-                          .done_all_outlined,
-                      accent:
-                          AppColors.primary,
-                      selected: _filter ==
-                          _DonationHistoryFilter
-                              .completed,
-                      onTap: () =>
-                          _setFilter(
-                        _DonationHistoryFilter
-                            .completed,
+                      description: 'Recorded by the shelter',
+                      value: '$completedCount',
+                      icon: Icons.done_all_outlined,
+                      accent: AppColors.primary,
+                      selected: _filter == _DonationHistoryFilter.completed,
+                      onTap: () => _setFilter(
+                        _DonationHistoryFilter.completed,
                       ),
                     ),
                   ),
@@ -976,94 +782,57 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
             return Row(
               children: [
                 Expanded(
-                  child:
-                      _DonationFilterCard(
+                  child: _DonationFilterCard(
                     label: 'All Donation Attempts',
-                    description:
-                        'Your complete history',
-                    value:
-                        '${_submissions.length}',
-                    icon: Icons
-                        .volunteer_activism_outlined,
-                    accent:
-                        AppColors.roleDonor,
-                    selected: _filter ==
-                        _DonationHistoryFilter
-                            .all,
+                    description: 'Your complete history',
+                    value: '${_submissions.length}',
+                    icon: Icons.volunteer_activism_outlined,
+                    accent: AppColors.roleDonor,
+                    selected: _filter == _DonationHistoryFilter.all,
                     onTap: () => _setFilter(
-                      _DonationHistoryFilter
-                          .all,
+                      _DonationHistoryFilter.all,
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
-                  child:
-                      _DonationFilterCard(
+                  child: _DonationFilterCard(
                     label: 'Under Review',
-                    description:
-                        'Waiting for staff review',
+                    description: 'Waiting for staff review',
                     value: '$reviewCount',
-                    icon: Icons
-                        .schedule_outlined,
-                    accent:
-                        AppColors.warning,
-                    selected: _filter ==
-                        _DonationHistoryFilter
-                            .review,
+                    icon: Icons.schedule_outlined,
+                    accent: AppColors.warning,
+                    selected: _filter == _DonationHistoryFilter.review,
                     onTap: () => _setFilter(
-                      _DonationHistoryFilter
-                          .review,
+                      _DonationHistoryFilter.review,
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
-                  child:
-                      _DonationFilterCard(
+                  child: _DonationFilterCard(
                     label: 'In Progress',
-                    description:
-                        'Accepted or received',
-                    value:
-                        '$inProgressCount',
-                    icon: Icons
-                        .local_shipping_outlined,
-                    accent:
-                        AppColors.primary,
-                    selected: _filter ==
-                        _DonationHistoryFilter
-                            .inProgress,
+                    description: 'Accepted or received',
+                    value: '$inProgressCount',
+                    icon: Icons.local_shipping_outlined,
+                    accent: AppColors.primary,
+                    selected: _filter == _DonationHistoryFilter.inProgress,
                     onTap: () => _setFilter(
-                      _DonationHistoryFilter
-                          .inProgress,
+                      _DonationHistoryFilter.inProgress,
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
-                  child:
-                      _DonationFilterCard(
+                  child: _DonationFilterCard(
                     label: 'Completed',
-                    description:
-                        'Recorded by the shelter',
-                    value:
-                        '$completedCount',
-                    icon: Icons
-                        .done_all_outlined,
-                    accent:
-                        AppColors.primary,
-                    selected: _filter ==
-                        _DonationHistoryFilter
-                            .completed,
+                    description: 'Recorded by the shelter',
+                    value: '$completedCount',
+                    icon: Icons.done_all_outlined,
+                    accent: AppColors.primary,
+                    selected: _filter == _DonationHistoryFilter.completed,
                     onTap: () => _setFilter(
-                      _DonationHistoryFilter
-                          .completed,
+                      _DonationHistoryFilter.completed,
                     ),
                   ),
                 ),
@@ -1088,20 +857,16 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
                 ),
               ),
             ),
-
-            if (_filter !=
-                _DonationHistoryFilter.all)
+            if (_filter != _DonationHistoryFilter.all)
               TextButton.icon(
-                onPressed: () =>
-                    _setFilter(
+                onPressed: () => _setFilter(
                   _DonationHistoryFilter.all,
                 ),
                 icon: const Icon(
                   Icons.close,
                   size: 16,
                 ),
-                label:
-                    const Text('Show all'),
+                label: const Text('Show all'),
               ),
           ],
         ),
@@ -1120,46 +885,34 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
 
         if (_submissions.isEmpty)
           Padding(
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               vertical: 56,
             ),
             child: Center(
               child: Column(
                 children: [
                   const Icon(
-                    Icons
-                        .volunteer_activism_outlined,
+                    Icons.volunteer_activism_outlined,
                     size: 38,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
-
                   const SizedBox(height: 12),
-
                   const Text(
                     'You haven\'t made a donation yet',
                     style: TextStyle(
-                      fontWeight:
-                          FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-
                   const SizedBox(height: 5),
-
                   const Text(
                     'Your donation requests and their progress will appear here.',
-                    textAlign:
-                        TextAlign.center,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
                   ElevatedButton.icon(
                     onPressed: () async {
                       await context.push(
@@ -1182,48 +935,39 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
               ),
             ),
           )
-        else if (filteredSubmissions
-            .isEmpty)
+        else if (filteredSubmissions.isEmpty)
           Padding(
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               vertical: 48,
             ),
             child: Center(
               child: Column(
                 children: [
                   const Icon(
-                    Icons
-                        .filter_alt_off_outlined,
+                    Icons.filter_alt_off_outlined,
                     size: 34,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                   const SizedBox(height: 10),
                   const Text(
                     'No donations in this stage',
                     style: TextStyle(
-                      fontWeight:
-                          FontWeight.w600,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
                   const Text(
                     'Choose another category to view the rest of your donation records.',
-                    textAlign:
-                        TextAlign.center,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () =>
-                        _setFilter(
-                      _DonationHistoryFilter
-                          .all,
+                    onPressed: () => _setFilter(
+                      _DonationHistoryFilter.all,
                     ),
                     child: const Text(
                       'View all donation attempts',
@@ -1237,33 +981,24 @@ class _DonorDonationsPageState extends State<DonorDonationsPage>
           Container(
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius:
-                  BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.border,
               ),
             ),
             child: Column(
               children: [
-                for (var i = 0;
-                    i <
-                        filteredSubmissions
-                            .length;
-                    i++) ...[
+                for (var i = 0; i < filteredSubmissions.length; i++) ...[
                   if (i > 0)
                     const Divider(
                       height: 1,
                     ),
-
                   _SubmissionRow(
-                    submission:
-                        filteredSubmissions[i],
+                    submission: filteredSubmissions[i],
                     statusMeta: _statusMeta(
-                      filteredSubmissions[i]
-                          .status,
+                      filteredSubmissions[i].status,
                     ),
-                    onTap: () =>
-                        _openDetailDialog(
+                    onTap: () => _openDetailDialog(
                       filteredSubmissions[i],
                     ),
                     isMobile: isMobile,
@@ -1301,22 +1036,18 @@ class _DonationFilterCard extends StatefulWidget {
   });
 
   @override
-  State<_DonationFilterCard> createState() =>
-      _DonationFilterCardState();
+  State<_DonationFilterCard> createState() => _DonationFilterCardState();
 }
 
-class _DonationFilterCardState
-    extends State<_DonationFilterCard> {
+class _DonationFilterCardState extends State<_DonationFilterCard> {
   bool _hovering = false;
 
   @override
   Widget build(BuildContext context) {
-    final highlighted =
-        widget.selected || _hovering;
+    final highlighted = widget.selected || _hovering;
 
     return MouseRegion(
-      cursor:
-          SystemMouseCursors.click,
+      cursor: SystemMouseCursors.click,
       onEnter: (_) {
         setState(() {
           _hovering = true;
@@ -1333,24 +1064,17 @@ class _DonationFilterCardState
           duration: const Duration(
             milliseconds: 150,
           ),
-          padding:
-              const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: widget.selected
-                ? widget.accent
-                    .withValues(
-                        alpha: 0.07)
+                ? widget.accent.withValues(alpha: 0.07)
                 : AppColors.card,
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: highlighted
-                  ? widget.accent
-                      .withValues(
-                          alpha: 0.65)
+                  ? widget.accent.withValues(alpha: 0.65)
                   : AppColors.border,
-              width:
-                  widget.selected ? 1.5 : 1,
+              width: widget.selected ? 1.5 : 1,
             ),
           ),
           child: Row(
@@ -1358,14 +1082,9 @@ class _DonationFilterCardState
               Container(
                 width: 40,
                 height: 40,
-                decoration:
-                    BoxDecoration(
-                  color: widget.accent
-                      .withValues(
-                          alpha: 0.10),
-                  borderRadius:
-                      BorderRadius.circular(
-                          10),
+                decoration: BoxDecoration(
+                  color: widget.accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   widget.icon,
@@ -1373,58 +1092,38 @@ class _DonationFilterCardState
                   color: widget.accent,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.label,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight:
-                            widget.selected
-                                ? FontWeight
-                                    .w700
-                                : FontWeight
-                                    .w600,
+                            widget.selected ? FontWeight.w700 : FontWeight.w600,
                       ),
                     ),
-
-                    const SizedBox(
-                        height: 2),
-
+                    const SizedBox(height: 2),
                     Text(
                       widget.description,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          const TextStyle(
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
               Text(
                 widget.value,
                 style: TextStyle(
                   fontSize: 22,
-                  fontWeight:
-                      FontWeight.w800,
+                  fontWeight: FontWeight.w800,
                   color: widget.accent,
                 ),
               ),
@@ -1456,12 +1155,10 @@ class _SubmissionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sub = submission;
-    final (statusLabel, statusColor) =
-        statusMeta;
+    final (statusLabel, statusColor) = statusMeta;
 
     final statusBadge = Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 4,
       ),
@@ -1469,14 +1166,12 @@ class _SubmissionRow extends StatelessWidget {
         color: statusColor.withValues(
           alpha: 0.12,
         ),
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         statusLabel,
         style: TextStyle(
-          fontSize:
-              isMobile ? 10.5 : 11.5,
+          fontSize: isMobile ? 10.5 : 11.5,
           fontWeight: FontWeight.w600,
           color: statusColor,
         ),
@@ -1487,31 +1182,24 @@ class _SubmissionRow extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal:
-              isMobile ? 14 : 18,
-          vertical:
-              isMobile ? 13 : 15,
+          horizontal: isMobile ? 14 : 18,
+          vertical: isMobile ? 13 : 15,
         ),
         child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Donation status icon.
             Container(
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: statusColor
-                    .withValues(
+                color: statusColor.withValues(
                   alpha: 0.08,
                 ),
-                borderRadius:
-                    BorderRadius.circular(
-                        10),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                _rowStatusIcon(
-                    sub.status),
+                _rowStatusIcon(sub.status),
                 size: 19,
                 color: statusColor,
               ),
@@ -1521,23 +1209,15 @@ class _SubmissionRow extends StatelessWidget {
 
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Donation submitted ${_formatDate(sub.dateSub)}',
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        TextStyle(
-                      fontWeight:
-                          FontWeight.w600,
-                      fontSize:
-                          isMobile
-                              ? 13.5
-                              : 14.5,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: isMobile ? 13.5 : 14.5,
                     ),
                   ),
 
@@ -1547,11 +1227,9 @@ class _SubmissionRow extends StatelessWidget {
                     sub.schedDate == null
                         ? 'No preferred drop-off date'
                         : 'Preferred drop-off: ${_formatDate(sub.schedDate!)}',
-                    style:
-                        const TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
 
@@ -1559,10 +1237,8 @@ class _SubmissionRow extends StatelessWidget {
                   // so the layout stays readable.
                   if (isMobile) ...[
                     const SizedBox(height: 7),
-
                     Align(
-                      alignment:
-                          Alignment.centerLeft,
+                      alignment: Alignment.centerLeft,
                       child: statusBadge,
                     ),
                   ],
@@ -1574,7 +1250,6 @@ class _SubmissionRow extends StatelessWidget {
             // so every badge lines up vertically and horizontally.
             if (!isMobile) ...[
               const SizedBox(width: 16),
-
               SizedBox(
                 width: 160,
                 child: Center(
@@ -1591,8 +1266,7 @@ class _SubmissionRow extends StatelessWidget {
                 child: Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: AppColors
-                      .mutedForeground,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ),
@@ -1617,20 +1291,16 @@ class _HoverableDonationRow extends StatefulWidget {
   });
 
   @override
-  State<_HoverableDonationRow>
-      createState() =>
-          _HoverableDonationRowState();
+  State<_HoverableDonationRow> createState() => _HoverableDonationRowState();
 }
 
-class _HoverableDonationRowState
-    extends State<_HoverableDonationRow> {
+class _HoverableDonationRowState extends State<_HoverableDonationRow> {
   bool _hovering = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      cursor:
-          SystemMouseCursors.click,
+      cursor: SystemMouseCursors.click,
       onEnter: (_) {
         setState(() {
           _hovering = true;
@@ -1648,8 +1318,7 @@ class _HoverableDonationRowState
             milliseconds: 120,
           ),
           color: _hovering
-              ? AppColors.muted
-                  .withValues(alpha: 0.35)
+              ? AppColors.muted.withValues(alpha: 0.35)
               : Colors.transparent,
           child: widget.child,
         ),
@@ -1693,13 +1362,11 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
+      padding: const EdgeInsets.only(
         bottom: 11,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 135,
@@ -1707,19 +1374,16 @@ class _DetailRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 fontSize: 12.5,
-                color: AppColors
-                    .mutedForeground,
+                color: AppColors.mutedForeground,
               ),
             ),
           ),
-
           Expanded(
             child: Text(
               value,
               style: const TextStyle(
                 fontSize: 13,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1741,12 +1405,10 @@ IconData _rowStatusIcon(
       return Icons.schedule_outlined;
 
     case SubmissionStatus.approved:
-      return Icons
-          .check_circle_outline;
+      return Icons.check_circle_outline;
 
     case SubmissionStatus.received:
-      return Icons
-          .local_shipping_outlined;
+      return Icons.local_shipping_outlined;
 
     case SubmissionStatus.stocked:
       return Icons.done_all_outlined;

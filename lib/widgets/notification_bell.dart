@@ -19,71 +19,54 @@ class NotificationBell extends StatefulWidget {
   const NotificationBell({super.key});
 
   @override
-  State<NotificationBell> createState() =>
-      _NotificationBellState();
+  State<NotificationBell> createState() => _NotificationBellState();
 }
 
-class _NotificationBellState
-    extends State<NotificationBell>
+class _NotificationBellState extends State<NotificationBell>
     with
-        DropdownOverlayMixin<
-            NotificationBell>,
-        DataBusRefreshMixin<
-            NotificationBell> {
-  final DashboardService _service =
-      DashboardService();
+        DropdownOverlayMixin<NotificationBell>,
+        DataBusRefreshMixin<NotificationBell> {
+  final DashboardService _service = DashboardService();
 
-  final DonorNotificationService
-      _donorNotificationService =
+  final DonorNotificationService _donorNotificationService =
       DonorNotificationService();
 
   List<CompactNotif> _notifs = [];
 
-  List<DonorNotification>
-      _donorNotifs = [];
+  List<DonorNotification> _donorNotifs = [];
 
-  Set<String> _seenDonorNotificationIds =
-      <String>{};
+  Set<String> _seenDonorNotificationIds = <String>{};
 
   int get _donorUnreadCount {
     return _donorNotifs
         .where(
           (notification) =>
-              !_seenDonorNotificationIds
-                  .contains(notification.id),
+              !_seenDonorNotificationIds.contains(notification.id),
         )
         .length;
   }
 
   @override
-  Alignment get targetAnchor =>
-      Alignment.topRight;
+  Alignment get targetAnchor => Alignment.topRight;
 
   @override
-  Alignment get followerAnchor =>
-      Alignment.topRight;
+  Alignment get followerAnchor => Alignment.topRight;
 
-  AppRole? get _role => context
-      .read<AuthController>()
-      .profile
-      ?.role;
+  AppRole? get _role => context.read<AuthController>().profile?.role;
 
   bool get _tracksInventoryAlerts {
     final role = _role;
 
-    return role == AppRole.manager ||
-        role == AppRole.staff;
+    return role == AppRole.manager || role == AppRole.staff;
   }
 
-  bool get _tracksDonorUpdates =>
-      _role == AppRole.donor;
+  bool get _tracksDonorUpdates => _role == AppRole.donor;
 
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance
-        .addPostFrameCallback(
+    WidgetsBinding.instance.addPostFrameCallback(
       (_) => _load(),
     );
   }
@@ -94,9 +77,7 @@ class _NotificationBellState
   }
 
   Future<void> _load() async {
-    final profile = context
-        .read<AuthController>()
-        .profile;
+    final profile = context.read<AuthController>().profile;
 
     if (profile == null) {
       return;
@@ -108,16 +89,13 @@ class _NotificationBellState
 
     if (_tracksDonorUpdates) {
       try {
-        final updates =
-            await _donorNotificationService
-                .fetchForDonor(
+        final updates = await _donorNotificationService.fetchForDonor(
           profile.userId,
         );
 
         if (!mounted) return;
 
-        final seenIds =
-            DonorNotificationSeenStore.load(
+        final seenIds = DonorNotificationSeenStore.load(
           profile.userId,
         );
 
@@ -141,17 +119,14 @@ class _NotificationBellState
 
     if (_tracksInventoryAlerts) {
       try {
-        final stats =
-            await _service.fetchManagerStats();
+        final stats = await _service.fetchManagerStats();
 
         if (!mounted) return;
 
         setState(() {
-          _notifs =
-              buildCompactNotifs(stats);
+          _notifs = buildCompactNotifs(stats);
           _donorNotifs = [];
-          _seenDonorNotificationIds =
-              <String>{};
+          _seenDonorNotificationIds = <String>{};
         });
 
         rebuildDropdown();
@@ -165,13 +140,11 @@ class _NotificationBellState
     // Unknown / unsupported role state.
     if (!mounted) return;
 
-    if (_notifs.isNotEmpty ||
-        _donorNotifs.isNotEmpty) {
+    if (_notifs.isNotEmpty || _donorNotifs.isNotEmpty) {
       setState(() {
         _notifs = [];
         _donorNotifs = [];
-        _seenDonorNotificationIds =
-            <String>{};
+        _seenDonorNotificationIds = <String>{};
       });
 
       rebuildDropdown();
@@ -179,22 +152,17 @@ class _NotificationBellState
   }
 
   void _markCurrentDonorNotificationsViewed() {
-    if (!_tracksDonorUpdates ||
-        _donorNotifs.isEmpty) {
+    if (!_tracksDonorUpdates || _donorNotifs.isEmpty) {
       return;
     }
 
-    final profile = context
-        .read<AuthController>()
-        .profile;
+    final profile = context.read<AuthController>().profile;
 
     if (profile == null) {
       return;
     }
 
-    final ids = _donorNotifs
-        .map((notification) => notification.id)
-        .toSet();
+    final ids = _donorNotifs.map((notification) => notification.id).toSet();
 
     if (ids.isEmpty) {
       return;
@@ -206,8 +174,7 @@ class _NotificationBellState
     );
 
     final hasNewlySeen = ids.any(
-      (id) =>
-          !_seenDonorNotificationIds.contains(id),
+      (id) => !_seenDonorNotificationIds.contains(id),
     );
 
     if (!hasNewlySeen) {
@@ -265,72 +232,44 @@ class _NotificationBellState
   Widget buildFlyoutPanel(
     BuildContext context,
   ) {
-    final donorMode =
-        _tracksDonorUpdates;
+    final donorMode = _tracksDonorUpdates;
 
-    final inventoryPreview =
-        _notifs
-            .take(_kBellPreviewCount)
-            .toList();
+    final inventoryPreview = _notifs.take(_kBellPreviewCount).toList();
 
-    final donorPreview =
-        _donorNotifs
-            .take(_kBellPreviewCount)
-            .toList();
+    final donorPreview = _donorNotifs.take(_kBellPreviewCount).toList();
 
-    final totalCount =
-        donorMode
-            ? _donorNotifs.length
-            : _notifs.length;
+    final totalCount = donorMode ? _donorNotifs.length : _notifs.length;
 
-    final screen =
-        MediaQuery.sizeOf(context);
+    final screen = MediaQuery.sizeOf(context);
 
-    final availableWidth =
-        screen.width - 24.0;
+    final availableWidth = screen.width - 24.0;
 
-    final panelWidth =
-        availableWidth < 360.0
-            ? availableWidth
-            : 360.0;
+    final panelWidth = availableWidth < 360.0 ? availableWidth : 360.0;
 
-    final availableHeight =
-        screen.height - 96.0;
+    final availableHeight = screen.height - 96.0;
 
-    final panelMaxHeight =
-        availableHeight < 520.0
-            ? availableHeight
-            : 520.0;
+    final panelMaxHeight = availableHeight < 520.0 ? availableHeight : 520.0;
 
     return Material(
       elevation: 6,
-      borderRadius:
-          BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       color: AppColors.card,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight:
-              panelMaxHeight > 0
-                  ? panelMaxHeight
-                  : screen.height,
+          maxHeight: panelMaxHeight > 0 ? panelMaxHeight : screen.height,
         ),
         child: SizedBox(
-          width:
-              panelWidth > 0
-                  ? panelWidth
-                  : screen.width,
+          width: panelWidth > 0 ? panelWidth : screen.width,
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // ==============================================================
               // HEADER
               // ==============================================================
 
               Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   16,
                   14,
                   16,
@@ -341,24 +280,19 @@ class _NotificationBellState
                     const Text(
                       'Notifications',
                       style: TextStyle(
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
                     ),
-
                     const Spacer(),
-
                     if (totalCount > 0)
                       Text(
                         donorMode
                             ? '$totalCount update${totalCount == 1 ? '' : 's'}'
                             : '$totalCount active',
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           fontSize: 11.5,
-                          color: AppColors
-                              .mutedForeground,
+                          color: AppColors.mutedForeground,
                         ),
                       ),
                   ],
@@ -372,8 +306,7 @@ class _NotificationBellState
               if (donorMode)
                 if (donorPreview.isEmpty)
                   const Padding(
-                    padding:
-                        EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       16,
                       2,
                       16,
@@ -382,22 +315,17 @@ class _NotificationBellState
                     child: Row(
                       children: [
                         Icon(
-                          Icons
-                              .notifications_none_outlined,
+                          Icons.notifications_none_outlined,
                           size: 17,
-                          color: AppColors
-                              .roleDonor,
+                          color: AppColors.roleDonor,
                         ),
-
                         SizedBox(width: 8),
-
                         Expanded(
                           child: Text(
                             'No donation updates right now.',
                             style: TextStyle(
                               fontSize: 12.5,
-                              color: AppColors
-                                  .mutedForeground,
+                              color: AppColors.mutedForeground,
                             ),
                           ),
                         ),
@@ -406,31 +334,21 @@ class _NotificationBellState
                   )
                 else
                   Flexible(
-                    child:
-                        ListView.separated(
-                      padding:
-                          EdgeInsets.zero,
+                    child: ListView.separated(
+                      padding: EdgeInsets.zero,
                       shrinkWrap: true,
-                      itemCount:
-                          donorPreview.length,
-                      separatorBuilder:
-                          (_, __) =>
-                              const Divider(
+                      itemCount: donorPreview.length,
+                      separatorBuilder: (_, __) => const Divider(
                         height: 1,
-                        color:
-                            AppColors.border,
+                        color: AppColors.border,
                       ),
-                      itemBuilder:
-                          (context, index) {
-                        final notification =
-                            donorPreview[index];
+                      itemBuilder: (context, index) {
+                        final notification = donorPreview[index];
 
                         return DonorNotificationTile(
-                          notification:
-                              notification,
+                          notification: notification,
                           dense: true,
-                          onTap: () =>
-                              _openDonorUpdate(
+                          onTap: () => _openDonorUpdate(
                             notification,
                           ),
                         );
@@ -439,8 +357,7 @@ class _NotificationBellState
                   )
               else if (inventoryPreview.isEmpty)
                 const Padding(
-                  padding:
-                      EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     16,
                     2,
                     16,
@@ -449,22 +366,17 @@ class _NotificationBellState
                   child: Row(
                     children: [
                       Icon(
-                        Icons
-                            .check_circle_outline,
+                        Icons.check_circle_outline,
                         size: 17,
-                        color: AppColors
-                            .roleManager,
+                        color: AppColors.roleManager,
                       ),
-
                       SizedBox(width: 8),
-
                       Expanded(
                         child: Text(
                           'No active inventory alerts right now.',
                           style: TextStyle(
                             fontSize: 12.5,
-                            color: AppColors
-                                .mutedForeground,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
                       ),
@@ -474,30 +386,20 @@ class _NotificationBellState
               else
                 Flexible(
                   child: ListView.separated(
-                    padding:
-                        EdgeInsets.zero,
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
-                    itemCount:
-                        inventoryPreview
-                            .length,
-                    separatorBuilder:
-                        (_, __) =>
-                            const Divider(
+                    itemCount: inventoryPreview.length,
+                    separatorBuilder: (_, __) => const Divider(
                       height: 1,
-                      color:
-                          AppColors.border,
+                      color: AppColors.border,
                     ),
-                    itemBuilder:
-                        (context, index) {
-                      final notif =
-                          inventoryPreview[
-                              index];
+                    itemBuilder: (context, index) {
+                      final notif = inventoryPreview[index];
 
                       return CompactNotificationTile(
                         notif: notif,
                         dense: true,
-                        onTap: () =>
-                            _openDetail(
+                        onTap: () => _openDetail(
                           notif,
                         ),
                       );
@@ -516,8 +418,7 @@ class _NotificationBellState
 
               SafeArea(
                 top: false,
-                minimum:
-                    EdgeInsets.zero,
+                minimum: EdgeInsets.zero,
                 child: TextButton(
                   onPressed: _viewAll,
                   child: const Text(
@@ -538,92 +439,66 @@ class _NotificationBellState
 
   @override
   Widget build(BuildContext context) {
-    final donorMode =
-        _tracksDonorUpdates;
+    final donorMode = _tracksDonorUpdates;
 
-    final count =
-        donorMode
-            ? _donorUnreadCount
-            : _notifs.length;
+    final count = donorMode ? _donorUnreadCount : _notifs.length;
 
-    final hasAlerts =
-        count > 0;
+    final hasAlerts = count > 0;
 
-    final badgeText =
-        count > 99
-            ? '99+'
-            : '$count';
+    final badgeText = count > 99 ? '99+' : '$count';
 
     return CompositedTransformTarget(
       link: dropdownLink,
       child: Material(
         color: Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          borderRadius:
-              BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20),
           onTap: _handleBellTap,
-          hoverColor:
-              AppColors.primary.withValues(
+          hoverColor: AppColors.primary.withValues(
             alpha: 0.08,
           ),
-          highlightColor:
-              AppColors.primary.withValues(
+          highlightColor: AppColors.primary.withValues(
             alpha: 0.14,
           ),
           child: Padding(
-            padding:
-                const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 const Icon(
-                  Icons
-                      .notifications_outlined,
-                  color: AppColors
-                      .mutedForeground,
+                  Icons.notifications_outlined,
+                  color: AppColors.mutedForeground,
                   size: 20,
                 ),
-
                 if (hasAlerts)
                   Positioned(
                     top: -8,
                     right: -10,
                     child: Container(
-                      constraints:
-                          const BoxConstraints(
+                      constraints: const BoxConstraints(
                         minWidth: 17,
                         minHeight: 17,
                       ),
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 4,
                       ),
-                      decoration:
-                          BoxDecoration(
-                        color: AppColors
-                            .destructive,
-                        borderRadius:
-                            BorderRadius.circular(
+                      decoration: BoxDecoration(
+                        color: AppColors.destructive,
+                        borderRadius: BorderRadius.circular(
                           999,
                         ),
                         border: Border.all(
-                          color:
-                              AppColors.card,
+                          color: AppColors.card,
                           width: 1.5,
                         ),
                       ),
-                      alignment:
-                          Alignment.center,
+                      alignment: Alignment.center,
                       child: Text(
                         badgeText,
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           fontSize: 9,
-                          fontWeight:
-                              FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                           height: 1,
                         ),

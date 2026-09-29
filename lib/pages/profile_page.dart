@@ -25,8 +25,7 @@ class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() =>
-      _ProfilePageState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage>
@@ -47,8 +46,7 @@ class _ProfilePageState extends State<ProfilePage>
     _tabController.addListener(() {
       if (_tabController.index != _visibleTab) {
         setState(() {
-          _visibleTab =
-              _tabController.index;
+          _visibleTab = _tabController.index;
         });
       }
     });
@@ -63,8 +61,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    final user =
-        context.watch<AuthController>().profile;
+    final user = context.watch<AuthController>().profile;
 
     if (user == null) {
       return const Center(
@@ -77,18 +74,15 @@ class _ProfilePageState extends State<ProfilePage>
         context,
         constraints,
       ) {
-        final isMobile =
-            constraints.maxWidth < 600;
+        final isMobile = constraints.maxWidth < 600;
 
         return Center(
           child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(
+            constraints: const BoxConstraints(
               maxWidth: 900,
             ),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ====================================================
                 // PAGE HEADER
@@ -97,8 +91,7 @@ class _ProfilePageState extends State<ProfilePage>
                   'Profile Settings',
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight:
-                        FontWeight.w800,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
 
@@ -108,8 +101,7 @@ class _ProfilePageState extends State<ProfilePage>
                   'Manage your account and security.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
 
@@ -129,8 +121,7 @@ class _ProfilePageState extends State<ProfilePage>
                 // PROFILE / SECURITY TABS
                 // ====================================================
                 _SegmentedTabs(
-                  controller:
-                      _tabController,
+                  controller: _tabController,
                 ),
 
                 const SizedBox(height: 18),
@@ -150,11 +141,9 @@ class _ProfilePageState extends State<ProfilePage>
                     // On mobile, available width is already smaller than
                     // the max width, so it naturally remains full-width.
                     Align(
-                      alignment:
-                          Alignment.topCenter,
+                      alignment: Alignment.topCenter,
                       child: ConstrainedBox(
-                        constraints:
-                            const BoxConstraints(
+                        constraints: const BoxConstraints(
                           maxWidth: 620,
                         ),
                         child: _SecurityTab(
@@ -179,8 +168,7 @@ class _ProfilePageState extends State<ProfilePage>
 // USER SUMMARY CARD
 // ============================================================================
 
-class _ProfileHeaderCard
-    extends StatelessWidget {
+class _ProfileHeaderCard extends StatelessWidget {
   final AppUser user;
   final bool isMobile;
 
@@ -191,21 +179,16 @@ class _ProfileHeaderCard
 
   @override
   Widget build(BuildContext context) {
-    final badgeColor =
-        _roleBadgeColor[user.role] ??
-            AppColors.mutedForeground;
+    final badgeColor = _roleBadgeColor[user.role] ?? AppColors.mutedForeground;
 
     if (isMobile) {
       return Container(
         width: double.infinity,
-        padding:
-            const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppColors.card,
-          borderRadius:
-              BorderRadius.circular(18),
-          border:
-              Border.all(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
             color: AppColors.border,
           ),
         ),
@@ -215,42 +198,29 @@ class _ProfileHeaderCard
               initials: user.initials,
               size: 58,
             ),
-
             const SizedBox(width: 14),
-
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     user.fullName,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       fontSize: 17,
-                      fontWeight:
-                          FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-
                   const SizedBox(height: 2),
-
                   Text(
                     user.email,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       fontSize: 12.5,
-                      color: AppColors
-                          .mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
-
                   const SizedBox(height: 7),
-
                   _RoleBadge(
                     user: user,
                     color: badgeColor,
@@ -265,17 +235,14 @@ class _ProfileHeaderCard
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 22,
         vertical: 20,
       ),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(18),
-        border:
-            Border.all(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
           color: AppColors.border,
         ),
       ),
@@ -285,39 +252,29 @@ class _ProfileHeaderCard
             initials: user.initials,
             size: 64,
           ),
-
           const SizedBox(width: 18),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   user.fullName,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-
                 const SizedBox(height: 3),
-
                 Text(
                   user.email,
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppColors
-                        .mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                 ),
               ],
             ),
           ),
-
           _RoleBadge(
             user: user,
             color: badgeColor,
@@ -328,8 +285,7 @@ class _ProfileHeaderCard
   }
 }
 
-class _ProfileAvatar
-    extends StatelessWidget {
+class _ProfileAvatar extends StatelessWidget {
   final String initials;
   final double size;
 
@@ -346,8 +302,7 @@ class _ProfileAvatar
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           size * 0.24,
         ),
       ),
@@ -363,8 +318,7 @@ class _ProfileAvatar
   }
 }
 
-class _RoleBadge
-    extends StatelessWidget {
+class _RoleBadge extends StatelessWidget {
   final AppUser user;
   final Color color;
 
@@ -376,20 +330,16 @@ class _RoleBadge
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color:
-            color.withValues(alpha: 0.12),
-        borderRadius:
-            BorderRadius.circular(999),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        appRoleToString(user.role)
-            .toUpperCase(),
+        appRoleToString(user.role).toUpperCase(),
         style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
@@ -404,8 +354,7 @@ class _RoleBadge
 // SEGMENTED TABS
 // ============================================================================
 
-class _SegmentedTabs
-    extends StatelessWidget {
+class _SegmentedTabs extends StatelessWidget {
   final TabController controller;
 
   const _SegmentedTabs({
@@ -416,33 +365,25 @@ class _SegmentedTabs
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.muted,
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
           color: AppColors.card,
-          borderRadius:
-              BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(9),
           border: Border.all(
             color: AppColors.border,
           ),
         ),
-        indicatorSize:
-            TabBarIndicatorSize.tab,
-        dividerColor:
-            Colors.transparent,
-        labelColor:
-            AppColors.foreground,
-        unselectedLabelColor:
-            AppColors.mutedForeground,
-        labelStyle:
-            const TextStyle(
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: AppColors.foreground,
+        unselectedLabelColor: AppColors.mutedForeground,
+        labelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
@@ -471,8 +412,7 @@ class _SegmentedTabs
 // PROFILE TAB
 // ============================================================================
 
-class _ProfileTab
-    extends StatefulWidget {
+class _ProfileTab extends StatefulWidget {
   final AppUser user;
   final bool isMobile;
 
@@ -482,50 +422,38 @@ class _ProfileTab
   });
 
   @override
-  State<_ProfileTab> createState() =>
-      _ProfileTabState();
+  State<_ProfileTab> createState() => _ProfileTabState();
 }
 
-class _ProfileTabState
-    extends State<_ProfileTab> {
-  final _formKey =
-      GlobalKey<FormState>();
+class _ProfileTabState extends State<_ProfileTab> {
+  final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController
-      _firstName;
+  late final TextEditingController _firstName;
 
-  late final TextEditingController
-      _lastName;
+  late final TextEditingController _lastName;
 
-  late final TextEditingController
-      _email;
+  late final TextEditingController _email;
 
-  late final TextEditingController
-      _phone;
+  late final TextEditingController _phone;
 
   @override
   void initState() {
     super.initState();
 
-    _firstName =
-        TextEditingController(
+    _firstName = TextEditingController(
       text: widget.user.firstName,
     );
 
-    _lastName =
-        TextEditingController(
+    _lastName = TextEditingController(
       text: widget.user.lastName,
     );
 
-    _email =
-        TextEditingController(
+    _email = TextEditingController(
       text: widget.user.email,
     );
 
-    _phone =
-        TextEditingController(
-      text:
-          widget.user.contactNum ?? '',
+    _phone = TextEditingController(
+      text: widget.user.contactNum ?? '',
     );
   }
 
@@ -537,25 +465,17 @@ class _ProfileTabState
       oldWidget,
     );
 
-    if (oldWidget.user.firstName !=
-            widget.user.firstName ||
-        oldWidget.user.lastName !=
-            widget.user.lastName ||
-        oldWidget.user.email !=
-            widget.user.email ||
-        oldWidget.user.contactNum !=
-            widget.user.contactNum) {
-      _firstName.text =
-          widget.user.firstName;
+    if (oldWidget.user.firstName != widget.user.firstName ||
+        oldWidget.user.lastName != widget.user.lastName ||
+        oldWidget.user.email != widget.user.email ||
+        oldWidget.user.contactNum != widget.user.contactNum) {
+      _firstName.text = widget.user.firstName;
 
-      _lastName.text =
-          widget.user.lastName;
+      _lastName.text = widget.user.lastName;
 
-      _email.text =
-          widget.user.email;
+      _email.text = widget.user.email;
 
-      _phone.text =
-          widget.user.contactNum ?? '';
+      _phone.text = widget.user.contactNum ?? '';
     }
   }
 
@@ -572,25 +492,20 @@ class _ProfileTabState
   // Resets unsaved values back to the current saved profile.
   void _reset() {
     setState(() {
-      _firstName.text =
-          widget.user.firstName;
+      _firstName.text = widget.user.firstName;
 
-      _lastName.text =
-          widget.user.lastName;
+      _lastName.text = widget.user.lastName;
 
-      _email.text =
-          widget.user.email;
+      _email.text = widget.user.email;
 
-      _phone.text =
-          widget.user.contactNum ?? '';
+      _phone.text = widget.user.contactNum ?? '';
     });
   }
 
   String? _validateName(
     String? value,
   ) {
-    if (value == null ||
-        value.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
 
@@ -599,48 +514,36 @@ class _ProfileTabState
 
   // Saves the editable profile fields.
   Future<void> _save() async {
-    if (!_formKey.currentState!
-        .validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final confirmed =
-        await _confirmChanges(
+    final confirmed = await _confirmChanges(
       context: context,
       title: 'Save changes?',
-      message:
-          'Your profile information will be updated.',
+      message: 'Your profile information will be updated.',
     );
 
     if (!confirmed || !mounted) {
       return;
     }
 
-    final auth =
-        context.read<AuthController>();
+    final auth = context.read<AuthController>();
 
-    final success =
-        await auth.updateProfile(
-      firstName:
-          _firstName.text.trim(),
-      lastName:
-          _lastName.text.trim(),
-      contactNum:
-          _phone.text.trim().isEmpty
-              ? null
-              : _phone.text.trim(),
+    final success = await auth.updateProfile(
+      firstName: _firstName.text.trim(),
+      lastName: _lastName.text.trim(),
+      contactNum: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     );
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
               ? 'Profile updated successfully.'
-              : (auth.errorMessage ??
-                  'Could not update profile.'),
+              : (auth.errorMessage ?? 'Could not update profile.'),
         ),
       ),
     );
@@ -648,209 +551,140 @@ class _ProfileTabState
 
   @override
   Widget build(BuildContext context) {
-    final auth =
-        context.watch<AuthController>();
+    final auth = context.watch<AuthController>();
 
-    final isMobile =
-        widget.isMobile;
+    final isMobile = widget.isMobile;
 
     return _SettingsCard(
       icon: Icons.person_outline,
       title: 'Personal Information',
-      subtitle:
-          'Update your contact information.',
+      subtitle: 'Update your contact information.',
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (isMobile)
               Column(
                 children: [
                   _LabeledField(
                     label: 'First Name',
-                    icon:
-                        Icons.person_outline,
-                    controller:
-                        _firstName,
-                    validator:
-                        _validateName,
+                    icon: Icons.person_outline,
+                    controller: _firstName,
+                    validator: _validateName,
                   ),
-
                   const SizedBox(height: 14),
-
                   _LabeledField(
                     label: 'Last Name',
-                    icon:
-                        Icons.person_outline,
-                    controller:
-                        _lastName,
-                    validator:
-                        _validateName,
+                    icon: Icons.person_outline,
+                    controller: _lastName,
+                    validator: _validateName,
                   ),
                 ],
               )
             else
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child:
-                        _LabeledField(
-                      label:
-                          'First Name',
-                      icon: Icons
-                          .person_outline,
-                      controller:
-                          _firstName,
-                      validator:
-                          _validateName,
+                    child: _LabeledField(
+                      label: 'First Name',
+                      icon: Icons.person_outline,
+                      controller: _firstName,
+                      validator: _validateName,
                     ),
                   ),
-
                   const SizedBox(width: 14),
-
                   Expanded(
-                    child:
-                        _LabeledField(
-                      label:
-                          'Last Name',
-                      icon: Icons
-                          .person_outline,
-                      controller:
-                          _lastName,
-                      validator:
-                          _validateName,
+                    child: _LabeledField(
+                      label: 'Last Name',
+                      icon: Icons.person_outline,
+                      controller: _lastName,
+                      validator: _validateName,
                     ),
                   ),
                 ],
               ),
-
             const SizedBox(height: 14),
-
             if (isMobile)
               Column(
                 children: [
                   _LabeledField(
-                    label:
-                        'Email Address',
-                    icon:
-                        Icons.mail_outline,
+                    label: 'Email Address',
+                    icon: Icons.mail_outline,
                     controller: _email,
                     enabled: false,
                   ),
-
                   const SizedBox(height: 14),
-
                   _LabeledField(
-                    label:
-                        'Phone Number',
-                    icon:
-                        Icons.phone_outlined,
+                    label: 'Phone Number',
+                    icon: Icons.phone_outlined,
                     controller: _phone,
-                    keyboardType:
-                        TextInputType.phone,
-                    inputFormatters:
-                        phoneInputFormatters,
-                    hintText:
-                        '09XXXXXXXXX',
-                    validator:
-                        validatePhoneNumber,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: phoneInputFormatters,
+                    hintText: '09XXXXXXXXX',
+                    validator: validatePhoneNumber,
                   ),
                 ],
               )
             else
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child:
-                        _LabeledField(
-                      label:
-                          'Email Address',
-                      icon:
-                          Icons.mail_outline,
-                      controller:
-                          _email,
+                    child: _LabeledField(
+                      label: 'Email Address',
+                      icon: Icons.mail_outline,
+                      controller: _email,
                       enabled: false,
                     ),
                   ),
-
                   const SizedBox(width: 14),
-
                   Expanded(
-                    child:
-                        _LabeledField(
-                      label:
-                          'Phone Number',
-                      icon: Icons
-                          .phone_outlined,
-                      controller:
-                          _phone,
-                      keyboardType:
-                          TextInputType.phone,
-                      inputFormatters:
-                          phoneInputFormatters,
-                      hintText:
-                          '09XXXXXXXXX',
-                      validator:
-                          validatePhoneNumber,
+                    child: _LabeledField(
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: phoneInputFormatters,
+                      hintText: '09XXXXXXXXX',
+                      validator: validatePhoneNumber,
                     ),
                   ),
                 ],
               ),
-
             const SizedBox(height: 20),
-
             if (isMobile)
               Column(
                 children: [
                   SizedBox(
                     width: double.infinity,
-                    child:
-                        ElevatedButton.icon(
-                      onPressed:
-                          auth.isBusy
-                              ? null
-                              : _save,
+                    child: ElevatedButton.icon(
+                      onPressed: auth.isBusy ? null : _save,
                       icon: auth.isBusy
                           ? const SizedBox(
                               height: 15,
                               width: 15,
-                              child:
-                                  CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color:
-                                    Colors.white,
+                                color: Colors.white,
                               ),
                             )
                           : const Icon(
-                              Icons
-                                  .save_outlined,
+                              Icons.save_outlined,
                               size: 17,
                             ),
-                      label:
-                          const Text(
+                      label: const Text(
                         'Save Changes',
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   SizedBox(
                     width: double.infinity,
-                    child:
-                        OutlinedButton(
-                      onPressed:
-                          auth.isBusy
-                              ? null
-                              : _reset,
-                      child:
-                          const Text(
+                    child: OutlinedButton(
+                      onPressed: auth.isBusy ? null : _reset,
+                      child: const Text(
                         'Reset',
                       ),
                     ),
@@ -861,41 +695,28 @@ class _ProfileTabState
               Row(
                 children: [
                   ElevatedButton.icon(
-                    onPressed:
-                        auth.isBusy
-                            ? null
-                            : _save,
+                    onPressed: auth.isBusy ? null : _save,
                     icon: auth.isBusy
                         ? const SizedBox(
                             height: 15,
                             width: 15,
-                            child:
-                                CircularProgressIndicator(
+                            child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color:
-                                  Colors.white,
+                              color: Colors.white,
                             ),
                           )
                         : const Icon(
-                            Icons
-                                .save_outlined,
+                            Icons.save_outlined,
                             size: 17,
                           ),
-                    label:
-                        const Text(
+                    label: const Text(
                       'Save Changes',
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
                   OutlinedButton(
-                    onPressed:
-                        auth.isBusy
-                            ? null
-                            : _reset,
-                    child:
-                        const Text(
+                    onPressed: auth.isBusy ? null : _reset,
+                    child: const Text(
                       'Reset',
                     ),
                   ),
@@ -912,8 +733,7 @@ class _ProfileTabState
 // SECURITY TAB
 // ============================================================================
 
-class _SecurityTab
-    extends StatefulWidget {
+class _SecurityTab extends StatefulWidget {
   final bool isMobile;
 
   const _SecurityTab({
@@ -921,23 +741,17 @@ class _SecurityTab
   });
 
   @override
-  State<_SecurityTab> createState() =>
-      _SecurityTabState();
+  State<_SecurityTab> createState() => _SecurityTabState();
 }
 
-class _SecurityTabState
-    extends State<_SecurityTab> {
-  final _formKey =
-      GlobalKey<FormState>();
+class _SecurityTabState extends State<_SecurityTab> {
+  final _formKey = GlobalKey<FormState>();
 
-  final _current =
-      TextEditingController();
+  final _current = TextEditingController();
 
-  final _newPassword =
-      TextEditingController();
+  final _newPassword = TextEditingController();
 
-  final _confirm =
-      TextEditingController();
+  final _confirm = TextEditingController();
 
   @override
   void dispose() {
@@ -958,44 +772,35 @@ class _SecurityTabState
   }
 
   Future<void> _updatePassword() async {
-    if (!_formKey.currentState!
-        .validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final confirmed =
-        await _confirmChanges(
+    final confirmed = await _confirmChanges(
       context: context,
       title: 'Change password?',
-      message:
-          'You will use the new password the next time you sign in.',
+      message: 'You will use the new password the next time you sign in.',
     );
 
     if (!confirmed || !mounted) {
       return;
     }
 
-    final auth =
-        context.read<AuthController>();
+    final auth = context.read<AuthController>();
 
-    final success =
-        await auth.changePassword(
-      currentPassword:
-          _current.text,
-      newPassword:
-          _newPassword.text,
+    final success = await auth.changePassword(
+      currentPassword: _current.text,
+      newPassword: _newPassword.text,
     );
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
               ? 'Password updated successfully.'
-              : (auth.errorMessage ??
-                  'Could not update password.'),
+              : (auth.errorMessage ?? 'Could not update password.'),
         ),
       ),
     );
@@ -1007,127 +812,89 @@ class _SecurityTabState
 
   @override
   Widget build(BuildContext context) {
-    final auth =
-        context.watch<AuthController>();
+    final auth = context.watch<AuthController>();
 
-    final isMobile =
-        widget.isMobile;
+    final isMobile = widget.isMobile;
 
     return _SettingsCard(
       icon: Icons.lock_outline,
       title: 'Password',
-      subtitle:
-          'Keep your account secure with a strong password.',
+      subtitle: 'Keep your account secure with a strong password.',
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _LabeledField(
-              label:
-                  'Current Password',
-              icon:
-                  Icons.lock_outline,
+              label: 'Current Password',
+              icon: Icons.lock_outline,
               controller: _current,
               obscure: true,
-              hintText:
-                  'Enter current password',
+              hintText: 'Enter current password',
               validator: (value) {
-                if (value == null ||
-                    value.isEmpty) {
+                if (value == null || value.isEmpty) {
                   return 'Current password is required';
                 }
 
                 return null;
               },
             ),
-
             const SizedBox(height: 14),
-
             _LabeledField(
-              label:
-                  'New Password',
-              icon:
-                  Icons.lock_outline,
-              controller:
-                  _newPassword,
+              label: 'New Password',
+              icon: Icons.lock_outline,
+              controller: _newPassword,
               obscure: true,
-              hintText:
-                  'Enter new password',
-              validator:
-                  validatePassword,
+              hintText: 'Enter new password',
+              validator: validatePassword,
             ),
-
             const SizedBox(height: 14),
-
             _LabeledField(
-              label:
-                  'Confirm New Password',
-              icon:
-                  Icons.lock_outline,
+              label: 'Confirm New Password',
+              icon: Icons.lock_outline,
               controller: _confirm,
               obscure: true,
-              hintText:
-                  'Re-enter new password',
+              hintText: 'Re-enter new password',
               validator: (value) {
-                if (value !=
-                    _newPassword.text) {
+                if (value != _newPassword.text) {
                   return 'Passwords do not match';
                 }
 
                 return null;
               },
             ),
-
             const SizedBox(height: 20),
-
             if (isMobile)
               Column(
                 children: [
                   SizedBox(
                     width: double.infinity,
-                    child:
-                        ElevatedButton.icon(
-                      onPressed:
-                          auth.isBusy
-                              ? null
-                              : _updatePassword,
+                    child: ElevatedButton.icon(
+                      onPressed: auth.isBusy ? null : _updatePassword,
                       icon: auth.isBusy
                           ? const SizedBox(
                               height: 15,
                               width: 15,
-                              child:
-                                  CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color:
-                                    Colors.white,
+                                color: Colors.white,
                               ),
                             )
                           : const Icon(
-                              Icons
-                                  .lock_outline,
+                              Icons.lock_outline,
                               size: 17,
                             ),
-                      label:
-                          const Text(
+                      label: const Text(
                         'Update Password',
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   SizedBox(
                     width: double.infinity,
-                    child:
-                        OutlinedButton(
-                      onPressed:
-                          auth.isBusy
-                              ? null
-                              : _clear,
-                      child:
-                          const Text(
+                    child: OutlinedButton(
+                      onPressed: auth.isBusy ? null : _clear,
+                      child: const Text(
                         'Clear',
                       ),
                     ),
@@ -1138,41 +905,28 @@ class _SecurityTabState
               Row(
                 children: [
                   ElevatedButton.icon(
-                    onPressed:
-                        auth.isBusy
-                            ? null
-                            : _updatePassword,
+                    onPressed: auth.isBusy ? null : _updatePassword,
                     icon: auth.isBusy
                         ? const SizedBox(
                             height: 15,
                             width: 15,
-                            child:
-                                CircularProgressIndicator(
+                            child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color:
-                                  Colors.white,
+                              color: Colors.white,
                             ),
                           )
                         : const Icon(
-                            Icons
-                                .lock_outline,
+                            Icons.lock_outline,
                             size: 17,
                           ),
-                    label:
-                        const Text(
+                    label: const Text(
                       'Update Password',
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
                   OutlinedButton(
-                    onPressed:
-                        auth.isBusy
-                            ? null
-                            : _clear,
-                    child:
-                        const Text(
+                    onPressed: auth.isBusy ? null : _clear,
+                    child: const Text(
                       'Clear',
                     ),
                   ),
@@ -1189,8 +943,7 @@ class _SecurityTabState
 // SETTINGS CARD
 // ============================================================================
 
-class _SettingsCard
-    extends StatelessWidget {
+class _SettingsCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
@@ -1207,72 +960,55 @@ class _SettingsCard
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius:
-            BorderRadius.circular(18),
-        border:
-            Border.all(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.primary
-                      .withValues(
+                  color: AppColors.primary.withValues(
                     alpha: 0.08,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(
+                  borderRadius: BorderRadius.circular(
                     10,
                   ),
                 ),
                 child: Icon(
                   icon,
                   size: 18,
-                  color:
-                      AppColors.primary,
+                  color: AppColors.primary,
                 ),
               ),
-
               const SizedBox(width: 10),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-
                     const SizedBox(height: 1),
-
                     Text(
                       subtitle,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 11.8,
-                        color: AppColors
-                            .mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
@@ -1280,9 +1016,7 @@ class _SettingsCard
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           child,
         ],
       ),
@@ -1299,17 +1033,14 @@ Future<bool> _confirmChanges({
   required String title,
   required String message,
 }) async {
-  final confirmed =
-      await showDialog<bool>(
+  final confirmed = await showDialog<bool>(
     context: context,
     builder: (
       dialogContext,
     ) {
       return AlertDialog(
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
             18,
           ),
         ),
@@ -1317,20 +1048,16 @@ Future<bool> _confirmChanges({
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.of(
-                  dialogContext,
-                ).pop(false),
-            child:
-                const Text('Cancel'),
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(false),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.of(
-                  dialogContext,
-                ).pop(true),
-            child:
-                const Text('Confirm'),
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(true),
+            child: const Text('Confirm'),
           ),
         ],
       );
@@ -1344,27 +1071,22 @@ Future<bool> _confirmChanges({
 // LABELED FORM FIELD
 // ============================================================================
 
-class _LabeledField
-    extends StatefulWidget {
+class _LabeledField extends StatefulWidget {
   final String label;
   final IconData icon;
 
-  final TextEditingController
-      controller;
+  final TextEditingController controller;
 
   final bool enabled;
   final bool obscure;
 
   final String? hintText;
 
-  final TextInputType?
-      keyboardType;
+  final TextInputType? keyboardType;
 
-  final List<TextInputFormatter>?
-      inputFormatters;
+  final List<TextInputFormatter>? inputFormatters;
 
-  final String? Function(String?)?
-      validator;
+  final String? Function(String?)? validator;
 
   const _LabeledField({
     required this.label,
@@ -1379,104 +1101,65 @@ class _LabeledField
   });
 
   @override
-  State<_LabeledField>
-      createState() =>
-          _LabeledFieldState();
+  State<_LabeledField> createState() => _LabeledFieldState();
 }
 
-class _LabeledFieldState
-    extends State<_LabeledField> {
-  late bool _hidden =
-      widget.obscure;
+class _LabeledFieldState extends State<_LabeledField> {
+  late bool _hidden = widget.obscure;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label,
           style: const TextStyle(
             fontSize: 12.5,
-            fontWeight:
-                FontWeight.w600,
+            fontWeight: FontWeight.w600,
           ),
         ),
-
         const SizedBox(height: 6),
-
         TextFormField(
-          controller:
-              widget.controller,
+          controller: widget.controller,
           enabled: widget.enabled,
-
-          obscureText:
-              widget.obscure &&
-                  _hidden,
-
-          keyboardType:
-              widget.keyboardType,
-
-          inputFormatters:
-              widget.inputFormatters,
-
-          validator:
-              widget.validator,
-
+          obscureText: widget.obscure && _hidden,
+          keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
+          validator: widget.validator,
           style: TextStyle(
             fontSize: 13.5,
             color: widget.enabled
                 ? AppColors.foreground
-                : AppColors
-                    .mutedForeground,
+                : AppColors.mutedForeground,
           ),
-
-          decoration:
-              InputDecoration(
-            hintText:
-                widget.hintText,
-
-            prefixIcon:
-                Icon(
+          decoration: InputDecoration(
+            hintText: widget.hintText,
+            prefixIcon: Icon(
               widget.icon,
               size: 17,
-              color: AppColors
-                  .mutedForeground,
+              color: AppColors.mutedForeground,
             ),
-
-            suffixIcon:
-                widget.obscure
-                    ? IconButton(
-                        tooltip:
-                            _hidden
-                                ? 'Show password'
-                                : 'Hide password',
-                        icon: Icon(
-                          _hidden
-                              ? Icons
-                                  .visibility_off_outlined
-                              : Icons
-                                  .visibility_outlined,
-                          size: 18,
-                          color: AppColors
-                              .mutedForeground,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _hidden =
-                                !_hidden;
-                          });
-                        },
-                      )
-                    : null,
-
+            suffixIcon: widget.obscure
+                ? IconButton(
+                    tooltip: _hidden ? 'Show password' : 'Hide password',
+                    icon: Icon(
+                      _hidden
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      size: 18,
+                      color: AppColors.mutedForeground,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _hidden = !_hidden;
+                      });
+                    },
+                  )
+                : null,
             filled: true,
-
-            fillColor: widget.enabled
-                ? AppColors
-                    .inputBackground
-                : AppColors.muted,
+            fillColor:
+                widget.enabled ? AppColors.inputBackground : AppColors.muted,
           ),
         ),
       ],

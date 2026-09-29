@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -20,12 +20,10 @@ class SideNav extends StatefulWidget {
   });
 
   @override
-  State<SideNav> createState() =>
-      _SideNavState();
+  State<SideNav> createState() => _SideNavState();
 }
 
-class _SideNavState
-    extends State<SideNav> {
+class _SideNavState extends State<SideNav> {
   bool _confirmingLogout = false;
   bool _loggingOut = false;
 
@@ -64,11 +62,9 @@ class _SideNavState
       _loggingOut = true;
     });
 
-    final auth =
-        context.read<AuthController>();
+    final auth = context.read<AuthController>();
 
-    final success =
-        await auth.logout();
+    final success = await auth.logout();
 
     if (!mounted) {
       return;
@@ -91,12 +87,10 @@ class _SideNavState
       _loggingOut = false;
     });
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          auth.errorMessage ??
-              'Could not log out. Please try again.',
+          auth.errorMessage ?? 'Could not log out. Please try again.',
         ),
       ),
     );
@@ -129,9 +123,7 @@ class _SideNavState
   Widget _buildLogoutArea(
     AuthController auth,
   ) {
-    final disabled =
-        auth.isBusy ||
-        _loggingOut;
+    final disabled = auth.isBusy || _loggingOut;
 
     // -----------------------------------------------------------------------
     // COLLAPSED SIDEBAR
@@ -140,82 +132,55 @@ class _SideNavState
     if (widget.collapsed) {
       if (!_confirmingLogout) {
         return IconButton(
-          onPressed:
-              disabled
-                  ? null
-                  : _showLogoutConfirmation,
+          onPressed: disabled ? null : _showLogoutConfirmation,
           icon: const Icon(
             Icons.logout,
             size: 16,
-            color:
-                AppColors
-                    .sidebarAccentForeground,
+            color: AppColors.sidebarAccentForeground,
           ),
           tooltip: 'Logout',
         );
       }
 
       return Padding(
-        padding:
-            const EdgeInsets.symmetric(
+        padding: const EdgeInsets.symmetric(
           vertical: 4,
         ),
         child: Column(
           children: [
             const Text(
               'Log out?',
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 9.5,
-                color:
-                    AppColors
-                        .sidebarAccentForeground,
+                color: AppColors.sidebarAccentForeground,
               ),
             ),
-
             const SizedBox(
               height: 4,
             ),
-
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  onPressed:
-                      disabled
-                          ? null
-                          : _cancelLogout,
-                  tooltip:
-                      'Cancel',
-                  padding:
-                      EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(
+                  onPressed: disabled ? null : _cancelLogout,
+                  tooltip: 'Cancel',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
                     minWidth: 24,
                     minHeight: 30,
                   ),
                   icon: const Icon(
                     Icons.close,
                     size: 15,
-                    color:
-                        AppColors
-                            .sidebarAccentForeground,
+                    color: AppColors.sidebarAccentForeground,
                   ),
                 ),
-
                 IconButton(
-                  onPressed:
-                      disabled
-                          ? null
-                          : _performLogout,
-                  tooltip:
-                      'Confirm Logout',
-                  padding:
-                      EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(
+                  onPressed: disabled ? null : _performLogout,
+                  tooltip: 'Confirm Logout',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
                     minWidth: 24,
                     minHeight: 30,
                   ),
@@ -223,17 +188,14 @@ class _SideNavState
                       ? const SizedBox(
                           width: 14,
                           height: 14,
-                          child:
-                              CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
                           ),
                         )
                       : const Icon(
                           Icons.check,
                           size: 15,
-                          color:
-                              AppColors
-                                  .destructive,
+                          color: AppColors.destructive,
                         ),
                 ),
               ],
@@ -249,31 +211,21 @@ class _SideNavState
 
     if (!_confirmingLogout) {
       return TextButton.icon(
-        onPressed:
-            disabled
-                ? null
-                : _showLogoutConfirmation,
+        onPressed: disabled ? null : _showLogoutConfirmation,
         icon: const Icon(
           Icons.logout,
           size: 16,
-          color:
-              AppColors
-                  .sidebarAccentForeground,
+          color: AppColors.sidebarAccentForeground,
         ),
         label: const Text(
           'Logout',
           style: TextStyle(
-            color:
-                AppColors
-                    .sidebarForeground,
+            color: AppColors.sidebarForeground,
           ),
         ),
-        style:
-            TextButton.styleFrom(
-          alignment:
-              Alignment.centerLeft,
-          padding:
-              const EdgeInsets.symmetric(
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 10,
           ),
@@ -282,99 +234,64 @@ class _SideNavState
     }
 
     return Container(
-      padding:
-          const EdgeInsets.all(
+      padding: const EdgeInsets.all(
         10,
       ),
       decoration: BoxDecoration(
-        color: AppColors
-            .destructive
-            .withValues(
+        color: AppColors.destructive.withValues(
           alpha: 0.06,
         ),
-        borderRadius:
-            BorderRadius.circular(
+        borderRadius: BorderRadius.circular(
           12,
         ),
         border: Border.all(
-          color: AppColors
-              .destructive
-              .withValues(
+          color: AppColors.destructive.withValues(
             alpha: 0.20,
           ),
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Are you sure you want to log out?',
             style: TextStyle(
               fontSize: 12,
-              fontWeight:
-                  FontWeight.w600,
-              color:
-                  AppColors
-                      .sidebarForeground,
+              fontWeight: FontWeight.w600,
+              color: AppColors.sidebarForeground,
             ),
           ),
-
           const SizedBox(
             height: 8,
           ),
-
           Row(
             children: [
               Expanded(
-                child:
-                    OutlinedButton(
-                  onPressed:
-                      disabled
-                          ? null
-                          : _cancelLogout,
-                  style:
-                      OutlinedButton
-                          .styleFrom(
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
+                child: OutlinedButton(
+                  onPressed: disabled ? null : _cancelLogout,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
                       vertical: 8,
                     ),
                   ),
-                  child:
-                      const Text(
+                  child: const Text(
                     'Cancel',
-                    style:
-                        TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
                     ),
                   ),
                 ),
               ),
-
               const SizedBox(
                 width: 8,
               ),
-
               Expanded(
-                child:
-                    ElevatedButton(
-                  onPressed:
-                      disabled
-                          ? null
-                          : _performLogout,
-                  style:
-                      ElevatedButton
-                          .styleFrom(
-                    backgroundColor:
-                        AppColors
-                            .destructive,
-                    foregroundColor:
-                        Colors.white,
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
+                child: ElevatedButton(
+                  onPressed: disabled ? null : _performLogout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.destructive,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
                       vertical: 8,
                     ),
                   ),
@@ -382,17 +299,14 @@ class _SideNavState
                       ? const SizedBox(
                           width: 15,
                           height: 15,
-                          child:
-                              CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color:
-                                Colors.white,
+                            color: Colors.white,
                           ),
                         )
                       : const Text(
                           'Confirm',
-                          style:
-                              TextStyle(
+                          style: TextStyle(
                             fontSize: 11.5,
                           ),
                         ),
@@ -413,11 +327,9 @@ class _SideNavState
   Widget build(
     BuildContext context,
   ) {
-    final auth =
-        context.watch<AuthController>();
+    final auth = context.watch<AuthController>();
 
-    final user =
-        auth.profile;
+    final user = auth.profile;
 
     final items = kNavItems
         .where(
@@ -430,19 +342,12 @@ class _SideNavState
         .toList();
 
     return Container(
-      width:
-          widget.collapsed
-              ? 72
-              : 248,
-      decoration:
-          const BoxDecoration(
-        color:
-            AppColors.sidebar,
+      width: widget.collapsed ? 72 : 248,
+      decoration: const BoxDecoration(
+        color: AppColors.sidebar,
         border: Border(
           right: BorderSide(
-            color:
-                AppColors
-                    .sidebarBorder,
+            color: AppColors.sidebarBorder,
           ),
         ),
       ),
@@ -453,442 +358,300 @@ class _SideNavState
         bottom: true,
         child: Column(
           children: [
-          // =================================================================
-          // LOGO
-          // =================================================================
+            // =================================================================
+            // LOGO
+            // =================================================================
 
-          Container(
-            height: 64,
-            padding:
-                const EdgeInsets
-                    .symmetric(
-              horizontal: 16,
-            ),
-            decoration:
-                const BoxDecoration(
-              border: Border(
-                bottom:
-                    BorderSide(
-                  color:
-                      AppColors
-                          .sidebarBorder,
+            Container(
+              height: 64,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+              ),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.sidebarBorder,
+                  ),
                 ),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment:
-                  widget.collapsed
-                      ? MainAxisAlignment
-                          .center
-                      : MainAxisAlignment
-                          .start,
-              children: [
-                Image.asset(
-                  'assets/branding/pet-house-green.png',
-                  width: 32,
-                  height: 32,
-                ),
-
-                if (!widget
-                    .collapsed) ...[
-                  const SizedBox(
-                    width: 10,
+              child: Row(
+                mainAxisAlignment: widget.collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  Image.asset(
+                    'assets/branding/pet-house-green.png',
+                    width: 32,
+                    height: 32,
                   ),
-
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
-                      mainAxisSize:
-                          MainAxisSize
-                              .min,
-                      children: [
-                        Text(
-                          'SIYAM',
-                          overflow:
-                              TextOverflow
-                                  .ellipsis,
-                          style:
-                              TextStyle(
-                            fontWeight:
-                                FontWeight
-                                    .w700,
-                            fontSize: 13,
-                            color:
-                                AppColors
-                                    .sidebarForeground,
-                          ),
-                        ),
-
-                        SingleChildScrollView(
-                          scrollDirection:
-                              Axis.horizontal,
-                          child: Text(
-                            'Shelter Inventory and Audit Management',
-                            maxLines: 1,
-                            softWrap:
-                                false,
-                            style:
-                                TextStyle(
-                              fontSize: 10,
-                              color:
-                                  AppColors
-                                      .sidebarAccentForeground,
+                  if (!widget.collapsed) ...[
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'SIYAM',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: AppColors.sidebarForeground,
                             ),
                           ),
-                        ),
-                      ],
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Text(
+                              'Shelter Inventory and Audit Management',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.sidebarAccentForeground,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-
-          // =================================================================
-          // NAVIGATION
-          // =================================================================
-
-          Expanded(
-            child: ListView(
-              padding:
-                  const EdgeInsets
-                      .symmetric(
-                horizontal: 8,
-                vertical: 8,
               ),
-              children:
-                  items.map(
-                (item) {
-                  final active =
-                      widget
-                          .currentPath
-                          .startsWith(
-                    item.path,
-                  );
+            ),
 
-                  final showPendingDonationBadge =
-                      user?.role == AppRole.manager &&
-                          item.path == '/donations';
+            // =================================================================
+            // NAVIGATION
+            // =================================================================
 
-                  final navButton = Material(
-                    color: active
-                        ? AppColors
-                            .sidebarAccent
-                        : Colors
-                            .transparent,
-                    elevation:
-                        active
-                            ? 1
-                            : 0,
-                    shadowColor:
-                        AppColors
-                            .sidebarForeground
-                            .withValues(
-                      alpha:
-                          0.25,
-                    ),
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      16,
-                    ),
-                    child:
-                        InkWell(
-                      borderRadius:
-                          BorderRadius
-                              .circular(
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 8,
+                ),
+                children: items.map(
+                  (item) {
+                    final active = widget.currentPath.startsWith(
+                      item.path,
+                    );
+
+                    final showPendingDonationBadge =
+                        user?.role == AppRole.manager &&
+                            item.path == '/donations';
+
+                    final navButton = Material(
+                      color:
+                          active ? AppColors.sidebarAccent : Colors.transparent,
+                      elevation: active ? 1 : 0,
+                      shadowColor: AppColors.sidebarForeground.withValues(
+                        alpha: 0.25,
+                      ),
+                      borderRadius: BorderRadius.circular(
                         16,
                       ),
-                      onTap: active
-                          ? null
-                          : () => _openRoute(
-                                item.path,
-                                item.label,
-                              ),
-                      child:
-                          Padding(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal:
-                              12,
-                          vertical:
-                              11,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(
+                          16,
                         ),
-                        child: Row(
-                          mainAxisAlignment:
-                              widget
-                                      .collapsed
-                                  ? MainAxisAlignment
-                                      .center
-                                  : MainAxisAlignment
-                                      .start,
-                          children: [
-                            if (showPendingDonationBadge &&
-                                widget.collapsed)
-                              Stack(
-                                clipBehavior:
-                                    Clip.none,
-                                children: [
-                                  Icon(
-                                    item.icon,
-                                    size: 18,
-                                    color: active
-                                        ? AppColors
-                                            .sidebarPrimary
-                                        : AppColors
-                                            .sidebarAccentForeground,
-                                  ),
-                                  const Positioned(
-                                    top: -10,
-                                    right: -13,
-                                    child:
-                                        PendingDonationBadge(
-                                      compact:
-                                          true,
+                        onTap: active
+                            ? null
+                            : () => _openRoute(
+                                  item.path,
+                                  item.label,
+                                ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 11,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: widget.collapsed
+                                ? MainAxisAlignment.center
+                                : MainAxisAlignment.start,
+                            children: [
+                              if (showPendingDonationBadge && widget.collapsed)
+                                Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Icon(
+                                      item.icon,
+                                      size: 18,
+                                      color: active
+                                          ? AppColors.sidebarPrimary
+                                          : AppColors.sidebarAccentForeground,
+                                    ),
+                                    const Positioned(
+                                      top: -10,
+                                      right: -13,
+                                      child: PendingDonationBadge(
+                                        compact: true,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Icon(
+                                  item.icon,
+                                  size: 18,
+                                  color: active
+                                      ? AppColors.sidebarPrimary
+                                      : AppColors.sidebarAccentForeground,
+                                ),
+                              if (!widget.collapsed) ...[
+                                const SizedBox(
+                                  width: 12,
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    item.label,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: active
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: AppColors.sidebarForeground,
                                     ),
                                   ),
-                                ],
-                              )
-                            else
-                              Icon(
-                                item.icon,
-                                size: 18,
-                                color: active
-                                    ? AppColors
-                                        .sidebarPrimary
-                                    : AppColors
-                                        .sidebarAccentForeground,
-                              ),
-
-                            if (!widget
-                                .collapsed) ...[
-                              const SizedBox(
-                                width:
-                                    12,
-                              ),
-
-                              Expanded(
-                                child:
-                                    Text(
-                                  item.label,
-                                  overflow:
-                                      TextOverflow
-                                          .ellipsis,
-                                  style:
-                                      TextStyle(
-                                    fontSize:
-                                        13.5,
-                                    fontWeight:
-                                        active
-                                            ? FontWeight
-                                                .w600
-                                            : FontWeight
-                                                .w400,
-                                    color:
-                                        AppColors
-                                            .sidebarForeground,
+                                ),
+                                if (showPendingDonationBadge) ...[
+                                  const SizedBox(
+                                    width: 8,
                                   ),
-                                ),
-                              ),
-
-                              if (showPendingDonationBadge) ...[
-                                const SizedBox(
-                                  width: 8,
-                                ),
-                                const PendingDonationBadge(),
+                                  const PendingDonationBadge(),
+                                ],
                               ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
+                    );
 
-                  return Padding(
-                    padding:
-                        const EdgeInsets
-                            .only(
-                      bottom: 2,
-                    ),
-                    child: widget.collapsed
-                        ? Tooltip(
-                            message:
-                                item.label,
-                            child:
-                                navButton,
-                          )
-                        : navButton,
-                  );
-                },
-              ).toList(),
-            ),
-          ),
-
-          // =================================================================
-          // USER + LOGOUT
-          // =================================================================
-
-          Container(
-            padding:
-                const EdgeInsets.all(
-              8,
-            ),
-            decoration:
-                const BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color:
-                      AppColors
-                          .sidebarBorder,
-                ),
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 2,
+                      ),
+                      child: widget.collapsed
+                          ? Tooltip(
+                              message: item.label,
+                              child: navButton,
+                            )
+                          : navButton,
+                    );
+                  },
+                ).toList(),
               ),
             ),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .stretch,
-              children: [
-                // =============================================================
-                // USER PROFILE
-                // =============================================================
 
-                if (!widget
-                        .collapsed &&
-                    user != null)
-                  Material(
-                    color:
-                        Colors.transparent,
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      12,
-                    ),
-                    child:
-                        InkWell(
-                      borderRadius:
-                          BorderRadius
-                              .circular(
+            // =================================================================
+            // USER + LOGOUT
+            // =================================================================
+
+            Container(
+              padding: const EdgeInsets.all(
+                8,
+              ),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: AppColors.sidebarBorder,
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // =============================================================
+                  // USER PROFILE
+                  // =============================================================
+
+                  if (!widget.collapsed && user != null)
+                    Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(
                         12,
                       ),
-                      onTap: widget.currentPath
-                              .startsWith(
-                                  '/profile')
-                          ? null
-                          : () => _openRoute(
-                                '/profile',
-                                'Profile',
-                              ),
-                      hoverColor:
-                          AppColors
-                              .sidebarPrimary
-                              .withValues(
-                        alpha:
-                            0.08,
-                      ),
-                      highlightColor:
-                          AppColors
-                              .sidebarPrimary
-                              .withValues(
-                        alpha:
-                            0.14,
-                      ),
-                      child:
-                          Padding(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal:
-                              8,
-                          vertical:
-                              6,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(
+                          12,
                         ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor:
-                                  AppColors
-                                      .sidebarPrimary,
-                              child: Text(
-                                user.initials,
-                                style:
-                                    const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
-                                  color:
-                                      AppColors
-                                          .sidebarPrimaryForeground,
+                        onTap: widget.currentPath.startsWith('/profile')
+                            ? null
+                            : () => _openRoute(
+                                  '/profile',
+                                  'Profile',
+                                ),
+                        hoverColor: AppColors.sidebarPrimary.withValues(
+                          alpha: 0.08,
+                        ),
+                        highlightColor: AppColors.sidebarPrimary.withValues(
+                          alpha: 0.14,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: AppColors.sidebarPrimary,
+                                child: Text(
+                                  user.initials,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.sidebarPrimaryForeground,
+                                  ),
                                 ),
                               ),
-                            ),
-
-                            const SizedBox(
-                              width: 8,
-                            ),
-
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
-                                mainAxisSize:
-                                    MainAxisSize
-                                        .min,
-                                children: [
-                                  Text(
-                                    user.fullName,
-                                    overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                    style:
-                                        const TextStyle(
-                                      fontSize:
-                                          12.5,
-                                      fontWeight:
-                                          FontWeight
-                                              .w600,
-                                      color:
-                                          AppColors
-                                              .sidebarForeground,
-                                    ),
-                                  ),
-
-                                  Text(
-                                    user.email,
-                                    overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                    style:
-                                        const TextStyle(
-                                      fontSize:
-                                          11,
-                                      color:
-                                          AppColors
-                                              .sidebarAccentForeground,
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(
+                                width: 8,
                               ),
-                            ),
-                          ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      user.fullName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.sidebarForeground,
+                                      ),
+                                    ),
+                                    Text(
+                                      user.email,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color:
+                                            AppColors.sidebarAccentForeground,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                _buildLogoutArea(
-                  auth,
-                ),
-              ],
+                  _buildLogoutArea(
+                    auth,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

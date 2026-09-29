@@ -9,6 +9,7 @@ import '../state/page_snapshot_cache.dart';
 import '../widgets/app_dropdown.dart';
 import '../widgets/hoverable_row.dart';
 import '../widgets/page_loading.dart';
+
 class DonationsPage extends StatefulWidget {
   const DonationsPage({super.key});
 
@@ -83,15 +84,11 @@ class _DonationsPageState extends State<DonationsPage>
   // Filters submissions using the donor search and selected status.
   List<DonationSubmission> get _filtered {
     return _submissions.where((submission) {
-      final matchesSearch =
-          _search.isEmpty ||
-          submission.donorName
-              .toLowerCase()
-              .contains(_search.toLowerCase());
+      final matchesSearch = _search.isEmpty ||
+          submission.donorName.toLowerCase().contains(_search.toLowerCase());
 
       final matchesStatus =
-          _statusFilter == null ||
-          submission.status == _statusFilter;
+          _statusFilter == null || submission.status == _statusFilter;
 
       return matchesSearch && matchesStatus;
     }).toList();
@@ -139,11 +136,11 @@ class _DonationsPageState extends State<DonationsPage>
 
   @override
   Widget build(BuildContext context) {
-  if (_loading && _submissions.isEmpty) {
-  return const PageLoading(
-    message: 'Loading donations',
-  );
-}
+    if (_loading && _submissions.isEmpty) {
+      return const PageLoading(
+        message: 'Loading donations',
+      );
+    }
 
     if (_error != null) {
       return Center(
@@ -272,8 +269,7 @@ class _DonationsPageState extends State<DonationsPage>
                       value: '$pendingCount',
                       icon: Icons.schedule_outlined,
                       accent: AppColors.warning,
-                      selected:
-                          _statusFilter == SubmissionStatus.pending,
+                      selected: _statusFilter == SubmissionStatus.pending,
                       onTap: () => _filterByStatus(
                         SubmissionStatus.pending,
                       ),
@@ -289,8 +285,7 @@ class _DonationsPageState extends State<DonationsPage>
                       value: '$approvedCount',
                       icon: Icons.check_circle_outline,
                       accent: AppColors.primary,
-                      selected:
-                          _statusFilter == SubmissionStatus.approved,
+                      selected: _statusFilter == SubmissionStatus.approved,
                       onTap: () => _filterByStatus(
                         SubmissionStatus.approved,
                       ),
@@ -306,8 +301,7 @@ class _DonationsPageState extends State<DonationsPage>
                       value: '$receivedCount',
                       icon: Icons.inventory_2_outlined,
                       accent: AppColors.roleStaff,
-                      selected:
-                          _statusFilter == SubmissionStatus.received,
+                      selected: _statusFilter == SubmissionStatus.received,
                       onTap: () => _filterByStatus(
                         SubmissionStatus.received,
                       ),
@@ -323,8 +317,7 @@ class _DonationsPageState extends State<DonationsPage>
                       value: '$stockedCount',
                       icon: Icons.done_all_outlined,
                       accent: AppColors.primary,
-                      selected:
-                          _statusFilter == SubmissionStatus.stocked,
+                      selected: _statusFilter == SubmissionStatus.stocked,
                       onTap: () => _filterByStatus(
                         SubmissionStatus.stocked,
                       ),
@@ -343,8 +336,7 @@ class _DonationsPageState extends State<DonationsPage>
                     value: '$pendingCount',
                     icon: Icons.schedule_outlined,
                     accent: AppColors.warning,
-                    selected:
-                        _statusFilter == SubmissionStatus.pending,
+                    selected: _statusFilter == SubmissionStatus.pending,
                     onTap: () => _filterByStatus(
                       SubmissionStatus.pending,
                     ),
@@ -358,8 +350,7 @@ class _DonationsPageState extends State<DonationsPage>
                     value: '$approvedCount',
                     icon: Icons.check_circle_outline,
                     accent: AppColors.primary,
-                    selected:
-                        _statusFilter == SubmissionStatus.approved,
+                    selected: _statusFilter == SubmissionStatus.approved,
                     onTap: () => _filterByStatus(
                       SubmissionStatus.approved,
                     ),
@@ -373,8 +364,7 @@ class _DonationsPageState extends State<DonationsPage>
                     value: '$receivedCount',
                     icon: Icons.inventory_2_outlined,
                     accent: AppColors.roleStaff,
-                    selected:
-                        _statusFilter == SubmissionStatus.received,
+                    selected: _statusFilter == SubmissionStatus.received,
                     onTap: () => _filterByStatus(
                       SubmissionStatus.received,
                     ),
@@ -388,8 +378,7 @@ class _DonationsPageState extends State<DonationsPage>
                     value: '$stockedCount',
                     icon: Icons.done_all_outlined,
                     accent: AppColors.primary,
-                    selected:
-                        _statusFilter == SubmissionStatus.stocked,
+                    selected: _statusFilter == SubmissionStatus.stocked,
                     onTap: () => _filterByStatus(
                       SubmissionStatus.stocked,
                     ),
@@ -591,13 +580,10 @@ class _DonationsPageState extends State<DonationsPage>
                     const Divider(
                       height: 1,
                     ),
-
                   _SubmissionRow(
                     submission: _filtered[i],
-                    statusMeta:
-                        _statusMeta(_filtered[i].status),
-                    isMobile:
-                        MediaQuery.of(context).size.width < 700,
+                    statusMeta: _statusMeta(_filtered[i].status),
+                    isMobile: MediaQuery.of(context).size.width < 700,
 
                     // Opens the submission and reloads the database
                     // automatically when staff returns.
@@ -642,8 +628,7 @@ class _FilterStatCard extends StatefulWidget {
   });
 
   @override
-  State<_FilterStatCard> createState() =>
-      _FilterStatCardState();
+  State<_FilterStatCard> createState() => _FilterStatCardState();
 }
 
 class _FilterStatCardState extends State<_FilterStatCard> {
@@ -693,8 +678,7 @@ class _FilterStatCardState extends State<_FilterStatCard> {
                   color: widget.accent.withValues(
                     alpha: 0.10,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   widget.icon,
@@ -702,43 +686,34 @@ class _FilterStatCardState extends State<_FilterStatCard> {
                   color: widget.accent,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.label,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12.5,
-                        fontWeight: widget.selected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
+                        fontWeight:
+                            widget.selected ? FontWeight.w700 : FontWeight.w600,
                         color: AppColors.foreground,
                       ),
                     ),
-
                     const SizedBox(height: 2),
-
                     Text(
                       widget.description,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 11,
-                        color:
-                            AppColors.mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
               Text(
                 widget.value,
                 style: TextStyle(
@@ -804,24 +779,21 @@ class _SubmissionRow extends StatelessWidget {
 
     // Indicates that the submission contains a donor proof image.
     final proofIndicator =
-        sub.proofImg != null &&
-                sub.proofImg!.trim().isNotEmpty
+        sub.proofImg != null && sub.proofImg!.trim().isNotEmpty
             ? const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.image_outlined,
                     size: 15,
-                    color:
-                        AppColors.mutedForeground,
+                    color: AppColors.mutedForeground,
                   ),
                   SizedBox(width: 4),
                   Text(
                     'Proof attached',
                     style: TextStyle(
                       fontSize: 11.5,
-                      color:
-                          AppColors.mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
@@ -840,25 +812,20 @@ class _SubmissionRow extends StatelessWidget {
         ),
         child: isMobile
             ? Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Expanded(
                               child: Text(
                                 sub.donorName,
-                                overflow:
-                                    TextOverflow.ellipsis,
-                                style:
-                                    const TextStyle(
-                                  fontWeight:
-                                      FontWeight.w600,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -866,31 +833,25 @@ class _SubmissionRow extends StatelessWidget {
                             statusBadge,
                           ],
                         ),
-
                         const SizedBox(height: 6),
-
                         Wrap(
                           spacing: 12,
                           runSpacing: 5,
                           children: [
                             Text(
                               'Submitted ${_formatDate(sub.dateSub)}',
-                              style:
-                                  const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors
-                                    .mutedForeground,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                             Text(
                               sub.schedDate == null
                                   ? 'No drop-off date'
                                   : 'Drop-off ${_formatDate(sub.schedDate!)}',
-                              style:
-                                  const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors
-                                    .mutedForeground,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                             proofIndicator,
@@ -899,9 +860,7 @@ class _SubmissionRow extends StatelessWidget {
                       ],
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
                   const Icon(
                     Icons.chevron_right,
                     color: AppColors.mutedForeground,
@@ -920,7 +879,6 @@ class _SubmissionRow extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   Expanded(
                     flex: 2,
                     child: Text(
@@ -928,12 +886,10 @@ class _SubmissionRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12.5,
-                        color:
-                            AppColors.mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ),
-
                   Expanded(
                     flex: 2,
                     child: Text(
@@ -943,12 +899,10 @@ class _SubmissionRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12.5,
-                        color:
-                            AppColors.mutedForeground,
+                        color: AppColors.mutedForeground,
                       ),
                     ),
                   ),
-
                   SizedBox(
                     width: 130,
                     child: Align(
@@ -956,7 +910,6 @@ class _SubmissionRow extends StatelessWidget {
                       child: statusBadge,
                     ),
                   ),
-
                   SizedBox(
                     width: 130,
                     child: Align(
@@ -964,14 +917,12 @@ class _SubmissionRow extends StatelessWidget {
                       child: proofIndicator,
                     ),
                   ),
-
                   const SizedBox(
                     width: 30,
                     child: Icon(
                       Icons.chevron_right,
                       size: 20,
-                      color:
-                          AppColors.mutedForeground,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ],
